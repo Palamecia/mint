@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,42 +21,46 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_BUILTIN_STRING_H
-#define MINT_BUILTIN_STRING_H
+#ifndef MINT_MEMORY_BUILTIN_STRING_H
+#define MINT_MEMORY_BUILTIN_STRING_H
 
+#include "mint/config.h"
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
+#include <string>
+#include <string_view>
 
 namespace mint {
 
-class MINT_EXPORT StringClass : public Class {
-	friend class GlobalData;
-public:
-	static StringClass *instance();
+class AbstractSyntaxTree;
+class GarbageCollector;
 
-private:
-	StringClass();
+class MINT_EXPORT StringClass : public Class {
+public:
+	StringClass(AbstractSyntaxTree& ast);
+	static StringClass& instance(AbstractSyntaxTree& ast);
 };
 
-struct MINT_EXPORT String : public Object {
+class MINT_EXPORT String : public Object {
 	friend class GarbageCollector;
 public:
-	String();
-	explicit String(const char *value);
-	explicit String(std::string value);
-	explicit String(std::string_view value);
-	String(String &&other) noexcept;
-	String(const String &other);
+	explicit String(AbstractSyntaxTree& ast);
+	String(AbstractSyntaxTree& ast, const char* value);
+	String(AbstractSyntaxTree& ast, std::string value);
+	String(AbstractSyntaxTree& ast, std::string_view value);
+	String(String&& other) noexcept;
+	String(const String& other);
 	~String() override = default;
 
-	String &operator=(String &&other) noexcept;
-	String &operator=(const String &other);
+	String& operator=(String&& other) noexcept;
+	String& operator=(const String& other);
 
 	std::string str;
 
 private:
 	static LocalPool<String> g_pool;
 };
+
 }
 
-#endif // MINT_BUILTIN_STRING_H
+#endif // MINT_MEMORY_BUILTIN_STRING_H

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,11 +21,12 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_DATASTREAM_H
-#define MINT_DATASTREAM_H
+#ifndef MINT_SYSTEM_DATASTREAM_H
+#define MINT_SYSTEM_DATASTREAM_H
 
 #include "mint/config.h"
 
+#include <cstddef>
 #include <filesystem>
 #include <functional>
 #include <cstdint>
@@ -35,13 +36,13 @@ namespace mint {
 
 class MINT_EXPORT DataStream {
 public:
-	DataStream();
-	DataStream(DataStream &&) = delete;
-	DataStream(const DataStream &) = delete;
-	virtual ~DataStream();
+	DataStream() = default;
+	DataStream(DataStream&&) = default;
+	DataStream(const DataStream&) = default;
+	virtual ~DataStream() = default;
 
-	DataStream &operator=(DataStream &&) = delete;
-	DataStream &operator=(const DataStream &) = delete;
+	DataStream& operator=(DataStream&&) = default;
+	DataStream& operator=(const DataStream&) = default;
 
 	int get_char();
 	[[nodiscard]] virtual bool at_end() const = 0;
@@ -49,8 +50,8 @@ public:
 	[[nodiscard]] virtual bool is_valid() const = 0;
 	[[nodiscard]] virtual std::filesystem::path path() const = 0;
 
-	void set_new_line_callback(const std::function<void(size_t)> &callback);
-	[[nodiscard]] size_t line_number() const;
+	void set_new_line_callback(const std::function<void(std::size_t)>& callback);
+	[[nodiscard]] std::size_t line_number() const;
 	[[nodiscard]] std::string line_error();
 
 protected:
@@ -61,18 +62,18 @@ private:
 	void begin_line();
 	void end_line();
 
-	enum State : std::uint8_t {
-		STATE_NEW_LINE,
-		STATE_READING
+	enum class State : std::uint8_t {
+		state_new_line,
+		state_reading
 	};
 
-	std::function<void(size_t)> m_new_line_callback;
-	size_t m_line_number;
-	State m_state;
+	std::function<void(std::size_t)> _new_line_callback = [](std::size_t) {};
+	std::size_t _line_number = 1;
+	State _state = State::state_new_line;
 
-	std::string m_cached_line;
+	std::string _cached_line;
 };
 
 }
 
-#endif // MINT_DATASTREAM_H
+#endif // MINT_SYSTEM_DATASTREAM_H

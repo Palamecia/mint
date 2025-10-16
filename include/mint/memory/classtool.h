@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,31 +21,68 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_CLASSTOOL_H
-#define MINT_CLASSTOOL_H
+#ifndef MINT_MEMORY_CLASSTOOL_H
+#define MINT_MEMORY_CLASSTOOL_H
 
+#include "mint/ast/classregister.h"
+#include "mint/ast/module.h"
+#include "mint/ast/symbol.h"
+#include "mint/config.h"
+#include "mint/memory/reference.h"
 #include "mint/memory/class.h"
 
-#include <initializer_list>
-#include <utility>
 #include <cstdint>
+#include <functional>
+#include <initializer_list>
+#include <optional>
+#include <span>
+#include <string>
+#include <utility>
 
 namespace mint {
 
-MINT_EXPORT Class *create_enum(const std::string &name,
-							   std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values);
-MINT_EXPORT Class *create_enum(PackageData *package, const std::string &name,
-							   std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values);
+MINT_EXPORT Class& create_enum(AbstractSyntaxTree& ast, const std::string& name,
+    std::span<const std::pair<Symbol, std::optional<intmax_t>>> values);
+MINT_EXPORT Class& create_enum(PackageData& package, const std::string& name,
+    std::span<const std::pair<Symbol, std::optional<intmax_t>>> values);
 
-MINT_EXPORT Class *create_class(const std::string &name, std::initializer_list<std::pair<Symbol, Reference &&>> members);
-MINT_EXPORT Class *create_class(PackageData *package, const std::string &name,
-								std::initializer_list<std::pair<Symbol, Reference &&>> members);
-MINT_EXPORT Class *create_class(const std::string &name, std::initializer_list<ClassDescription *> bases,
-								std::initializer_list<std::pair<Symbol, Reference &&>> members);
-MINT_EXPORT Class *create_class(PackageData *package, const std::string &name,
-								std::initializer_list<ClassDescription *> bases,
-								std::initializer_list<std::pair<Symbol, Reference &&>> members);
+MINT_EXPORT Class& create_enum(AbstractSyntaxTree& ast, const std::string& name,
+    std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values);
+MINT_EXPORT Class& create_enum(PackageData& package, const std::string& name,
+    std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values);
+
+MINT_EXPORT Class& create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::span<const std::pair<Symbol, WeakReference>> members);
+MINT_EXPORT Class& create_class(PackageData& package, const std::string& name,
+    std::span<const std::pair<Symbol, WeakReference>> members);
+MINT_EXPORT Class& create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::span<const std::reference_wrapper<mint::ClassDescription>> bases,
+    std::span<const std::pair<Symbol, WeakReference>> members);
+MINT_EXPORT Class& create_class(PackageData& package, const std::string& name,
+    std::span<const std::reference_wrapper<mint::ClassDescription>> bases,
+    std::span<const std::pair<Symbol, WeakReference>> members);
+MINT_EXPORT Class& create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::span<const mint::ClassRegister::Path> bases, std::span<const std::pair<Symbol, WeakReference>> members);
+MINT_EXPORT Class& create_class(PackageData& package, const std::string& name,
+    std::span<const mint::ClassRegister::Path> bases, std::span<const std::pair<Symbol, WeakReference>> members);
+
+MINT_EXPORT Class& create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::initializer_list<std::pair<Symbol, WeakReference>> members);
+MINT_EXPORT Class& create_class(PackageData& package, const std::string& name,
+    std::initializer_list<std::pair<Symbol, WeakReference>> members);
+MINT_EXPORT Class& create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::initializer_list<std::reference_wrapper<mint::ClassDescription>> bases,
+    std::initializer_list<std::pair<Symbol, WeakReference>> members);
+MINT_EXPORT Class& create_class(PackageData& package, const std::string& name,
+    std::initializer_list<std::reference_wrapper<mint::ClassDescription>> bases,
+    std::initializer_list<std::pair<Symbol, WeakReference>> members);
+MINT_EXPORT Class& create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::initializer_list<mint::ClassRegister::Path> bases,
+    std::initializer_list<std::pair<Symbol, WeakReference>> members);
+MINT_EXPORT Class& create_class(PackageData& package, const std::string& name,
+    std::initializer_list<mint::ClassRegister::Path> bases,
+    std::initializer_list<std::pair<Symbol, WeakReference>> members);
 
 }
 
-#endif // MINT_CLASSTOOL_H
+#endif // MINT_MEMORY_CLASSTOOL_H

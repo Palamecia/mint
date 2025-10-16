@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,259 +21,324 @@
  * IN THE SOFTWARE.
  */
 
+#include <algorithm>
+#include <array>
+#include <cassert>
+#include <cstddef>
+#include <functional>
+#include <iterator>
+#include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
+
 #include "mint/memory/class.h"
+#include "mint/ast/classregister.h"
+#include "mint/ast/module.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/data.h"
+#include "mint/memory/reference.h"
 #include "mint/memory/object.h"
 #include "mint/memory/globaldata.h"
 #include "mint/memory/memorytool.h"
 
 using namespace mint;
 
-static const Symbol OPERATOR_SYMBOLS[] = {
-	builtin_symbols::NEW_METHOD,
-	builtin_symbols::DELETE_METHOD,
-	builtin_symbols::COPY_OPERATOR,
-	builtin_symbols::CALL_OPERATOR,
-	builtin_symbols::ADD_OPERATOR,
-	builtin_symbols::SUB_OPERATOR,
-	builtin_symbols::MUL_OPERATOR,
-	builtin_symbols::DIV_OPERATOR,
-	builtin_symbols::POW_OPERATOR,
-	builtin_symbols::MOD_OPERATOR,
-	builtin_symbols::IN_OPERATOR,
-	builtin_symbols::EQ_OPERATOR,
-	builtin_symbols::NE_OPERATOR,
-	builtin_symbols::LT_OPERATOR,
-	builtin_symbols::GT_OPERATOR,
-	builtin_symbols::LE_OPERATOR,
-	builtin_symbols::GE_OPERATOR,
-	builtin_symbols::AND_OPERATOR,
-	builtin_symbols::OR_OPERATOR,
-	builtin_symbols::BAND_OPERATOR,
-	builtin_symbols::BOR_OPERATOR,
-	builtin_symbols::XOR_OPERATOR,
-	builtin_symbols::INC_OPERATOR,
-	builtin_symbols::DEC_OPERATOR,
-	builtin_symbols::NOT_OPERATOR,
-	builtin_symbols::COMPL_OPERATOR,
-	builtin_symbols::SHIFT_LEFT_OPERATOR,
-	builtin_symbols::SHIFT_RIGHT_OPERATOR,
-	builtin_symbols::INCLUSIVE_RANGE_OPERATOR,
-	builtin_symbols::EXCLUSIVE_RANGE_OPERATOR,
-	builtin_symbols::SUBSCRIPT_OPERATOR,
-	builtin_symbols::SUBSCRIPT_MOVE_OPERATOR,
-	builtin_symbols::REGEX_MATCH_OPERATOR,
-	builtin_symbols::REGEX_UNMATCH_OPERATOR,
-};
-
-static_assert(Class::OPERATOR_COUNT == std::size(OPERATOR_SYMBOLS));
-
 Symbol mint::get_operator_symbol(Class::Operator op) {
-	return OPERATOR_SYMBOLS[op];
+	switch (op) {
+	case Class::new_operator:
+		return builtin_symbols::new_method;
+	case Class::delete_operator:
+		return builtin_symbols::delete_method;
+	case Class::copy_operator:
+		return builtin_symbols::copy_operator;
+	case Class::call_operator:
+		return builtin_symbols::call_operator;
+	case Class::add_operator:
+		return builtin_symbols::add_operator;
+	case Class::sub_operator:
+		return builtin_symbols::sub_operator;
+	case Class::mul_operator:
+		return builtin_symbols::mul_operator;
+	case Class::div_operator:
+		return builtin_symbols::div_operator;
+	case Class::pow_operator:
+		return builtin_symbols::pow_operator;
+	case Class::mod_operator:
+		return builtin_symbols::mod_operator;
+	case Class::in_operator:
+		return builtin_symbols::in_operator;
+	case Class::eq_operator:
+		return builtin_symbols::eq_operator;
+	case Class::ne_operator:
+		return builtin_symbols::ne_operator;
+	case Class::lt_operator:
+		return builtin_symbols::lt_operator;
+	case Class::gt_operator:
+		return builtin_symbols::gt_operator;
+	case Class::le_operator:
+		return builtin_symbols::le_operator;
+	case Class::ge_operator:
+		return builtin_symbols::ge_operator;
+	case Class::and_operator:
+		return builtin_symbols::and_operator;
+	case Class::or_operator:
+		return builtin_symbols::or_operator;
+	case Class::band_operator:
+		return builtin_symbols::band_operator;
+	case Class::bor_operator:
+		return builtin_symbols::bor_operator;
+	case Class::xor_operator:
+		return builtin_symbols::xor_operator;
+	case Class::inc_operator:
+		return builtin_symbols::inc_operator;
+	case Class::dec_operator:
+		return builtin_symbols::dec_operator;
+	case Class::not_operator:
+		return builtin_symbols::not_operator;
+	case Class::compl_operator:
+		return builtin_symbols::compl_operator;
+	case Class::shift_left_operator:
+		return builtin_symbols::shift_left_operator;
+	case Class::shift_right_operator:
+		return builtin_symbols::shift_right_operator;
+	case Class::inclusive_range_operator:
+		return builtin_symbols::inclusive_range_operator;
+	case Class::exclusive_range_operator:
+		return builtin_symbols::exclusive_range_operator;
+	case Class::subscript_operator:
+		return builtin_symbols::subscript_operator;
+	case Class::subscript_move_operator:
+		return builtin_symbols::subscript_move_operator;
+	case Class::regex_match_operator:
+		return builtin_symbols::regex_match_operator;
+	case Class::regex_unmatch_operator:
+		return builtin_symbols::regex_unmatch_operator;
+	}
+	return {""};
 }
 
-std::optional<Class::Operator> mint::get_symbol_operator(const Symbol &symbol) {
-	for (size_t op = 0; op < Class::OPERATOR_COUNT; ++op) {
-		if (symbol == OPERATOR_SYMBOLS[op]) {
-			return static_cast<Class::Operator>(op);
-		}
+std::optional<Class::Operator> mint::get_symbol_operator(const Symbol& symbol) {
+	static const std::unordered_map<Symbol, Class::Operator> operators {
+	    {builtin_symbols::new_method, Class::new_operator},
+	    {builtin_symbols::delete_method, Class::delete_operator},
+	    {builtin_symbols::copy_operator, Class::copy_operator},
+	    {builtin_symbols::call_operator, Class::call_operator},
+	    {builtin_symbols::add_operator, Class::add_operator},
+	    {builtin_symbols::sub_operator, Class::sub_operator},
+	    {builtin_symbols::mul_operator, Class::mul_operator},
+	    {builtin_symbols::div_operator, Class::div_operator},
+	    {builtin_symbols::pow_operator, Class::pow_operator},
+	    {builtin_symbols::mod_operator, Class::mod_operator},
+	    {builtin_symbols::in_operator, Class::in_operator},
+	    {builtin_symbols::eq_operator, Class::eq_operator},
+	    {builtin_symbols::ne_operator, Class::ne_operator},
+	    {builtin_symbols::lt_operator, Class::lt_operator},
+	    {builtin_symbols::gt_operator, Class::gt_operator},
+	    {builtin_symbols::le_operator, Class::le_operator},
+	    {builtin_symbols::ge_operator, Class::ge_operator},
+	    {builtin_symbols::and_operator, Class::and_operator},
+	    {builtin_symbols::or_operator, Class::or_operator},
+	    {builtin_symbols::band_operator, Class::band_operator},
+	    {builtin_symbols::bor_operator, Class::bor_operator},
+	    {builtin_symbols::xor_operator, Class::xor_operator},
+	    {builtin_symbols::inc_operator, Class::inc_operator},
+	    {builtin_symbols::dec_operator, Class::dec_operator},
+	    {builtin_symbols::not_operator, Class::not_operator},
+	    {builtin_symbols::compl_operator, Class::compl_operator},
+	    {builtin_symbols::shift_left_operator, Class::shift_left_operator},
+	    {builtin_symbols::shift_right_operator, Class::shift_right_operator},
+	    {builtin_symbols::inclusive_range_operator, Class::inclusive_range_operator},
+	    {builtin_symbols::exclusive_range_operator, Class::exclusive_range_operator},
+	    {builtin_symbols::subscript_operator, Class::subscript_operator},
+	    {builtin_symbols::subscript_move_operator, Class::subscript_move_operator},
+	    {builtin_symbols::regex_match_operator, Class::regex_match_operator},
+	    {builtin_symbols::regex_unmatch_operator, Class::regex_unmatch_operator},
+	};
+	if (auto it = operators.find(symbol); it != operators.end()) {
+		return it->second;
 	}
 	return std::nullopt;
 }
 
-Class::Class(const std::string &name, Metatype metatype) :
-	Class(GlobalData::instance(), name, metatype) {}
-
-Class::Class(PackageData *package, std::string name, Metatype metatype) :
-	m_metatype(metatype),
-	m_name(std::move(name)),
-	m_package(package) {
-	m_operators.fill(nullptr);
+Class::Class(PackageData& package, std::string name, Metatype metatype) :
+    _metatype(metatype),
+    _name(std::move(name)),
+    _package(package),
+    _operators({}) {
+	_operators.fill(nullptr);
+	register_root();
 }
 
 Class::~Class() {
-	for (const auto &member : m_members) {
-		delete member.second;
-	}
-	for (const auto &member : m_globals) {
-		delete member.second;
-	}
+	unregister_root();
 }
 
-Class::MemberInfo *Class::get_class(const Symbol &name) {
+Symbol Class::name() const {
+	return _description->name();
+}
 
-	auto it = m_members.find(name);
-	if (it != m_members.end() && it->second->value.data()->format == Data::FMT_OBJECT
-		&& is_class(it->second->value.data<Object>())) {
-		return it->second;
+PackageData& Class::get_package() const {
+	return _package.get();
+}
+
+ClassDescription& Class::get_description() const {
+	return *_description;
+}
+
+Class::MemberInfo* Class::find_class(const Symbol& name) const {
+	if (auto it = _members.find(name); it != _members.end() && is_instance_of(it->second->value, Data::object_format)
+	                                   && is_class(it->second->value.data<Object>())) {
+		return it->second.get();
 	}
 	return nullptr;
 }
 
-Object *Class::make_instance() {
-	return GarbageCollector::instance().alloc<Object>(this);
-}
-
-Symbol Class::name() const {
-	return m_description->name();
-}
-
-PackageData *Class::get_package() const {
-	return m_package;
-}
-
-ClassDescription *Class::get_description() const {
-	return m_description;
-}
-
-const std::vector<Class *> &Class::bases() const {
-	if (m_description) {
-		return m_description->bases();
+const std::vector<std::reference_wrapper<Class>>& Class::bases() const {
+	if (_description) {
+		return _description->bases();
 	}
-	static const std::vector<Class *> g_empty;
+	static const std::vector<std::reference_wrapper<Class>> g_empty;
 	return g_empty;
 }
 
-size_t Class::size() const {
-	return m_slots.size();
+std::size_t Class::size() const {
+	return _slots.size();
 }
 
-bool Class::is_base_of(const Class *other) const {
-	if (other == nullptr) {
-		return false;
-	}
-	const std::vector<Class *> &other_bases = other->bases();
-	return std::any_of(other_bases.begin(), other_bases.end(), [this](const Class *base) {
-		return base == this || is_base_of(base);
+bool Class::is_same(const Class& other) const {
+	return this == &other;
+}
+
+bool Class::is_base_of(const Class& other) const {
+	return std::ranges::any_of(other.bases(), [this](const auto& base) {
+		return is_same(base) || is_base_of(base.get());
 	});
 }
 
-bool Class::is_base_or_same(const Class *other) const {
-	if (other == this) {
+bool Class::is_base_or_same(const Class& other) const {
+	if (this == &other) {
 		return true;
 	}
 	return is_base_of(other);
 }
 
-bool Class::is_direct_base_or_same(const Class *other) const {
-	if (other == this) {
+bool Class::is_direct_base_or_same(const Class& other) const {
+	if (this == &other) {
 		return true;
 	}
-	const auto &other_bases = other->bases();
-	return std::find(other_bases.begin(), other_bases.end(), this) != other_bases.end();
+	const auto& other_bases = other.bases();
+	return std::ranges::find(other_bases, this, [](const auto& base) {
+		return &base.get();
+	}) != other_bases.end();
 }
 
 bool Class::is_copyable() const {
-	return m_copyable;
+	return _copyable;
 }
 
 void Class::disable_copy() {
-	m_copyable = false;
+	_copyable = false;
 }
 
 void Class::cleanup_memory() {
 
-	for (const auto &member : m_members) {
-		delete member.second;
-	}
+	_members.clear();
 
-	m_members.clear();
-
-	for (auto member = m_globals.begin(); member != m_globals.end();) {
+	for (auto member = _globals.begin(); member != _globals.end();) {
 		if (is_class(member->second->value)) {
 			member = std::next(member);
 		}
 		else {
-			delete member->second;
-			member = m_globals.erase(member);
+			member = _globals.erase(member);
 		}
 	}
 
-	std::fill(m_operators.begin(), m_operators.end(), nullptr);
+	std::ranges::fill(_operators, nullptr);
 }
 
 void Class::cleanup_metadata() {
-
-	for (const auto &member : m_globals) {
-		delete member.second;
-	}
-
-	m_globals.clear();
+	_globals.clear();
 }
 
-void Class::create_builtin_member(Operator op, WeakReference &&value) {
-	assert(m_operators[op] == nullptr);
+void Class::create_builtin_member(Operator op, WeakReference&& value) {
+	const auto op_index = static_cast<std::size_t>(op);
+	assert(op_index < _operators.size());
+	assert(_operators[op_index] == nullptr);
 	if (ClassRegister::is_slot(value)) {
-		auto *info = new MemberInfo {
-			/*.offset = */ m_slots.size(),
-			/*.owner = */ this,
-			/*.value = */ std::move(value),
-		};
-		m_members.emplace(OPERATOR_SYMBOLS[op], m_operators[op] = info);
-		m_slots.push_back(info);
+		auto info = std::make_unique<MemberInfo>(MemberInfo {
+		    .offset = _slots.size(),
+		    .owner = *this,
+		    .value = std::move(value),
+		});
+		_operators[op_index] = info.get();
+		_slots.emplace_back(*info);
+		_members.emplace(get_operator_symbol(op), std::move(info));
 	}
 	else {
-		m_members.emplace(OPERATOR_SYMBOLS[op], m_operators[op] = new MemberInfo {
-													/*.offset = */ MemberInfo::INVALID_OFFSET,
-													/*.owner = */ this,
-													/*.value = */ std::move(value),
-												});
+		auto info = std::make_unique<MemberInfo>(MemberInfo {
+		    .offset = MemberInfo::invalid_offset,
+		    .owner = *this,
+		    .value = std::move(value),
+		});
+		_operators[op_index] = info.get();
+		_members.emplace(get_operator_symbol(op), std::move(info));
 	}
 }
 
-void Class::create_builtin_member(Operator op, std::pair<int, Module::Handle *> member) {
-
-	if (MemberInfo *info = m_operators[op]) {
-		auto *data = info->value.data<Function>();
-		data->mapping.emplace(member.first, member.second);
+void Class::create_builtin_member(Operator op, std::pair<int, Module::Handle&> member) {
+	const auto op_index = static_cast<std::size_t>(op);
+	assert(op_index < _operators.size());
+	if (auto* op_info = _operators[op_index]) {
+		auto& data = op_info->value.data<Function>();
+		data.mapping.emplace(member.first, std::make_unique<Function::Stateless>(member.second));
 	}
 	else {
-		auto *data = GarbageCollector::instance().alloc<Function>();
-		data->mapping.emplace(member.first, member.second);
-		m_members.emplace(OPERATOR_SYMBOLS[op],
-						  m_operators[op] = new MemberInfo {
-							  /*.offset = */ MemberInfo::INVALID_OFFSET,
-							  /*.owner = */ this,
-							  /*.value = */ WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, data),
-						  });
+		auto info = std::make_unique<MemberInfo>(MemberInfo {
+		    .offset = MemberInfo::invalid_offset,
+		    .owner = *this,
+		    .value = make_weak_reference<Function>(Reference::const_address | Reference::const_value, member.first,
+		        std::make_unique<Function::Stateless>(member.second)),
+		});
+		_operators[op_index] = info.get();
+		_members.emplace(get_operator_symbol(op), std::move(info));
 	}
 }
 
-void Class::create_builtin_member(const Symbol &symbol, WeakReference &&value) {
-	assert(!m_members.contains(symbol));
+void Class::create_builtin_member(const Symbol& symbol, WeakReference&& value) {
+	assert(!_members.contains(symbol));
 	if (ClassRegister::is_slot(value)) {
-		auto *info = new MemberInfo {
-			/*.offset = */ m_slots.size(),
-			/*.owner = */ this,
-			/*.value = */ std::move(value),
-		};
-		m_members.emplace(symbol, info);
-		m_slots.push_back(info);
+		auto info = std::make_unique<MemberInfo>(MemberInfo {
+		    .offset = _slots.size(),
+		    .owner = *this,
+		    .value = std::move(value),
+		});
+		_slots.emplace_back(*info);
+		_members.emplace(symbol, std::move(info));
 	}
 	else {
-		m_members.emplace(symbol, new MemberInfo {
-									  /*.offset = */ MemberInfo::INVALID_OFFSET,
-									  /*.owner = */ this,
-									  /*.value = */ std::move(value),
-								  });
+		_members.emplace(symbol, std::make_unique<MemberInfo>(MemberInfo {
+		                             .offset = MemberInfo::invalid_offset,
+		                             .owner = *this,
+		                             .value = std::move(value),
+		                         }));
 	}
 }
 
-void Class::create_builtin_member(const Symbol &symbol, std::pair<int, Module::Handle *> member) {
-
-	auto it = m_members.find(symbol);
-
-	if (it != m_members.end()) {
-		auto *data = it->second->value.data<Function>();
-		data->mapping.emplace(member.first, member.second);
+void Class::create_builtin_member(const Symbol& symbol, std::pair<int, Module::Handle&> member) {
+	if (auto it = _members.find(symbol); it != _members.end()) {
+		auto& data = it->second->value.data<Function>();
+		data.mapping.emplace(member.first, std::make_unique<Function::Stateless>(member.second));
 	}
 	else {
-		auto *data = GarbageCollector::instance().alloc<Function>();
-		data->mapping.emplace(member.first, member.second);
-		m_members.emplace(symbol,
-						  new MemberInfo {
-							  /*.offset = */ MemberInfo::INVALID_OFFSET,
-							  /*.owner = */ this,
-							  /*.value = */ WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, data),
-						  });
+		auto info = std::make_unique<MemberInfo>(MemberInfo {
+		    .offset = MemberInfo::invalid_offset,
+		    .owner = *this,
+		    .value = make_weak_reference<Function>(Reference::const_address | Reference::const_value, member.first,
+		        std::make_unique<Function::Stateless>(member.second)),
+		});
+		_members.emplace(symbol, std::move(info));
 	}
 }

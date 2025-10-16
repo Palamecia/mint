@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,76 +22,82 @@
  */
 
 #include "bracematcher.h"
+#include "mint/compiler/token.h"
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
 
 using namespace mint;
 
-BraceMatcher::BraceMatcher(std::pair<std::string_view::size_type, bool> &match, std::string_view::size_type offset) :
-	m_match(match),
-	m_offset(offset) {
-	m_match = {std::string_view::npos, true};
+BraceMatcher::BraceMatcher(std::string_view::size_type offset) :
+    _offset(offset) {}
+
+std::pair<std::string_view::size_type, bool> BraceMatcher::match() const {
+	return _match;
 }
 
-bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) {
+bool BraceMatcher::on_token(mint::Token type, const std::string& token, std::string::size_type offset) {
 	switch (type) {
-	case token::STRING_TOKEN:
-	case token::REGEX_TOKEN:
+	case Token::string_token:
+	case Token::regex_token:
 		if (token.size() < 2 || token.front() != token.back()) {
-			m_match.second = false;
+			_match.second = false;
 		}
-		else if (m_offset == offset) {
-			m_match.first = offset + token.size() - 1;
+		else if (_offset == offset) {
+			_match.first = offset + token.size() - 1;
 		}
-		else if (m_offset == offset + token.size() - 1) {
-			m_match.first = offset;
-		}
-		break;
-	case token::OPEN_BRACE_TOKEN:
-		if (m_offset == offset) {
-			m_brace_open = m_brace_depth.size();
-		}
-		m_brace_depth.push_back(offset);
-		break;
-	case token::CLOSE_BRACE_TOKEN:
-		if (m_offset == offset) {
-			m_match.first = m_brace_depth.back();
-		}
-		m_brace_depth.pop_back();
-		if (m_brace_open && *m_brace_open == m_brace_depth.size()) {
-			m_match.first = offset;
-			m_brace_open = std::nullopt;
+		else if (_offset == offset + token.size() - 1) {
+			_match.first = offset;
 		}
 		break;
-	case token::OPEN_BRACKET_TOKEN:
-		if (m_offset == offset) {
-			m_bracket_open = m_bracket_depth.size();
+	case Token::open_brace_token:
+		if (_offset == offset) {
+			_brace_open = _brace_depth.size();
 		}
-		m_bracket_depth.push_back(offset);
+		_brace_depth.push_back(offset);
 		break;
-	case token::CLOSE_BRACKET_TOKEN:
-	case token::CLOSE_BRACKET_EQUAL_TOKEN:
-		if (m_offset == offset) {
-			m_match.first = m_bracket_depth.back();
+	case Token::close_brace_token:
+		if (_offset == offset) {
+			_match.first = _brace_depth.back();
 		}
-		m_bracket_depth.pop_back();
-		if (m_bracket_open && *m_bracket_open == m_bracket_depth.size()) {
-			m_match.first = offset;
-			m_bracket_open = std::nullopt;
+		_brace_depth.pop_back();
+		if (_brace_open && *_brace_open == _brace_depth.size()) {
+			_match.first = offset;
+			_brace_open = std::nullopt;
 		}
 		break;
-	case token::OPEN_PARENTHESIS_TOKEN:
-		if (m_offset == offset) {
-			m_parenthesis_open = m_parenthesis_depth.size();
+	case Token::open_bracket_token:
+		if (_offset == offset) {
+			_bracket_open = _bracket_depth.size();
 		}
-		m_parenthesis_depth.push_back(offset);
+		_bracket_depth.push_back(offset);
 		break;
-	case token::CLOSE_PARENTHESIS_TOKEN:
-		if (m_offset == offset) {
-			m_match.first = m_parenthesis_depth.back();
+	case Token::close_bracket_token:
+	case Token::close_bracket_equal_token:
+		if (_offset == offset) {
+			_match.first = _bracket_depth.back();
 		}
-		m_parenthesis_depth.pop_back();
-		if (m_parenthesis_open && *m_parenthesis_open == m_parenthesis_depth.size()) {
-			m_match.first = offset;
-			m_parenthesis_open = std::nullopt;
+		_bracket_depth.pop_back();
+		if (_bracket_open && *_bracket_open == _bracket_depth.size()) {
+			_match.first = offset;
+			_bracket_open = std::nullopt;
+		}
+		break;
+	case Token::open_parenthesis_token:
+		if (_offset == offset) {
+			_parenthesis_open = _parenthesis_depth.size();
+		}
+		_parenthesis_depth.push_back(offset);
+		break;
+	case Token::close_parenthesis_token:
+		if (_offset == offset) {
+			_match.first = _parenthesis_depth.back();
+		}
+		_parenthesis_depth.pop_back();
+		if (_parenthesis_open && *_parenthesis_open == _parenthesis_depth.size()) {
+			_match.first = offset;
+			_parenthesis_open = std::nullopt;
 		}
 		break;
 	default:
@@ -101,18 +107,18 @@ bool BraceMatcher::on_token(mint::token::Type type, const std::string &token, st
 }
 
 bool BraceMatcher::on_comment_begin([[maybe_unused]] std::string::size_type offset) {
-	m_comment = true;
+	_comment = true;
 	return true;
 }
 
 bool BraceMatcher::on_comment_end([[maybe_unused]] std::string::size_type offset) {
-	m_comment = false;
+	_comment = false;
 	return true;
 }
 
 bool BraceMatcher::on_script_end() {
-	if (m_comment || !m_brace_depth.empty() || !m_bracket_depth.empty() || !m_parenthesis_depth.empty()) {
-		m_match.second = false;
+	if (_comment || !_brace_depth.empty() || !_bracket_depth.empty() || !_parenthesis_depth.empty()) {
+		_match.second = false;
 	}
 	return true;
 }

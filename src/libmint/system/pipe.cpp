@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,136 +22,117 @@
  */
 
 #include "mint/system/pipe.h"
-#include "mint/system/terminal.h"
 #include "mint/system/errno.h"
+#include <cstddef>
+#include <cstdio>
+#include <stdio.h>
+#include <string>
+#include <system_error>
 
-#ifdef OS_WINDOWS
-#include "win32/pipe.h"
+#ifdef MINT_OS_WINDOWS
+#include "mint/system/terminal.h"
+#include <bit>
+#include <Windows.h>
+#include <corecrt_io.h>
+#include <fileapi.h>
+#include <handleapi.h>
 #include <io.h>
+#include <minwindef.h>
+#include <namedpipeapi.h>
+#include <processenv.h>
+#include <winbase.h>
+#include <winnt.h>
 #else
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdarg.h>
 #include <cstring>
 #endif
 
 using namespace mint;
 
-int Pipe::printf(FILE *stream, const char *format, ...) {
-	va_list args;
-	va_start(args, format);
-	int written = Pipe::vprintf(stream, format, args);
-	va_end(args);
-	return written;
-}
-
-int Pipe::vprintf(FILE *stream, const char *format, va_list args) {
-
-#ifdef OS_UNIX
-	return vfprintf(stream, format, args);
-#else
-	HANDLE hPipe = INVALID_HANDLE_VALUE;
-
-	switch (int fd = fileno(stream)) {
-	case STDIN_FILE_NO:
-		hPipe = GetStdHandle(STD_INPUT_HANDLE);
-		break;
-	case STDOUT_FILE_NO:
-		hPipe = GetStdHandle(STD_OUTPUT_HANDLE);
-		break;
-	case STDERR_FILE_NO:
-		hPipe = GetStdHandle(STD_ERROR_HANDLE);
-		break;
-	default:
-		hPipe = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
-		break;
-	}
-
-	int written_all = 0;
-
-	while (const char *cptr = strstr(format, "%")) {
-
-		if (int prefix_length = static_cast<int>(cptr - format)) {
-			int written = WriteMultiByteToFile(hPipe, format, prefix_length);
-			if (written == EOF) {
-				errno = errno_from_error_code(last_error_code());
-				return written;
-			}
-			written_all += written;
-		}
-
-		format = cptr + 1;
-		int written = pipe_handle_format_flags(hPipe, &format, &args);
-		if (written == EOF) {
-			errno = errno_from_error_code(last_error_code());
-			return written;
-		}
-		written_all += written;
-	}
-
-	if (*format) {
-		int written = WriteMultiByteToFile(hPipe, format);
-		if (written == EOF) {
-			errno = errno_from_error_code(last_error_code());
-			return written;
-		}
-		written_all += written;
-	}
-
-	return written_all;
-#endif
-}
-
-int Pipe::print(FILE *stream, const char *str) {
+std::size_t Pipe::write(FILE* stream, const std::string& str) {
 	const int fd = fileno(stream);
-#ifdef OS_WINDOWS
-	DWORD dwNumberOfBytesWritten = 0;
-	HANDLE hPipe = INVALID_HANDLE_VALUE;
+#ifdef MINT_OS_WINDOWS
+	DWORD number_of_bytes_written = 0;
+	HANDLE pipe = INVALID_HANDLE_VALUE;
 	switch (fd) {
-	case STDIN_FILE_NO:
-		hPipe = GetStdHandle(STD_INPUT_HANDLE);
+	case stdin_file_no:
+		pipe = GetStdHandle(STD_INPUT_HANDLE);
 		break;
-	case STDOUT_FILE_NO:
-		hPipe = GetStdHandle(STD_OUTPUT_HANDLE);
+	case stdout_file_no:
+		pipe = GetStdHandle(STD_OUTPUT_HANDLE);
 		break;
-	case STDERR_FILE_NO:
-		hPipe = GetStdHandle(STD_ERROR_HANDLE);
+	case stderr_file_no:
+		pipe = GetStdHandle(STD_ERROR_HANDLE);
 		break;
 	default:
-		hPipe = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+		pipe = std::bit_cast<HANDLE>(_get_osfhandle(fd));
 		break;
 	}
-	if (WriteFile(hPipe, str, static_cast<DWORD>(strlen(str)) + 1, &dwNumberOfBytesWritten, NULL)) {
-		return static_cast<int>(dwNumberOfBytesWritten);
+	if (!WriteFile(pipe, str.data(), static_cast<DWORD>(str.length() + 1), &number_of_bytes_written, nullptr)) {
+		throw std::system_error(last_error_code());
 	}
-	return EOF;
+	return number_of_bytes_written;
 #else
-	return write(fd, str, strlen(str));
+	const auto amount = ::write(fd, str.data(), str.length());
+	if (amount == EOF) {
+		throw std::system_error(last_error_code());
+	}
+	return static_cast<std::size_t>(amount);
 #endif
 }
 
-bool mint::is_pipe(FILE *stream) {
+void Pipe::print(FILE* stream, const std::string& str) {
+	const int fd = fileno(stream);
+#ifdef MINT_OS_WINDOWS
+	DWORD number_of_bytes_written = 0;
+	HANDLE pipe = INVALID_HANDLE_VALUE;
+	switch (fd) {
+	case stdin_file_no:
+		pipe = GetStdHandle(STD_INPUT_HANDLE);
+		break;
+	case stdout_file_no:
+		pipe = GetStdHandle(STD_OUTPUT_HANDLE);
+		break;
+	case stderr_file_no:
+		pipe = GetStdHandle(STD_ERROR_HANDLE);
+		break;
+	default:
+		pipe = std::bit_cast<HANDLE>(_get_osfhandle(fd));
+		break;
+	}
+	if (!WriteFile(pipe, str.data(), static_cast<DWORD>(str.length() + 1), &number_of_bytes_written, nullptr)) {
+		throw std::system_error(last_error_code());
+	}
+#else
+	if (::write(fd, str.data(), str.length()) == EOF) {
+		throw std::system_error(last_error_code());
+	}
+#endif
+}
+
+bool mint::is_pipe(FILE* stream) {
 	return is_pipe(fileno(stream));
 }
 
 bool mint::is_pipe(int fd) {
-#ifdef OS_WINDOWS
-	HANDLE hPipe = INVALID_HANDLE_VALUE;
+#ifdef MINT_OS_WINDOWS
+	HANDLE pipe = INVALID_HANDLE_VALUE;
 	switch (fd) {
-	case STDIN_FILE_NO:
-		hPipe = GetStdHandle(STD_INPUT_HANDLE);
+	case stdin_file_no:
+		pipe = GetStdHandle(STD_INPUT_HANDLE);
 		break;
-	case STDOUT_FILE_NO:
-		hPipe = GetStdHandle(STD_OUTPUT_HANDLE);
+	case stdout_file_no:
+		pipe = GetStdHandle(STD_OUTPUT_HANDLE);
 		break;
-	case STDERR_FILE_NO:
-		hPipe = GetStdHandle(STD_ERROR_HANDLE);
+	case stderr_file_no:
+		pipe = GetStdHandle(STD_ERROR_HANDLE);
 		break;
 	default:
-		hPipe = reinterpret_cast<HANDLE>(_get_osfhandle(fd));
+		pipe = std::bit_cast<HANDLE>(_get_osfhandle(fd));
 		break;
 	}
-	return GetNamedPipeInfo(hPipe, NULL, NULL, NULL, NULL);
+	return GetNamedPipeInfo(pipe, nullptr, nullptr, nullptr, nullptr);
 #else
 	return S_ISFIFO(fd);
 #endif

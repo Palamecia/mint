@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -43,9 +43,9 @@ class MintLspWorkspace {
         const def new(self, uri, workspace, source = none, version = none, local = true, extra_sys_path = none) {
             self.version = version
             self.uri = System.Url(uri)
-            self.path = self.uri.toFile().getPath()
-            self.dot_path = self.path.toModulePath()
-            self.filename = System.File(self.path).getBaseName()
+            self.path = self.uri.toFile()?.getPath()
+            self.dot_path = self.path?.toModulePath()
+            self.filename = System.File(self.path)?.getBaseName()
 
             self._config = workspace.getConfig()
             self._workspace = workspace
@@ -326,13 +326,16 @@ class MintLspWorkspace {
      * Return the source roots for the given document.
      */
     const def sourceRoots(self, documentPath) {
+        if not defined documentPath {
+            return self.rootPath
+        }
         var files = self.findParents(self.rootPath, documentPath, ['.git'])
         var roots = array(files.transform(def (project_file) { return System.Directory(project_file).getName() }))
         return roots.isEmpty() ? [self.rootPath] : roots
     }
 
     - const def makeDocument(self, docUrl, source = none, version = none) {
-        var path = System.Url(docUrl).toFile().getAbsolutePath()
+        var path = System.Url(docUrl)?.toFile()?.getAbsolutePath()
         return MintLspWorkspace.Document(docUrl, self, source, version, self.sourceRoots(path))
     }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -27,9 +27,11 @@
 #include "docnode.h"
 
 #include <cassert>
-#include <mint/memory/reference.h>
+#include "mint/memory/reference.h"
 
+#include <concepts>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 #include <memory>
@@ -37,20 +39,20 @@
 
 struct Definition {
 	enum Type : std::uint8_t {
-		PACKAGE_DEFINITION,
-		ENUM_DEFINITION,
-		CLASS_DEFINITION,
-		CONSTANT_DEFINITION,
-		FUNCTION_DEFINITION
+		package_definition,
+		enum_definition,
+		class_definition,
+		constant_definition,
+		function_definition
 	};
 
 	Definition(Type type, std::string name);
-	Definition(const Definition &) = delete;
-	Definition(Definition &&) = delete;
+	Definition(const Definition&) = delete;
+	Definition(Definition&&) = delete;
 	virtual ~Definition();
 
-	Definition &operator=(const Definition &) = delete;
-	Definition &operator=(Definition &&) = delete;
+	Definition& operator=(const Definition&) = delete;
+	Definition& operator=(Definition&&) = delete;
 
 	Type type;
 	mint::Reference::Flags flags;
@@ -59,38 +61,38 @@ struct Definition {
 	[[nodiscard]] std::string context() const;
 	[[nodiscard]] std::string symbol() const;
 
-	template<class T, typename = std::enable_if_t<std::is_base_of_v<Definition, T>>>
-	inline const T *as() const;
+	template<std::derived_from<Definition> T>
+	inline const T& as() const;
 };
 
 struct Package : public Definition {
-	Package(const std::string &name);
+	Package(const std::string& name);
 
 	std::set<std::string> members;
 	std::unique_ptr<DocNode> doc;
 };
 
 template<>
-inline const Package *Definition::as<Package>() const {
-	assert(type == PACKAGE_DEFINITION);
-	return static_cast<const Package *>(this);
+inline const Package& Definition::as<Package>() const {
+	assert(type == package_definition);
+	return static_cast<const Package&>(*this);
 }
 
 struct Enum : public Definition {
-	Enum(const std::string &name);
+	Enum(const std::string& name);
 
 	std::set<std::string> members;
 	std::unique_ptr<DocNode> doc;
 };
 
 template<>
-inline const Enum *Definition::as<Enum>() const {
-	assert(type == ENUM_DEFINITION);
-	return static_cast<const Enum *>(this);
+inline const Enum& Definition::as<Enum>() const {
+	assert(type == enum_definition);
+	return static_cast<const Enum&>(*this);
 }
 
 struct Class : public Definition {
-	Class(const std::string &name);
+	Class(const std::string& name);
 
 	std::vector<std::string> bases;
 	std::set<std::string> members;
@@ -98,22 +100,22 @@ struct Class : public Definition {
 };
 
 template<>
-inline const Class *Definition::as<Class>() const {
-	assert(type == CLASS_DEFINITION);
-	return static_cast<const Class *>(this);
+inline const Class& Definition::as<Class>() const {
+	assert(type == class_definition);
+	return static_cast<const Class&>(*this);
 }
 
 struct Constant : public Definition {
-	Constant(const std::string &name);
+	Constant(const std::string& name);
 
 	std::string value;
 	std::unique_ptr<DocNode> doc;
 };
 
 template<>
-inline const Constant *Definition::as<Constant>() const {
-	assert(type == CONSTANT_DEFINITION);
-	return static_cast<const Constant *>(this);
+inline const Constant& Definition::as<Constant>() const {
+	assert(type == constant_definition);
+	return static_cast<const Constant&>(*this);
 }
 
 struct Function : public Definition {
@@ -122,21 +124,32 @@ struct Function : public Definition {
 		std::unique_ptr<DocNode> doc;
 	};
 
-	Function(const std::string &name);
-	Function(const Function &) = delete;
-	Function(Function &&) = delete;
-	~Function();
+	Function(const std::string& name);
 
-	Function &operator=(const Function &) = delete;
-	Function &operator=(Function &&) = delete;
-
-	std::vector<Signature *> signatures;
+	std::vector<std::shared_ptr<Signature>> signatures;
 };
 
 template<>
-inline const Function *Definition::as<Function>() const {
-	assert(type == FUNCTION_DEFINITION);
-	return static_cast<const Function *>(this);
+inline const Function& Definition::as<Function>() const {
+	assert(type == function_definition);
+	return static_cast<const Function&>(*this);
+}
+
+template<class R, class Visitor>
+R visit(Visitor&& visitor, const Definition& definition) {
+	switch (definition.type) {
+	case Definition::package_definition:
+		return std::invoke(std::forward<Visitor>(visitor), definition.as<Package>());
+	case Definition::enum_definition:
+		return std::invoke(std::forward<Visitor>(visitor), definition.as<Enum>());
+	case Definition::class_definition:
+		return std::invoke(std::forward<Visitor>(visitor), definition.as<Class>());
+	case Definition::constant_definition:
+		return std::invoke(std::forward<Visitor>(visitor), definition.as<Constant>());
+	case Definition::function_definition:
+		return std::invoke(std::forward<Visitor>(visitor), definition.as<Function>());
+	}
+	return {};
 }
 
 #endif // MINTDOC_DEFINITION_H

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,86 +21,116 @@
  * IN THE SOFTWARE.
  */
 
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/data.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
 #include "mint/system/filesystem.h"
 #include "mint/system/errno.h"
-
-#ifdef OS_WINDOWS
-#include <Windows.h>
-#include <sstream>
-#include <process.h>
-#include <TlHelp32.h>
-#include <corecrt_wstring.h>
-#include "win32/NtProcessInfo.h"
-#else
-#include <unistd.h>
-#include <dirent.h>
-#include <sys/wait.h>
-#include <sys/signal.h>
-#include <sys/resource.h>
-#endif
-
+#include <cstddef>
+#include <cstdlib>
+#include <cstring>
+#include <gsl/pointers>
 #include <filesystem>
 #include <string>
 
-using namespace mint;
+#ifdef MINT_OS_WINDOWS
+#include "win32/NtProcessInfo.h"
+#include <cstdint>
+#include <memory>
+#include <Windows.h>
+#include <consoleapi.h>
+#include <consoleapi2.h>
+#include <consoleapi3.h>
+#include <corecrt_wstring.h>
+#include <cwchar>
+#include <handleapi.h>
+#include <minwinbase.h>
+#include <minwindef.h>
+#include <process.h>
+#include <processenv.h>
+#include <processthreadsapi.h>
+#include <shellapi.h>
+#include <sstream>
+#include <stringapiset.h>
+#include <synchapi.h>
+#include <TlHelp32.h>
+#include <utility>
+#include <winbase.h>
+#include <winnls.h>
+#include <winnt.h>
+#include <winuser.h>
+#else
+#include <array>
+#include <csignal>
+#include <cstdio>
+#include <dirent.h>
+#include <format>
+#include <ranges>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/resource.h>
+#include <sys/signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <vector>
+#endif
 
 namespace {
 
-#ifdef OS_WINDOWS
-std::wstring utf8_to_windows(const std::string &str) {
-
-	std::wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0), L'\0');
-
-	if (MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, buffer.data(), buffer.length())) {
+#ifdef MINT_OS_WINDOWS
+std::wstring utf8_to_windows(const std::string& str) {
+	const int length = MultiByteToWideChar(CP_UTF8, 0, str.data(), -1, nullptr, 0);
+	if (std::wstring buffer(length, L'\0'); MultiByteToWideChar(CP_UTF8, 0, str.data(), -1, buffer.data(), length)) {
 		return buffer;
 	}
-
 	return {};
 }
 
-std::string windows_to_utf8(const std::wstring &str) {
-
-	std::string buffer(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr), '\0');
-
-	if (WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, buffer.data(), buffer.length(), nullptr, nullptr)) {
+std::string windows_to_utf8(const std::wstring& str) {
+	const int length = WideCharToMultiByte(CP_UTF8, 0, str.data(), -1, nullptr, 0, nullptr, nullptr);
+	if (std::string buffer(length, '\0');
+	    WideCharToMultiByte(CP_UTF8, 0, str.data(), -1, buffer.data(), length, nullptr, nullptr)) {
+		buffer.resize(length - 1);
 		return buffer;
 	}
-
 	return {};
 }
+
+constexpr inline DWORD internal_kill_code = 0xDEAD;
+
 #endif
 
-}
+mint::WeakReference mint_process_list(mint::Cursor& cursor) {
 
-MINT_FUNCTION(mint_process_list, 0, cursor) {
+	mint::WeakReference result = mint::create_iterator(cursor.ast());
 
-	FunctionHelper helper(cursor, 0);
-	WeakReference result = create_iterator();
-
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 	PROCESSENTRY32 pe = {sizeof(PROCESSENTRY32)};
-	HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 
-	if (hSnap != INVALID_HANDLE_VALUE) {
-
-		for (BOOL found = Process32First(hSnap, &pe); found; found = Process32Next(hSnap, &pe)) {
-			iterator_yield(result.data<Iterator>(), create_number(pe.th32ProcessID));
+	if (HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); snap != INVALID_HANDLE_VALUE) {
+		for (BOOL found = Process32First(snap, &pe); found; found = Process32Next(snap, &pe)) {
+			iterator_yield(result.data<mint::Iterator>(), mint::create_number(pe.th32ProcessID));
 		}
-
-		CloseHandle(hSnap);
+		CloseHandle(snap);
 	}
 #else
-	if (DIR *proc = opendir("/proc/")) {
+	if (DIR* proc = opendir("/proc/")) {
 
-		while (const dirent *process = readdir(proc)) {
+		while (const dirent* process = readdir(proc)) {
 
-			char *error = nullptr;
+			char* error = nullptr;
 			auto pid = static_cast<pid_t>(strtol(process->d_name, &error, 10));
 
 			if (!*error) {
-				iterator_yield(result.data<Iterator>(), create_number(pid));
+				mint::iterator_yield(result.data<mint::Iterator>(), mint::create_number(pid));
 			}
 		}
 
@@ -108,90 +138,70 @@ MINT_FUNCTION(mint_process_list, 0, cursor) {
 	}
 #endif
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_process_exec, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-
-	std::string command = to_string(helper.pop_parameter());
-
-	helper.return_value(create_number(system(command.data())));
+mint::WeakReference mint_process_exec(mint::Cursor& /*cursor*/, const mint::Reference& command) {
+	return mint::create_signed_number(system(to_string(command).data()));
 }
 
-MINT_FUNCTION(mint_process_get_handle, 1, cursor) {
-#ifdef OS_WINDOWS
-
-	FunctionHelper helper(cursor, 1);
-
-	auto proc_id = static_cast<DWORD>(to_number(cursor, helper.pop_parameter()));
+mint::WeakReference mint_process_get_handle(mint::Cursor& cursor, const mint::Reference& pid) {
+#ifdef MINT_OS_WINDOWS
+	const auto proc_id = mint::to_integer<DWORD>(cursor, pid);
 	HANDLE handle = OpenProcess(PROCESS_ALL_ACCESS, TRUE, proc_id);
 
 	if (handle == INVALID_HANDLE_VALUE) {
 		handle = OpenProcess(STANDARD_RIGHTS_REQUIRED, TRUE, proc_id);
 	}
 
-	helper.return_value(create_object(handle));
+	return mint::create_c_object(cursor.ast(), handle);
 #else
 	((void)cursor);
+	return {};
 #endif
 }
 
-MINT_FUNCTION(mint_process_get_pid, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	WeakReference handle = std::move(helper.pop_parameter());
-
-	if (handle.data()->format != Data::FMT_NONE) {
-#ifdef OS_WINDOWS
-		helper.return_value(create_number(GetProcessId(to_handle(helper.pop_parameter()))));
+mint::WeakReference mint_process_get_pid(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+	if (handle.data().format() != mint::Data::none_format) {
+#ifdef MINT_OS_WINDOWS
+		return mint::create_number(GetProcessId(to_handle(handle)));
 #else
-		helper.return_value(create_number(static_cast<pid_t>(to_handle(handle))));
+		return mint::create_number(static_cast<pid_t>(to_handle(handle)));
 #endif
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_process_close_handle, 1, cursor) {
-#ifdef OS_WINDOWS
-
-	FunctionHelper helper(cursor, 1);
-
-	WeakReference handle = std::move(helper.pop_parameter());
-
-	if (handle.data()->format != Data::FMT_NONE) {
-		CloseHandle(to_handle(helper.pop_parameter()));
+mint::WeakReference mint_process_close_handle(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	if (handle.data().format() != mint::Data::none_format) {
+		CloseHandle(to_handle(handle));
 	}
 #else
-	((void)cursor);
+	((void)handle);
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_process_start, 5, cursor) {
+mint::WeakReference mint_process_start(mint::Cursor& cursor, const mint::Reference& process,
+    const mint::Reference& arguments, mint::Reference& working_directory, const mint::Reference& environment,
+    const mint::Reference& pipes) {
 
-	FunctionHelper helper(cursor, 5);
+	mint::WeakReference result = mint::create_iterator(cursor.ast());
 
-	WeakReference pipes = std::move(helper.pop_parameter());
-	WeakReference environment = std::move(helper.pop_parameter());
-	WeakReference working_directory = std::move(helper.pop_parameter());
-	WeakReference arguments = std::move(helper.pop_parameter());
-	WeakReference process = std::move(helper.pop_parameter());
-	WeakReference result = create_iterator();
-
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 
 	std::wstringstream command;
-	wchar_t *process_working_directory = nullptr;
-	wchar_t **process_environment = nullptr;
-	DWORD dwCreationFlags;
+	wchar_t* process_working_directory = nullptr;
+	wchar_t** process_environment = nullptr;
+	DWORD creation_flags = (GetConsoleWindow() ? 0 : CREATE_NO_WINDOW);
 	STARTUPINFOW startup_info;
 	PROCESS_INFORMATION process_info;
 
-	dwCreationFlags = (GetConsoleWindow() ? 0 : CREATE_NO_WINDOW);
 	ZeroMemory(&startup_info, sizeof(startup_info));
 	startup_info.cb = sizeof(startup_info);
 
-	auto escape = [](std::wstring &&arg) -> std::wstring && {
+	auto escape = [](std::wstring&& arg) -> std::wstring&& {
 		if (arg.empty()) {
 			arg = L"\"\"";
 		}
@@ -201,35 +211,36 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 		return std::move(arg);
 	};
 
-	command << escape(FileSystem::normalized(to_string(process)).generic_wstring());
+	command << escape(mint::FileSystem::normalized(to_string(process)).generic_wstring());
 
-	for (Array::values_type::value_type &argv : to_array(arguments)) {
+	for (auto& argv : to_array(arguments)) {
 		command << L" " << escape(utf8_to_windows(to_string(array_get_item(argv))));
 	}
 
-	if (working_directory.data()->format != Data::FMT_NONE) {
-		std::wstring working_directory_str = utf8_to_windows(to_string(working_directory));
+	if (working_directory.data().format() != mint::Data::none_format) {
+		const auto working_directory_str = utf8_to_windows(to_string(working_directory));
 		process_working_directory = _wcsdup(working_directory_str.c_str());
 	}
 
-	if (environment.data()->format != Data::FMT_NONE) {
-		process_environment = new wchar_t *[environment.data<Hash>()->values.size() + 1];
-		dwCreationFlags |= CREATE_UNICODE_ENVIRONMENT;
-		size_t var_pos = 0;
-		for (auto &var : environment.data<Hash>()->values) {
-			std::wstring name = utf8_to_windows(to_string(hash_get_key(var)));
-			std::wstring value = utf8_to_windows(to_string(hash_get_value(var)));
-			auto *buffer = new wchar_t[name.size() + value.size() + 2];
+	if (environment.data().format() != mint::Data::none_format) {
+		process_environment = new wchar_t*[environment.data<mint::Hash>().values.size() + 1];
+		creation_flags |= CREATE_UNICODE_ENVIRONMENT;
+		std::size_t var_pos = 0;
+		for (auto& var : environment.data<mint::Hash>().values) {
+			const auto name = utf8_to_windows(to_string(hash_get_key(var)));
+			const auto value = utf8_to_windows(to_string(hash_get_value(var)));
+			auto* buffer = new wchar_t[name.size() + value.size() + 2];
 			wsprintfW(buffer, L"%ls=%ls", name.c_str(), value.c_str());
 			process_environment[var_pos++] = buffer;
 		}
 		process_environment[var_pos] = nullptr;
 	}
 
-	if (pipes.data()->format != Data::FMT_NONE) {
+	if (pipes.data().format() != mint::Data::none_format) {
 
-		auto get_pipe_handle = [](const Reference &pipes, intmax_t pipe, intmax_t handle) {
-			return to_handle(array_get_item(array_get_item(pipes.data<Array>(), pipe).data<Array>(), handle));
+		auto get_pipe_handle = [](const mint::Reference& pipes, intmax_t pipe, intmax_t handle) {
+			return to_handle(
+			    array_get_item(array_get_item(pipes.data<mint::Array>(), pipe).data<mint::Array>(), handle));
 		};
 
 		if (SetHandleInformation(get_pipe_handle(pipes, 0, 0), HANDLE_FLAG_INHERIT, 0)) {
@@ -250,46 +261,47 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 
 	std::wstring command_line = command.str();
 
-	if (CreateProcessW(nullptr, const_cast<wchar_t *>(command_line.data()), nullptr, nullptr, false, dwCreationFlags,
-					   process_environment, process_working_directory, &startup_info, &process_info)) {
-		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_yield(result.data<Iterator>(), create_handle(process_info.hProcess));
+	if (CreateProcessW(nullptr, const_cast<wchar_t*>(command_line.data()), nullptr, nullptr, false, creation_flags,
+	        process_environment, process_working_directory, &startup_info, &process_info)) {
+		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_handle(cursor.ast(), process_info.hProcess));
 		CloseHandle(process_info.hThread);
 	}
 	else {
-		iterator_yield(result.data<Iterator>(), create_number(errno_from_error_code(last_error_code())));
+		iterator_yield(result.data<mint::Iterator>(),
+		    mint::create_number(mint::errno_from_error_code(mint::last_error_code())));
 	}
 #else
-	pid_t pid = fork();
+	const auto pid = fork();
 
 	if (pid == 0) {
 
-		std::vector<char *> args;
+		std::vector<char*> args;
 
 		std::string process_str = to_string(process);
 		args.push_back(strdup(process_str.data()));
 
-		for (Array::values_type::value_type &argv : to_array(arguments)) {
+		for (auto& argv : to_array(arguments)) {
 			std::string argv_str = to_string(array_get_item(argv));
 			args.push_back(strdup(argv_str.data()));
 		}
 
 		args.push_back(nullptr);
 
-		if (working_directory.data()->format != Data::FMT_NONE) {
+		if (working_directory.data().format() != mint::Data::none_format) {
 			std::string working_directory_str = to_string(working_directory);
 			chdir(working_directory_str.data());
 		}
 
-		if (pipes.data()->format != Data::FMT_NONE) {
+		if (pipes.data().format() != mint::Data::none_format) {
 
-			WeakReference stdin_pipe = array_get_item(pipes.data<Array>(), STDIN_FILENO);
-			WeakReference stdout_pipe = array_get_item(pipes.data<Array>(), STDOUT_FILENO);
-			WeakReference stderr_pipe = array_get_item(pipes.data<Array>(), STDERR_FILENO);
+			const auto stdin_pipe = array_get_item(pipes.data<mint::Array>(), STDIN_FILENO);
+			const auto stdout_pipe = array_get_item(pipes.data<mint::Array>(), STDOUT_FILENO);
+			const auto stderr_pipe = array_get_item(pipes.data<mint::Array>(), STDERR_FILENO);
 
-			dup2(static_cast<int>(to_handle(array_get_item(stdin_pipe.data<Array>(), 0))), STDIN_FILENO);
-			dup2(static_cast<int>(to_handle(array_get_item(stdout_pipe.data<Array>(), 1))), STDOUT_FILENO);
-			dup2(static_cast<int>(to_handle(array_get_item(stderr_pipe.data<Array>(), 1))), STDERR_FILENO);
+			dup2(static_cast<int>(to_handle(array_get_item(stdin_pipe.data<mint::Array>(), 0))), STDIN_FILENO);
+			dup2(static_cast<int>(to_handle(array_get_item(stdout_pipe.data<mint::Array>(), 1))), STDOUT_FILENO);
+			dup2(static_cast<int>(to_handle(array_get_item(stderr_pipe.data<mint::Array>(), 1))), STDERR_FILENO);
 		}
 		else {
 			struct rlimit limit;
@@ -301,17 +313,13 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 			}
 		}
 
-		if (environment.data()->format != Data::FMT_NONE) {
+		if (environment.data().format() != mint::Data::none_format) {
 
-			std::vector<char *> envp;
-
-			for (auto &var : environment.data<Hash>()->values) {
-				std::string name = to_string(hash_get_key(var));
-				std::string value = to_string(hash_get_value(var));
-				char *buffer = new char[name.size() + value.size() + 2];
-				sprintf(buffer, "%s=%s", name.c_str(), value.c_str());
-				envp.push_back(buffer);
-			}
+			auto envp = std::vector<char*>(std::from_range,
+			    std::views::transform(environment.data<mint::Hash>().values, [](auto& var) -> char* {
+				    return strdup(
+				        std::format("{}={}", to_string(hash_get_key(var)), to_string(hash_get_value(var))).data());
+			    }));
 
 			envp.push_back(nullptr);
 
@@ -325,245 +333,229 @@ MINT_FUNCTION(mint_process_start, 5, cursor) {
 	}
 
 	if (pid != -1) {
-		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_yield(result.data<Iterator>(), create_handle(pid));
+		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_handle(cursor.ast(), pid));
 	}
 	else {
-		iterator_yield(result.data<Iterator>(), create_number(errno));
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno));
 	}
 #endif
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_process_getcmdline, 1, cursor) {
+mint::WeakReference mint_process_getcmdline(mint::Cursor& cursor, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	mint::WeakReference results = mint::create_iterator(cursor.ast());
 
-	FunctionHelper helper(cursor, 1);
+	if (LPWSTR cmd_line = mint::GetNtProcessCommandLine(to_handle(handle))) {
 
-#ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.pop_parameter());
-
-	if (LPWSTR szCmdLine = GetNtProcessCommandLine(handle)) {
-
-		WeakReference results = create_iterator();
-		WeakReference args = create_array();
+		mint::WeakReference args = mint::create_array(cursor.ast());
 
 		int argc = 0;
-		wchar_t **argv = CommandLineToArgvW(szCmdLine, &argc);
+		wchar_t** argv = CommandLineToArgvW(cmd_line, &argc);
 
 		for (int argn = 0; argn < argc; ++argn) {
-			if (results.data<Iterator>()->ctx.empty()) {
-				iterator_yield(results.data<Iterator>(), create_string(windows_to_utf8(argv[argn])));
+			if (results.data<mint::Iterator>().ctx.empty()) {
+				iterator_yield(results.data<mint::Iterator>(),
+				    mint::create_string(cursor.ast(), windows_to_utf8(argv[argn])));
 			}
 			else {
-				array_append(args.data<Array>(), create_string(windows_to_utf8(argv[argn])));
+				array_append(args.data<mint::Array>(), mint::create_string(cursor.ast(), windows_to_utf8(argv[argn])));
 			}
 		}
 
-		iterator_yield(results.data<Iterator>(), std::move(args));
-
-		helper.return_value(std::move(results));
+		iterator_yield(results.data<mint::Iterator>(), std::move(args));
 	}
+
+	return results;
 #else
-	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
+	const auto pid = static_cast<pid_t>(to_handle(handle));
 
-	char cmdline_path[FileSystem::PATH_LENGTH];
-	WeakReference results = create_iterator();
-	WeakReference args = create_array();
+	mint::WeakReference results = create_iterator(cursor.ast());
+	mint::WeakReference args = create_array(cursor.ast());
 
-	snprintf(cmdline_path, sizeof(cmdline_path), "/proc/%d/cmdline", pid);
-	FILE *cmdline = open_file(cmdline_path, "r");
+	auto cmdline_path = std::format("/proc/{}/cmdline", pid);
+	gsl::owner<FILE*> cmdline = mint::open_file(cmdline_path, "r");
 
-	char *buffer = nullptr;
-	size_t buffer_length = 0;
+	gsl::owner<char*> buffer = nullptr;
+	std::size_t buffer_length = 0;
 
 	while (getdelim(&buffer, &buffer_length, 0, cmdline) != -1) {
-		if (results.data<Iterator>()->ctx.empty()) {
-			iterator_yield(results.data<Iterator>(), create_string(std::string(buffer, buffer_length)));
+		if (results.data<mint::Iterator>().ctx.empty()) {
+			iterator_yield(results.data<mint::Iterator>(),
+			    create_string(cursor.ast(), std::string(buffer, buffer_length)));
 		}
 		else {
-			array_append(args.data<Array>(), create_string(std::string(buffer, buffer_length)));
+			array_append(args.data<mint::Array>(),
+			    mint::create_string(cursor.ast(), std::string(buffer, buffer_length)));
 		}
 	}
 
-	iterator_yield(results.data<Iterator>(), std::move(args));
-	fclose(cmdline);
-	free(buffer);
+	iterator_yield(results.data<mint::Iterator>(), std::move(args));
+	std::fclose(cmdline);
+	std::free(buffer);
 
-	helper.return_value(std::move(results));
+	return results;
 #endif
 }
 
-MINT_FUNCTION(mint_process_getcwd, 1, cursor) {
+mint::WeakReference mint_process_getcwd(mint::Cursor& cursor, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	const auto length = mint::GetNtProcessCurrentDirectory(to_handle(handle), nullptr, 0);
+	auto current_directory_path = std::make_unique<WCHAR[]>(length);
 
-	FunctionHelper helper(cursor, 1);
-
-#ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.pop_parameter());
-	DWORD dwLength = GetNtProcessCurrentDirectory(handle, NULL, 0);
-	auto szCurrentDirectoryPath = static_cast<LPWSTR>(malloc(dwLength * sizeof(WCHAR)));
-
-	if (GetNtProcessCurrentDirectory(handle, szCurrentDirectoryPath, dwLength)) {
-		helper.return_value(create_string(std::filesystem::path(szCurrentDirectoryPath).generic_string()));
+	if (mint::GetNtProcessCurrentDirectory(to_handle(handle), current_directory_path.get(), length)) {
+		return mint::create_string(cursor.ast(), std::filesystem::path(current_directory_path.get()).generic_string());
 	}
-
-	free(szCurrentDirectoryPath);
 #else
-	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
+	const auto pid = static_cast<pid_t>(to_handle(handle));
 
-	char exe_path[FileSystem::PATH_LENGTH];
-	char proc_path[FileSystem::PATH_LENGTH];
-	snprintf(exe_path, sizeof(exe_path), "/proc/%d/exe", pid);
-	ssize_t count = readlink(exe_path, proc_path, sizeof(proc_path));
+	std::array<char, mint::FileSystem::path_length> proc_path {};
+	const auto exe_path = std::format("/proc/{}/exe", pid);
+	const auto count = readlink(exe_path.data(), proc_path.data(), proc_path.size());
 
 	if (count > 0) {
-		helper.return_value(create_string(proc_path));
+		return mint::create_string(cursor.ast(), std::string(proc_path.data(), static_cast<std::size_t>(count)));
 	}
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_process_getenv, 1, cursor) {
+mint::WeakReference mint_process_getenv(mint::Cursor& cursor, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	mint::WeakReference results = mint::create_hash(cursor.ast());
 
-	FunctionHelper helper(cursor, 1);
-
-#ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.pop_parameter());
-
-	if (LPWCH szEnvironment = GetNtProcessEnvironmentStrings(handle)) {
-
-		WeakReference results = create_hash();
-		LPCWSTR buffer = szEnvironment;
-
-		while (*buffer) {
+	if (LPWCH environment = mint::GetNtProcessEnvironmentStrings(to_handle(handle))) {
+		for (LPCWSTR buffer = environment; *buffer; buffer += lstrlenW(buffer) + 1) {
 			LPCWSTR cptr = wcschr(buffer, L'=');
-			hash_insert(results.data<Hash>(), create_string(windows_to_utf8(std::wstring(buffer, cptr))),
-						create_string(windows_to_utf8(std::wstring(cptr + 1))));
-			buffer += lstrlenW(buffer) + 1;
+			mint::hash_insert(results.data<mint::Hash>(),
+			    mint::create_string(cursor.ast(), windows_to_utf8(std::wstring(buffer, cptr))),
+			    mint::create_string(cursor.ast(), windows_to_utf8(std::wstring(cptr + 1))));
 		}
-
-		FreeEnvironmentStringsW(szEnvironment);
-		helper.return_value(std::move(results));
+		FreeEnvironmentStringsW(environment);
 	}
+
+	return results;
 #else
-	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
+	const auto pid = static_cast<pid_t>(to_handle(handle));
 
-	char environ_path[FileSystem::PATH_LENGTH];
-	WeakReference results = create_hash();
+	mint::WeakReference results = mint::create_hash(cursor.ast());
 
-	snprintf(environ_path, sizeof(environ_path), "/proc/%d/environ", pid);
-	FILE *environ = open_file(environ_path, "r");
+	const auto environ_path = std::format("/proc/{}/environ", pid);
+	gsl::owner<FILE*> environ = mint::open_file(environ_path, "r");
 
-	char *buffer = nullptr;
-	size_t buffer_length = 0;
+	gsl::owner<char*> buffer = nullptr;
+	std::size_t buffer_length = 0;
 
 	while (getdelim(&buffer, &buffer_length, 0, environ) != -1) {
-		char *cptr = strchr(buffer, '=');
-		hash_insert(results.data<Hash>(), create_string(std::string(buffer, cptr)), create_string(cptr + 1));
+		char* cptr = strchr(buffer, '=');
+		hash_insert(results.data<mint::Hash>(), mint::create_string(cursor.ast(), std::string(buffer, cptr)),
+		    mint::create_string(cursor.ast(), cptr + 1));
 	}
 
-	fclose(environ);
-	free(buffer);
+	std::fclose(environ);
+	std::free(buffer);
 
-	helper.return_value(std::move(results));
+	return results;
 #endif
 }
 
-MINT_FUNCTION(mint_process_getpid, 0, cursor) {
-
-	FunctionHelper helper(cursor, 0);
-
-#ifdef OS_WINDOWS
-	helper.return_value(create_number(GetCurrentProcessId()));
+mint::WeakReference mint_process_getpid(mint::Cursor& /*cursor*/) {
+#ifdef MINT_OS_WINDOWS
+	return mint::create_number(GetCurrentProcessId());
 #else
-	helper.return_value(create_number(getpid()));
+	return mint::create_number(getpid());
 #endif
 }
 
-MINT_FUNCTION(mint_process_waitpid, 4, cursor) {
+mint::WeakReference mint_process_waitpid(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+    const mint::Reference& wait_for_finished, const mint::Reference& exit_status, const mint::Reference& exit_code) {
 
-	FunctionHelper helper(cursor, 4);
-
-	WeakReference exit_code = std::move(helper.pop_parameter());
-	WeakReference exit_status = std::move(helper.pop_parameter());
-	bool wait_for_finished = to_boolean(helper.pop_parameter());
-
-#ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.pop_parameter());
-
+#ifdef MINT_OS_WINDOWS
 	bool finished = false;
 
-	if (WaitForSingleObject(handle, wait_for_finished ? INFINITE : 0) == WAIT_OBJECT_0) {
+	if (WaitForSingleObject(to_handle(handle), to_boolean(wait_for_finished) ? INFINITE : 0) == WAIT_OBJECT_0) {
 
 		DWORD value = 0;
 
-		if (GetExitCodeProcess(handle, &value)) {
-			exit_status.data<Boolean>()->value = (value == 0xDEAD || (value >= 0x80000000 && value < 0xD0000000));
-			exit_code.data<Number>()->value = value;
+		if (GetExitCodeProcess(to_handle(handle), &value)) {
+			exit_status.data<mint::Boolean>().value = (value == internal_kill_code
+			                                           || (value >= 0x80000000 && value < 0xD0000000));
+			exit_code.data<mint::Number>().value = value;
 		}
 
-		CloseHandle(handle);
+		CloseHandle(to_handle(handle));
 		finished = true;
 	}
 
-	helper.return_value(create_boolean(finished));
+	return mint::create_boolean(finished);
 #else
-	int pid = static_cast<int>(to_handle(helper.pop_parameter()));
+	const auto pid = static_cast<pid_t>(to_handle(handle));
 
 	int status = 0;
 	int options = 0;
 	bool finished = false;
 
-	if (!wait_for_finished) {
+	if (!to_boolean(wait_for_finished)) {
 		options |= WNOHANG;
 	}
 
 	do {
 		if (waitpid(pid, &status, options) == pid) {
-			exit_status.data<Boolean>()->value = WIFEXITED(status);
-			exit_code.data<Number>()->value = WEXITSTATUS(status);
+			exit_status.data<mint::Boolean>().value = WIFEXITED(status);
+			exit_code.data<mint::Number>().value = WEXITSTATUS(status);
 			finished = true;
 		}
 	}
-	while (!finished && wait_for_finished);
+	while (!finished && to_boolean(wait_for_finished));
 
-	helper.return_value(create_boolean(finished));
+	return mint::create_boolean(finished);
 #endif
 }
 
-MINT_FUNCTION(mint_process_kill, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-
-#ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.pop_parameter());
-
-	if (!TerminateProcess(handle, 0xDEAD)) {
-		helper.return_value(create_number(errno_from_error_code(last_error_code())));
+mint::WeakReference mint_process_kill(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	if (!TerminateProcess(to_handle(handle), internal_kill_code)) {
+		return mint::create_number(mint::errno_from_error_code(mint::last_error_code()));
 	}
 #else
-	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
+	const auto pid = static_cast<pid_t>(to_handle(handle));
 
 	if (kill(pid, SIGKILL)) {
-		helper.return_value(create_number(errno));
+		return mint::create_number(errno);
 	}
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_process_terminate, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-
-#ifdef OS_WINDOWS
-	HANDLE handle = to_handle(helper.pop_parameter());
-
-	if (!GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, GetProcessId(handle))) {
-		helper.return_value(create_number(errno_from_error_code(last_error_code())));
+mint::WeakReference mint_process_terminate(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	if (!GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, GetProcessId(to_handle(handle)))) {
+		return mint::create_number(mint::errno_from_error_code(mint::last_error_code()));
 	}
 #else
-	pid_t pid = static_cast<pid_t>(to_handle(helper.pop_parameter()));
+	const auto pid = static_cast<pid_t>(to_handle(handle));
 
 	if (kill(pid, SIGTERM)) {
-		helper.return_value(create_number(errno));
+		return mint::create_number(errno);
 	}
 #endif
+	return {};
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_process_list, 0);
+MINT_EXPORT_FUNCTION(mint_process_exec, 1);
+MINT_EXPORT_FUNCTION(mint_process_get_handle, 1);
+MINT_EXPORT_FUNCTION(mint_process_get_pid, 1);
+MINT_EXPORT_FUNCTION(mint_process_close_handle, 1);
+MINT_EXPORT_FUNCTION(mint_process_start, 5);
+MINT_EXPORT_FUNCTION(mint_process_getcmdline, 1);
+MINT_EXPORT_FUNCTION(mint_process_getcwd, 1);
+MINT_EXPORT_FUNCTION(mint_process_getenv, 1);
+MINT_EXPORT_FUNCTION(mint_process_getpid, 0);
+MINT_EXPORT_FUNCTION(mint_process_waitpid, 4);
+MINT_EXPORT_FUNCTION(mint_process_kill, 1);
+MINT_EXPORT_FUNCTION(mint_process_terminate, 1);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,133 +21,113 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/casttool.h>
+#include "mint/memory/memorytool.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include <Windows.h>
-using handle_data_t = std::remove_pointer_t<HANDLE>;
 #else
 #include <sys/eventfd.h>
 #include <poll.h>
 #include <unistd.h>
 #endif
 
-using namespace mint;
+namespace {
 
-MINT_FUNCTION(mint_event_create, 0, cursor) {
-
-	FunctionHelper helper(cursor, 0);
-
-#ifdef OS_WINDOWS
-	helper.return_value(create_object(CreateEvent(nullptr, TRUE, FALSE, nullptr)));
+mint::WeakReference mint_event_create(mint::Cursor& cursor) {
+#ifdef MINT_OS_WINDOWS
+	if (HANDLE handle = CreateEvent(nullptr, TRUE, FALSE, nullptr); handle != INVALID_HANDLE_VALUE) {
+		return mint::create_handle(cursor.ast(), handle);
+	}
 #else
-	int fd = eventfd(0, EFD_NONBLOCK);
-	if (fd != -1) {
-		helper.return_value(create_number(fd));
+	if (int fd = eventfd(0, EFD_NONBLOCK); fd != -1) {
+		return mint::create_number(fd);
 	}
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_event_close, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-
-#ifdef OS_WINDOWS
-	CloseHandle(helper.pop_parameter().data<LibObject<handle_data_t>>()->impl);
+mint::WeakReference mint_event_close(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	CloseHandle(mint::to_handle(handle));
 #else
-	close(static_cast<int>(to_integer(cursor, helper.pop_parameter())));
+	close(mint::to_handle(handle));
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_event_is_set, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-
-#ifdef OS_WINDOWS
-	HANDLE handle = helper.pop_parameter().data<LibObject<handle_data_t>>()->impl;
-	helper.return_value(create_boolean(WaitForSingleObject(handle, 0) == WAIT_OBJECT_0));
+mint::WeakReference mint_event_is_set(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	return mint::create_boolean(WaitForSingleObject(mint::to_handle(handle), 0) == WAIT_OBJECT_0);
 #else
-	int fd = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-
 	uint64_t value = 0;
+	int fd = mint::to_handle(handle);
 	read(fd, &value, sizeof(value));
 	write(fd, &value, sizeof(value));
-	helper.return_value(create_boolean(value));
+	return mint::create_boolean(value);
 #endif
 }
 
-MINT_FUNCTION(mint_event_set, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-
-#ifdef OS_WINDOWS
-	SetEvent(helper.pop_parameter().data<LibObject<handle_data_t>>()->impl);
+mint::WeakReference mint_event_set(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	return mint::create_boolean(SetEvent(to_handle(handle)));
 #else
-	int fd = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-
 	uint64_t value = 1;
-	helper.return_value(create_boolean(write(fd, &value, sizeof(value)) == sizeof(value)));
+	int fd = mint::to_handle(handle);
+	return mint::create_boolean(write(fd, &value, sizeof(value)) == sizeof(value));
 #endif
 }
 
-MINT_FUNCTION(mint_event_clear, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-
-#ifdef OS_WINDOWS
-	ResetEvent(helper.pop_parameter().data<LibObject<handle_data_t>>()->impl);
+mint::WeakReference mint_event_clear(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	ResetEvent(mint::to_handle(handle));
 #else
-	int fd = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-
 	uint64_t value = 0;
+	int fd = mint::to_handle(handle);
 	read(fd, &value, sizeof(value));
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_event_wait, 2, cursor) {
+mint::WeakReference mint_event_wait(mint::Cursor& cursor, const mint::Reference& handle,
+    const mint::Reference& timeout) {
+#ifdef MINT_OS_WINDOWS
 
-	FunctionHelper helper(cursor, 2);
+	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::none_format)
+	                          ? INFINITE
+	                          : mint::to_integer<DWORD>(cursor, timeout);
 
-	WeakReference timeout = std::move(helper.pop_parameter());
-
-#ifdef OS_WINDOWS
-
-	DWORD time_ms = INFINITE;
-	HANDLE handle = helper.pop_parameter().data<LibObject<handle_data_t>>()->impl;
-
-	if (timeout.data()->format != Data::FMT_NONE) {
-		time_ms = static_cast<int>(to_integer(cursor, timeout));
+	if (WaitForSingleObject(mint::to_handle(handle), time_ms) == WAIT_OBJECT_0) {
+		ResetEvent(mint::to_handle(handle));
+		return mint::create_boolean(true);
 	}
 
-	bool result = false;
-
-	if (WaitForSingleObject(handle, time_ms) == WAIT_OBJECT_0) {
-		ResetEvent(handle);
-		result = true;
-	}
-
-	helper.return_value(create_boolean(result));
+	return mint::create_boolean(false);
 #else
-	pollfd fds;
-	fds.events = POLLIN;
-	fds.fd = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
+	pollfd fds {
+	    .fd = mint::to_handle(handle),
+	    .events = POLLIN,
+	};
 
-	int time_ms = -1;
+	const int time_ms = is_instance_of(timeout, mint::Data::none_format) ? -1 : to_integer<int>(cursor, timeout);
 
-	if (timeout.data()->format != Data::FMT_NONE) {
-		time_ms = static_cast<int>(to_integer(cursor, timeout));
-	}
-
-	bool result = false;
-	int ret = poll(&fds, 1, time_ms);
-
-	if ((ret > 0) && (fds.revents & POLLIN)) {
+	if (int ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
 		uint64_t value = 0;
 		read(fds.fd, &value, sizeof(value));
-		result = value != 0;
+		return mint::create_boolean(value != 0);
 	}
 
-	helper.return_value(create_boolean(result));
+	return mint::create_boolean(false);
 #endif
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_event_create, 0);
+MINT_EXPORT_FUNCTION(mint_event_close, 1);
+MINT_EXPORT_FUNCTION(mint_event_is_set, 1);
+MINT_EXPORT_FUNCTION(mint_event_set, 1);
+MINT_EXPORT_FUNCTION(mint_event_clear, 1);
+MINT_EXPORT_FUNCTION(mint_event_wait, 2);

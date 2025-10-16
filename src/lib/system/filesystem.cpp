@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,171 +21,164 @@
  * IN THE SOFTWARE.
  */
 
+#include "mint/memory/reference.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
 #include "mint/system/filesystem.h"
 
 #include <filesystem>
 #include <cstdint>
-
-using namespace mint;
+#include <ranges>
+#include <type_traits>
+#include <vector>
 
 namespace {
 
 enum class StandardPath : std::uint8_t {
-	ROOT,
-	HOME,
-	DESKTOP,
-	DOCUMENTS,
-	MUSICS,
-	MOVIES,
-	PICTURES,
-	DOWNLOAD,
-	APPLICATIONS,
-	TEMPORARY,
-	FONTS,
-	CACHE,
-	GLOBAL_CACHE,
-	DATA,
-	LOCAL_DATA,
-	GLOBAL_DATA,
-	CONFIG,
-	GLOBAL_CONFIG
+	root,
+	home,
+	desktop,
+	documents,
+	musics,
+	movies,
+	pictures,
+	download,
+	applications,
+	temporary,
+	fonts,
+	cache,
+	global_cache,
+	data,
+	local_data,
+	global_data,
+	config,
+	global_config
 };
+
+StandardPath to_standard_path(mint::Cursor& cursor, const mint::Reference& value) {
+	return static_cast<StandardPath>(mint::to_integer<std::underlying_type_t<StandardPath>>(cursor, value));
+}
 
 std::vector<std::filesystem::path> standard_paths(StandardPath type) {
 	switch (type) {
-	case StandardPath::ROOT:
-		return {FileSystem::root_path()};
-	case StandardPath::HOME:
-		return {FileSystem::home_path()};
-	case StandardPath::DESKTOP:
-		return {FileSystem::home_path() / "Desktop"};
-	case StandardPath::DOCUMENTS:
-		return {FileSystem::home_path() / "Documents"};
-	case StandardPath::MUSICS:
-		return {FileSystem::home_path() / "Musics"};
-	case StandardPath::MOVIES:
-		return {FileSystem::home_path() / "Movies"};
-	case StandardPath::PICTURES:
-		return {FileSystem::home_path() / "Pictures"};
-	case StandardPath::DOWNLOAD:
-		return {FileSystem::home_path() / "Downloads"};
-	case StandardPath::APPLICATIONS:
-#if defined(OS_UNIX)
+	case StandardPath::root:
+		return {mint::FileSystem::root_path()};
+	case StandardPath::home:
+		return {mint::FileSystem::home_path()};
+	case StandardPath::desktop:
+		return {mint::FileSystem::home_path() / "Desktop"};
+	case StandardPath::documents:
+		return {mint::FileSystem::home_path() / "Documents"};
+	case StandardPath::musics:
+		return {mint::FileSystem::home_path() / "Musics"};
+	case StandardPath::movies:
+		return {mint::FileSystem::home_path() / "Movies"};
+	case StandardPath::pictures:
+		return {mint::FileSystem::home_path() / "Pictures"};
+	case StandardPath::download:
+		return {mint::FileSystem::home_path() / "Downloads"};
+	case StandardPath::applications:
+#ifdef MINT_OS_UNIX
 		return {
-			"/usr/bin",
-			"/bin",
-			"/usr/sbin"
-			"/usr/local/bin",
+		    "/usr/bin",
+		    "/bin",
+		    "/usr/sbin"
+		    "/usr/local/bin",
 		};
-#elif defined(OS_WINDOWS)
+#elifdef MINT_OS_WINDOWS
 		return {
-			FileSystem::root_path() / "Program Files",
-			FileSystem::root_path() / "Program Files (x86)",
+		    mint::FileSystem::root_path() / "Program Files",
+		    mint::FileSystem::root_path() / "Program Files (x86)",
 		};
-#elif defined(OS_MAC)
+#elifdef MINT_OS_MAC
 		return {};
 #else
 		return {};
 #endif
-	case StandardPath::TEMPORARY:
-#if defined(OS_UNIX)
+	case StandardPath::temporary:
+#ifdef MINT_OS_UNIX
 		return {"/tmp"};
-#elif defined(OS_WINDOWS)
+#elifdef MINT_OS_WINDOWS
 		return {
-			FileSystem::home_path() / "AppData" / "Local" / "Temp",
-			FileSystem::root_path() / "Windows" / "Temp",
+		    mint::FileSystem::home_path() / "AppData" / "Local" / "Temp",
+		    mint::FileSystem::root_path() / "Windows" / "Temp",
 		};
-#elif defined(OS_MAC)
+#elifdef MINT_OS_MAC
 		return {};
 #else
 		return {};
 #endif
-	case StandardPath::FONTS:
+	case StandardPath::fonts:
 		return {};
-	case StandardPath::CACHE:
+	case StandardPath::cache:
 		return {};
-	case StandardPath::GLOBAL_CACHE:
+	case StandardPath::global_cache:
 		return {};
-	case StandardPath::DATA:
+	case StandardPath::data:
 		return {};
-	case StandardPath::LOCAL_DATA:
+	case StandardPath::local_data:
 		return {};
-	case StandardPath::GLOBAL_DATA:
+	case StandardPath::global_data:
 		return {};
-	case StandardPath::CONFIG:
+	case StandardPath::config:
 		return {};
-	case StandardPath::GLOBAL_CONFIG:
+	case StandardPath::global_config:
 		return {};
 	}
 	return {};
 };
 
+mint::WeakReference mint_fs_get_paths(mint::Cursor& cursor, const mint::Reference& type) {
+	return mint::create_array(cursor.ast(),
+	    {std::from_range, std::views::transform(standard_paths(to_standard_path(cursor, type)),
+	                          [&cursor](const std::filesystem::path& path) {
+		                          return mint::create_string(cursor.ast(), path.generic_string());
+	                          })});
 }
 
-MINT_FUNCTION(mint_fs_get_paths, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &type = helper.pop_parameter();
-	WeakReference result = create_array();
-
-	for (const std::filesystem::path &path : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
-		array_append(result.data<Array>(), create_string(path.generic_string()));
+mint::WeakReference mint_fs_get_path(mint::Cursor& cursor, const mint::Reference& type) {
+	if (const auto paths = standard_paths(to_standard_path(cursor, type)); !paths.empty()) {
+		return mint::create_string(cursor.ast(), paths.front().generic_string());
 	}
-
-	helper.return_value(std::move(result));
+	return {};
 }
 
-MINT_FUNCTION(mint_fs_get_path, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &type = helper.pop_parameter();
-
-	if (const auto paths = standard_paths(static_cast<StandardPath>(to_integer(cursor, type))); !paths.empty()) {
-		helper.return_value(create_string(paths.front().generic_string()));
+mint::WeakReference mint_fs_get_path(mint::Cursor& cursor, const mint::Reference& type, const mint::Reference& path) {
+	if (const auto paths = standard_paths(to_standard_path(cursor, type)); !paths.empty()) {
+		return mint::create_string(cursor.ast(),
+		    std::filesystem::weakly_canonical(paths.front() / to_string(path)).generic_string());
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_fs_get_path, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &path = helper.pop_parameter();
-	Reference &type = helper.pop_parameter();
-
-	if (const auto paths = standard_paths(static_cast<StandardPath>(to_integer(cursor, type))); !paths.empty()) {
-		helper.return_value(create_string(std::filesystem::weakly_canonical(paths.front() / to_string(path)).generic_string()));
-	}
+mint::WeakReference mint_fs_find_paths(mint::Cursor& cursor, const mint::Reference& type, const mint::Reference& path) {
+	return mint::create_array(cursor.ast(),
+	    {std::from_range, std::views::transform(standard_paths(to_standard_path(cursor, type)), //
+	                          [path = to_string(path)](const std::filesystem::path& root) {
+		                          return std::filesystem::weakly_canonical(root / path);
+	                          })
+	                          | std::views::filter([](const std::filesystem::path& full_path) {
+		                            return std::filesystem::exists(full_path);
+	                            })
+	                          | std::views::transform([&cursor](const std::filesystem::path& full_path) {
+		                            return mint::create_string(cursor.ast(), full_path.generic_string());
+	                            })});
 }
 
-MINT_FUNCTION(mint_fs_find_paths, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &path = helper.pop_parameter();
-	Reference &type = helper.pop_parameter();
-	WeakReference result = create_array();
-
-	for (const std::filesystem::path &root : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
-		std::filesystem::path full_path = std::filesystem::weakly_canonical(root / to_string(path));
+mint::WeakReference mint_fs_find_path(mint::Cursor& cursor, const mint::Reference& type, const mint::Reference& path) {
+	for (const std::filesystem::path& root : standard_paths(to_standard_path(cursor, type))) {
+		const auto full_path = std::filesystem::weakly_canonical(root / to_string(path));
 		if (std::filesystem::exists(full_path)) {
-			array_append(result.data<Array>(), create_string(full_path.generic_string()));
+			return mint::create_string(cursor.ast(), full_path.generic_string());
 		}
 	}
-
-	helper.return_value(std::move(result));
+	return {};
 }
 
-MINT_FUNCTION(mint_fs_find_path, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &path = helper.pop_parameter();
-	Reference &type = helper.pop_parameter();
-
-	for (const std::filesystem::path &root : standard_paths(static_cast<StandardPath>(to_integer(cursor, type)))) {
-		std::filesystem::path full_path = std::filesystem::weakly_canonical(root / to_string(path));
-		if (std::filesystem::exists(full_path)) {
-			helper.return_value(create_string(full_path.generic_string()));
-			break;
-		}
-	}
 }
+
+MINT_EXPORT_FUNCTION(mint_fs_get_paths, 1)
+MINT_EXPORT_FUNCTION_OVERLOAD(mint_fs_get_path, 1, mint::Cursor&, const mint::Reference&)
+MINT_EXPORT_FUNCTION_OVERLOAD(mint_fs_get_path, 2, mint::Cursor&, const mint::Reference&, const mint::Reference&)
+MINT_EXPORT_FUNCTION(mint_fs_find_paths, 2)
+MINT_EXPORT_FUNCTION(mint_fs_find_path, 2)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,25 +21,27 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_PIPE_H
-#define MINT_PIPE_H
+#ifndef MINT_SYSTEM_PIPE_H
+#define MINT_SYSTEM_PIPE_H
 
-#include "mint/system/stdio.h"
+#include "mint/config.h"
+#include <cstddef>
+#include <cstdio>
+#include <string>
 
 namespace mint {
 
-class Pipe {
+class MINT_EXPORT Pipe {
 public:
 	Pipe() = delete;
 
-	static int printf(FILE *stream, const char *format, ...) __attribute__((format(printf, 2, 3)));
-	static int vprintf(FILE *stream, const char *format, va_list args);
-	static int print(FILE *stream, const char *str);
+	static std::size_t write(FILE* stream, const std::string& str);
+	static void print(FILE* stream, const std::string& str);
 };
 
-MINT_EXPORT bool is_pipe(FILE *stream);
+MINT_EXPORT bool is_pipe(FILE* stream);
 MINT_EXPORT bool is_pipe(int fd);
 
 }
 
-#endif // MINT_PIPE_H
+#endif // MINT_SYSTEM_PIPE_H

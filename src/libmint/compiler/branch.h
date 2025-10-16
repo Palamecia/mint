@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,13 +24,18 @@
 #ifndef BRANCH_H
 #define BRANCH_H
 
+#include "mint/ast/classregister.h"
 #include "mint/ast/node.h"
+#include "mint/ast/module.h"
 
+#include <cstddef>
 #include <unordered_set>
 #include <functional>
 #include <optional>
 #include <deque>
 #include <list>
+#include <utility>
+#include <vector>
 
 namespace mint {
 
@@ -39,107 +44,110 @@ class BuildContext;
 
 class Branch {
 public:
-	using ForwardNodeIndex = std::list<size_t>;
-	using BackwardNodeIndex = size_t;
+	using ForwardNodeIndex = std::list<std::size_t>;
+	using BackwardNodeIndex = std::size_t;
 
 	Branch() = default;
-	Branch(Branch &&) = delete;
-	Branch(const Branch &) = delete;
-	virtual ~Branch();
+	Branch(const Branch&) = default;
+	Branch(Branch&&) = default;
+	virtual ~Branch() = default;
 
-	Branch &operator=(Branch &&) = delete;
-	Branch &operator=(const Branch &) = delete;
+	Branch& operator=(const Branch&) = default;
+	Branch& operator=(Branch&&) = default;
 
-	virtual void push_node(const Node &node) = 0;
-	virtual void push_nodes(const std::vector<Node> &nodes) = 0;
-	virtual void replace_node(size_t offset, const Node &node) = 0;
-	[[nodiscard]] virtual size_t next_node_offset() const = 0;
-	[[nodiscard]] virtual Node &node_at(size_t offset) = 0;
+	virtual void push_node(const Node& node) = 0;
+	virtual void push_nodes(const std::vector<Node>& nodes) = 0;
+	virtual void replace_node(std::size_t offset, const Node& node) = 0;
+	[[nodiscard]] virtual std::size_t next_node_offset() const = 0;
+	[[nodiscard]] virtual Node& node_at(std::size_t offset) = 0;
 
-	virtual void on_new_line(size_t offset, size_t line_number) = 0;
-	virtual void on_new_line(size_t line_number) = 0;
+	virtual void on_new_line(std::size_t offset, std::size_t line_number) = 0;
+	virtual void on_new_line(std::size_t line_number) = 0;
 
 	virtual void build() = 0;
 
-	void set_pending_new_line(size_t line_number);
+	void set_pending_new_line(std::size_t line_number);
 	void commit_line();
 
 	void start_jump_forward();
 	void shift_jump_forward();
 	void resolve_jump_forward();
-	[[nodiscard]] inline ForwardNodeIndex *next_jump_forward();
-	[[nodiscard]] inline ForwardNodeIndex *start_empty_jump_forward();
+	[[nodiscard]] inline ForwardNodeIndex* next_jump_forward();
+	[[nodiscard]] inline ForwardNodeIndex* start_empty_jump_forward();
 
 	void start_jump_backward();
 	void resolve_jump_backward();
 	void shift_jump_backward();
-	[[nodiscard]] inline BackwardNodeIndex *next_jump_backward();
+	[[nodiscard]] inline BackwardNodeIndex* next_jump_backward();
 
 protected:
-	size_t resolve_labels_offset(Branch *parent);
-	void insert_label(size_t offset);
+	std::size_t resolve_labels_offset(Branch& parent);
+	void insert_label(std::size_t offset);
 
 private:
-	std::optional<std::function<void()>> m_pending_new_line;
-	std::deque<ForwardNodeIndex> m_jump_forward;
-	std::deque<BackwardNodeIndex> m_jump_backward;
-	std::unordered_set<size_t> m_labels;
+	std::optional<std::function<void()>> _pending_new_line;
+	std::deque<ForwardNodeIndex> _jump_forward;
+	std::deque<BackwardNodeIndex> _jump_backward;
+	std::unordered_set<std::size_t> _labels;
 };
 
-Branch::ForwardNodeIndex *Branch::next_jump_forward() {
-	return &m_jump_forward.back();
+Branch::ForwardNodeIndex* Branch::next_jump_forward() {
+	return &_jump_forward.back();
 }
 
-Branch::ForwardNodeIndex *Branch::start_empty_jump_forward() {
-	m_jump_forward.emplace_back(ForwardNodeIndex());
-	return &m_jump_forward.back();
+Branch::ForwardNodeIndex* Branch::start_empty_jump_forward() {
+	_jump_forward.emplace_back();
+	return &_jump_forward.back();
 }
 
-Branch::BackwardNodeIndex *Branch::next_jump_backward() {
-	return &m_jump_backward.back();
+Branch::BackwardNodeIndex* Branch::next_jump_backward() {
+	return &_jump_backward.back();
 }
 
 class MainBranch : public Branch {
 public:
-	MainBranch(BuildContext *context);
+	MainBranch(AbstractSyntaxTree& ast, const Module::Info& data);
 
-	void push_node(const Node &node) override;
-	void push_nodes(const std::vector<Node> &nodes) override;
-	void replace_node(size_t offset, const Node &node) override;
-	[[nodiscard]] size_t next_node_offset() const override;
-	[[nodiscard]] Node &node_at(size_t offset) override;
+	void push_node(const Node& node) override;
+	void push_nodes(const std::vector<Node>& nodes) override;
+	void replace_node(std::size_t offset, const Node& node) override;
+	[[nodiscard]] std::size_t next_node_offset() const override;
+	[[nodiscard]] Node& node_at(std::size_t offset) override;
 
-	void on_new_line(size_t offset, size_t line_number) override;
-	void on_new_line(size_t line_number) override;
+	void on_new_line(std::size_t offset, std::size_t line_number) override;
+	void on_new_line(std::size_t line_number) override;
 
 	void build() override;
 
 private:
-#ifdef BUILD_TYPE_DEBUG
-	size_t m_offset;
+#ifdef MINT_BUILD_TYPE_DEBUG
+	std::size_t _offset;
 #endif
-	BuildContext *m_context;
+	std::reference_wrapper<AbstractSyntaxTree> _ast;
+	Module::Info _data;
 };
 
 class SubBranch : public Branch {
 public:
-	SubBranch(Branch *parent);
+	static constexpr std::size_t tree_base_capacity = 500;
 
-	void push_node(const Node &node) override;
-	void push_nodes(const std::vector<Node> &nodes) override;
-	void replace_node(size_t offset, const Node &node) override;
-	[[nodiscard]] size_t next_node_offset() const override;
-	[[nodiscard]] Node &node_at(size_t offset) override;
+	SubBranch(Branch& parent);
 
-	void on_new_line(size_t offset, size_t line_number) override;
-	void on_new_line(size_t line_number) override;
+	void push_node(const Node& node) override;
+	void push_nodes(const std::vector<Node>& nodes) override;
+	void replace_node(std::size_t offset, const Node& node) override;
+	[[nodiscard]] std::size_t next_node_offset() const override;
+	[[nodiscard]] Node& node_at(std::size_t offset) override;
+
+	void on_new_line(std::size_t offset, std::size_t line_number) override;
+	void on_new_line(std::size_t line_number) override;
 
 	void build() override;
 
 private:
-	std::vector<std::pair<size_t, size_t>> m_lines;
-	std::vector<Node> m_tree;
-	Branch *m_parent;
+	std::vector<std::pair<std::size_t, std::size_t>> _lines;
+	std::vector<Node> _tree;
+	std::reference_wrapper<Branch> _parent;
 };
 
 }

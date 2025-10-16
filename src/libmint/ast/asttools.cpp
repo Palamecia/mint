@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,20 +23,23 @@
 
 #include "mint/ast/asttools.h"
 #include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/module.h"
 #include "mint/system/error.h"
+#include <memory>
+#include <string>
 
 using namespace mint;
 
-void mint::load_module(Cursor *cursor, const std::string &module) {
-	if (UNLIKELY(!cursor->load_module(module))) {
-		error("module '%s' not found", module.c_str());
+void mint::load_module(Cursor& cursor, const std::string& module) {
+	if (!cursor.load_module(module)) [[unlikely]] {
+		error("module '{}' not found", module);
 	}
 }
 
-Cursor *mint::load_module(const std::string &module, AbstractSyntaxTree *ast) {
-	Module::Info infos = ast->load_module(module);
-	if (UNLIKELY(infos.id == Module::INVALID_ID)) {
-		error("module '%s' not found", module.c_str());
+std::unique_ptr<Cursor> mint::load_module(const std::string& module, AbstractSyntaxTree& ast) {
+	const auto infos = ast.load_module(module);
+	if (infos.id == Module::invalid_id) [[unlikely]] {
+		error("module '{}' not found", module);
 	}
-	return ast->create_cursor(infos.id);
+	return std::make_unique<Cursor>(ast, *infos.module);
 }

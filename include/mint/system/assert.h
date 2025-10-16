@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,20 +21,21 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_ASSERT_H
-#define MINT_ASSERT_H
-
-#include "mint/config.h"
+#ifndef MINT_SYSTEM_ASSERT_H
+#define MINT_SYSTEM_ASSERT_H
 
 #include <cassert>
 #include <utility>
 
-#ifdef BUILD_TYPE_DEBUG
-#ifdef OS_WINDOWS
-#define assert_x(expr, where, what) _ASSERT_EXPR(expr, L#where L":" L#what)
+#ifdef MINT_BUILD_TYPE_DEBUG
+#ifdef MINT_OS_WINDOWS
+MINT_EXPORT void __assert_x_fail(const char* __file, unsigned int __line, const char* __where, const char* __what);
+
+#define assert_x(expr, where, what) \
+	(static_cast<bool>(expr) ? void(0) : __assert_x_fail(__FILE__, __LINE__, where, what))
 #else
-extern void __assert_x_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function,
-							const char *__where, const char *__what) __THROW __attribute__((__noreturn__));
+extern void __assert_x_fail(const char* __assertion, const char* __file, unsigned int __line, const char* __function,
+    const char* __where, const char* __what) __THROW __attribute__((__noreturn__));
 
 #define assert_x(expr, where, what) \
 	(static_cast<bool>(expr) ? void(0) : __assert_x_fail(#expr, __FILE__, __LINE__, __ASSERT_FUNCTION, where, what))
@@ -46,8 +47,8 @@ extern void __assert_x_fail(const char *__assertion, const char *__file, unsigne
 namespace mint {
 
 template<typename Exception, typename Type, typename... Args>
-Type *assert_not_null(Type *value, Args &&...args) {
-	if (UNLIKELY(value == nullptr)) {
+Type* assert_not_null(Type* value, Args&&... args) {
+	if (value == nullptr) [[unlikely]] {
 		throw Exception(std::forward<Args>(args)...);
 	}
 	return value;
@@ -55,4 +56,4 @@ Type *assert_not_null(Type *value, Args &&...args) {
 
 }
 
-#endif // MINT_ASSERT_H
+#endif // MINT_SYSTEM_ASSERT_H

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -28,24 +28,35 @@
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/casttool.h"
+#include "mint/memory/data.h"
+#include "mint/memory/garbagecollector.h"
+#include "mint/memory/object.h"
 #include "mint/system/plugin.h"
+#include "mint/system/string.h"
+#include "mint/system/error.h"
+#include <cctype>
+#include <cstddef>
+#include <exception>
+#include <regex>
+#include <stdexcept>
+#include <string>
 
 using namespace mint;
 
 namespace {
 
-double token_to_number(const std::string &token, bool *error) {
-	return to_unsigned_number(token, error);
+double token_to_number(const std::string& token) {
+	return to_unsigned_number(token);
 }
 
-std::string token_to_string(const std::string &token, bool *error) {
+std::string token_to_string(const std::string& token) {
 
 	std::string str;
 	bool shift = false;
 
-	for (size_t i = 1; i < token.size() - 1; ++i) {
+	for (std::size_t i = 1; i < token.size() - 1; ++i) {
 
-		char cptr = token[i];
+		const char cptr = token[i];
 
 		if (shift) {
 			switch (cptr) {
@@ -80,15 +91,12 @@ std::string token_to_string(const std::string &token, bool *error) {
 				if (isdigit(token[++i])) {
 					int code = 0;
 					while (isdigit(token[i])) {
-						code = (code * 16) + (token[i++] - '0');
+						code = (code * hexadecimal_base) + (token[i++] - '0');
 					}
 					str += static_cast<char>(code);
 				}
 				else {
-					if (error) {
-						*error = true;
-					}
-					return str;
+					throw std::invalid_argument(__func__);
 				}
 				break;
 			case '"':
@@ -105,7 +113,7 @@ std::string token_to_string(const std::string &token, bool *error) {
 					if (isdigit(cptr)) {
 						int code = 0;
 						while (isdigit(token[i])) {
-							code = (code * 10) + (token[i++] - '0');
+							code = (code * decimal_base) + (token[i++] - '0');
 						}
 						str += static_cast<char>(code);
 					}
@@ -115,10 +123,7 @@ std::string token_to_string(const std::string &token, bool *error) {
 					}
 				}
 				else {
-					if (error) {
-						*error = true;
-					}
-					return str;
+					throw std::invalid_argument(__func__);
 				}
 			}
 
@@ -132,18 +137,15 @@ std::string token_to_string(const std::string &token, bool *error) {
 		}
 	}
 
-	if (error) {
-		*error = false;
-	}
 	return str;
 }
 
-std::regex token_to_regex(const std::string &token, bool *error) {
+std::regex token_to_regex(const std::string& token) {
 
 	std::string str;
 	std::regex::flag_type flag = std::regex::ECMAScript;
 	auto pos = token.find_last_of('/');
-	std::string indicators = token.substr(pos + 1, token.size());
+	const auto indicators = token.substr(pos + 1, token.size());
 
 	str = token.substr(1, pos - 1);
 
@@ -156,161 +158,140 @@ std::regex token_to_regex(const std::string &token, bool *error) {
 			flag |= std::regex::icase;
 			break;
 		default:
-			if (error) {
-				*error = true;
-			}
-			return {};
+			throw std::invalid_argument(__func__);
 		}
 	}
 
-	if (error) {
-		*error = false;
-	}
-
-	try {
-		return std::regex(str, flag);
-	}
-	catch (const std::regex_error &) {
-		if (error) {
-			*error = true;
-		}
-	}
-
-	return {};
+	return std::regex(str, flag);
 }
 
-Compiler::DataHint data_hint_from_token(const std::string &token) {
-
+Compiler::DataHint data_hint_from_token(const std::string& token) {
 	if (isdigit(token.front())) {
-		return Compiler::DATA_NUMBER_HINT;
+		return Compiler::DataHint::data_number_hint;
 	}
-
 	if (token.front() == '\'' || token.front() == '"') {
-		return Compiler::DATA_STRING_HINT;
+		return Compiler::DataHint::data_string_hint;
 	}
-
 	if (token.front() == '/') {
-		return Compiler::DATA_REGEX_HINT;
+		return Compiler::DataHint::data_regex_hint;
 	}
-
 	if (token == "true") {
-		return Compiler::DATA_TRUE_HINT;
+		return Compiler::DataHint::data_true_hint;
 	}
-
 	if (token == "false") {
-		return Compiler::DATA_FALSE_HINT;
+		return Compiler::DataHint::data_false_hint;
 	}
-
 	if (token == "null") {
-		return Compiler::DATA_NULL_HINT;
+		return Compiler::DataHint::data_null_hint;
 	}
-
 	if (token == "none") {
-		return Compiler::DATA_NONE_HINT;
+		return Compiler::DataHint::data_none_hint;
 	}
-
-	return Compiler::DATA_UNKNOWN_HINT;
+	return Compiler::DataHint::data_unknown_hint;
 }
 
 }
 
-Compiler::Compiler() :
-	m_printing(false) {}
+Compiler::Compiler(AbstractSyntaxTree& ast) :
+    _ast(ast) {}
 
 bool Compiler::is_printing() const {
-	return m_printing;
+	return _printing;
 }
 
 void Compiler::set_printing(bool enabled) {
-	m_printing = enabled;
+	_printing = enabled;
 }
 
-Data *Compiler::make_data(const std::string &token, DataHint hint) {
+Data* Compiler::make_data(const std::string& token, DataHint hint) {
 
-	if (hint == DATA_UNKNOWN_HINT) {
+	if (hint == DataHint::data_unknown_hint) {
 		hint = data_hint_from_token(token);
 	}
 
 	switch (hint) {
-	case DATA_UNKNOWN_HINT:
+	case DataHint::data_unknown_hint:
 		break;
-	case DATA_NUMBER_HINT:
-		{
-			bool error = false;
-			auto *number = GarbageCollector::instance().alloc<Number>(token_to_number(token, &error));
-			if (error) {
-				return nullptr;
-			}
-			return number;
+	case DataHint::data_number_hint:
+		try {
+			return GarbageCollector::instance().alloc<Number>(token_to_number(token));
 		}
-	case DATA_STRING_HINT:
-		{
-			bool error = false;
-			auto *string = GarbageCollector::instance().alloc<String>(token_to_string(token, &error));
+		catch (std::exception&) {
+			return nullptr;
+		}
+	case DataHint::data_string_hint:
+		try {
+			auto* string = GarbageCollector::instance().alloc<String>(_ast, token_to_string(token));
 			string->construct();
-			if (error) {
-				return nullptr;
-			}
 			return string;
 		}
-	case DATA_REGEX_HINT:
-		{
-			bool error = false;
-			auto *regex = GarbageCollector::instance().alloc<Regex>();
-			regex->expr = token_to_regex(token, &error);
+		catch (std::exception&) {
+			return nullptr;
+		}
+	case DataHint::data_regex_hint:
+		try {
+			auto* regex = GarbageCollector::instance().alloc<Regex>(_ast);
+			regex->expr = token_to_regex(token);
 			regex->initializer = token;
 			regex->construct();
-			if (error) {
-				return nullptr;
-			}
 			return regex;
 		}
-	case DATA_TRUE_HINT:
+		catch (std::exception&) {
+			return nullptr;
+		}
+	case DataHint::data_true_hint:
 		return GarbageCollector::instance().alloc<Boolean>(true);
-	case DATA_FALSE_HINT:
+	case DataHint::data_false_hint:
 		return GarbageCollector::instance().alloc<Boolean>(false);
-	case DATA_NULL_HINT:
+	case DataHint::data_null_hint:
 		return GarbageCollector::instance().alloc<Null>();
-	case DATA_NONE_HINT:
+	case DataHint::data_none_hint:
 		return GarbageCollector::instance().alloc<None>();
 	}
 
 	return nullptr;
 }
 
-Data *Compiler::make_library(const std::string &token) {
-
-	auto *library = GarbageCollector::instance().alloc<Library>();
-	bool error = false;
-
-	std::string plugin = token_to_string(token, &error);
-	if (error) {
-		return nullptr;
+Data& Compiler::make_library(const std::string& token) {
+	try {
+		auto* library = GarbageCollector::instance().alloc<Library>(_ast);
+		library->plugin = Plugin::load(token_to_string(token));
+		library->construct();
+		return *library;
 	}
-
-	library->construct();
-	library->plugin = Plugin::load(plugin);
-	if (library->plugin) {
-		return library;
+	catch (const std::exception& error) {
+		mint::error("failed to load plugin {}: {}", token, error.what());
 	}
-
-	return nullptr;
 }
 
-Data *Compiler::make_array() {
+Data& Compiler::make_package(PackageData& package) {
+	return *GarbageCollector::instance().alloc<Package>(package);
+}
 
-	auto *array = GarbageCollector::instance().alloc<Array>();
+Data& Compiler::make_number(double value) {
+	return *GarbageCollector::instance().alloc<Number>(value);
+}
+
+Data& Compiler::make_boolean(bool value) {
+	return *GarbageCollector::instance().alloc<Boolean>(value);
+}
+
+Data& Compiler::make_array() {
+	auto* array = GarbageCollector::instance().alloc<Array>(_ast);
 	array->construct();
-	return array;
+	return *array;
 }
 
-Data *Compiler::make_hash() {
-
-	auto *hash = GarbageCollector::instance().alloc<Hash>();
+Data& Compiler::make_hash() {
+	auto* hash = GarbageCollector::instance().alloc<Hash>(_ast);
 	hash->construct();
-	return hash;
+	return *hash;
 }
 
-Data *Compiler::make_none() {
-	return GarbageCollector::instance().alloc<None>();
+Data& Compiler::make_none() {
+	return *GarbageCollector::instance().alloc<None>();
+}
+
+AbstractSyntaxTree& Compiler::ast() {
+	return _ast;
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_DEBUGINFOS_H
-#define MINT_DEBUGINFOS_H
+#ifndef MINT_DEBUG_DEBUGINFO_H
+#define MINT_DEBUG_DEBUGINFO_H
 
 #include "mint/config.h"
 
@@ -35,16 +35,16 @@ class Module;
 
 class MINT_EXPORT DebugInfo {
 public:
-	size_t line_number(size_t offset);
-	void new_line(size_t offset, size_t line_number);
-	void new_line(const Module *module, size_t line_number);
+	std::size_t line_number(std::size_t offset);
+	void new_line(std::size_t offset, std::size_t line_number);
+	void new_line(const Module* module, std::size_t line_number);
 
-	size_t to_executable_line_number(size_t line_number);
+	std::size_t to_executable_line_number(std::size_t line_number);
 
 private:
-	std::map<size_t, size_t> m_lines;
+	std::map<std::size_t, std::size_t> _lines;
 };
 
 }
 
-#endif // MINT_DEBUGINFOS_H
+#endif // MINT_DEBUG_DEBUGINFO_H

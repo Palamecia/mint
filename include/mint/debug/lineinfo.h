@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,11 +21,13 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_LINEINFO_H
-#define MINT_LINEINFO_H
+#ifndef MINT_DEBUG_LINEINFO_H
+#define MINT_DEBUG_LINEINFO_H
 
 #include "mint/ast/module.h"
+#include "mint/config.h"
 
+#include <cstddef>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -36,26 +38,26 @@ class AbstractSyntaxTree;
 
 class MINT_EXPORT LineInfo {
 public:
-	LineInfo(AbstractSyntaxTree *ast, std::string module, size_t line_number = 0);
-	LineInfo(Module::Id module_id, std::string module, size_t line_number = 0);
+	LineInfo(AbstractSyntaxTree& ast, std::string module, std::size_t line_number = 0);
+	LineInfo(Module::Id module_id, std::string module, std::size_t line_number = 0);
 	LineInfo();
 
 	[[nodiscard]] Module::Id module_id() const;
 	[[nodiscard]] std::string module_name() const;
-	[[nodiscard]] size_t line_number() const;
+	[[nodiscard]] std::size_t line_number() const;
 	[[nodiscard]] std::string to_string() const;
 
 	[[nodiscard]] std::filesystem::path system_path() const;
 	[[nodiscard]] std::filesystem::path system_file_name() const;
 
 private:
-	Module::Id m_module_id;
-	std::string m_module_name;
-	size_t m_line_number;
+	Module::Id _module_id;
+	std::string _module_name;
+	std::size_t _line_number;
 };
 
 using LineInfoList = std::vector<LineInfo>;
 
 }
 
-#endif // MINT_LINEINFO_H
+#endif // MINT_DEBUG_LINEINFO_H

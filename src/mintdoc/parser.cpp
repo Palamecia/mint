@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,88 +22,81 @@
  */
 
 #include "parser.h"
+#include "definition.h"
 #include "dictionary.h"
 #include "docnode.h"
 
-#include <mint/memory/casttool.h>
-#include <mint/system/string.h>
-#include <mint/system/error.h>
+#include "mint/compiler/lexicalhandler.h"
+#include "mint/compiler/token.h"
+#include "mint/config.h"
+#include "mint/memory/casttool.h"
+#include "mint/memory/reference.h"
+#include "mint/system/error.h"
+#include <cstddef>
+#include <cstdio>
+#include <memory>
+#include <string>
 #include <unordered_set>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <utility>
 #include <vector>
 
 namespace {
 
-static const std::unordered_set<std::string> UNPADDED_PREFIXES = {"(", "[", "{", "."};
-static const std::unordered_set<std::string> UNPADDED_POSTFIXES = {")", "]", "}", ",", "."};
+const std::unordered_set<std::string> unpadded_prefixes = {"(", "[", "{", "."};
+const std::unordered_set<std::string> unpadded_postfixes = {")", "]", "}", ",", "."};
 
-bool contains(const std::unordered_set<std::string> &set, const std::string &value) {
-	return set.find(value) != end(set);
-}
-
-void value_add_token(Constant *constant, const std::string &token) {
-
+void value_add_token(Constant& constant, const std::string& token) {
 	if (token != "\n") {
-
-		if (!constant->value.empty() && !contains(UNPADDED_PREFIXES, std::string(1, constant->value.back()))
-			&& !contains(UNPADDED_POSTFIXES, token)) {
-			constant->value += " ";
+		if (!constant.value.empty() && !unpadded_prefixes.contains(std::string(1, constant.value.back()))
+		    && !unpadded_postfixes.contains(token)) {
+			constant.value += " ";
 		}
-
-		constant->value += token;
+		constant.value += token;
 	}
 }
 
-void signature_add_token(Function::Signature *signature, const std::string &token) {
-
-	if (!signature->format.empty() && !contains(UNPADDED_PREFIXES, std::string(1, signature->format.back()))
-		&& !contains(UNPADDED_POSTFIXES, token)) {
-		signature->format += " ";
+void signature_add_token(Function::Signature& signature, const std::string& token) {
+	if (!signature.format.empty() && !unpadded_prefixes.contains(std::string(1, signature.format.back()))
+	    && !unpadded_postfixes.contains(token)) {
+		signature.format += " ";
 	}
-
-	signature->format += token;
+	signature.format += token;
 }
 
 }
 
 Parser::Parser(std::filesystem::path path) :
-	m_path(std::move(path)) {}
+    _path(std::move(path)) {}
 
-Parser::~Parser() {
-	while (m_context) {
-		close_block();
-	}
-}
+void Parser::parse(Dictionary& dictionary) {
 
-void Parser::parse(Dictionary *dictionary) {
+	_context = std::make_unique<Context>(Context {
+	    .dictionary = dictionary,
+	});
 
-	std::ifstream file(m_path);
-
-	m_dictionary = dictionary;
-	m_signature = nullptr;
-	m_definition = nullptr;
-
+	auto file = std::ifstream(_path);
 	LexicalHandler::parse(file);
 }
 
-bool Parser::on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) {
+bool Parser::on_token(mint::Token type, const std::string& token, std::string::size_type offset) {
 
 	switch (get_state()) {
-	case EXPECT_FUNCTION:
+	case State::expect_function:
 		break;
 
-	case EXPECT_VALUE:
-	case EXPECT_VALUE_SUBEXPRESSION:
-		if (auto *instance = static_cast<Constant *>(m_definition)) {
-			value_add_token(instance, token);
+	case State::expect_value:
+	case State::expect_value_subexpression:
+		if (auto instance = std::static_pointer_cast<Constant>(_context->definition)) {
+			value_add_token(*instance, token);
 		}
 		break;
 
-	case EXPECT_SIGNATURE:
-	case EXPECT_SIGNATURE_SUBEXPRESSION:
-		signature_add_token(m_signature, token);
+	case State::expect_signature:
+	case State::expect_signature_subexpression:
+		signature_add_token(*_context->signature, token);
 		break;
 
 	default:
@@ -111,146 +104,144 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 	}
 
 	switch (type) {
-	case mint::token::CLASS_TOKEN:
-		set_state(EXPECT_CLASS);
+	case mint::Token::class_token:
+		set_state(State::expect_class);
 		break;
-	case mint::token::DEF_TOKEN:
-		if (m_definition) {
-			if (Function *instance = m_dictionary->get_or_create_function(m_definition->name)) {
-				instance->flags = m_definition->flags;
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
-				delete m_definition;
-				m_definition = instance;
+	case mint::Token::def_token:
+		if (_context->definition) {
+			if (auto instance = _context->dictionary.get().get_or_create_function(_context->definition->name)) {
+				instance->flags = _context->definition->flags;
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
+				_context->definition = instance;
 			}
-			start_modifiers(mint::Reference::DEFAULT);
-			set_state(EXPECT_SIGNATURE_BEGIN);
-			m_comment.clear();
+			start_modifiers(mint::Reference::default_flags);
+			set_state(State::expect_signature_begin);
+			_context->comment.clear();
 		}
 		else {
-			set_state(EXPECT_FUNCTION);
+			set_state(State::expect_function);
 		}
 		break;
-	case mint::token::ENUM_TOKEN:
-		set_state(EXPECT_ENUM);
-		m_next_enum_constant = 0;
+	case mint::Token::enum_token:
+		set_state(State::expect_enum);
+		_context->next_enum_constant = 0;
 		break;
-	case mint::token::PACKAGE_TOKEN:
-		set_state(EXPECT_PACKAGE);
+	case mint::Token::package_token:
+		set_state(State::expect_package);
 		break;
 
-	case mint::token::SYMBOL_TOKEN:
-		if (m_definition) {
+	case mint::Token::symbol_token:
+		if (_context->definition) {
 			switch (get_state()) {
-			case EXPECT_BASE:
-				m_base += token;
+			case State::expect_base:
+				_context->base += token;
 				break;
 
-			case EXPECT_VALUE:
-			case EXPECT_SIGNATURE:
+			case State::expect_value:
+			case State::expect_signature:
 				break;
 
 			default:
-				set_state(EXPECT_START);
+				set_state(State::expect_start);
 				break;
 			}
 		}
 		else {
 			switch (get_state()) {
-			case EXPECT_PACKAGE:
-				if (Package *instance = m_dictionary->get_or_create_package(definition_name(token))) {
+			case State::expect_package:
+				if (auto instance = _context->dictionary.get().get_or_create_package(definition_name(token))) {
 					push_context(token, instance);
 					if (!instance->doc) {
-						instance->doc = parse_doc(
-							cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
+						instance->doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
+						    _context->comment_column_number));
 					}
 					instance->flags = retrieve_modifiers();
-					m_definition = instance;
+					_context->definition = instance;
 				}
 
-				set_state(EXPECT_START);
+				set_state(State::expect_start);
 				break;
 
-			case EXPECT_CLASS:
-				if (auto *instance = new Class(definition_name(token))) {
+			case State::expect_class:
+				if (auto instance = std::make_shared<Class>(definition_name(token))) {
 					push_context(token, instance);
 					if (!instance->doc) {
-						instance->doc = parse_doc(
-							cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
+						instance->doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
+						    _context->comment_column_number));
 					}
 					instance->flags = retrieve_modifiers();
-					m_definition = instance;
+					_context->definition = instance;
 				}
 
-				set_state(EXPECT_START);
+				set_state(State::expect_start);
 				break;
 
-			case EXPECT_ENUM:
-				if (auto *instance = new Enum(definition_name(token))) {
+			case State::expect_enum:
+				if (auto instance = std::make_shared<Enum>(definition_name(token))) {
 					push_context(token, instance);
 					if (!instance->doc) {
-						instance->doc = parse_doc(
-							cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
+						instance->doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
+						    _context->comment_column_number));
 					}
-					m_next_enum_constant = 0;
+					_context->next_enum_constant = 0;
 					instance->flags = retrieve_modifiers();
-					m_definition = instance;
+					_context->definition = instance;
 				}
 
-				set_state(EXPECT_START);
+				set_state(State::expect_start);
 				break;
 
-			case EXPECT_FUNCTION:
-				if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-					m_signature = new Function::Signature;
-					m_signature->format = "def";
-					if (!m_signature->doc) {
-						m_signature->doc = parse_doc(
-							cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-					}
+			case State::expect_function:
+				if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+					_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+					    .format = "def",
+					    .doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
+					        _context->comment_column_number)),
+					});
 					instance->flags = retrieve_modifiers();
-					m_definition = instance;
+					_context->definition = instance;
 				}
 
-				set_state(EXPECT_SIGNATURE_BEGIN);
+				set_state(State::expect_signature_begin);
 				break;
 
-			case EXPECT_START:
-				if (m_modifiers & mint::Reference::GLOBAL) {
-					if (auto *instance = new Constant(definition_name(token))) {
+			case State::expect_start:
+				if (_context->modifiers & mint::Reference::global) {
+					if (auto instance = std::make_shared<Constant>(definition_name(token))) {
 						if (!instance->doc) {
-							instance->doc = parse_doc(
-								cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
+							instance->doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
+							    _context->comment_column_number));
 						}
 						instance->flags = retrieve_modifiers();
-						m_definition = instance;
+						_context->definition = instance;
 					}
 				}
-				else if (const Context *context = current_context()) {
-					if (context->block == 1) {
+				else if (const auto* context = current_context()) {
+					if (context->depth == 1) {
 						switch (context->definition->type) {
-						case Definition::CLASS_DEFINITION:
-							if (auto *instance = new Constant(definition_name(token))) {
+						case Definition::class_definition:
+							if (auto instance = std::make_shared<Constant>(definition_name(token))) {
 								if (!instance->doc) {
-									instance->doc = parse_doc(
-										cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
+									instance->doc = parse_doc(cleanup_doc(_context->comment,
+									    _context->comment_line_number, _context->comment_column_number));
 								}
 								instance->flags = retrieve_modifiers();
-								m_definition = instance;
+								_context->definition = instance;
 							}
 							break;
 
-						case Definition::ENUM_DEFINITION:
-							if (auto *instance = new Constant(definition_name(token))) {
+						case Definition::enum_definition:
+							if (auto instance = std::make_shared<Constant>(definition_name(token))) {
 								if (!instance->doc) {
-									instance->doc = parse_doc(
-										cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
+									instance->doc = parse_doc(cleanup_doc(_context->comment,
+									    _context->comment_line_number, _context->comment_column_number));
 								}
 								instance->flags = retrieve_modifiers();
-								m_definition = instance;
+								_context->definition = instance;
 							}
 							break;
 
@@ -260,167 +251,159 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 					}
 				}
 
-				set_state(EXPECT_START);
+				set_state(State::expect_start);
 				break;
 
-			case EXPECT_CAPTURE:
+			case State::expect_capture:
 				return true;
 
-			case EXPECT_SIGNATURE:
+			case State::expect_signature:
 				break;
 
 			default:
-				set_state(EXPECT_START);
+				set_state(State::expect_start);
 				break;
 			}
 		}
-		start_modifiers(mint::Reference::DEFAULT);
-		m_comment.clear();
+		start_modifiers(mint::Reference::default_flags);
+		_context->comment.clear();
 		break;
 
-	case mint::token::OPEN_PARENTHESIS_TOKEN:
+	case mint::Token::open_parenthesis_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			set_state(EXPECT_PARENTHESIS_OPERATOR);
+		case State::expect_function:
+			set_state(State::expect_parenthesis_operator);
 			break;
 
-		case EXPECT_SIGNATURE:
-		case EXPECT_SIGNATURE_SUBEXPRESSION:
-			push_state(EXPECT_SIGNATURE_SUBEXPRESSION);
-			start_modifiers(mint::Reference::DEFAULT);
+		case State::expect_signature:
+		case State::expect_signature_subexpression:
+			push_state(State::expect_signature_subexpression);
+			start_modifiers(mint::Reference::default_flags);
 			break;
 
-		case EXPECT_VALUE:
-		case EXPECT_VALUE_SUBEXPRESSION:
-			push_state(EXPECT_VALUE_SUBEXPRESSION);
-			start_modifiers(mint::Reference::DEFAULT);
+		case State::expect_value:
+		case State::expect_value_subexpression:
+			push_state(State::expect_value_subexpression);
+			start_modifiers(mint::Reference::default_flags);
 			break;
 
-		case EXPECT_SIGNATURE_BEGIN:
-			m_signature->format += " " + token;
-			start_modifiers(mint::Reference::DEFAULT);
-			set_state(EXPECT_SIGNATURE);
+		case State::expect_signature_begin:
+			_context->signature->format += " " + token;
+			start_modifiers(mint::Reference::default_flags);
+			set_state(State::expect_signature);
 			break;
 
 		default:
-			start_modifiers(mint::Reference::DEFAULT);
+			start_modifiers(mint::Reference::default_flags);
 			break;
 		}
 		break;
 
-	case mint::token::CLOSE_PARENTHESIS_TOKEN:
+	case mint::Token::close_parenthesis_token:
 		switch (get_state()) {
-		case EXPECT_PARENTHESIS_OPERATOR:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name("()"))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_parenthesis_operator:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name("()"))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
-		case EXPECT_SIGNATURE_SUBEXPRESSION:
-		case EXPECT_VALUE_SUBEXPRESSION:
-			pop_state();
-			break;
-
-		case EXPECT_SIGNATURE:
+		case State::expect_signature_subexpression:
+		case State::expect_value_subexpression:
+		case State::expect_signature:
 			pop_state();
 			break;
 
 		default:
 			break;
 		}
-		start_modifiers(mint::Reference::DEFAULT);
+		start_modifiers(mint::Reference::default_flags);
 		break;
 
-	case mint::token::OPEN_BRACKET_TOKEN:
+	case mint::Token::open_bracket_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (const Context *context = current_context()) {
-				if (context->definition->type == Definition::CLASS_DEFINITION) {
-					set_state(EXPECT_BRACKET_OPERATOR);
+		case State::expect_function:
+			if (const auto* context = current_context()) {
+				if (context->definition->type == Definition::class_definition) {
+					set_state(State::expect_bracket_operator);
 				}
 				else {
-					start_modifiers(mint::Reference::DEFAULT);
-					push_state(EXPECT_CAPTURE);
+					start_modifiers(mint::Reference::default_flags);
+					push_state(State::expect_capture);
 				}
 			}
 			else {
-				start_modifiers(mint::Reference::DEFAULT);
-				push_state(EXPECT_CAPTURE);
+				start_modifiers(mint::Reference::default_flags);
+				push_state(State::expect_capture);
 			}
 			break;
 
-		case EXPECT_SIGNATURE:
-		case EXPECT_SIGNATURE_SUBEXPRESSION:
-			push_state(EXPECT_SIGNATURE_SUBEXPRESSION);
-			start_modifiers(mint::Reference::DEFAULT);
+		case State::expect_signature:
+		case State::expect_signature_subexpression:
+			push_state(State::expect_signature_subexpression);
+			start_modifiers(mint::Reference::default_flags);
 			break;
 
-		case EXPECT_VALUE:
-		case EXPECT_VALUE_SUBEXPRESSION:
-			push_state(EXPECT_VALUE_SUBEXPRESSION);
-			start_modifiers(mint::Reference::DEFAULT);
+		case State::expect_value:
+		case State::expect_value_subexpression:
+			push_state(State::expect_value_subexpression);
+			start_modifiers(mint::Reference::default_flags);
 			break;
 
 		default:
-			start_modifiers(mint::Reference::DEFAULT);
+			start_modifiers(mint::Reference::default_flags);
 			break;
 		}
 		break;
 
-	case mint::token::CLOSE_BRACKET_TOKEN:
+	case mint::Token::close_bracket_token:
 		switch (get_state()) {
-		case EXPECT_BRACKET_OPERATOR:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name("[]"))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_bracket_operator:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name("[]"))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {.format = "def",
+				    .doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
+				        _context->comment_column_number))});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
-		case EXPECT_CAPTURE:
-			pop_state();
-			break;
-
-		case EXPECT_SIGNATURE_SUBEXPRESSION:
-		case EXPECT_VALUE_SUBEXPRESSION:
+		case State::expect_signature_subexpression:
+		case State::expect_value_subexpression:
+		case State::expect_capture:
 			pop_state();
 			break;
 
 		default:
 			break;
 		}
-		start_modifiers(mint::Reference::DEFAULT);
+		start_modifiers(mint::Reference::default_flags);
 		break;
 
-	case mint::token::CLOSE_BRACKET_EQUAL_TOKEN:
+	case mint::Token::close_bracket_equal_token:
 		switch (get_state()) {
-		case EXPECT_BRACKET_OPERATOR:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name("[]="))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_bracket_operator:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name("[]="))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
-		case EXPECT_SIGNATURE_SUBEXPRESSION:
-		case EXPECT_VALUE_SUBEXPRESSION:
+		case State::expect_signature_subexpression:
+		case State::expect_value_subexpression:
 			pop_state();
 			break;
 
@@ -429,120 +412,114 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::OPEN_BRACE_TOKEN:
+	case mint::Token::open_brace_token:
 		switch (get_state()) {
-		case EXPECT_BASE:
-			if (auto *instance = static_cast<Class *>(m_definition)) {
-				instance->bases.push_back(m_base);
-				m_base.clear();
+		case State::expect_base:
+			if (auto instance = std::static_pointer_cast<Class>(_context->definition)) {
+				instance->bases.push_back(_context->base);
+				_context->base.clear();
 			}
 			break;
 
-		case EXPECT_SIGNATURE:
-		case EXPECT_SIGNATURE_SUBEXPRESSION:
-			push_state(EXPECT_SIGNATURE_SUBEXPRESSION);
+		case State::expect_signature:
+		case State::expect_signature_subexpression:
+			push_state(State::expect_signature_subexpression);
 			break;
 
-		case EXPECT_VALUE:
-		case EXPECT_VALUE_SUBEXPRESSION:
-			push_state(EXPECT_VALUE_SUBEXPRESSION);
+		case State::expect_value:
+		case State::expect_value_subexpression:
+			push_state(State::expect_value_subexpression);
 			break;
 
-		case EXPECT_FUNCTION:
+		case State::expect_function:
 			pop_state();
 			break;
 
 		default:
 			break;
 		}
-		start_modifiers(mint::Reference::DEFAULT);
+		start_modifiers(mint::Reference::default_flags);
 		open_block();
 		break;
 
-	case mint::token::CLOSE_BRACE_TOKEN:
+	case mint::Token::close_brace_token:
 		switch (get_state()) {
-		case EXPECT_SIGNATURE_SUBEXPRESSION:
-		case EXPECT_VALUE_SUBEXPRESSION:
+		case State::expect_signature_subexpression:
+		case State::expect_value_subexpression:
 			pop_state();
 			break;
 
 		default:
 			break;
 		}
-		start_modifiers(mint::Reference::DEFAULT);
-		m_comment.clear();
+		start_modifiers(mint::Reference::default_flags);
+		_context->comment.clear();
 		close_block();
 		break;
 
-	case mint::token::LINE_END_TOKEN:
+	case mint::Token::line_end_token:
 		switch (get_state()) {
-		case EXPECT_SIGNATURE_SUBEXPRESSION:
-		case EXPECT_VALUE_SUBEXPRESSION:
+		case State::expect_signature_subexpression:
+		case State::expect_value_subexpression:
 			break;
 
-		case EXPECT_VALUE:
+		case State::expect_value:
 			pop_state();
 			[[fallthrough]];
 
 		default:
-			if (m_definition) {
-				switch (m_definition->type) {
-				case Definition::CONSTANT_DEFINITION:
-					if (const Context *context = current_context()) {
-						if (context->definition->type == Definition::ENUM_DEFINITION) {
-							if (auto *instance = static_cast<Constant *>(m_definition)) {
+			if (_context->definition) {
+				switch (_context->definition->type) {
+				case Definition::constant_definition:
+					if (const auto* context = current_context()) {
+						if (context->definition->type == Definition::enum_definition) {
+							if (auto instance = std::static_pointer_cast<Constant>(_context->definition)) {
 								if (instance->value.empty()) {
-									instance->value = std::to_string(m_next_enum_constant++);
+									instance->value = std::to_string(_context->next_enum_constant++);
 								}
 								else {
-									m_next_enum_constant = mint::to_integer(mint::to_signed_number(instance->value));
-									m_next_enum_constant++;
+									_context->next_enum_constant = mint::to_signed_integer(instance->value);
+									_context->next_enum_constant++;
 								}
 							}
 						}
 					}
 					break;
 
-				case Definition::FUNCTION_DEFINITION:
-					if (m_signature) {
-						if (auto *instance = static_cast<Function *>(m_definition)) {
-							instance->signatures.push_back(m_signature);
+				case Definition::function_definition:
+					if (_context->signature) {
+						if (auto instance = std::static_pointer_cast<Function>(_context->definition)) {
+							instance->signatures.emplace_back(_context->signature);
 						}
-						m_signature = nullptr;
+						_context->signature.reset();
 					}
 					break;
 
 				default:
 					break;
 				}
-				bind_definition_to_context(m_definition);
-				m_dictionary->insert_definition(m_definition);
-				m_definition = nullptr;
+				bind_definition_to_context(*_context->definition);
+				_context->dictionary.get().insert_definition(_context->definition);
+				_context->definition = nullptr;
 			}
 			break;
 		}
-		start_modifiers(mint::Reference::DEFAULT);
+		start_modifiers(mint::Reference::default_flags);
 		break;
 
-	case mint::token::CONSTANT_TOKEN:
-		start_modifiers(mint::Reference::DEFAULT);
+	case mint::Token::constant_token:
+	case mint::Token::number_token:
+	case mint::Token::string_token:
+		start_modifiers(mint::Reference::default_flags);
 		break;
 
-	case mint::token::NUMBER_TOKEN:
-		start_modifiers(mint::Reference::DEFAULT);
-		break;
-
-	case mint::token::STRING_TOKEN:
-		start_modifiers(mint::Reference::DEFAULT);
-		break;
-
-	case mint::token::COLON_TOKEN:
-		start_modifiers(mint::Reference::DEFAULT);
-		if (m_definition) {
-			switch (m_definition->type) {
-			case Definition::CLASS_DEFINITION:
-				set_state(EXPECT_BASE);
-				m_base.clear();
+	case mint::Token::colon_token:
+		start_modifiers(mint::Reference::default_flags);
+		if (_context->definition) {
+			switch (_context->definition->type) {
+			case Definition::class_definition:
+				set_state(State::expect_base);
+				_context->base.clear();
 				break;
 
 			default:
@@ -551,16 +528,16 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::EQUAL_TOKEN:
-		if (m_definition && m_definition->type == Definition::CONSTANT_DEFINITION) {
-			push_state(EXPECT_VALUE);
+	case mint::Token::equal_token:
+		if (_context->definition && _context->definition->type == Definition::constant_definition) {
+			push_state(State::expect_value);
 		}
 		break;
 
-	case mint::token::DOT_TOKEN:
+	case mint::Token::dot_token:
 		switch (get_state()) {
-		case EXPECT_BASE:
-			m_base += token;
+		case State::expect_base:
+			_context->base += token;
 			break;
 
 		default:
@@ -568,12 +545,12 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::COMMA_TOKEN:
+	case mint::Token::comma_token:
 		switch (get_state()) {
-		case EXPECT_BASE:
-			if (auto *instance = static_cast<Class *>(m_definition)) {
-				instance->bases.push_back(m_base);
-				m_base.clear();
+		case State::expect_base:
+			if (auto instance = std::static_pointer_cast<Class>(_context->definition)) {
+				instance->bases.push_back(_context->base);
+				_context->base.clear();
 			}
 			break;
 
@@ -582,19 +559,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::IN_TOKEN:
+	case mint::Token::in_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -602,19 +579,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::COLON_EQUAL_TOKEN:
+	case mint::Token::colon_equal_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -622,19 +599,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::DBL_PIPE_TOKEN:
+	case mint::Token::dbl_pipe_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -642,19 +619,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::DBL_AMP_TOKEN:
+	case mint::Token::dbl_amp_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -662,19 +639,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::PIPE_TOKEN:
+	case mint::Token::pipe_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -682,19 +659,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::CARET_TOKEN:
+	case mint::Token::caret_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -702,19 +679,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::AMP_TOKEN:
+	case mint::Token::amp_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -722,19 +699,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::DBL_EQUAL_TOKEN:
+	case mint::Token::dbl_equal_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -742,19 +719,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::EXCLAMATION_EQUAL_TOKEN:
+	case mint::Token::exclamation_equal_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -762,19 +739,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::LEFT_ANGLED_TOKEN:
+	case mint::Token::left_angled_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -782,19 +759,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::RIGHT_ANGLED_TOKEN:
+	case mint::Token::right_angled_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -802,19 +779,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::LEFT_ANGLED_EQUAL_TOKEN:
+	case mint::Token::left_angled_equal_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -822,19 +799,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::RIGHT_ANGLED_EQUAL_TOKEN:
+	case mint::Token::right_angled_equal_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -842,19 +819,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::DBL_LEFT_ANGLED_TOKEN:
+	case mint::Token::dbl_left_angled_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -862,19 +839,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::DBL_RIGHT_ANGLED_TOKEN:
+	case mint::Token::dbl_right_angled_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -882,19 +859,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::PLUS_TOKEN:
+	case mint::Token::plus_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -902,40 +879,40 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::MINUS_TOKEN:
+	case mint::Token::minus_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
-			add_modifiers(mint::Reference::PRIVATE_VISIBILITY);
+			add_modifiers(mint::Reference::private_visibility);
 			break;
 		}
 		break;
 
-	case mint::token::ASTERISK_TOKEN:
+	case mint::Token::asterisk_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -943,19 +920,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::SLASH_TOKEN:
+	case mint::Token::slash_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -963,40 +940,40 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::PERCENT_TOKEN:
+	case mint::Token::percent_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
-			add_modifiers(mint::Reference::CONST_VALUE);
+			add_modifiers(mint::Reference::const_value);
 			break;
 		}
 		break;
 
-	case mint::token::EXCLAMATION_TOKEN:
+	case mint::Token::exclamation_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -1004,40 +981,40 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::TILDE_TOKEN:
+	case mint::Token::tilde_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
-			add_modifiers(mint::Reference::PACKAGE_VISIBILITY);
+			add_modifiers(mint::Reference::package_visibility);
 			break;
 		}
 		break;
 
-	case mint::token::DBL_PLUS_TOKEN:
+	case mint::Token::dbl_plus_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -1045,19 +1022,19 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::DBL_MINUS_TOKEN:
+	case mint::Token::dbl_minus_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
@@ -1065,159 +1042,160 @@ bool Parser::on_token(mint::token::Type type, const std::string &token, std::str
 		}
 		break;
 
-	case mint::token::DBL_ASTERISK_TOKEN:
+	case mint::Token::dbl_asterisk_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
 			break;
 		}
 		break;
-	case mint::token::DBL_DOT_TOKEN:
+	case mint::Token::dbl_dot_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
 			break;
 		}
 		break;
-	case mint::token::TPL_DOT_TOKEN:
+	case mint::Token::tpl_dot_token:
 		switch (get_state()) {
-		case EXPECT_FUNCTION:
-			if (Function *instance = m_dictionary->get_or_create_function(definition_name(token))) {
-				m_signature = new Function::Signature;
-				m_signature->format = "def";
-				if (!m_signature->doc) {
-					m_signature->doc = parse_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
-				}
+		case State::expect_function:
+			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
+				    .format = "def",
+				    .doc = parse_doc(
+				        cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number)),
+				});
 				instance->flags = retrieve_modifiers();
-				m_definition = instance;
+				_context->definition = instance;
 			}
-			set_state(EXPECT_SIGNATURE_BEGIN);
+			set_state(State::expect_signature_begin);
 			break;
 
 		default:
 			break;
 		}
 		break;
-	case mint::token::SHARP_TOKEN:
-		add_modifiers(mint::Reference::PROTECTED_VISIBILITY);
+	case mint::Token::sharp_token:
+		add_modifiers(mint::Reference::protected_visibility);
 		break;
 
-	case mint::token::AT_TOKEN:
-		add_modifiers(mint::Reference::GLOBAL);
+	case mint::Token::at_token:
+		add_modifiers(mint::Reference::global);
 		break;
 
-	case mint::token::DOLLAR_TOKEN:
-		add_modifiers(mint::Reference::CONST_ADDRESS);
+	case mint::Token::dollar_token:
+		add_modifiers(mint::Reference::const_address);
 		break;
 
-	case mint::token::CONST_TOKEN:
-		add_modifiers(mint::Reference::CONST_ADDRESS | mint::Reference::CONST_VALUE);
+	case mint::Token::const_token:
+		add_modifiers(mint::Reference::const_address | mint::Reference::const_value);
 		break;
 
-	case mint::token::FINAL_TOKEN:
-		add_modifiers(mint::Reference::FINAL_MEMBER);
+	case mint::Token::final_token:
+		add_modifiers(mint::Reference::final_member);
 		break;
 
-	case mint::token::OVERRIDE_TOKEN:
-		add_modifiers(mint::Reference::OVERRIDE_MEMBER);
+	case mint::Token::override_token:
+		add_modifiers(mint::Reference::override_member);
 		break;
 
-	case mint::token::ASSERT_TOKEN:
-	case mint::token::BREAK_TOKEN:
-	case mint::token::CASE_TOKEN:
-	case mint::token::CATCH_TOKEN:
-	case mint::token::CONTINUE_TOKEN:
-	case mint::token::DEFAULT_TOKEN:
-	case mint::token::ELIF_TOKEN:
-	case mint::token::ELSE_TOKEN:
-	case mint::token::EXIT_TOKEN:
-	case mint::token::FOR_TOKEN:
-	case mint::token::IF_TOKEN:
-	case mint::token::LIB_TOKEN:
-	case mint::token::PRINT_TOKEN:
-	case mint::token::RAISE_TOKEN:
-	case mint::token::RETURN_TOKEN:
-	case mint::token::SWITCH_TOKEN:
-	case mint::token::TRY_TOKEN:
-	case mint::token::WHILE_TOKEN:
-	case mint::token::YIELD_TOKEN:
-	case mint::token::IS_TOKEN:
-	case mint::token::TYPEOF_TOKEN:
-	case mint::token::MEMBERSOF_TOKEN:
-	case mint::token::DEFINED_TOKEN:
-		start_modifiers(mint::Reference::DEFAULT);
+	case mint::Token::assert_token:
+	case mint::Token::break_token:
+	case mint::Token::case_token:
+	case mint::Token::catch_token:
+	case mint::Token::continue_token:
+	case mint::Token::default_token:
+	case mint::Token::elif_token:
+	case mint::Token::else_token:
+	case mint::Token::exit_token:
+	case mint::Token::for_token:
+	case mint::Token::if_token:
+	case mint::Token::lib_token:
+	case mint::Token::print_token:
+	case mint::Token::raise_token:
+	case mint::Token::return_token:
+	case mint::Token::switch_token:
+	case mint::Token::try_token:
+	case mint::Token::while_token:
+	case mint::Token::yield_token:
+	case mint::Token::is_token:
+	case mint::Token::typeof_token:
+	case mint::Token::membersof_token:
+	case mint::Token::defined_token:
+		start_modifiers(mint::Reference::default_flags);
 		break;
 
-	case mint::token::COMMENT_TOKEN:
-		m_comment = token;
+	case mint::Token::comment_token:
+		_context->comment = token;
 		if (offset == 0) {
-			m_dictionary->set_module_doc(cleanup_doc(m_comment, m_comment_line_number, m_comment_column_number));
+			_context->dictionary.get().set_module_doc(
+			    cleanup_doc(_context->comment, _context->comment_line_number, _context->comment_column_number));
 		}
 		break;
 
 	default:
-		start_modifiers(mint::Reference::DEFAULT);
+		start_modifiers(mint::Reference::default_flags);
 		break;
 	}
 	return true;
 }
 
-bool Parser::on_new_line(size_t line_number, std::string::size_type offset) {
-	m_line_number = line_number;
-	m_line_offset = offset;
+bool Parser::on_new_line(std::size_t line_number, std::string::size_type offset) {
+	_context->line_number = line_number;
+	_context->line_offset = offset;
 	return true;
 }
 
 bool Parser::on_comment_begin(std::string::size_type offset) {
-	m_comment_line_number = m_line_number;
-	m_comment_column_number = offset - m_line_offset;
+	_context->comment_line_number = _context->line_number;
+	_context->comment_column_number = offset - _context->line_offset;
 	return true;
 }
 
-void Parser::parse_error(const char *message, size_t column, size_t begin_line, size_t end_line) {
+void Parser::parse_error(const std::string& message, std::size_t column, std::size_t begin_line, std::size_t end_line) {
 
-	static constexpr const char *TAB_PLACEHOLDER = "\033[1;30m\xC2\xBB\t\033[0m";
-	static constexpr const char *SPACE_PLACEHOLDER = "\033[1;30m\xC2\xB7\033[0m";
+	static constexpr const char* tab_placeholder = "\033[1;30m\xC2\xBB\t\033[0m";
+	static constexpr const char* space_placeholder = "\033[1;30m\xC2\xB7\033[0m";
 
 	std::string message_line;
-	std::ifstream stream(m_path);
+	std::ifstream stream(_path);
 	std::string line_content = "\033[0m";
 	std::string message_pos = "\033[1;30m";
 
-	for (size_t i = 1; i <= end_line; ++i) {
+	for (std::size_t i = 1; i <= end_line; ++i) {
 		getline(stream, line_content, '\n');
 		if (i >= begin_line) {
 			for (char c : line_content) {
 				switch (c) {
 				case '\t':
-					message_line += TAB_PLACEHOLDER;
+					message_line += tab_placeholder;
 					break;
 				case ' ':
-					message_line += SPACE_PLACEHOLDER;
+					message_line += space_placeholder;
 					break;
 				default:
 					message_line += c;
@@ -1228,21 +1206,21 @@ void Parser::parse_error(const char *message, size_t column, size_t begin_line, 
 		}
 	}
 
-	for (size_t i = 0; i < line_content.size(); ++i) {
+	for (std::size_t i = 0; i < line_content.size(); ++i) {
 		if (i < column - 1) {
-			switch (byte_t c = line_content[i]) {
+			switch (const auto c = line_content[i]) {
 			case '\t':
-				message_line += TAB_PLACEHOLDER;
+				message_line += tab_placeholder;
 				message_pos += '\t';
 				break;
 			case ' ':
-				message_line += SPACE_PLACEHOLDER;
+				message_line += space_placeholder;
 				message_pos += ' ';
 				break;
 			default:
 				if (c & 0x80) {
 
-					size_t size = 2;
+					std::size_t size = 2;
 
 					if (c & 0x04) {
 						size++;
@@ -1268,97 +1246,101 @@ void Parser::parse_error(const char *message, size_t column, size_t begin_line, 
 
 	message_pos += '^';
 
-	mint::error("%s:%d: %s\n%s\n%s\n", m_path.c_str(), m_line_number, message, message_line.c_str(),
-				message_pos.c_str());
+	mint::error("{}:{}: {}\n{}\n{}\n", _path.generic_string(), _context->line_number, message, message_line,
+	    message_pos);
 }
 
 Parser::State Parser::get_state() const {
-	return m_state;
+	return _context->state;
 }
 
 void Parser::set_state(State state) {
-	m_state = state;
+	_context->state = state;
 }
 
 void Parser::push_state(State state) {
-	m_states.push_back(m_state);
-	m_state = state;
+	_context->states.push_back(_context->state);
+	_context->state = state;
 }
 
 void Parser::pop_state() {
-	if (m_states.empty()) {
-		m_state = EXPECT_START;
+	if (_context->states.empty()) {
+		_context->state = State::expect_start;
 	}
 	else {
-		m_state = m_states.back();
-		m_states.pop_back();
+		_context->state = _context->states.back();
+		_context->states.pop_back();
 	}
 }
 
-Parser::Context *Parser::current_context() const {
-	return m_context;
+Parser::ScriptContext* Parser::current_context() const {
+	return _context->context.get();
 }
 
-std::string Parser::definition_name(const std::string &token) const {
+std::string Parser::definition_name(const std::string& token) const {
 
 	std::string name;
 
-	for (const Context *scope : m_contexts) {
+	for (const auto& scope : _context->contexts) {
 		name += scope->name + ".";
 	}
 
-	if (m_context) {
-		name += m_context->name + ".";
+	if (_context->context) {
+		name += _context->context->name + ".";
 	}
 
 	return name + token;
 }
 
-void Parser::push_context(const std::string &name, Definition *definition) {
+void Parser::push_context(const std::string& name, const std::shared_ptr<Definition>& definition) {
 
-	if (m_context) {
-		m_contexts.push_back(m_context);
+	if (_context->context) {
+		_context->contexts.emplace_back(std::move(_context->context));
 	}
 
-	m_context = new Context {name, definition, 0};
+	_context->context = std::make_unique<ScriptContext>(ScriptContext {
+	    .name = name,
+	    .definition = definition,
+	    .depth = 0,
+	});
 }
 
-void Parser::bind_definition_to_context(Definition *definition) {
+void Parser::bind_definition_to_context(Definition& definition) {
 
-	/*for (Context* context : m_contexts) {
-		bind_definition_to_context(context, definition);
+	/*for (Context* context : _contexts) {
+		bind_context->definition_to_context(context, definition);
 	}*/
 
-	if (m_context) {
-		if (m_context->definition == definition) {
-			if (!m_contexts.empty()) {
-				bind_definition_to_context(m_contexts.back(), definition);
+	if (_context->context) {
+		if (&definition == _context->context->definition.get()) {
+			if (!_context->contexts.empty()) {
+				bind_definition_to_context(*_context->contexts.back(), definition);
 			}
 		}
 		else {
-			bind_definition_to_context(m_context, definition);
+			bind_definition_to_context(*_context->context, definition);
 		}
 	}
 }
 
-void Parser::bind_definition_to_context(Context *context, Definition *definition) {
+void Parser::bind_definition_to_context(ScriptContext& context, Definition& definition) {
 
-	switch (context->definition->type) {
-	case Definition::PACKAGE_DEFINITION:
-		if (auto *instance = static_cast<Package *>(context->definition)) {
-			instance->members.insert(definition->name);
+	switch (context.definition->type) {
+	case Definition::package_definition:
+		if (auto instance = std::static_pointer_cast<Package>(context.definition)) {
+			instance->members.insert(definition.name);
 		}
 		break;
 
-	case Definition::ENUM_DEFINITION:
-		if (auto *instance = static_cast<Enum *>(context->definition)) {
-			instance->members.insert(definition->name);
+	case Definition::enum_definition:
+		if (auto instance = std::static_pointer_cast<Enum>(context.definition)) {
+			instance->members.insert(definition.name);
 		}
 		break;
 
-	case Definition::CLASS_DEFINITION:
-		if (auto *instance = static_cast<Class *>(context->definition)) {
-			instance->members.insert(definition->name);
+	case Definition::class_definition:
+		if (auto instance = std::static_pointer_cast<Class>(context.definition)) {
+			instance->members.insert(definition.name);
 		}
 		break;
 
@@ -1368,47 +1350,46 @@ void Parser::bind_definition_to_context(Context *context, Definition *definition
 }
 
 void Parser::open_block() {
-	if (m_context) {
-		m_context->block++;
+	if (_context->context) {
+		_context->context->depth++;
 	}
 }
 
 void Parser::close_block() {
-	if (m_context && !--m_context->block) {
-		delete m_context;
-		if (m_contexts.empty()) {
-			m_context = nullptr;
+	if (_context->context && !--_context->context->depth) {
+		if (_context->contexts.empty()) {
+			_context->context.reset();
 		}
 		else {
-			m_context = m_contexts.back();
-			m_contexts.pop_back();
+			_context->context = std::move(_context->contexts.back());
+			_context->contexts.pop_back();
 		}
 	}
 }
 
 void Parser::start_modifiers(mint::Reference::Flags flags) {
-	m_modifiers = flags;
+	_context->modifiers = flags;
 }
 
 void Parser::add_modifiers(mint::Reference::Flags flags) {
-	m_modifiers |= flags;
+	_context->modifiers |= flags;
 }
 
 mint::Reference::Flags Parser::retrieve_modifiers() {
-	mint::Reference::Flags flags = m_modifiers;
-	m_modifiers = mint::Reference::DEFAULT;
+	const auto flags = _context->modifiers;
+	_context->modifiers = mint::Reference::default_flags;
 	return flags;
 }
 
-std::string Parser::cleanup_doc(const std::string &comment, size_t line, size_t column) {
+std::string Parser::cleanup_doc(const std::string& comment, std::size_t line, std::size_t column) {
 
-	if (mint::starts_with(comment, "/**")) {
+	if (comment.starts_with("/**")) {
 		std::stringstream stream(comment);
 		stream.seekg(3, std::stringstream::beg);
 		return cleanup_multi_line_doc(stream, line, column);
 	}
 
-	if (mint::starts_with(comment, "///")) {
+	if (comment.starts_with("///")) {
 		std::stringstream stream(comment);
 		stream.seekg(3, std::stringstream::beg);
 		return cleanup_single_line_doc(stream, line, column);
@@ -1417,19 +1398,19 @@ std::string Parser::cleanup_doc(const std::string &comment, size_t line, size_t 
 	return {};
 }
 
-std::string Parser::cleanup_single_line_doc(std::stringstream &stream, size_t line, size_t column) {
+std::string Parser::cleanup_single_line_doc(std::stringstream& stream, std::size_t line, std::size_t column) {
 
 	bool finished = false;
 
 	std::string documentation;
-	size_t current_line = line;
+	std::size_t current_line = line;
 
 	if (stream.eof() || stream.get() != ' ') {
 		parse_error("expected ' ' character before documentation string", column);
 	}
 
 	while (!finished && !stream.eof()) {
-		switch (int c = stream.get()) {
+		switch (const auto c = stream.get()) {
 		case EOF:
 			finished = true;
 			break;
@@ -1454,16 +1435,16 @@ std::string Parser::cleanup_single_line_doc(std::stringstream &stream, size_t li
 	return documentation;
 }
 
-std::string Parser::cleanup_multi_line_doc(std::stringstream &stream, size_t line, size_t column) {
+std::string Parser::cleanup_multi_line_doc(std::stringstream& stream, std::size_t line, std::size_t column) {
 
 	bool finished = false;
 	bool suspect_end = false;
 
 	std::string documentation;
-	size_t current_line = line;
+	std::size_t current_line = line;
 
 	while (!finished && !stream.eof()) {
-		switch (int c = stream.get()) {
+		switch (const auto c = stream.get()) {
 		case EOF:
 			finished = true;
 			break;
@@ -1536,8 +1517,8 @@ std::string Parser::cleanup_multi_line_doc(std::stringstream &stream, size_t lin
 	return documentation;
 }
 
-void Parser::cleanup_script(std::stringstream &stream, std::string &documentation, size_t line, size_t column,
-							size_t &current_line) {
+void Parser::cleanup_script(std::stringstream& stream, std::string& documentation, std::size_t line, std::size_t column,
+    std::size_t& current_line) {
 
 	if (!stream.eof()) {
 
@@ -1569,7 +1550,7 @@ void Parser::cleanup_script(std::stringstream &stream, std::string &documentatio
 					stream.seekg(static_cast<std::stringstream::off_type>(column + 1), std::stringstream::cur);
 					if (stream.eof() || (c = stream.get()) != '*') {
 						parse_error("expected '*' character for documentation continuation", column + 1, line,
-									current_line);
+						    current_line);
 					}
 					if (!stream.eof()) {
 						switch (stream.get()) {
@@ -1583,7 +1564,7 @@ void Parser::cleanup_script(std::stringstream &stream, std::string &documentatio
 							break;
 						default:
 							parse_error("expected ' ' character before documentation string", column, line,
-										current_line);
+							    current_line);
 							break;
 						}
 					}

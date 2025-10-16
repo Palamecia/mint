@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -28,7 +28,9 @@
 #include "mint/system/terminal.h"
 
 #include <filesystem>
+#include <functional>
 #include <string>
+#include <vector>
 
 namespace mint {
 
@@ -38,36 +40,35 @@ class PackageData;
 class ClassDescription;
 
 class Completer : public LexicalHandler {
+	std::string_view::size_type _offset;
+	std::reference_wrapper<const Cursor> _cursor;
+	std::vector<Completion> _completions;
 public:
-	Completer(std::vector<Completion> &completions, std::string_view::size_type offset, Cursor *cursor);
-	Completer(Completer &&) = delete;
-	Completer(const Completer &) = delete;
+	Completer(std::string_view::size_type offset, const Cursor& cursor);
+	Completer(Completer&&) = delete;
+	Completer(const Completer&) = delete;
 	~Completer() = default;
 
-	Completer &operator=(Completer &&) = delete;
-	Completer &operator=(const Completer &) = delete;
+	Completer& operator=(Completer&&) = delete;
+	Completer& operator=(const Completer&) = delete;
+
+	[[nodiscard]] std::vector<Completion> completions() const;
 
 protected:
-	bool on_module_path_token(const std::vector<std::string> &context, const std::string &token,
-							  std::string::size_type offset) override;
-	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token,
-						 std::string::size_type offset) override;
-	bool on_symbol_token(const std::vector<std::string> &context, std::string::size_type offset) override;
+	bool on_module_path_token(const std::vector<std::string>& context, const std::string& token,
+	    std::string::size_type offset) override;
+	bool on_symbol_token(const std::vector<std::string>& context, const std::string& token,
+	    std::string::size_type offset) override;
+	bool on_symbol_token(const std::vector<std::string>& context, std::string::size_type offset) override;
 
-	void find_module_recursive_helper(const std::filesystem::path &root_path,
-									  const std::filesystem::path &directory_path,
-									  const std::string &token_path);
-	void find_context_symbols_helper(PackageData *pack, ClassDescription *desc, Reference *member,
-									 const std::string &token, std::string::size_type offset);
+	void find_module_recursive_helper(const std::filesystem::path& root_path,
+	    const std::filesystem::path& directory_path, const std::string& token_path);
+	void find_context_symbols_helper(PackageData* pack, ClassDescription* desc, Reference* member,
+	    const std::string& token, std::string::size_type offset);
 
-	static bool token_match(const std::string &token, const std::string &pattern);
-	static bool resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc,
-							 Reference *&member);
-
-private:
-	std::vector<Completion> &m_completions;
-	std::string_view::size_type m_offset;
-	Cursor *m_cursor;
+	static bool token_match(const std::string& symbol, const std::string& pattern);
+	bool resolve_path(const std::vector<std::string>& context, PackageData*& pack, ClassDescription*& desc,
+	    Reference*& member);
 };
 
 }

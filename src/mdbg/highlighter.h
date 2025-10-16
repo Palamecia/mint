@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,8 +24,11 @@
 #ifndef MDBG_HIGHLIGHTER_H
 #define MDBG_HIGHLIGHTER_H
 
+#include "mint/memory/globaldata.h"
+#include <cstddef>
 #include <fstream>
 
-void print_highlighted(size_t from_line, size_t to_line, size_t current_line, std::ifstream &&script);
+void print_highlighted(std::size_t from_line, std::size_t to_line, std::size_t current_line,
+    mint::GlobalData& global_data, std::ifstream&& script);
 
 #endif // MDBG_HIGHLIGHTER_H

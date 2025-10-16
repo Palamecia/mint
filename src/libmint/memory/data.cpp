@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -26,22 +26,25 @@
 
 using namespace mint;
 
-Data::Data(Format fmt) :
-	format(fmt) {
-	GarbageCollector &g_garbage_collector = GarbageCollector::instance();
+Data::Data() {
+	auto& g_garbage_collector = GarbageCollector::instance();
+	g_garbage_collector.register_data(this);
+}
+
+Data::Data(Data&& /*other*/) noexcept {
+	auto& g_garbage_collector = GarbageCollector::instance();
+	g_garbage_collector.register_data(this);
+}
+
+Data::Data(const Data& /*other*/) {
+	auto& g_garbage_collector = GarbageCollector::instance();
 	g_garbage_collector.register_data(this);
 }
 
 void Data::mark() {
-	infos.reachable = true;
+	_info.reachable = true;
 }
 
 bool Data::marked_bit() const {
-	return infos.reachable;
+	return _info.reachable;
 }
-
-None::None() :
-	Data(FMT_NONE) {}
-
-Null::Null() :
-	Data(FMT_NULL) {}

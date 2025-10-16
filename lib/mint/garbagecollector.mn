@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -32,5 +32,33 @@ package GarbageCollector {
 	 */
 	def [g_lib = lib('libmint-mint')] collect() {
 		return g_lib.call('mint_garbage_collector_collect')
+	}
+	
+	/**
+	 * Returns the threshold used to activate automatic garbage collection.
+	 */
+	def [g_lib = lib('libmint-mint')] getThreshold() {
+		return g_lib.call('mint_garbage_collector_get_threshold')
+	}
+	
+	/**
+	 * Sets the threshold used to activate automatic garbage collection to `threshold`.
+	 */
+	def [g_lib = lib('libmint-mint')] getThreshold(threshold) {
+		return g_lib.call('mint_garbage_collector_set_threshold', threshold)
+	}
+	
+	/**
+	 * Returns the references count for `object`.
+	 */
+	def [g_lib = lib('libmint-mint')] getRefCount(object) {
+		return g_lib.call('mint_garbage_collector_get_refcount', object)
+	}
+
+	/**
+	 * Return the current collection count.
+	 */
+	def [g_lib = lib('libmint-mint')] getRefCount() {
+		return g_lib.call('mint_garbage_collector_get_count')
 	}
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -34,7 +34,7 @@ using namespace std;
 
 termios mint::term_setup_mode() {
 	termios mode;
-	tcgetattr(STDIN_FILE_NO, &mode);
+	tcgetattr(stdin_file_no, &mode);
 	termios raw_mode = mode;
 	// input: no break signal, no \r to \n, no parity check, no 8-bit to 7-bit, no flow control
 	raw_mode.c_iflag &= ~(unsigned long)(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
@@ -45,21 +45,21 @@ termios mint::term_setup_mode() {
 	// 1 byte at a time, no delay
 	raw_mode.c_cc[VTIME] = 0;
 	raw_mode.c_cc[VMIN] = 1;
-	tcsetattr(STDIN_FILE_NO, TCSAFLUSH, &raw_mode);
+	tcsetattr(stdin_file_no, TCSAFLUSH, &raw_mode);
 	return mode;
 }
 
 void mint::term_reset_mode(termios mode) {
-	tcsetattr(STDIN_FILE_NO, TCSAFLUSH, &mode);
+	tcsetattr(stdin_file_no, TCSAFLUSH, &mode);
 }
 
-bool mint::term_update_dim(TerminalInfo *term) {
+bool mint::term_update_dim(TerminalInfo* term) {
 
 	ssize_t cols = 0;
 	ssize_t rows = 0;
 
 	struct winsize ws;
-	if (ioctl(STDOUT_FILE_NO, TIOCGWINSZ, &ws) >= 0) {
+	if (ioctl(stdout_file_no, TIOCGWINSZ, &ws) >= 0) {
 		// ioctl succeeded
 		cols = ws.ws_col; // debuggers return 0 for the column
 		rows = ws.ws_row;
@@ -83,7 +83,7 @@ bool mint::term_update_dim(TerminalInfo *term) {
 	return changed;
 }
 
-bool mint::term_get_cursor_pos(CursorPos *pos) {
+bool mint::term_get_cursor_pos(CursorPos* pos) {
 	char buf[128];
 	auto mode = term_setup_mode();
 	if (fputs("\033[6n", stdout) == EOF) {
@@ -94,8 +94,8 @@ bool mint::term_get_cursor_pos(CursorPos *pos) {
 		term_reset_mode(mode);
 		return false;
 	}
-	for (size_t len = 0, count = 0; !len || buf[len - 1] != 'R'; len += count) {
-		if (!(count = read(STDIN_FILE_NO, &buf[len], 1))) {
+	for (std::size_t len = 0, count = 0; !len || buf[len - 1] != 'R'; len += count) {
+		if (!(count = read(stdin_file_no, &buf[len], 1))) {
 			term_reset_mode(mode);
 			return false;
 		}
@@ -108,22 +108,22 @@ bool mint::term_get_cursor_pos(CursorPos *pos) {
 	return true;
 }
 
-bool mint::term_set_cursor_pos(const CursorPos &pos) {
+bool mint::term_set_cursor_pos(const CursorPos& pos) {
 	return fprintf(stdout, "\033[%zd;%zdH", pos.row, pos.column) != EOF;
 }
 
-size_t mint::term_get_tab_width(size_t column) {
-	const size_t tab_width = 8; /// \todo get console info
+std::size_t mint::term_get_tab_width(std::size_t column) {
+	const std::size_t tab_width = 8; /// \todo get console info
 	return tab_width - column % tab_width;
 }
 
 // non blocking read -- with a small timeout used for reading escape sequences.
-void mint::term_read_input(Tty *tty, optional<chrono::milliseconds> timeout) {
+void mint::term_read_input(Tty* tty, optional<chrono::milliseconds> timeout) {
 
 	// blocking read?
 	if (!timeout.has_value()) {
 		char c = 0;
-		if (read(STDIN_FILE_NO, &c, 1) == 1) {
+		if (read(stdin_file_no, &c, 1) == 1) {
 			tty->byte_buffer.push(c);
 		}
 		return;
@@ -136,7 +136,7 @@ void mint::term_read_input(Tty *tty, optional<chrono::milliseconds> timeout) {
 		if (ioctl(0, FIONREAD, &navail) == 0) {
 			if (navail >= 1) {
 				char c = 0;
-				if (read(STDIN_FILE_NO, &c, 1) == 1) {
+				if (read(stdin_file_no, &c, 1) == 1) {
 					tty->byte_buffer.push(c);
 				}
 				return;
@@ -152,12 +152,12 @@ void mint::term_read_input(Tty *tty, optional<chrono::milliseconds> timeout) {
 	fd_set readset;
 	struct timeval time;
 	FD_ZERO(&readset);
-	FD_SET(STDIN_FILE_NO, &readset);
+	FD_SET(stdin_file_no, &readset);
 	time.tv_sec = (timeout.has_value() ? timeout.value().count() / 1000 : 0);
 	time.tv_usec = (timeout.has_value() ? 1000 * (timeout.value().count() % 1000) : 0);
-	if (select(STDIN_FILE_NO + 1, &readset, nullptr, nullptr, &time) == 1) {
+	if (select(stdin_file_no + 1, &readset, nullptr, nullptr, &time) == 1) {
 		char c = 0;
-		if (read(STDIN_FILE_NO, &c, 1) == 1) {
+		if (read(stdin_file_no, &c, 1) == 1) {
 			tty->byte_buffer.push(c);
 		}
 	}

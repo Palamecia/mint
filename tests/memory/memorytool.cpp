@@ -1,115 +1,109 @@
 #include <gtest/gtest.h>
-#include <mint/memory/memorytool.h>
+#include <utility>
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
 #include "mint/ast/fileprinter.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
-#include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/string.h"
 #include "mint/memory/classtool.h"
+#include "mint/memory/data.h"
 #include "mint/memory/functiontool.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
 #include "mint/memory/objectprinter.h"
-
-using namespace mint;
+#include "mint/memory/reference.h"
+#include "mint/scheduler/scheduler.h"
 
 TEST(memorytool, get_stack_base) {
 
-	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.create_cursor();
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
+	mint::Cursor& cursor = process->cursor();
 
-	cursor->stack().emplace_back(WeakReference::create<None>());
-	cursor->stack().emplace_back(WeakReference::create<None>());
-	cursor->stack().emplace_back(WeakReference::create<None>());
-	EXPECT_EQ(2, get_stack_base(cursor));
+	cursor.stack().emplace_back(mint::create_none());
+	cursor.stack().emplace_back(mint::create_none());
+	cursor.stack().emplace_back(mint::create_none());
+	EXPECT_EQ(2, mint::get_stack_base(cursor));
 
-	cursor->stack().pop_back();
-	EXPECT_EQ(1, get_stack_base(cursor));
-
-	delete cursor;
+	cursor.stack().pop_back();
+	EXPECT_EQ(1, mint::get_stack_base(cursor));
 }
 
 TEST(memorytool, type_name) {
 
-	AbstractSyntaxTree ast;
-	WeakReference ref;
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
 
-	ref = WeakReference::create<None>();
-	EXPECT_EQ("none", type_name(ref));
-
-	ref = WeakReference::create<Null>();
-	EXPECT_EQ("null", type_name(ref));
-
-	ref = WeakReference::create<Number>(0.);
-	EXPECT_EQ("number", type_name(ref));
-
-	ref = WeakReference::create<Boolean>(false);
-	EXPECT_EQ("boolean", type_name(ref));
-
-	ref = WeakReference::create<Function>();
-	EXPECT_EQ("function", type_name(ref));
-
-	ref = WeakReference::create<String>();
-	EXPECT_EQ("string", type_name(ref));
-
-	ref = WeakReference::create<Regex>();
-	EXPECT_EQ("regex", type_name(ref));
-
-	ref = WeakReference::create<Array>();
-	EXPECT_EQ("array", type_name(ref));
-
-	ref = WeakReference::create<Hash>();
-	EXPECT_EQ("hash", type_name(ref));
-
-	ref = WeakReference::create<Iterator>();
-	EXPECT_EQ("iterator", type_name(ref));
+	EXPECT_EQ("none", mint::type_name(mint::create_none()));
+	EXPECT_EQ("null", mint::type_name(mint::create_null()));
+	EXPECT_EQ("number", mint::type_name(mint::create_number(0.)));
+	EXPECT_EQ("boolean", mint::type_name(mint::create_boolean(false)));
+	EXPECT_EQ("function", mint::type_name(mint::create_function()));
+	EXPECT_EQ("string", mint::type_name(mint::create_string(scheduler.ast())));
+	EXPECT_EQ("regex", mint::type_name(mint::create_regex(scheduler.ast())));
+	EXPECT_EQ("array", mint::type_name(mint::create_array(scheduler.ast())));
+	EXPECT_EQ("hash", mint::type_name(mint::create_hash(scheduler.ast())));
+	EXPECT_EQ("iterator", mint::type_name(mint::create_iterator(scheduler.ast())));
 }
 
 TEST(memorytool, is_class) {
 
-	AbstractSyntaxTree ast;
-	WeakReference ref = WeakReference::create<String>();
-	EXPECT_TRUE(is_class(ref.data<String>()));
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
 
-	ref.data<String>()->construct();
-	EXPECT_FALSE(is_class(ref.data<String>()));
+	const auto ref = mint::make_weak_reference<mint::String>(mint::create_flags, scheduler.ast());
+	EXPECT_TRUE(is_class(ref.data<mint::String>()));
+
+	ref.data<mint::String>().construct();
+	EXPECT_FALSE(is_class(ref.data<mint::String>()));
 }
 
 TEST(memorytool, is_object) {
 
-	AbstractSyntaxTree ast;
-	WeakReference ref = WeakReference::create<String>();
-	EXPECT_FALSE(is_object(ref.data<String>()));
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
 
-	ref.data<String>()->construct();
-	EXPECT_TRUE(is_object(ref.data<String>()));
+	const auto ref = mint::make_weak_reference<mint::String>(mint::create_flags, scheduler.ast());
+	EXPECT_FALSE(is_object(ref.data<mint::String>()));
+
+	ref.data<mint::String>().construct();
+	EXPECT_TRUE(is_object(ref.data<mint::String>()));
 }
 
-TEST(memorytool, create_printer) {
+TEST(memorytool, create_printer_from_fd) {
 
-	AbstractSyntaxTree ast;
-	Cursor *cursor = ast.create_cursor();
-	Printer *printer = nullptr;
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
+	mint::Cursor& cursor = process->cursor();
 
-	cursor->stack().emplace_back(create_number(0));
-	printer = create_printer(cursor);
-	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
-	delete printer;
+	cursor.stack().emplace_back(mint::create_number(0));
+	auto printer = create_printer(cursor);
+	EXPECT_NE(nullptr, dynamic_cast<mint::FilePrinter*>(printer.get()));
+}
 
-	cursor->stack().emplace_back(create_string("test"));
-	printer = create_printer(cursor);
-	EXPECT_NE(nullptr, dynamic_cast<FilePrinter *>(printer));
-	delete printer;
+TEST(memorytool, create_printer_from_path) {
 
-	mint::Class *test_class = mint::create_class("__test_class__", {});
-	ASSERT_NE(nullptr, test_class);
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
+	mint::Cursor& cursor = process->cursor();
 
-	cursor->stack().emplace_back(Reference::DEFAULT, GarbageCollector::instance().alloc<Object>(test_class));
-	printer = create_printer(cursor);
-	EXPECT_NE(nullptr, dynamic_cast<ObjectPrinter *>(printer));
-	delete printer;
-	delete cursor;
+	cursor.stack().emplace_back(mint::create_string(scheduler.ast(), "test"));
+	auto printer = create_printer(cursor);
+	EXPECT_NE(nullptr, dynamic_cast<mint::FilePrinter*>(printer.get()));
+}
+
+TEST(memorytool, create_printer_from_object) {
+
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
+	mint::Cursor& cursor = process->cursor();
+	mint::Class& test_class = mint::create_class(scheduler.ast(), "__test_class__", {});
+
+	cursor.stack().emplace_back(mint::create_object(test_class));
+	auto printer = create_printer(cursor);
+	EXPECT_NE(nullptr, dynamic_cast<mint::ObjectPrinter*>(printer.get()));
 }
 
 TEST(memorytool, print) {
@@ -208,10 +202,6 @@ TEST(memorytool, hash_get_value) {
 	/// \todo
 }
 
-TEST(memorytool, iterator_init) {
-	/// \todo
-}
-
 TEST(memorytool, iterator_yield) {
 	/// \todo
 }
@@ -222,23 +212,26 @@ TEST(memorytool, iterator_add) {
 
 TEST(memorytool, iterator_next) {
 
-	AbstractSyntaxTree ast;
-	WeakReference item;
-	WeakReference it = WeakReference::create<Iterator>();
-	iterator_yield(it.data<Iterator>(), create_number(0));
-	iterator_yield(it.data<Iterator>(), create_number(1));
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
 
-	ASSERT_TRUE(iterator_get(it.data<Iterator>()));
-	item = std::move(*iterator_next(it.data<Iterator>()));
-	ASSERT_EQ(Data::FMT_NUMBER, item.data()->format);
-	EXPECT_EQ(0., item.data<Number>()->value);
+	const auto it = mint::create_iterator_from(scheduler.ast(), mint::create_number(0), mint::create_number(1));
 
-	ASSERT_TRUE(iterator_get(it.data<Iterator>()));
-	item = std::move(*iterator_next(it.data<Iterator>()));
-	ASSERT_EQ(Data::FMT_NUMBER, item.data()->format);
-	EXPECT_EQ(1., item.data<Number>()->value);
+	{
+		ASSERT_TRUE(iterator_get(it.data<mint::Iterator>()));
+		auto item = std::move(*iterator_next(it.data<mint::Iterator>()));
+		ASSERT_EQ(mint::Data::number_format, item.data().format());
+		EXPECT_EQ(0., item.data<mint::Number>().value);
+	}
 
-	EXPECT_FALSE(iterator_next(it.data<Iterator>()));
+	{
+		ASSERT_TRUE(iterator_get(it.data<mint::Iterator>()));
+		auto item = std::move(*iterator_next(it.data<mint::Iterator>()));
+		ASSERT_EQ(mint::Data::number_format, item.data().format());
+		EXPECT_EQ(1., item.data<mint::Number>().value);
+	}
+
+	EXPECT_FALSE(iterator_next(it.data<mint::Iterator>()));
 }
 
 TEST(memorytool, regex_match) {

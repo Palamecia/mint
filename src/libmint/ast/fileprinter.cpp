@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,11 +24,17 @@
 #include "mint/ast/fileprinter.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/casttool.h"
+#include "mint/system/errno.h"
 #include "mint/system/filesystem.h"
 #include "mint/system/terminal.h"
 #include "mint/system/pipe.h"
+#include <cstdio>
+#include <filesystem>
+#include <stdio.h>
+#include <string>
+#include <system_error>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include <io.h>
 #else
 #include <unistd.h>
@@ -37,86 +43,86 @@
 using namespace mint;
 
 struct File {
-	static int print(FILE *stream, const char *str) {
-		return fputs(str, stream);
+	static void print(FILE* stream, const std::string& str) {
+		if (std::fputs(str.data(), stream) == EOF) {
+			throw std::system_error(last_error_code());
+		}
 	}
 };
 
-FilePrinter::FilePrinter(const char *path) :
-	m_close(&fclose),
-	m_stream(open_file(path, "w")) {
-	if (is_term(m_stream)) {
-		m_print = &Terminal::print;
+FilePrinter::FilePrinter(const std::filesystem::path& path) :
+    _stream(open_file(path, "w")),
+    _close(&fclose) {
+	if (is_term(_stream)) {
+		_print = &Terminal::print;
+	}
+	else if (is_pipe(_stream)) {
+		_print = &Pipe::print;
 	}
 	else {
-		m_print = &File::print;
+		_print = &File::print;
 	}
 }
 
 FilePrinter::FilePrinter(int fd) {
 	switch (fd) {
-	case STDIN_FILE_NO:
+	case stdin_file_no:
+		_stream = stdin;
 		if (is_pipe(fd)) {
-			m_print = &Pipe::print;
-			m_close = &fflush;
+			_print = &Pipe::print;
+			_close = &fflush;
 		}
 		else {
-			m_print = &File::print;
-			m_close = &fflush;
+			_print = &File::print;
+			_close = &fflush;
 		}
-		m_stream = stdin;
 		break;
-	case STDOUT_FILE_NO:
+	case stdout_file_no:
+		_stream = stdout;
 		if (is_term(fd)) {
-			m_print = &Terminal::print;
-			m_close = &fflush;
+			_print = &Terminal::print;
+			_close = &fflush;
 		}
 		else if (is_pipe(fd)) {
-			m_print = &Pipe::print;
-			m_close = &fflush;
+			_print = &Pipe::print;
+			_close = &fflush;
 		}
 		else {
-			m_print = &File::print;
-			m_close = &fflush;
+			_print = &File::print;
+			_close = &fflush;
 		}
-		m_stream = stdout;
 		break;
-	case STDERR_FILE_NO:
+	case stderr_file_no:
+		_stream = stderr;
 		if (is_term(fd)) {
-			m_print = &Terminal::print;
-			m_close = &fflush;
+			_print = &Terminal::print;
+			_close = &fflush;
 		}
 		else if (is_pipe(fd)) {
-			m_print = &Pipe::print;
-			m_close = &fflush;
+			_print = &Pipe::print;
+			_close = &fflush;
 		}
 		else {
-			m_print = &File::print;
-			m_close = &fflush;
+			_print = &File::print;
+			_close = &fflush;
 		}
-		m_stream = stderr;
 		break;
 	default:
-		m_print = &File::print;
-		m_close = &fclose;
-		m_stream = fdopen(dup(fd), "a");
+		_stream = fdopen(dup(fd), "a");
+		_print = &File::print;
+		_close = &fclose;
 		break;
 	}
 }
 
 FilePrinter::~FilePrinter() {
-	m_close(m_stream);
+	_close(_stream);
 }
 
-void FilePrinter::print(Reference &reference) {
-	std::string buffer = to_string(reference);
-	m_print(m_stream, buffer.c_str());
+void FilePrinter::print(const Reference& reference) {
+	_print(_stream, to_string(reference));
 }
 
-int FilePrinter::internal_print(const char *str) {
-	return m_print(m_stream, str);
-}
-
-FILE *FilePrinter::file() const {
-	return m_stream;
+FILE* FilePrinter::stream() const {
+	return _stream;
 }

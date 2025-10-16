@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,18 +22,21 @@
  */
 
 #include "block.h"
+#include "mint/compiler/buildtool.h"
 
 using namespace mint;
 
 Block::Block(BuildContext::BlockType type) :
-	type(type) {}
+    type(type) {}
+
+Block::~Block() {}
 
 bool Block::is_breakable() const {
 	switch (type) {
-	case BuildContext::CONDITIONAL_LOOP_TYPE:
-	case BuildContext::CUSTOM_RANGE_LOOP_TYPE:
-	case BuildContext::RANGE_LOOP_TYPE:
-	case BuildContext::SWITCH_TYPE:
+	case BuildContext::BlockType::conditional_loop_type:
+	case BuildContext::BlockType::custom_range_loop_type:
+	case BuildContext::BlockType::range_loop_type:
+	case BuildContext::BlockType::switch_type:
 		return true;
 	default:
 		break;
@@ -43,9 +46,9 @@ bool Block::is_breakable() const {
 
 bool Block::is_continuable() const {
 	switch (type) {
-	case BuildContext::CONDITIONAL_LOOP_TYPE:
-	case BuildContext::CUSTOM_RANGE_LOOP_TYPE:
-	case BuildContext::RANGE_LOOP_TYPE:
+	case BuildContext::BlockType::conditional_loop_type:
+	case BuildContext::BlockType::custom_range_loop_type:
+	case BuildContext::BlockType::range_loop_type:
 		return true;
 	default:
 		break;

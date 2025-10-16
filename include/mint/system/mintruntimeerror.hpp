@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,27 +21,18 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_MINTSYSTEMERROR_HPP
-#define MINT_MINTSYSTEMERROR_HPP
+#ifndef MINT_SYSTEM_MINTRUNTIMEERROR_HPP
+#define MINT_SYSTEM_MINTRUNTIMEERROR_HPP
 
-#include <exception>
-#include <string>
+#include <stdexcept>
 
 namespace mint {
 
-class MintSystemError : public std::exception {
+class MintRuntimeError : public std::runtime_error {
 public:
-	explicit MintSystemError(std::string message) :
-		m_message(std::move(message)) {}
-
-	[[nodiscard]] const char *what() const noexcept override {
-		return m_message.c_str();
-	}
-
-private:
-	std::string m_message;
+	using std::runtime_error::runtime_error;
 };
 
 }
 
-#endif // MINT_MINTSYSTEMERROR_HPP
+#endif // MINT_SYSTEM_MINTRUNTIMEERROR_HPP

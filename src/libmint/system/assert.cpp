@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,14 +22,35 @@
  */
 
 #include "mint/system/assert.h"
+#include <format>
+#include <string>
 
-#if !defined(OS_WINDOWS) && defined(BUILD_TYPE_DEBUG)
+#if defined(MINT_BUILD_TYPE_DEBUG)
+#if defined(MINT_OS_WINDOWS)
+#include <Windows.h>
+
+std::wstring wchar_from_multi_byte(const std::string& str) {
+	const int length = MultiByteToWideChar(CP_UTF8, 0, str.data(), -1, nullptr, 0);
+	if (std::wstring buffer(length, L'\0'); MultiByteToWideChar(CP_UTF8, 0, str.data(), -1, buffer.data(), length)) {
+		buffer.resize(length - 1);
+		return buffer;
+	}
+	return {};
+}
+
+void __assert_x_fail(const char* __file, unsigned int __line, const char* __where, const char* __what) {
+	(1
+	    != _CrtDbgReportW(_CRT_ASSERT, wchar_from_multi_byte(__file).data(), __line, nullptr, L"%ls",
+	        wchar_from_multi_byte(std::format("{}: {}", __where, __what)).data()))
+	    || (_CrtDbgBreak(), 0);
+}
+#else
 #include "mint/system/terminal.h"
-#include <cstdio>
 
-void __assert_x_fail(const char *__assertion, const char *__file, unsigned int __line, const char *__function,
-					 const char *__where, const char *__what) __THROW {
-	mint::Terminal::printf(stderr, "%s: %s\n", __where, __what);
+void __assert_x_fail(const char* __assertion, const char* __file, unsigned int __line, const char* __function,
+    const char* __where, const char* __what) __THROW {
+	mint::Terminal::print(stderr, std::format("{}: {}\n", __where, __what));
 	__assert_fail(__assertion, __file, __line, __function);
 }
+#endif
 #endif

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,297 +22,385 @@
  */
 
 #include "mint/memory/functiontool.h"
-#include "memory/object.h"
-#include "memory/reference.h"
+#include "mint/ast/classregister.h"
+#include "mint/ast/cursor.h"
+#include "mint/ast/module.h"
+#include "mint/ast/symbol.h"
+#include "mint/compiler/compiler.h"
 #include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/string.h"
-#include "mint/memory/operatortool.h"
+#include "mint/memory/data.h"
 #include "mint/memory/globaldata.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
+#include "mint/memory/operatortool.h"
+#include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/bufferstream.h"
-#include "mint/compiler/compiler.h"
-#include "mint/ast/cursor.h"
+#include <cstddef>
+#include <cstdint>
+#include <initializer_list>
+#include <iterator>
+#include <memory>
+#include <regex>
+#include <span>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
 
 using namespace mint;
 
-ReferenceHelper::ReferenceHelper(const FunctionHelper *function, Reference &&reference) :
-	m_function(function),
-	m_reference(std::move(reference)) {}
-
-ReferenceHelper ReferenceHelper::operator[](const Symbol &symbol) const {
-	return m_function->member(m_reference, symbol);
+ReferenceHelper ReferenceHelper::operator[](const Symbol& symbol) const {
+	return _function.get().member(_reference, symbol);
 }
 
-ReferenceHelper ReferenceHelper::member(const Symbol &symbol) const {
-	return m_function->member(m_reference, symbol);
+ReferenceHelper ReferenceHelper::member(const Symbol& symbol) const {
+	return _function.get().member(_reference, symbol);
 }
 
-ReferenceHelper::operator Reference &() {
-	return m_reference;
+WeakReference ReferenceHelper::copy() const {
+	return {copy_from, _reference};
 }
 
-ReferenceHelper::operator Reference &&() {
-	return std::move(m_reference);
+WeakReference ReferenceHelper::share() {
+	return _reference.get();
 }
 
-const Reference &ReferenceHelper::operator*() const {
-	return m_reference;
+FunctionHelper::FunctionHelper(Cursor& cursor, std::size_t argc) :
+    _cursor(cursor),
+    _argc(argc),
+    _top(cursor.stack().size() - _argc) {}
+
+Cursor& FunctionHelper::cursor() {
+	return _cursor.get();
 }
 
-const Reference *ReferenceHelper::operator->() const {
-	return &m_reference;
+std::span<WeakReference> FunctionHelper::parameters() {
+	return {std::next(_cursor.get().stack().data(), static_cast<ssize_t>(_top)), _argc};
 }
 
-const Reference *ReferenceHelper::get() const {
-	return &m_reference;
+void FunctionHelper::return_value(Reference&& value) {
+	_cursor.get().stack().resize(_top);
+	_cursor.get().stack().emplace_back(std::move(value));
 }
 
-FunctionHelper::FunctionHelper(Cursor *cursor, size_t argc) :
-	m_cursor(cursor),
-	m_base(static_cast<ssize_t>(get_stack_base(cursor))),
-	m_value_returned(false) {
-
-	m_top = m_base - static_cast<ssize_t>(argc);
+WeakReference mint::create_function() {
+	return make_weak_reference<Function>(create_flags);
 }
 
-FunctionHelper::~FunctionHelper() {
-
-	if (!m_value_returned) {
-		return_value(WeakReference::create<None>());
-	}
+WeakReference mint::create_function(Function::Mapping mapping) {
+	return make_weak_reference<Function>(create_flags, std::move(mapping));
 }
 
-Reference &FunctionHelper::pop_parameter() {
-
-	assert(m_base > m_top);
-	return load_from_stack(m_cursor, static_cast<size_t>(m_base--));
+WeakReference mint::create_function(int signature, Function::Signature&& handle) {
+	return make_weak_reference<Function>(create_flags, signature, std::move(handle));
 }
 
-ReferenceHelper FunctionHelper::reference(const Symbol &symbol) const {
-	GlobalData *global_data = GlobalData::instance();
-	auto it = global_data->symbols().find(symbol);
-	if (it != global_data->symbols().end()) {
-		return {this, WeakReference::share(it->second)};
-	}
-	return {this, WeakReference::create<None>()};
+WeakReference mint::create_function(const std::pair<int, Function::Signature>& mapping) {
+	return make_weak_reference<Function>(create_flags, mapping);
 }
 
-ReferenceHelper FunctionHelper::member(const Reference &object, const Symbol &symbol) const {
-	return {this, get_member(m_cursor, object, symbol)};
-}
+WeakReference mint::create_function(AbstractSyntaxTree& ast, Module::Info& module, int signature,
+    const std::string& function) {
 
-void FunctionHelper::return_value(Reference &&value) {
+	const std::size_t offset = module.module->end() + 3;
 
-	assert(m_value_returned == false);
-
-	while (static_cast<ssize_t>(get_stack_base(m_cursor)) > m_top) {
-		m_cursor->stack().pop_back();
-	}
-
-	m_cursor->stack().emplace_back(std::move(value));
-	m_value_returned = true;
-}
-
-WeakReference mint::create_function(Module::Info &module, int signature, const std::string &function) {
-
-	BufferStream stream(function);
-	const size_t offset = module.module->end() + 3;
-
-	Compiler compiler;
-	if (!compiler.build(&stream, module)) {
+	auto compiler = Compiler(ast);
+	auto stream = BufferStream(function);
+	if (!compiler.build(stream, module)) {
 		return {};
 	}
 
-	WeakReference ref = WeakReference::create<Function>();
-	ref.data<Function>()->mapping.emplace(signature, module.module->find_handle(module.id, offset));
-	return ref;
+	return make_weak_reference<Function>(create_flags, signature,
+	    std::make_unique<Function::Stateless>(*module.module->find_handle(offset)));
+}
+
+WeakReference mint::create_none() {
+	return make_weak_reference<None>(create_flags);
+}
+
+WeakReference mint::create_null() {
+	return make_weak_reference<Null>(create_flags);
 }
 
 WeakReference mint::create_number(double value) {
-	return WeakReference::create<Number>(value);
+	return make_weak_reference<Number>(create_flags, value);
+}
+
+WeakReference mint::create_signed_number(std::intmax_t value) {
+	return make_weak_reference<Number>(create_flags, value);
+}
+
+WeakReference mint::create_unsigned_number(std::uintmax_t value) {
+	return make_weak_reference<Number>(create_flags, value);
 }
 
 WeakReference mint::create_boolean(bool value) {
-	return WeakReference::create<Boolean>(value);
+	return make_weak_reference<Boolean>(create_flags, value);
 }
 
-WeakReference mint::create_string(const char *value) {
-	WeakReference ref = WeakReference::create<String>(value);
-	ref.data<String>()->construct();
+WeakReference mint::create_alias(Class& type) {
+	return make_weak_reference<Object>(create_flags, type);
+}
+
+WeakReference mint::create_object(Class& type) {
+	WeakReference ref = make_weak_reference<Object>(create_flags, type);
+	ref.data<String>().construct();
 	return ref;
 }
 
-WeakReference mint::create_string(const std::string &value) {
-	WeakReference ref = WeakReference::create<String>(value);
-	ref.data<String>()->construct();
+WeakReference mint::create_string(AbstractSyntaxTree& ast) {
+	WeakReference ref = make_weak_reference<String>(create_flags, ast);
+	ref.data<String>().construct();
 	return ref;
 }
 
-WeakReference mint::create_string(std::string_view value) {
-	WeakReference ref = WeakReference::create<String>(value);
-	ref.data<String>()->construct();
+WeakReference mint::create_string(AbstractSyntaxTree& ast, const char* value) {
+	WeakReference ref = make_weak_reference<String>(create_flags, ast, value);
+	ref.data<String>().construct();
 	return ref;
 }
 
-WeakReference mint::create_array(Array::values_type &&values) {
-	WeakReference ref = WeakReference::create<Array>();
-	ref.data<Array>()->values = std::move(values);
-	ref.data<Array>()->construct();
+WeakReference mint::create_string(AbstractSyntaxTree& ast, const std::string& value) {
+	WeakReference ref = make_weak_reference<String>(create_flags, ast, value);
+	ref.data<String>().construct();
 	return ref;
 }
 
-WeakReference mint::create_array(std::initializer_list<WeakReference> items) {
-	WeakReference ref = WeakReference::create<Array>();
-	ref.data<Array>()->values.reserve(items.size());
-	for (const auto &item : items) {
+WeakReference mint::create_string(AbstractSyntaxTree& ast, std::string_view value) {
+	WeakReference ref = make_weak_reference<String>(create_flags, ast, value);
+	ref.data<String>().construct();
+	return ref;
+}
+
+WeakReference mint::create_regex(AbstractSyntaxTree& ast) {
+	WeakReference ref = make_weak_reference<Regex>(create_flags, ast);
+	ref.data<Regex>().construct();
+	return ref;
+}
+
+WeakReference mint::create_regex(AbstractSyntaxTree& ast, const std::string& value) {
+	WeakReference ref = make_weak_reference<Regex>(create_flags, ast);
+	ref.data<Regex>().initializer = "/" + value + "/";
+	ref.data<Regex>().expr = value;
+	ref.data<Regex>().construct();
+	return ref;
+}
+
+WeakReference mint::create_regex(AbstractSyntaxTree& ast, const std::string& initializer, const std::regex& value) {
+	WeakReference ref = make_weak_reference<Regex>(create_flags, ast);
+	ref.data<Regex>().initializer = "/" + initializer + "/";
+	ref.data<Regex>().expr = value;
+	ref.data<Regex>().construct();
+	return ref;
+}
+
+WeakReference mint::create_array(AbstractSyntaxTree& ast) {
+	WeakReference ref = make_weak_reference<Array>(create_flags, ast);
+	ref.data<Array>().construct();
+	return ref;
+}
+
+WeakReference mint::create_array(AbstractSyntaxTree& ast, Array::values_type&& values) {
+	WeakReference ref = make_weak_reference<Array>(create_flags, ast);
+	ref.data<Array>().values = std::move(values);
+	ref.data<Array>().construct();
+	return ref;
+}
+
+WeakReference mint::create_array(AbstractSyntaxTree& ast, std::initializer_list<WeakReference> items) {
+	WeakReference ref = make_weak_reference<Array>(create_flags, ast);
+	ref.data<Array>().values.reserve(items.size());
+	for (const auto& item : items) {
 		array_append(ref.data<Array>(), array_item(item));
 	}
-	ref.data<Array>()->construct();
+	ref.data<Array>().construct();
 	return ref;
 }
 
-WeakReference mint::create_hash(Hash::values_type &&values) {
-	WeakReference ref = WeakReference::create<Hash>();
-	ref.data<Hash>()->values = std::move(values);
-	ref.data<Hash>()->construct();
+WeakReference mint::create_hash(AbstractSyntaxTree& ast) {
+	WeakReference ref = make_weak_reference<Hash>(create_flags, ast);
+	ref.data<Hash>().construct();
 	return ref;
 }
 
-WeakReference mint::create_hash(std::initializer_list<std::pair<WeakReference, WeakReference>> items) {
-	WeakReference ref = WeakReference::create<Hash>();
-	ref.data<Hash>()->values.reserve(items.size());
-	for (const auto &item : items) {
+WeakReference mint::create_hash(AbstractSyntaxTree& ast, Hash::values_type&& values) {
+	WeakReference ref = make_weak_reference<Hash>(create_flags, ast);
+	ref.data<Hash>().values = std::move(values);
+	ref.data<Hash>().construct();
+	return ref;
+}
+
+WeakReference mint::create_hash(AbstractSyntaxTree& ast,
+    std::initializer_list<std::pair<WeakReference, WeakReference>> items) {
+	WeakReference ref = make_weak_reference<Hash>(create_flags, ast);
+	ref.data<Hash>().values.reserve(items.size());
+	for (const auto& item : items) {
 		hash_insert(ref.data<Hash>(), item.first, item.second);
 	}
-	ref.data<Hash>()->construct();
+	ref.data<Hash>().construct();
 	return ref;
 }
 
-WeakReference mint::create_array() {
-	WeakReference ref = WeakReference::create<Array>();
-	ref.data<Array>()->construct();
+WeakReference mint::create_iterator(AbstractSyntaxTree& ast) {
+	WeakReference ref = make_weak_reference<Iterator>(create_flags, ast);
+	ref.data<Iterator>().construct();
 	return ref;
 }
 
-WeakReference mint::create_hash() {
-	WeakReference ref = WeakReference::create<Hash>();
-	ref.data<Hash>()->construct();
+WeakReference mint::create_iterator(FromGenerator from_generator, AbstractSyntaxTree& ast, std::size_t stack_size) {
+	WeakReference ref = make_weak_reference<Iterator>(create_flags, from_generator, ast, stack_size);
+	ref.data<Iterator>().construct();
 	return ref;
 }
 
-WeakReference mint::create_iterator() {
-	WeakReference ref = WeakReference::create<Iterator>();
-	ref.data<Iterator>()->construct();
+WeakReference mint::create_iterator(FromInclusiveRange from_inclusive_range, AbstractSyntaxTree& ast, double begin,
+    double end) {
+	WeakReference ref = make_weak_reference<Iterator>(create_flags, from_inclusive_range, ast, begin, end);
+	ref.data<Iterator>().construct();
 	return ref;
 }
 
-#ifdef OS_WINDOWS
-WeakReference mint::create_handle(mint::handle_t handle) {
-	WeakReference ref = WeakReference::create<LibObject<std::remove_pointer_t<HANDLE>>>();
-	ref.data<LibObject<std::remove_pointer_t<HANDLE>>>()->impl = handle;
-	ref.data<LibObject<std::remove_pointer_t<HANDLE>>>()->construct();
+WeakReference mint::create_iterator(FromExclusiveRange from_exclusive_range, AbstractSyntaxTree& ast, double begin,
+    double end) {
+	WeakReference ref = make_weak_reference<Iterator>(create_flags, from_exclusive_range, ast, begin, end);
+	ref.data<Iterator>().construct();
 	return ref;
 }
 
-mint::handle_t mint::to_handle(const Reference &reference) {
-	return reference.data<LibObject<std::remove_pointer_t<HANDLE>>>()->impl;
+WeakReference mint::create_iterator_over(AbstractSyntaxTree& ast, const Reference& ref) {
+
+	if (is_instance_of(ref, Class::iterator)) {
+		return ref;
+	}
+
+	auto iterator = make_weak_reference<Iterator>(create_flags, ast, ref);
+	iterator.data<Iterator>().construct();
+	return iterator;
 }
 
-mint::handle_t *mint::to_handle_ptr(const Reference &reference) {
-	return &reference.data<LibObject<std::remove_pointer_t<HANDLE>>>()->impl;
+WeakReference mint::create_iterator_over(AbstractSyntaxTree& ast, Reference&& ref) {
+
+	if (is_instance_of(ref, Class::iterator)) {
+		return std::move(ref);
+	}
+
+	auto iterator = make_weak_reference<Iterator>(create_flags, ast, std::move(ref));
+	iterator.data<Iterator>().construct();
+	return iterator;
+}
+
+#ifdef MINT_OS_WINDOWS
+WeakReference mint::create_handle(AbstractSyntaxTree& ast, mint::handle_t handle) {
+	WeakReference ref = make_weak_reference<LibObject<std::remove_pointer_t<mint::handle_t>>>(create_flags, ast, handle);
+	ref.data<LibObject<std::remove_pointer_t<mint::handle_t>>>().construct();
+	return ref;
+}
+
+mint::handle_t mint::to_handle(const Reference& reference) {
+	return reference.data<LibObject<std::remove_pointer_t<HANDLE>>>().ptr;
+}
+
+mint::handle_t* mint::to_handle_ptr(const Reference& reference) {
+	return &reference.data<LibObject<std::remove_pointer_t<HANDLE>>>().ptr;
 }
 #else
-WeakReference mint::create_handle(mint::handle_t handle) {
-	WeakReference ref = WeakReference::create<LibObject<void>>();
-	ref.data<LibObject<void>>()->construct();
-	ref.data<LibObject<void>>()->impl = reinterpret_cast<void *>(handle);
+WeakReference mint::create_handle(AbstractSyntaxTree& ast, mint::handle_t handle) {
+	WeakReference ref = make_weak_reference<LibObject<void>>(create_flags, ast, reinterpret_cast<void*>(handle));
+	ref.data<LibObject<void>>().construct();
 	return ref;
 }
 
-mint::handle_t mint::to_handle(const Reference &reference) {
-	return static_cast<handle_t>(reinterpret_cast<intptr_t>(reference.data<LibObject<void>>()->impl));
+mint::handle_t mint::to_handle(const Reference& reference) {
+	return static_cast<handle_t>(std::bit_cast<intptr_t>(reference.data<LibObject<void>>().ptr));
 }
 
-mint::handle_t *mint::to_handle_ptr(const Reference &reference) {
-	return reinterpret_cast<handle_t *>(&reference.data<LibObject<void>>()->impl);
+mint::handle_t* mint::to_handle_ptr(const Reference& reference) {
+	return std::bit_cast<handle_t*>(&reference.data<LibObject<void>>().ptr);
 }
 #endif
 
-WeakReference mint::get_member_ignore_visibility(Reference &reference, const Symbol &member) {
+WeakReference mint::get_member_ignore_visibility(AbstractSyntaxTree& ast, const Reference& reference,
+    const Symbol& member) {
 
-	switch (reference.data()->format) {
-	case Data::FMT_PACKAGE:
-		for (PackageData *package_data = reference.data<Package>()->data; package_data != nullptr;
-			 package_data = package_data->get_package()) {
+	switch (reference.data().format()) {
+	case Data::package_format:
+		for (PackageData* package_data = &reference.data<Package>().data; package_data != nullptr;
+		    package_data = package_data->get_owner_package()) {
 			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
-				return WeakReference::share(it->second);
+				return it->second;
 			}
 		}
 		break;
 
-	case Data::FMT_OBJECT:
-		if (auto *object = reference.data<Object>()) {
+	case Data::object_format:
+		{
+			auto& object = reference.data<Object>();
 
-			if (auto it = object->metadata->members().find(member); it != object->metadata->members().end()) {
+			if (auto* info = object.metadata.find_member(member)) {
 				if (is_object(object)) {
-					return WeakReference::share(Class::MemberInfo::get(it->second, object));
+					return Class::MemberInfo::get(*info, object);
 				}
-				return {Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL, it->second->value.data()};
+				return {Reference::const_address | Reference::const_value | Reference::global, info->value.data()};
 			}
 
-			if (auto it = object->metadata->globals().find(member); it != object->metadata->globals().end()) {
-				return WeakReference::share(it->second->value);
+			if (auto* info = object.metadata.find_global(member)) {
+				return info->value;
 			}
 
-			for (PackageData *package = object->metadata->get_package(); package != nullptr;
-				 package = package->get_package()) {
+			for (PackageData* package = &object.metadata.get_package(); package != nullptr;
+			    package = package->get_owner_package()) {
 				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
-					return {Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data()};
+					return {Reference::const_address | Reference::const_value, it->second.data()};
 				}
 			}
 		}
 		break;
 
 	default:
-		GlobalData *externals = GlobalData::instance();
-		if (auto it = externals->symbols().find(member); it != externals->symbols().end()) {
-			return {Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data()};
+		GlobalData& externals = ast.global_data();
+		if (auto it = externals.symbols().find(member); it != externals.symbols().end()) {
+			return {Reference::const_address | Reference::const_value, it->second.data()};
 		}
 	}
 
 	return {};
 }
 
-WeakReference mint::get_member_ignore_visibility(PackageData *package, const Symbol &member) {
-	for (PackageData *package_data = package; package_data != nullptr; package_data = package_data->get_package()) {
+WeakReference mint::get_member_ignore_visibility(PackageData& package, const Symbol& member) {
+	for (PackageData* package_data = &package; package_data != nullptr;
+	    package_data = package_data->get_owner_package()) {
 		if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
-			return WeakReference::share(it->second);
+			return it->second;
 		}
 	}
 	return {};
 }
 
-WeakReference mint::get_member_ignore_visibility(Object *object, const Symbol &member) {
-	auto it = object->metadata->members().find(member);
-	if (it != object->metadata->members().end()) {
-		return WeakReference::share(Class::MemberInfo::get(it->second, object));
+WeakReference mint::get_member_ignore_visibility(Object& object, const Symbol& member) {
+	if (auto* info = object.metadata.find_member(member)) {
+		return Class::MemberInfo::get(*info, object);
 	}
 	return {};
 }
 
-WeakReference mint::get_global_ignore_visibility(Object *object, const Symbol &global) {
-	auto it = object->metadata->globals().find(global);
-	if (it != object->metadata->globals().end()) {
-		return WeakReference::share(it->second->value);
+WeakReference mint::get_global_ignore_visibility(Object& object, const Symbol& global) {
+	if (auto* info = object.metadata.find_global(global)) {
+		return info->value;
 	}
 	return {};
 }
 
-WeakReference mint::find_enum_value(Object *object, double value) {
-	for (const auto& [symbol, info] : object->metadata->globals()) {
-		if (is_instance_of(info->value, Data::FMT_NUMBER) && info->value.data<Number>()->value == value) {
-			return WeakReference::share(info->value);
+WeakReference mint::find_enum_value(Object& object, double value) {
+	for (auto [symbol, info] : object.metadata.globals()) {
+		auto& value_ref = info.get().value;
+		if (is_instance_of(value_ref, Data::number_format) && value_ref.data<Number>().value == value) {
+			return value_ref;
 		}
 	}
 	return {};

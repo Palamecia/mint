@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -41,7 +41,7 @@ GlobalSid::GlobalSid() {
 				// doing a dummy GetTokenInformation call.
 				GetTokenInformation(token, TokenUser, 0, 0, &retsize);
 				if (retsize) {
-					void *tokenBuffer = malloc(retsize);
+					void* tokenBuffer = malloc(retsize);
 					if (GetTokenInformation(token, TokenUser, tokenBuffer, retsize, &retsize)) {
 						PSID tokenSid = reinterpret_cast<PTOKEN_USER>(tokenBuffer)->User.Sid;
 						DWORD sidLen = ::GetLengthSid(tokenSid);
@@ -56,7 +56,7 @@ GlobalSid::GlobalSid() {
 			}
 			token = nullptr;
 			if (OpenProcessToken(hnd, TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_DUPLICATE | STANDARD_RIGHTS_READ,
-								 &token)) {
+			        &token)) {
 				DuplicateToken(token, SecurityImpersonation, &currentUserImpersonatedToken);
 				CloseHandle(token);
 			}

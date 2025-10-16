@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,42 +21,52 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_BUILTIN_LIBOBJECT_H
-#define MINT_BUILTIN_LIBOBJECT_H
+#ifndef MINT_MEMORY_BUILTIN_LIBOBJECT_H
+#define MINT_MEMORY_BUILTIN_LIBOBJECT_H
 
+#include "mint/config.h"
 #include "mint/memory/class.h"
+#include "mint/memory/memorypool.hpp"
 #include "mint/memory/object.h"
 
 namespace mint {
 
-class MINT_EXPORT LibObjectClass : public Class {
-	friend class GlobalData;
-public:
-	static LibObjectClass *instance();
+class AbstractSyntaxTree;
+class GarbageCollector;
 
-private:
-	LibObjectClass();
+class MINT_EXPORT LibObjectClass : public Class {
+public:
+	LibObjectClass(AbstractSyntaxTree& ast);
+	static LibObjectClass& instance(AbstractSyntaxTree& ast);
 };
 
 template<typename Type>
 struct LibObject : public Object {
 	friend class GarbageCollector;
 public:
-	LibObject();
-	using impl_type = Type;
-	impl_type *impl = nullptr;
+	using object_type = Type;
+
+	explicit LibObject(AbstractSyntaxTree& ast);
+	LibObject(AbstractSyntaxTree& ast, object_type* ptr);
+
+	object_type* ptr = nullptr;
 
 private:
 	static SystemPool<LibObject<Type>> g_pool;
 };
 
 template<typename Type>
-LibObject<Type>::LibObject() :
-	Object(LibObjectClass::instance()) {}
+LibObject<Type>::LibObject(AbstractSyntaxTree& ast) :
+    Object(LibObjectClass::instance(ast)) {}
+
+template<typename Type>
+LibObject<Type>::LibObject(AbstractSyntaxTree& ast, object_type* ptr) :
+    Object(LibObjectClass::instance(ast)),
+    ptr(ptr) {}
 
 template<typename Type>
 SystemPool<LibObject<Type>> LibObject<Type>::g_pool;
 
 }
 
-#endif // MINT_BUILTIN_LIBOBJECT_H
+#endif // MINT_MEMORY_BUILTIN_LIBOBJECT_H

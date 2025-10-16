@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,16 +21,29 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/casttool.h>
-#include <mint/memory/builtin/string.h>
+#include "mint/ast/symbol.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/class.h"
+#include "mint/memory/data.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
+#include "mint/memory/builtin/string.h"
 #include <algorithm>
-
-using namespace mint;
+#include <bit>
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace symbols {
 
-static const Symbol d_ptr("d_ptr");
+static const mint::Symbol d_ptr("d_ptr");
 
 static const std::string int8("int8");
 static const std::string uint8("uint8");
@@ -40,34 +53,39 @@ static const std::string int32("int32");
 static const std::string uint32("uint32");
 static const std::string int64("int64");
 static const std::string uint64("uint64");
-static const std::string DataStream("Serializer.DataStream");
+static const std::string data_stream("Serializer.DataStream");
 
 }
 
 namespace {
 
-static constexpr const char *BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
-											   "ghijklmnopqrstuvwxyz0123456789+/";
-static constexpr const char *BASE64_URL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
-												   "ghijklmnopqrstuvwxyz0123456789-_";
+constexpr const std::string_view base64_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
+                                                   "ghijklmnopqrstuvwxyz0123456789+/";
+constexpr const std::string_view base64_url_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
+                                                       "ghijklmnopqrstuvwxyz0123456789-_";
 
-WeakReference get_d_ptr(Reference &reference) {
+template<class T>
+void copy_from_buffer(const std::uint8_t* buffer, T* target) {
+	std::ranges::copy_n(buffer, sizeof(T), std::bit_cast<std::uint8_t*>(target));
+}
 
-	auto *object = reference.data<Object>();
-	auto it = object->metadata->members().find(symbols::d_ptr);
+template<class T>
+void copy_to_buffer(std::vector<std::uint8_t>& buffer, const T* source) {
+	std::ranges::copy_n(std::bit_cast<const std::uint8_t*>(source), sizeof(T), std::back_inserter(buffer));
+}
 
-	if (it != object->metadata->members().end()) {
-		return WeakReference::share(Class::MemberInfo::get(it->second, object));
+mint::WeakReference get_d_ptr(const mint::Reference& reference) {
+	if (auto& object = reference.data<mint::Object>(); auto* info = object.metadata.find_member(symbols::d_ptr)) {
+		return mint::Class::MemberInfo::get(*info, object);
 	}
-
 	return {};
 }
 
-std::string buffer_to_base64(std::vector<uint8_t> *buffer, const char *alphabet) {
+std::string buffer_to_base64(std::vector<std::uint8_t>* buffer, std::string_view alphabet) {
 
 	std::string result((buffer->size() + 2) / 3 * 4, '=');
-	size_t padlen = 0;
-	size_t i = 0;
+	std::size_t padlen = 0;
+	std::size_t i = 0;
 
 	auto it = buffer->begin();
 	while (it != buffer->end()) {
@@ -105,12 +123,12 @@ std::string buffer_to_base64(std::vector<uint8_t> *buffer, const char *alphabet)
 	return result;
 }
 
-bool base64_to_buffer(std::vector<uint8_t> *buffer, const std::string &data, const char *alphabet) {
+bool base64_to_buffer(std::vector<std::uint8_t>* buffer, const std::string& data, std::string_view alphabet) {
 
 	unsigned int buf = 0;
 	int nbits = 0;
 
-	for (size_t i = 0; i < data.size(); ++i) {
+	for (std::size_t i = 0; i < data.size(); ++i) {
 		int ch = data[i];
 		if (ch >= alphabet[0] && ch <= alphabet[25]) {
 			buf = (buf << 6) | (ch - alphabet[0]);
@@ -131,7 +149,7 @@ bool base64_to_buffer(std::vector<uint8_t> *buffer, const std::string &data, con
 			if ((data.size() % 4) != 0) {
 				return false;
 			}
-			else if ((i == data.size() - 1) || (i == data.size() - 2 && data[++i] == '=')) {
+			if ((i == data.size() - 1) || (i == data.size() - 2 && data[++i] == '=')) {
 				return true;
 			}
 			else {
@@ -152,590 +170,462 @@ bool base64_to_buffer(std::vector<uint8_t> *buffer, const std::string &data, con
 	return true;
 }
 
-}
+mint::WeakReference mint_datastream_from_utf8_bytes(mint::Cursor& cursor, const mint::Reference& data,
+    const mint::Reference& bytes, mint::Reference& count) {
 
-MINT_FUNCTION(mint_datastream_from_utf8_bytes, 3, cursor) {
-
-	FunctionHelper helper(cursor, 3);
-	Reference &count = helper.pop_parameter();
-	Reference &bytes = helper.pop_parameter();
-	Reference &data = helper.pop_parameter();
-
-	const intmax_t count_int = to_integer(cursor, count);
-	const std::string bytes_str = to_string(bytes);
-	for (intmax_t index = 0; index < count_int; ++index) {
-		WeakReference item = array_get_item(data.data<Array>(), index);
-		if (index < bytes_str.size()) {
-			*get_d_ptr(item).data<LibObject<uint8_t>>()->impl = bytes_str[index];
+	const std::intmax_t count_int = mint::to_signed_integer(cursor, count);
+	const std::string bytes_str = mint::to_string(bytes);
+	for (std::intmax_t index = 0; index < count_int; ++index) {
+		mint::WeakReference item = array_get_item(data.data<mint::Array>(), index);
+		if (const auto data_index = array_index(data.data<mint::Array>(), index); data_index < bytes_str.size()) {
+			*get_d_ptr(item).data<mint::LibObject<std::uint8_t>>().ptr = bytes_str[data_index];
 		}
 		else {
-			*get_d_ptr(item).data<LibObject<uint8_t>>()->impl = 0;
+			*get_d_ptr(item).data<mint::LibObject<std::uint8_t>>().ptr = 0;
 		}
 	}
 
-	helper.return_value(std::move(data));
+	return data;
 }
 
-MINT_FUNCTION(mint_datastream_create_buffer, 0, cursor) {
-
-	FunctionHelper helper(cursor, 0);
-	helper.return_value(create_object(new std::vector<uint8_t>));
+mint::WeakReference mint_datastream_create_buffer(mint::Cursor& cursor) {
+	return mint::create_c_object(cursor.ast(), new std::vector<std::uint8_t>());
 }
 
-MINT_FUNCTION(mint_datastream_delete_buffer, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &buffer = helper.pop_parameter();
-	delete buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
+mint::WeakReference mint_datastream_delete_buffer(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+	delete buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	return {};
 }
 
-MINT_FUNCTION(mint_datastream_contains_int8, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &count = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size()
-									   >= sizeof(int8_t) * to_integer(cursor, count)));
+mint::WeakReference mint_datastream_contains_int8(mint::Cursor& cursor, const mint::Reference& buffer,
+    mint::Reference& count) {
+	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
+	                            >= sizeof(std::int8_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-MINT_FUNCTION(mint_datastream_contains_int16, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &count = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size()
-									   >= sizeof(int16_t) * to_integer(cursor, count)));
+mint::WeakReference mint_datastream_contains_int16(mint::Cursor& cursor, const mint::Reference& buffer,
+    mint::Reference& count) {
+	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
+	                            >= sizeof(std::int16_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-MINT_FUNCTION(mint_datastream_contains_int32, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &count = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size()
-									   >= sizeof(int32_t) * to_integer(cursor, count)));
+mint::WeakReference mint_datastream_contains_int32(mint::Cursor& cursor, const mint::Reference& buffer,
+    mint::Reference& count) {
+	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
+	                            >= sizeof(std::int32_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-MINT_FUNCTION(mint_datastream_contains_int64, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &count = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size()
-									   >= sizeof(int64_t) * to_integer(cursor, count)));
+mint::WeakReference mint_datastream_contains_int64(mint::Cursor& cursor, const mint::Reference& buffer,
+    mint::Reference& count) {
+	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
+	                            >= sizeof(std::int64_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-MINT_FUNCTION(mint_datastream_contains_uint8, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &count = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size()
-									   >= sizeof(uint8_t) * to_integer(cursor, count)));
+mint::WeakReference mint_datastream_contains_uint8(mint::Cursor& cursor, const mint::Reference& buffer,
+    mint::Reference& count) {
+	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
+	                            >= sizeof(std::uint8_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-MINT_FUNCTION(mint_datastream_contains_uint16, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &count = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size()
-									   >= sizeof(uint16_t) * to_integer(cursor, count)));
+mint::WeakReference mint_datastream_contains_uint16(mint::Cursor& cursor, const mint::Reference& buffer,
+    mint::Reference& count) {
+	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
+	                            >= sizeof(std::uint16_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-MINT_FUNCTION(mint_datastream_contains_uint32, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &count = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size()
-									   >= sizeof(uint32_t) * to_integer(cursor, count)));
+mint::WeakReference mint_datastream_contains_uint32(mint::Cursor& cursor, const mint::Reference& buffer,
+    mint::Reference& count) {
+	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
+	                            >= sizeof(std::uint32_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-MINT_FUNCTION(mint_datastream_contains_uint64, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &count = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size()
-									   >= sizeof(uint64_t) * to_integer(cursor, count)));
+mint::WeakReference mint_datastream_contains_uint64(mint::Cursor& cursor, const mint::Reference& buffer,
+    mint::Reference& count) {
+	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
+	                            >= sizeof(std::uint64_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-MINT_FUNCTION(mint_datastream_contains_number, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &buffer = helper.pop_parameter();
-	helper.return_value(
-		create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(Number::value)));
+mint::WeakReference mint_datastream_contains_number(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+	return mint::create_boolean(
+	    buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size() >= sizeof(mint::Number::value));
 }
 
-MINT_FUNCTION(mint_datastream_contains_boolean, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &buffer = helper.pop_parameter();
-	helper.return_value(
-		create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size() >= sizeof(Boolean::value)));
+mint::WeakReference mint_datastream_contains_boolean(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+	return mint::create_boolean(
+	    buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size() >= sizeof(mint::Boolean::value));
 }
 
-MINT_FUNCTION(mint_datastream_contains_string, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &buffer = helper.pop_parameter();
-	auto begin = buffer.data<LibObject<std::vector<uint8_t>>>()->impl->begin();
-	auto end = buffer.data<LibObject<std::vector<uint8_t>>>()->impl->end();
-	helper.return_value(create_boolean(find(begin, end, 0) != end));
+mint::WeakReference mint_datastream_contains_string(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+	auto& buffer_data = *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	return mint::create_boolean(std::ranges::find(buffer_data, 0) != buffer_data.end());
 }
 
-MINT_FUNCTION(mint_datastream_get, 3, cursor) {
+mint::WeakReference mint_datastream_get(mint::Cursor& cursor, const mint::Reference& buffer,
+    const mint::Reference& data, const mint::Reference& count) {
 
-	FunctionHelper helper(cursor, 3);
-	Reference &count = helper.pop_parameter();
-	Reference &data = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
+	auto* buffer_data = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data();
 
-	uint8_t *buffer_data = buffer.data<LibObject<std::vector<uint8_t>>>()->impl->data();
+	for (std::intmax_t index = 0; index < mint::to_signed_integer(cursor, count); ++index) {
+		mint::WeakReference item = array_get_item(data.data<mint::Array>(), index);
+		if (mint::is_instance_of(item, mint::Class::object)) {
+			auto& object = item.data<mint::Object>();
+			if (object.metadata.full_name() == symbols::int8) {
+				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::int8_t>>().ptr);
+				std::advance(buffer_data, sizeof(std::int8_t));
+			}
+			else if (object.metadata.full_name() == symbols::int16) {
+				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::int16_t>>().ptr);
+				std::advance(buffer_data, sizeof(std::int16_t));
+			}
+			else if (object.metadata.full_name() == symbols::int32) {
+				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::int32_t>>().ptr);
+				std::advance(buffer_data, sizeof(std::int32_t));
+			}
+			else if (object.metadata.full_name() == symbols::int64) {
+				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::int64_t>>().ptr);
+				std::advance(buffer_data, sizeof(std::int64_t));
+			}
+			else if (object.metadata.full_name() == symbols::uint8) {
+				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::uint8_t>>().ptr);
+				std::advance(buffer_data, sizeof(std::uint8_t));
+			}
+			else if (object.metadata.full_name() == symbols::uint16) {
+				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::uint16_t>>().ptr);
+				std::advance(buffer_data, sizeof(std::uint16_t));
+			}
+			else if (object.metadata.full_name() == symbols::uint32) {
+				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::uint32_t>>().ptr);
+				std::advance(buffer_data, sizeof(std::uint32_t));
+			}
+			else if (object.metadata.full_name() == symbols::uint64) {
+				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::uint64_t>>().ptr);
+				std::advance(buffer_data, sizeof(std::uint64_t));
+			}
+		}
+	}
 
-	for (intmax_t index = 0; index < to_integer(cursor, count); ++index) {
-		WeakReference item = array_get_item(data.data<Array>(), index);
-		switch (item.data()->format) {
-		case Data::FMT_NONE:
-		case Data::FMT_NULL:
-		case Data::FMT_NUMBER:
-		case Data::FMT_BOOLEAN:
-		case Data::FMT_PACKAGE:
-		case Data::FMT_FUNCTION:
-			break;
+	return {};
+}
 
-		case Data::FMT_OBJECT:
-			if (auto *object = item.data<Object>()) {
-				switch (object->metadata->metatype()) {
-				case Class::OBJECT:
-					if (object->metadata->full_name() == symbols::int8) {
-						int8_t *value = get_d_ptr(item).data<LibObject<int8_t>>()->impl;
-						memcpy(value, buffer_data, sizeof(int8_t));
-						buffer_data += sizeof(int8_t);
-						break;
-					}
-					if (object->metadata->full_name() == symbols::int16) {
-						int16_t *value = get_d_ptr(item).data<LibObject<int16_t>>()->impl;
-						memcpy(value, buffer_data, sizeof(int16_t));
-						buffer_data += sizeof(int16_t);
-						break;
-					}
-					if (object->metadata->full_name() == symbols::int32) {
-						int32_t *value = get_d_ptr(item).data<LibObject<int32_t>>()->impl;
-						memcpy(value, buffer_data, sizeof(int32_t));
-						buffer_data += sizeof(int32_t);
-						break;
-					}
-					if (object->metadata->full_name() == symbols::int64) {
-						int64_t *value = get_d_ptr(item).data<LibObject<int64_t>>()->impl;
-						memcpy(value, buffer_data, sizeof(int64_t));
-						buffer_data += sizeof(int64_t);
-						break;
-					}
-					if (object->metadata->full_name() == symbols::uint8) {
-						uint8_t *value = get_d_ptr(item).data<LibObject<uint8_t>>()->impl;
-						memcpy(value, buffer_data, sizeof(uint8_t));
-						buffer_data += sizeof(uint8_t);
-						break;
-					}
-					if (object->metadata->full_name() == symbols::uint16) {
-						uint16_t *value = get_d_ptr(item).data<LibObject<uint16_t>>()->impl;
-						memcpy(value, buffer_data, sizeof(uint16_t));
-						buffer_data += sizeof(uint16_t);
-						break;
-					}
-					if (object->metadata->full_name() == symbols::uint32) {
-						uint32_t *value = get_d_ptr(item).data<LibObject<uint32_t>>()->impl;
-						memcpy(value, buffer_data, sizeof(uint32_t));
-						buffer_data += sizeof(uint32_t);
-						break;
-					}
-					if (object->metadata->full_name() == symbols::uint64) {
-						uint64_t *value = get_d_ptr(item).data<LibObject<uint64_t>>()->impl;
-						memcpy(value, buffer_data, sizeof(uint64_t));
-						buffer_data += sizeof(uint64_t);
-						break;
-					}
-					break;
+mint::WeakReference mint_datastream_get_substr(mint::Cursor& cursor, const mint::Reference& buffer,
+    const mint::Reference& from, mint::Reference& length) {
+	std::vector<std::uint8_t>& buffer_data = *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	return mint::create_string(cursor.ast(),
+	    std::string(std::next(std::bit_cast<char*>(buffer_data.data()), mint::to_signed_integer(cursor, from)),
+	        mint::to_unsigned_integer(cursor, length)));
+}
 
-				case Class::STRING:
-				case Class::REGEX:
-				case Class::ARRAY:
-				case Class::HASH:
-				case Class::ITERATOR:
-				case Class::LIBRARY:
-				case Class::LIBOBJECT:
-					break;
-				}
+mint::WeakReference mint_datastream_get(mint::Cursor& /*cursor*/, const mint::Reference& buffer,
+    const mint::Reference& data) {
+
+	auto* buffer_data = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data();
+
+	switch (data.data().format()) {
+	case mint::Data::none_format:
+	case mint::Data::null_format:
+	case mint::Data::package_format:
+	case mint::Data::function_format:
+		break;
+
+	case mint::Data::number_format:
+		copy_from_buffer(buffer_data, &data.data<mint::Number>().value);
+		break;
+
+	case mint::Data::boolean_format:
+		copy_from_buffer(buffer_data, &data.data<mint::Boolean>().value);
+		break;
+
+	case mint::Data::object_format:
+		switch (auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
+		case mint::Class::object:
+			if (object.metadata.full_name() == symbols::int8) {
+				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::int8_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::int16) {
+				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::int16_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::int32) {
+				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::int32_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::int64) {
+				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::int64_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint8) {
+				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::uint8_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint16) {
+				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::uint16_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint32) {
+				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::uint32_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint64) {
+				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::uint64_t>>().ptr);
+				break;
 			}
 			break;
+
+		case mint::Class::string:
+			data.data<mint::String>().str = std::bit_cast<char*>(buffer_data);
+			break;
+
+		case mint::Class::regex:
+		case mint::Class::array:
+		case mint::Class::hash:
+		case mint::Class::iterator:
+		case mint::Class::library:
+		case mint::Class::libobject:
+			break;
 		}
+		break;
 	}
+
+	return {};
 }
 
-MINT_FUNCTION(mint_datastream_get_substr, 3, cursor) {
-
-	FunctionHelper helper(cursor, 3);
-	Reference &length = helper.pop_parameter();
-	Reference &from = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-
-	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
-	helper.return_value(
-		create_string(std::string(reinterpret_cast<char *>(buffer_data.data()) + to_integer(cursor, from),
-								  to_integer(cursor, length))));
+mint::WeakReference mint_datastream_to_base64(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+	return mint::create_string(cursor.ast(),
+	    buffer_to_base64(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr, base64_alphabet));
 }
 
-MINT_FUNCTION(mint_datastream_get, 2, cursor) {
+mint::WeakReference mint_datastream_to_base64url(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+	return mint::create_string(cursor.ast(),
+	    buffer_to_base64(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr, base64_url_alphabet));
+}
 
-	FunctionHelper helper(cursor, 2);
-	Reference &data = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
+mint::WeakReference mint_datastream_write_base64(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
+    const mint::Reference& data) {
+	return mint::create_boolean(base64_to_buffer(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr,
+	    to_string(data), base64_alphabet));
+}
 
-	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
+mint::WeakReference mint_datastream_write_base64url(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
+    const mint::Reference& data) {
+	return mint::create_boolean(base64_to_buffer(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr,
+	    to_string(data), base64_url_alphabet));
+}
 
-	switch (data.data()->format) {
-	case Data::FMT_NONE:
-	case Data::FMT_NULL:
-	case Data::FMT_PACKAGE:
-	case Data::FMT_FUNCTION:
+mint::WeakReference mint_datastream_read(mint::Cursor& /*cursor*/, const mint::Reference& buffer,
+    const mint::Reference& data) {
+
+	auto& buffer_object = *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+
+	switch (data.data().format()) {
+	case mint::Data::none_format:
+	case mint::Data::null_format:
+	case mint::Data::package_format:
+	case mint::Data::function_format:
 		break;
 
-	case Data::FMT_NUMBER:
-		memcpy(&data.data<Number>()->value, buffer_data.data(), sizeof(Number::value));
+	case mint::Data::number_format:
+		copy_from_buffer(buffer_object.data(), &data.data<mint::Number>().value);
+		buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(mint::Number::value)));
 		break;
 
-	case Data::FMT_BOOLEAN:
-		memcpy(&data.data<Boolean>()->value, buffer_data.data(), sizeof(Boolean::value));
+	case mint::Data::boolean_format:
+		copy_from_buffer(buffer_object.data(), &data.data<mint::Boolean>().value);
+		buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(mint::Boolean::value)));
 		break;
 
-	case Data::FMT_OBJECT:
-		if (auto *object = data.data<Object>()) {
-			switch (object->metadata->metatype()) {
-			case Class::OBJECT:
-				if (object->metadata->full_name() == symbols::int8) {
-					int8_t *value = get_d_ptr(data).data<LibObject<int8_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(int8_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::int16) {
-					int16_t *value = get_d_ptr(data).data<LibObject<int16_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(int16_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::int32) {
-					int32_t *value = get_d_ptr(data).data<LibObject<int32_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(int32_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::int64) {
-					int64_t *value = get_d_ptr(data).data<LibObject<int64_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(int64_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint8) {
-					uint8_t *value = get_d_ptr(data).data<LibObject<uint8_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(uint8_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint16) {
-					uint16_t *value = get_d_ptr(data).data<LibObject<uint16_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(uint16_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint32) {
-					uint32_t *value = get_d_ptr(data).data<LibObject<uint32_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(uint32_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint64) {
-					uint64_t *value = get_d_ptr(data).data<LibObject<uint64_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(uint64_t));
-					break;
-				}
-				break;
-
-			case Class::STRING:
-				data.data<String>()->str = reinterpret_cast<char *>(buffer_data.data());
-				break;
-
-			case Class::REGEX:
-			case Class::ARRAY:
-			case Class::HASH:
-			case Class::ITERATOR:
-			case Class::LIBRARY:
-			case Class::LIBOBJECT:
+	case mint::Data::object_format:
+		switch (auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
+		case mint::Class::object:
+			if (object.metadata.full_name() == symbols::int8) {
+				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::int8_t>>().ptr);
+				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::int8_t)));
 				break;
 			}
-		}
-		break;
-	}
-}
-
-MINT_FUNCTION(mint_datastream_to_base64, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &d_ptr = helper.pop_parameter();
-
-	helper.return_value(
-		create_string(buffer_to_base64(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl, BASE64_ALPHABET)));
-}
-
-MINT_FUNCTION(mint_datastream_to_base64url, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &d_ptr = helper.pop_parameter();
-
-	helper.return_value(
-		create_string(buffer_to_base64(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl, BASE64_URL_ALPHABET)));
-}
-
-MINT_FUNCTION(mint_datastream_write_base64, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	const Reference &data = helper.pop_parameter();
-	const Reference &d_ptr = helper.pop_parameter();
-
-	helper.return_value(create_boolean(
-		base64_to_buffer(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl, to_string(data), BASE64_ALPHABET)));
-}
-
-MINT_FUNCTION(mint_datastream_write_base64url, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	const Reference &data = helper.pop_parameter();
-	const Reference &d_ptr = helper.pop_parameter();
-
-	helper.return_value(create_boolean(
-		base64_to_buffer(d_ptr.data<LibObject<std::vector<uint8_t>>>()->impl, to_string(data), BASE64_URL_ALPHABET)));
-}
-
-MINT_FUNCTION(mint_datastream_read, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &data = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-
-	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
-
-	switch (data.data()->format) {
-	case Data::FMT_NONE:
-	case Data::FMT_NULL:
-	case Data::FMT_PACKAGE:
-	case Data::FMT_FUNCTION:
-		break;
-
-	case Data::FMT_NUMBER:
-		memcpy(&data.data<Number>()->value, buffer_data.data(), sizeof(Number::value));
-		buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(Number::value));
-		break;
-
-	case Data::FMT_BOOLEAN:
-		memcpy(&data.data<Boolean>()->value, buffer_data.data(), sizeof(Boolean::value));
-		buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(Boolean::value));
-		break;
-
-	case Data::FMT_OBJECT:
-		if (auto *object = data.data<Object>()) {
-			switch (object->metadata->metatype()) {
-			case Class::OBJECT:
-				if (object->metadata->full_name() == symbols::int8) {
-					int8_t *value = get_d_ptr(data).data<LibObject<int8_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(int8_t));
-					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int8_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::int16) {
-					int16_t *value = get_d_ptr(data).data<LibObject<int16_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(int16_t));
-					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int16_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::int32) {
-					int32_t *value = get_d_ptr(data).data<LibObject<int32_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(int32_t));
-					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int32_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::int64) {
-					int64_t *value = get_d_ptr(data).data<LibObject<int64_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(int64_t));
-					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(int64_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint8) {
-					uint8_t *value = get_d_ptr(data).data<LibObject<uint8_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(uint8_t));
-					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint8_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint16) {
-					uint16_t *value = get_d_ptr(data).data<LibObject<uint16_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(uint16_t));
-					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint16_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint32) {
-					uint32_t *value = get_d_ptr(data).data<LibObject<uint32_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(uint32_t));
-					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint32_t));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint64) {
-					uint64_t *value = get_d_ptr(data).data<LibObject<uint64_t>>()->impl;
-					memcpy(value, buffer_data.data(), sizeof(uint64_t));
-					buffer_data.erase(buffer_data.begin(), buffer_data.begin() + sizeof(uint64_t));
-					break;
-				}
-				break;
-
-			case Class::STRING:
-				data.data<String>()->str = reinterpret_cast<char *>(buffer_data.data());
-				buffer_data.erase(buffer_data.begin(), buffer_data.begin() + data.data<String>()->str.size() + 1);
-				break;
-
-			case Class::REGEX:
-			case Class::ARRAY:
-			case Class::HASH:
-			case Class::ITERATOR:
-			case Class::LIBRARY:
-			case Class::LIBOBJECT:
+			if (object.metadata.full_name() == symbols::int16) {
+				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::int16_t>>().ptr);
+				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::int16_t)));
 				break;
 			}
-		}
-		break;
-	}
-}
-
-MINT_FUNCTION(mint_datastream_write, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &data = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-
-	std::vector<uint8_t> &buffer_data = *buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
-
-	switch (data.data()->format) {
-	case Data::FMT_NONE:
-		break;
-
-	case Data::FMT_NULL:
-	case Data::FMT_PACKAGE:
-	case Data::FMT_FUNCTION:
-		{
-			std::string data_str = to_string(data);
-			copy_n(data_str.data(), data_str.size(), back_inserter(buffer_data));
-			buffer_data.push_back(0);
-		}
-		break;
-
-	case Data::FMT_NUMBER:
-		copy_n(reinterpret_cast<uint8_t *>(&data.data<Number>()->value), sizeof(Number::value),
-			   back_inserter(buffer_data));
-		break;
-
-	case Data::FMT_BOOLEAN:
-		copy_n(reinterpret_cast<uint8_t *>(&data.data<Boolean>()->value), sizeof(Boolean::value),
-			   back_inserter(buffer_data));
-		break;
-
-	case Data::FMT_OBJECT:
-		if (auto *object = data.data<Object>()) {
-			switch (object->metadata->metatype()) {
-			case Class::OBJECT:
-				if (object->metadata->full_name() == symbols::DataStream) {
-					std::vector<uint8_t> *other = get_d_ptr(data).data<LibObject<std::vector<uint8_t>>>()->impl;
-					copy_n(other->data(), other->size(), back_inserter(buffer_data));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::int8) {
-					int8_t *value = get_d_ptr(data).data<LibObject<int8_t>>()->impl;
-					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int8_t), back_inserter(buffer_data));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::int16) {
-					int16_t *value = get_d_ptr(data).data<LibObject<int16_t>>()->impl;
-					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int16_t), back_inserter(buffer_data));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::int32) {
-					int32_t *value = get_d_ptr(data).data<LibObject<int32_t>>()->impl;
-					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int32_t), back_inserter(buffer_data));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::int64) {
-					int64_t *value = get_d_ptr(data).data<LibObject<int64_t>>()->impl;
-					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(int64_t), back_inserter(buffer_data));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint8) {
-					uint8_t *value = get_d_ptr(data).data<LibObject<uint8_t>>()->impl;
-					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint8_t), back_inserter(buffer_data));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint16) {
-					uint16_t *value = get_d_ptr(data).data<LibObject<uint16_t>>()->impl;
-					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint16_t), back_inserter(buffer_data));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint32) {
-					uint32_t *value = get_d_ptr(data).data<LibObject<uint32_t>>()->impl;
-					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint32_t), back_inserter(buffer_data));
-					break;
-				}
-				if (object->metadata->full_name() == symbols::uint64) {
-					uint64_t *value = get_d_ptr(data).data<LibObject<uint64_t>>()->impl;
-					copy_n(reinterpret_cast<uint8_t *>(value), sizeof(uint64_t), back_inserter(buffer_data));
-					break;
-				}
-				break;
-
-			case Class::STRING:
-				copy_n(data.data<String>()->str.data(), data.data<String>()->str.size(), back_inserter(buffer_data));
-				buffer_data.push_back(0);
-				break;
-
-			case Class::REGEX:
-			case Class::ARRAY:
-			case Class::HASH:
-			case Class::ITERATOR:
-			case Class::LIBRARY:
-			case Class::LIBOBJECT:
-				{
-					std::string data_str = to_string(data);
-					copy_n(data_str.data(), data_str.size(), back_inserter(buffer_data));
-					buffer_data.push_back(0);
-				}
+			if (object.metadata.full_name() == symbols::int32) {
+				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::int32_t>>().ptr);
+				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::int32_t)));
 				break;
 			}
+			if (object.metadata.full_name() == symbols::int64) {
+				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::int64_t>>().ptr);
+				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::int64_t)));
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint8) {
+				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::uint8_t>>().ptr);
+				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::uint8_t)));
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint16) {
+				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::uint16_t>>().ptr);
+				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::uint16_t)));
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint32) {
+				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::uint32_t>>().ptr);
+				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::uint32_t)));
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint64) {
+				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::uint64_t>>().ptr);
+				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::uint64_t)));
+				break;
+			}
+			break;
+
+		case mint::Class::string:
+			data.data<mint::String>().str = std::bit_cast<char*>(buffer_object.data());
+			buffer_object.erase(buffer_object.begin(),
+			    std::next(buffer_object.begin(), static_cast<std::ptrdiff_t>(data.data<mint::String>().str.size()) + 1));
+			break;
+
+		case mint::Class::regex:
+		case mint::Class::array:
+		case mint::Class::hash:
+		case mint::Class::iterator:
+		case mint::Class::library:
+		case mint::Class::libobject:
+			break;
 		}
 		break;
 	}
+
+	return {};
 }
 
-MINT_FUNCTION(mint_datastream_remove, 2, cursor) {
+mint::WeakReference mint_datastream_write(mint::Cursor& /*cursor*/, const mint::Reference& buffer,
+    const mint::Reference& data) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &count = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
+	auto& buffer_object = *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
-	std::vector<uint8_t> *self = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
-	self->erase(self->begin(), self->begin() + to_integer(cursor, count));
+	switch (data.data().format()) {
+	case mint::Data::none_format:
+		break;
+
+	case mint::Data::null_format:
+	case mint::Data::package_format:
+	case mint::Data::function_format:
+		buffer_object.append_range(to_string(data));
+		buffer_object.push_back(0);
+		break;
+
+	case mint::Data::number_format:
+		copy_to_buffer(buffer_object, &data.data<mint::Number>().value);
+		break;
+
+	case mint::Data::boolean_format:
+		copy_to_buffer(buffer_object, &data.data<mint::Boolean>().value);
+		break;
+
+	case mint::Data::object_format:
+		switch (auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
+		case mint::Class::object:
+			if (object.metadata.full_name() == symbols::data_stream) {
+				buffer_object.append_range(*get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::int8) {
+				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::int8_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::int16) {
+				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::int16_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::int32) {
+				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::int32_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::int64) {
+				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::int64_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint8) {
+				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::uint8_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint16) {
+				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::uint16_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint32) {
+				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::uint32_t>>().ptr);
+				break;
+			}
+			if (object.metadata.full_name() == symbols::uint64) {
+				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::uint64_t>>().ptr);
+				break;
+			}
+			break;
+
+		case mint::Class::string:
+			buffer_object.append_range(data.data<mint::String>().str);
+			buffer_object.push_back(0);
+			break;
+
+		case mint::Class::regex:
+		case mint::Class::array:
+		case mint::Class::hash:
+		case mint::Class::iterator:
+		case mint::Class::library:
+		case mint::Class::libobject:
+			buffer_object.append_range(to_string(data));
+			buffer_object.push_back(0);
+			break;
+		}
+		break;
+	}
+
+	return {};
 }
 
-MINT_FUNCTION(mint_datastream_size, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &buffer = helper.pop_parameter();
-	helper.return_value(
-		create_number(static_cast<double>(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->size())));
+mint::WeakReference mint_datastream_remove(mint::Cursor& cursor, const mint::Reference& buffer,
+    const mint::Reference& count) {
+	std::vector<std::uint8_t>* self = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	self->erase(self->begin(), std::next(self->begin(), mint::to_signed_integer(cursor, count)));
+	return {};
 }
 
-MINT_FUNCTION(mint_datastream_empty, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &buffer = helper.pop_parameter();
-	helper.return_value(create_boolean(buffer.data<LibObject<std::vector<uint8_t>>>()->impl->empty()));
+mint::WeakReference mint_datastream_size(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+	return mint::create_unsigned_number(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size());
 }
+
+mint::WeakReference mint_datastream_empty(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->empty());
+}
+
+}
+
+MINT_EXPORT_FUNCTION(mint_datastream_from_utf8_bytes, 3)
+MINT_EXPORT_FUNCTION(mint_datastream_create_buffer, 0)
+MINT_EXPORT_FUNCTION(mint_datastream_delete_buffer, 1)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_int8, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_int16, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_int32, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_int64, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_uint8, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_uint16, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_uint32, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_uint64, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_number, 1)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_boolean, 1)
+MINT_EXPORT_FUNCTION(mint_datastream_contains_string, 1)
+MINT_EXPORT_FUNCTION_OVERLOAD(mint_datastream_get, 3, mint::Cursor&, const mint::Reference&, const mint::Reference&,
+    const mint::Reference&)
+MINT_EXPORT_FUNCTION(mint_datastream_get_substr, 3)
+MINT_EXPORT_FUNCTION_OVERLOAD(mint_datastream_get, 2, mint::Cursor&, const mint::Reference&, const mint::Reference&)
+MINT_EXPORT_FUNCTION(mint_datastream_to_base64, 1)
+MINT_EXPORT_FUNCTION(mint_datastream_to_base64url, 1)
+MINT_EXPORT_FUNCTION(mint_datastream_write_base64, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_write_base64url, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_read, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_write, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_remove, 2)
+MINT_EXPORT_FUNCTION(mint_datastream_size, 1)
+MINT_EXPORT_FUNCTION(mint_datastream_empty, 1)

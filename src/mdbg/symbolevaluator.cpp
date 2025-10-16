@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,58 +23,64 @@
 
 #include "symbolevaluator.h"
 
-#include <mint/memory/globaldata.h>
-#include <mint/memory/memorytool.h>
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/symbol.h"
+#include "mint/compiler/token.h"
+#include "mint/memory/data.h"
+#include "mint/memory/globaldata.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include <optional>
+#include <string>
 
-using namespace mint;
+SymbolEvaluator::SymbolEvaluator(mint::Cursor& cursor) :
+    _cursor(cursor) {}
 
-SymbolEvaluator::SymbolEvaluator(Cursor *cursor) :
-	m_cursor(cursor) {}
-
-const std::optional<WeakReference> &SymbolEvaluator::get_reference() const {
-	return m_reference;
+const std::optional<mint::WeakReference>& SymbolEvaluator::get_reference() const {
+	return _reference;
 }
 
 std::string SymbolEvaluator::get_symbol_name() const {
-	return m_symbol_name;
+	return _symbol_name;
 }
 
-bool SymbolEvaluator::on_token(token::Type type, const std::string &token, std::string::size_type offset) {
+bool SymbolEvaluator::on_token(mint::Token type, const std::string& token, std::string::size_type /*offset*/) {
 	switch (type) {
-	case token::SYMBOL_TOKEN:
-		switch (m_state) {
-		case READ_IDENT:
-			m_reference = get_symbol_reference(&m_cursor->symbols(), Symbol(token));
-			m_state = READ_OPERATOR;
-			m_symbol_name += token;
+	case mint::Token::symbol_token:
+		switch (_state) {
+		case State::read_ident:
+			_reference = get_symbol_reference(_cursor.get().symbols(), mint::Symbol(token));
+			_state = State::read_operator;
+			_symbol_name += token;
 			break;
 
-		case READ_MEMBER:
-			if (!m_reference.has_value()) {
+		case State::read_member:
+			if (!_reference.has_value()) {
 				return false;
 			}
-			m_reference = get_member_reference(*m_reference, Symbol(token));
-			m_state = READ_OPERATOR;
-			m_symbol_name += token;
+			_reference = get_member_reference(*_reference, mint::Symbol(token));
+			_state = State::read_operator;
+			_symbol_name += token;
 			break;
 
 		default:
 			return false;
 		}
 		break;
-	case token::DOT_TOKEN:
-		switch (m_state) {
-		case READ_OPERATOR:
-			m_state = READ_MEMBER;
-			m_symbol_name += token;
+	case mint::Token::dot_token:
+		switch (_state) {
+		case State::read_operator:
+			_state = State::read_member;
+			_symbol_name += token;
 			break;
 
 		default:
 			return false;
 		}
 		break;
-	case token::LINE_END_TOKEN:
-	case token::FILE_END_TOKEN:
+	case mint::Token::line_end_token:
+	case mint::Token::file_end_token:
 		return true;
 	default:
 		return false;
@@ -82,60 +88,64 @@ bool SymbolEvaluator::on_token(token::Type type, const std::string &token, std::
 	return true;
 }
 
-std::optional<WeakReference> SymbolEvaluator::get_symbol_reference(SymbolTable *symbols, const Symbol &symbol) {
+std::optional<mint::WeakReference> SymbolEvaluator::get_symbol_reference(mint::SymbolTable& symbols,
+    const mint::Symbol& symbol) {
 
-	if (auto it = symbols->find(symbol); it != symbols->end()) {
-		return WeakReference::share(it->second);
+	if (auto it = symbols.find(symbol); it != symbols.end()) {
+		return it->second;
 	}
 
-	GlobalData *globals = GlobalData::instance();
-	if (auto it = globals->symbols().find(symbol); it != globals->symbols().end()) {
-		return WeakReference::share(it->second);
+	mint::GlobalData& globals = _cursor.get().ast().global_data();
+	if (auto it = globals.symbols().find(symbol); it != globals.symbols().end()) {
+		return it->second;
 	}
 
 	return std::nullopt;
 }
 
-std::optional<WeakReference> SymbolEvaluator::get_member_reference(Reference &reference, const Symbol &member) {
-
-	switch (reference.data()->format) {
-	case Data::FMT_PACKAGE:
-		for (PackageData *package_data = reference.data<Package>()->data; package_data != nullptr;
-			 package_data = package_data->get_package()) {
+std::optional<mint::WeakReference> SymbolEvaluator::get_member_reference(const mint::Reference& reference,
+    const mint::Symbol& member) {
+	switch (reference.data().format()) {
+	case mint::Data::package_format:
+		for (mint::PackageData* package_data = &reference.data<mint::Package>().data; package_data != nullptr;
+		    package_data = package_data->get_owner_package()) {
 			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
-				return WeakReference::share(it->second);
+				return it->second;
 			}
 		}
 		break;
 
-	case Data::FMT_OBJECT:
-		if (auto *object = reference.data<Object>()) {
-
-			if (auto it = object->metadata->members().find(member); it != object->metadata->members().end()) {
+	case mint::Data::object_format:
+		{
+			auto& object = reference.data<mint::Object>();
+			if (auto* info = object.metadata.find_member(member)) {
 				if (mint::is_object(object)) {
-					return WeakReference::share(Class::MemberInfo::get(it->second, object));
+					return mint::Class::MemberInfo::get(*info, object);
 				}
-				return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE | Reference::GLOBAL,
-									 it->second->value.data());
+				constexpr auto flags = mint::Reference::const_address | mint::Reference::const_value
+				                       | mint::Reference::global;
+				return mint::WeakReference(flags, info->value.data());
 			}
 
-			if (auto it = object->metadata->globals().find(member); it != object->metadata->globals().end()) {
-				return WeakReference::share(it->second->value);
+			if (auto* info = object.metadata.find_global(member)) {
+				return info->value;
 			}
 
-			for (PackageData *package = object->metadata->get_package(); package != nullptr;
-				 package = package->get_package()) {
+			for (mint::PackageData* package = &object.metadata.get_package(); package != nullptr;
+			    package = package->get_owner_package()) {
 				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
-					return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
+					constexpr auto flags = mint::Reference::const_address | mint::Reference::const_value;
+					return mint::WeakReference(flags, it->second.data());
 				}
 			}
 		}
 		break;
 
 	default:
-		GlobalData *externals = GlobalData::instance();
-		if (auto it = externals->symbols().find(member); it != externals->symbols().end()) {
-			return WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, it->second.data());
+		mint::GlobalData& externals = _cursor.get().ast().global_data();
+		if (auto it = externals.symbols().find(member); it != externals.symbols().end()) {
+			constexpr auto flags = mint::Reference::const_address | mint::Reference::const_value;
+			return mint::WeakReference(flags, it->second.data());
 		}
 	}
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,102 +23,95 @@
 
 #include "mint/system/error.h"
 #include "mint/system/pipe.h"
-#include "mint/system/string.h"
 #include "mint/system/terminal.h"
-#include "mint/system/mintsystemerror.hpp"
+#include "mint/system/mintruntimeerror.hpp"
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstdarg>
+#include <functional>
 #include <mutex>
 #include <map>
+#include <string>
+#include <utility>
 
 using namespace mint;
 
-static std::string g_error_message;
-static std::mutex g_error_callback_mutex;
-static int g_next_error_callback_id = 0;
-static std::map<int, std::function<void(void)>> g_error_callbacks;
-static std::function<void(void)> g_exit_callback = [] {
-	exit(EXIT_FAILURE);
-};
+namespace {
 
-void mint::error(const char *format, ...) {
+struct {
+	std::mutex callback_mutex;
+	int next_callback_id = 0;
+	std::map<int, std::function<void(const std::string&)>> callbacks;
+	std::function<void(void)> exit_callback = []() {
+		std::exit(EXIT_FAILURE);
+	};
+} g_error;
 
-	std::unique_lock<std::mutex> lock(g_error_callback_mutex);
+}
 
-	va_list args;
-	va_start(args, format);
-	g_error_message = mint::vformat(format, args);
-	va_end(args);
+void mint::on_error(std::string message) {
 
-	for (auto &callback : g_error_callbacks) {
-		callback.second();
+	std::unique_lock lock(g_error.callback_mutex);
+
+	for (const auto& callback : g_error.callbacks) {
+		callback.second(message);
 	}
 
 	if (is_term(stderr)) {
-		Terminal::print(stderr, MINT_TERM_FG_RED_WITH(MINT_TERM_BOLD_OPTION));
-		Terminal::print(stderr, g_error_message.c_str());
-		Terminal::print(stderr, MINT_TERM_RESET);
-		Terminal::print(stderr, "\n");
+		Terminal::println(stderr,
+		    MINT_TERM_OPT(MINT_TERM_BOLD, MINT_TERM_FG_RED) + message + MINT_TERM_OPT(MINT_TERM_RESET));
 	}
 	else if (is_pipe(stderr)) {
-		Pipe::print(stderr, g_error_message.c_str());
+		Pipe::print(stderr, message);
 		Pipe::print(stderr, "\n");
 	}
 	else {
-		fputs(g_error_message.c_str(), stderr);
-		fputc('\n', stderr);
+		std::fputs(message.data(), stderr);
+		std::fputc('\n', stderr);
 	}
 
-	auto exit_callback = g_exit_callback;
+	auto exit_callback = g_error.exit_callback;
 	lock.unlock();
 	exit_callback();
 
-	throw MintSystemError(g_error_message);
+	throw MintRuntimeError(message);
 }
 
-std::string_view mint::get_error_message() {
-	return g_error_message;
-}
+int mint::add_error_callback(const std::function<void(const std::string&)>& callback) {
 
-int mint::add_error_callback(std::function<void(void)> on_error) {
+	const std::unique_lock _(g_error.callback_mutex);
 
-	std::unique_lock<std::mutex> lock(g_error_callback_mutex);
-
-	if (g_error_callbacks.emplace(++g_next_error_callback_id, on_error).second) {
-		return g_next_error_callback_id;
+	do {
+		++g_error.next_callback_id;
 	}
+	while (!g_error.callbacks.emplace(g_error.next_callback_id, callback).second);
 
-	return add_error_callback(on_error);
+	return g_error.next_callback_id;
+}
+
+void mint::call_error_callbacks(const std::string& message) {
+
+	const std::unique_lock _(g_error.callback_mutex);
+
+	for (auto& callback : g_error.callbacks) {
+		callback.second(message);
+	}
 }
 
 void mint::remove_error_callback(int id) {
 
-	std::unique_lock<std::mutex> lock(g_error_callback_mutex);
+	const std::unique_lock _(g_error.callback_mutex);
 
-	auto callback = g_error_callbacks.find(id);
-	if (callback != g_error_callbacks.end()) {
-		g_error_callbacks.erase(callback);
-	}
+	g_error.callbacks.erase(id);
 }
 
-void mint::call_error_callbacks() {
-
-	std::unique_lock<std::mutex> lock(g_error_callback_mutex);
-
-	for (auto &callback : g_error_callbacks) {
-		callback.second();
-	}
-}
-
-void mint::set_exit_callback(const std::function<void(void)> &on_exit) {
-	g_exit_callback = on_exit;
+void mint::set_exit_callback(const std::function<void(void)>& callback) {
+	g_error.exit_callback = callback;
 }
 
 void mint::call_exit_callback() {
-	g_error_callback_mutex.lock();
-	auto exit_callback = g_exit_callback;
-	g_error_callback_mutex.unlock();
+	g_error.callback_mutex.lock();
+	auto exit_callback = g_error.exit_callback;
+	g_error.callback_mutex.unlock();
 	exit_callback();
 }

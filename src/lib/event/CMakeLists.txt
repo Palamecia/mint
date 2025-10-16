@@ -1,6 +1,10 @@
 project(mint-event)
 
-set(${PROJECT_NAME}_SOURCES
+add_library(mint-event MODULE)
+
+target_SOURCES(
+	mint-event
+PRIVATE
 	event.cpp
 	file.cpp
 	pipe.cpp
@@ -8,18 +12,23 @@ set(${PROJECT_NAME}_SOURCES
 	watcher.cpp
 )
 
-add_library(${PROJECT_NAME}
-	MODULE
-	${${PROJECT_NAME}_SOURCES}
-)
-
 set_target_properties(
-	${PROJECT_NAME}
+	mint-event
 	PROPERTIES
 	PREFIX lib
+	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
 )
 
-target_link_libraries(${PROJECT_NAME} mint_library)
+target_link_libraries(
+	mint-event
+PRIVATE
+	libmint
+)
 
 # Install
-mint_install_library(${PROJECT_NAME} SUBDIR mint)
+install(
+	TARGETS mint-event
+	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+)

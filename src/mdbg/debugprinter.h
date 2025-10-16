@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,36 +24,50 @@
 #ifndef MDBG_DEBUGPRINTER_H
 #define MDBG_DEBUGPRINTER_H
 
-#include <mint/ast/printer.h>
+#include "mint/memory/builtin/library.h"
+#include "mint/memory/data.h"
+#include "mint/ast/printer.h"
+#include "mint/system/stdio.h"
+#include <cstdio>
+#include <format>
 #include <string>
 
 namespace mint {
+
+class Array;
+class Function;
+class Hash;
+class Iterator;
 class Reference;
-struct Iterator;
-struct Array;
-struct Hash;
-struct Function;
+
 }
 
 class DebugPrinter : public mint::Printer {
 public:
 	DebugPrinter() = default;
-	DebugPrinter(const DebugPrinter &) = delete;
-	DebugPrinter(DebugPrinter &&) = delete;
+	DebugPrinter(const DebugPrinter&) = delete;
+	DebugPrinter(DebugPrinter&&) = delete;
 	~DebugPrinter() override;
 
-	DebugPrinter &operator=(const DebugPrinter &) = delete;
-	DebugPrinter &operator=(DebugPrinter &&) = delete;
+	DebugPrinter& operator=(const DebugPrinter&) = delete;
+	DebugPrinter& operator=(DebugPrinter&&) = delete;
 
-	void print(mint::Reference &reference) override;
+	void print(const mint::Reference& reference) override;
 };
 
-std::string reference_value(const mint::Reference &reference);
-std::string iterator_value(mint::Iterator *iterator);
-std::string array_value(mint::Array *array);
-std::string hash_value(mint::Hash *hash);
-std::string function_value(mint::Function *function);
+std::string reference_value(const mint::Reference& reference);
+std::string iterator_value(mint::Iterator& iterator);
+std::string array_value(mint::Array& array);
+std::string hash_value(mint::Hash& hash);
+std::string library_value(mint::Library& library);
+std::string object_value(mint::Data& object);
+std::string function_value(mint::Function& function);
 
-void print_debug_trace(const char *format, ...) __attribute__((format(printf, 1, 2)));
+template<typename... Args>
+void print_debug_trace(std::format_string<Args...> fmt, Args&&... args) {
+	mint::print(stdout, "\t");
+	mint::print(stdout, std::vformat(fmt.get(), std::make_format_args(args...)));
+	mint::print(stdout, "\n");
+}
 
 #endif // MDBG_DEBUGPRINTER_H

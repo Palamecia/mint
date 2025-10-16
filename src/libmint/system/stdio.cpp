@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,100 +22,40 @@
  */
 
 #include "mint/system/stdio.h"
+#include "mint/system/errno.h"
 #include "mint/system/pipe.h"
 #include "mint/system/terminal.h"
 
-#include <cstdarg>
+#include <cstdio>
+#include <string>
+#include <system_error>
 
-#ifdef OS_WINDOWS
-ssize_t getline(char **lineptr, size_t *n, FILE *stream) {
-	return getdelim(lineptr, n, '\n', stream);
+std::string mint::get_line(FILE* stream) {
+	return get_delim('\n', stream);
 }
 
-ssize_t getdelim(char **lineptr, size_t *n, int delim, FILE *stream) {
+std::string mint::get_delim(int delim, FILE* stream) {
 
-	if (lineptr == nullptr) {
-		return -1;
-	}
+	std::string buffer = {};
 
-	if (stream == nullptr) {
-		return -1;
-	}
-
-	if (n == nullptr) {
-		return -1;
-	}
-
-	char *bufptr = *lineptr;
-	size_t size = *n;
-
-	int c = fgetc(stream);
-
-	if (c == EOF) {
-		return -1;
-	}
-	if (bufptr == nullptr) {
-
-		bufptr = static_cast<char *>(malloc(128));
-
-		if (bufptr == nullptr) {
-			return -1;
-		}
-
-		size = 128;
-	}
-
-	char *cptr = bufptr;
-
-	while (c != EOF) {
-		const size_t pos = size_t(cptr - bufptr);
-		if (pos > (size - 1)) {
-			size = size + 128;
-			bufptr = static_cast<char *>(realloc(bufptr, size));
-			if (bufptr == nullptr) {
-				return -1;
-			}
-			cptr = bufptr + pos;
-		}
-		*cptr++ = c;
+	for (int c = fgetc(stream); c != EOF; c = fgetc(stream)) {
+		buffer += static_cast<char>(c);
 		if (c == delim) {
 			break;
 		}
-		c = fgetc(stream);
 	}
 
-	*cptr++ = '\0';
-	*lineptr = bufptr;
-	*n = size;
-
-	return cptr - bufptr - 1;
-}
-#endif
-
-int mint::printf(FILE *stream, const char *format, ...) {
-	va_list args;
-	va_start(args, format);
-	int written = mint::vprintf(stream, format, args);
-	va_end(args);
-	return written;
+	return buffer;
 }
 
-int mint::vprintf(FILE *stream, const char *format, va_list args) {
+void mint::print(FILE* stream, const std::string& str) {
 	if (is_term(stream)) {
-		return Terminal::vprintf(stream, format, args);
+		Terminal::print(stream, str);
 	}
-	if (is_pipe(stream)) {
-		return Pipe::vprintf(stream, format, args);
+	else if (is_pipe(stream)) {
+		Pipe::print(stream, str);
 	}
-	return vfprintf(stream, format, args);
-}
-
-int mint::print(FILE *stream, const char *str) {
-	if (is_term(stream)) {
-		return Terminal::print(stream, str);
+	else if (std::fputs(str.data(), stream) == EOF) {
+		throw std::system_error(last_error_code());
 	}
-	if (is_pipe(stream)) {
-		return Pipe::print(stream, str);
-	}
-	return fputs(str, stream);
 }

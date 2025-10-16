@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,26 +21,31 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_ERROR_H
-#define MINT_ERROR_H
+#ifndef MINT_SYSTEM_ERROR_H
+#define MINT_SYSTEM_ERROR_H
 
 #include "mint/config.h"
 
-#include <string_view>
+#include <format>
+#include <string>
 #include <functional>
 
 namespace mint {
 
-[[noreturn]] MINT_EXPORT void error(const char *format, ...) __attribute__((format(printf, 1, 2)));
-MINT_EXPORT std::string_view get_error_message();
+[[noreturn]] MINT_EXPORT void on_error(std::string message);
 
-MINT_EXPORT int add_error_callback(std::function<void(void)> on_error);
+template<typename... Args>
+[[noreturn]] void error(std::format_string<Args...> fmt, Args&&... args) {
+	on_error(std::vformat(fmt.get(), std::make_format_args(args...)));
+}
+
+MINT_EXPORT int add_error_callback(const std::function<void(const std::string&)>& callback);
+MINT_EXPORT void call_error_callbacks(const std::string& message);
 MINT_EXPORT void remove_error_callback(int id);
-MINT_EXPORT void call_error_callbacks();
 
-MINT_EXPORT void set_exit_callback(const std::function<void(void)> &on_exit);
+MINT_EXPORT void set_exit_callback(const std::function<void(void)>& callback);
 MINT_EXPORT void call_exit_callback();
 
 }
 
-#endif // MINT_ERROR_H
+#endif // MINT_SYSTEM_ERROR_H

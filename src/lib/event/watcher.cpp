@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,78 +21,75 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/memorytool.h>
-#include <mint/memory/casttool.h>
+#include "mint/ast/symbol.h"
+#include "mint/memory/data.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/casttool.h"
+#include <ranges>
+#include <vector>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include <Windows.h>
 #else
 #include <poll.h>
 #endif
 
-using namespace mint;
-
 namespace symbols {
 
-static const Symbol handle("handle");
-static const Symbol activated("activated");
+static const mint::Symbol handle("handle");
+static const mint::Symbol activated("activated");
 
 }
 
-MINT_FUNCTION(mint_watcher_poll, 2, cursor) {
+namespace {
 
-	FunctionHelper helper(cursor, 2);
+mint::WeakReference mint_watcher_poll(mint::Cursor& cursor, const mint::Reference& event_set,
+    const mint::Reference& timeout) {
+#ifdef MINT_OS_WINDOWS
 
-	WeakReference timeout = std::move(helper.pop_parameter());
-	Array::values_type event_set = to_array(helper.pop_parameter());
+	std::vector<HANDLE> fdset(std::from_range,
+	    std::views::transform(mint::to_array(event_set), [&ast = cursor.ast()](auto& item) {
+		    return to_handle(mint::get_member_ignore_visibility(ast, item, symbols::handle));
+	    }));
 
-#ifdef OS_WINDOWS
-	std::vector<HANDLE> fdset;
-	fdset.reserve(event_set.size());
-	std::transform(event_set.begin(), event_set.end(), std::back_inserter(fdset),
-				   [](Array::values_type::value_type &item) {
-					   return to_handle(get_member_ignore_visibility(item, symbols::handle));
-				   });
+	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::none_format)
+	                          ? INFINITE
+	                          : mint::to_integer<DWORD>(cursor, timeout);
 
-	DWORD time_ms = INFINITE;
-
-	if (timeout.data()->format != Data::FMT_NONE) {
-		time_ms = static_cast<int>(to_integer(cursor, timeout));
-	}
-
-	DWORD status = WaitForMultipleObjectsEx(fdset.size(), fdset.data(), false, time_ms, true);
-
+	DWORD status = WaitForMultipleObjectsEx(static_cast<DWORD>(fdset.size()), fdset.data(), false, time_ms, true);
 	while (status == WAIT_IO_COMPLETION) {
-		status = WaitForMultipleObjectsEx(fdset.size(), fdset.data(), false, 0, true);
+		status = WaitForMultipleObjectsEx(static_cast<DWORD>(fdset.size()), fdset.data(), false, 0, true);
 	}
 
-	for (size_t i = status - WAIT_OBJECT_0 + 1; i < fdset.size(); ++i) {
-		get_member_ignore_visibility(event_set.at(i), symbols::activated).data<Boolean>()->value =
-			(WaitForSingleObjectEx(fdset[i], 0, true) == WAIT_OBJECT_0);
+	for (const auto& [fd, event] :
+	    std::views::drop(std::views::zip(fdset, mint::to_array(event_set)), status - WAIT_OBJECT_0 + 1)) {
+		mint::get_member_ignore_visibility(cursor.ast(), event, symbols::activated).data<mint::Boolean>().value =
+		    (WaitForSingleObjectEx(fd, 0, true) == WAIT_OBJECT_0);
 	}
 #else
-	std::vector<pollfd> fdset;
-	fdset.reserve(event_set.size());
-	std::transform(event_set.begin(), event_set.end(), std::back_inserter(fdset),
-				   [](Array::values_type::value_type &item) {
-					   pollfd fd;
-					   fd.fd = to_handle(get_member_ignore_visibility(item, symbols::handle));
-					   fd.events = POLLIN;
-					   return fd;
-				   });
+	std::vector<pollfd> fdset(std::from_range,
+	    std::views::transform(mint::to_array(event_set), [&ast = cursor.ast()](auto& item) {
+		    return pollfd {
+		        .fd = to_handle(mint::get_member_ignore_visibility(ast, item, symbols::handle)),
+		        .events = POLLIN,
+		    };
+	    }));
 
-	int time_ms = -1;
-
-	if (timeout.data()->format != Data::FMT_NONE) {
-		time_ms = static_cast<int>(to_integer(cursor, timeout));
-	}
+	const int time_ms = is_instance_of(timeout, mint::Data::none_format) ? -1 : to_integer<int>(cursor, timeout);
 
 	poll(fdset.data(), fdset.size(), time_ms);
 
-	for (size_t i = 0; i < fdset.size(); ++i) {
-		get_member_ignore_visibility(event_set.at(i), symbols::activated).data<Boolean>()->value = fdset.at(i).revents
-																								   & POLLIN;
+	for (const auto& [fd, event] : std::views::zip(fdset, mint::to_array(event_set))) {
+		mint::get_member_ignore_visibility(cursor.ast(), event, symbols::activated).data<mint::Boolean>().value =
+		    fd.revents & POLLIN;
 	}
 #endif
+	return {};
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_watcher_poll, 2)

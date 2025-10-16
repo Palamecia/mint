@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -25,6 +25,7 @@
 #define MINTDOC_DOCNODE_H
 
 #include <cassert>
+#include <concepts>
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -33,85 +34,85 @@
 #include <type_traits>
 #include <vector>
 
-class Definition;
+struct Definition;
 
 struct DocNode {
 	enum Type : std::uint8_t {
 		/* Block */
-		NODE_DOCUMENT,
-		NODE_BLOCK_QUOTE,
-		NODE_TABLE,
-		NODE_TABLE_HEAD,
-		NODE_TABLE_COLUMN,
-		NODE_TABLE_BODY,
-		NODE_TABLE_ROW,
-		NODE_TABLE_ITEM,
-		NODE_LIST,
-		NODE_ITEM,
-		NODE_LINK,
-		NODE_DEL,
-		NODE_EMPH,
-		NODE_STRONG,
-		NODE_STRONG_EMPH,
-		NODE_CODE_BLOCK,
-		NODE_CUSTOM_BLOCK,
-		NODE_PARAGRAPH,
-		NODE_HEADING,
-		
+		node_document,
+		node_block_quote,
+		node_table,
+		node_table_head,
+		node_table_column,
+		node_table_body,
+		node_table_row,
+		node_table_item,
+		node_list,
+		node_item,
+		node_link,
+		node_del,
+		node_emph,
+		node_strong,
+		node_strong_emph,
+		node_code_block,
+		node_custom_block,
+		node_paragraph,
+		node_heading,
+
 		/* Inline */
-		NODE_TEXT,
-		NODE_CODE,
-		NODE_HTML,
-		NODE_SOFTBREAK,
-		NODE_LINEBREAK,
-		NODE_THEMATIC_BREAK,
-		NODE_CUSTOM_INLINE,
-		NODE_IMAGE,
-		NODE_SYMBOL_LINK
+		node_text,
+		node_code,
+		node_html,
+		node_softbreak,
+		node_linebreak,
+		node_thematic_break,
+		node_custom_inline,
+		node_image,
+		node_symbol_link
 	};
 
-	static constexpr Type NODE_FIRST_BLOCK = NODE_DOCUMENT;
-	static constexpr Type NODE_LAST_BLOCK = NODE_HEADING;
+	static constexpr Type node_first_block = node_document;
+	static constexpr Type node_last_block = node_heading;
 
-	static constexpr Type NODE_FIRST_INLINE = NODE_TEXT;
-	static constexpr Type NODE_LAST_INLINE = NODE_SYMBOL_LINK;
+	static constexpr Type node_first_inline = node_text;
+	static constexpr Type node_last_inline = node_symbol_link;
 
 	Type type;
 
-	template<class T, typename = std::enable_if_t<std::is_base_of_v<DocNode, T>>>
-	inline const T *as() const;
+	template<std::derived_from<DocNode> T>
+	inline const T& as() const;
 };
 
-std::unique_ptr<DocNode> parse_doc(std::stringstream &stream);
-std::unique_ptr<DocNode> parse_doc(const std::string &doc);
+std::unique_ptr<DocNode> parse_doc(std::stringstream& stream);
+std::unique_ptr<DocNode> parse_doc(const std::string& doc);
 
 struct DocNodeBlock : public DocNode {
 	std::vector<std::unique_ptr<DocNode>> children;
 };
 
 template<>
-inline const DocNodeBlock *DocNode::as<DocNodeBlock>() const {
-	assert(type >= NODE_FIRST_BLOCK && type <= NODE_LAST_BLOCK);
-	return static_cast<const DocNodeBlock *>(this);
+inline const DocNodeBlock& DocNode::as<DocNodeBlock>() const {
+	assert(type >= node_first_block && type <= node_last_block);
+	return static_cast<const DocNodeBlock&>(*this);
 }
 
 struct DocNodeBlockQuote : public DocNodeBlock {
 	enum AlertType : std::uint8_t {
-		ALERT_NONE,
-		ALERT_NOTE,
-		ALERT_TIP,
-		ALERT_IMPORTANT,
-		ALERT_WARNING,
-		ALERT_CAUTION,
+		alert_none,
+		alert_note,
+		alert_tip,
+		alert_important,
+		alert_warning,
+		alert_caution,
 	};
 
 	AlertType alert_type;
 };
 
 template<>
-inline const DocNodeBlockQuote *DocNode::as<DocNodeBlockQuote>() const {
-	assert(type == NODE_BLOCK_QUOTE);
-	return static_cast<const DocNodeBlockQuote *>(this);
+inline const DocNodeBlockQuote& DocNode::as<DocNodeBlockQuote>() const {
+	assert(type == node_block_quote);
+	return static_cast<const DocNodeBlockQuote&>(*this);
 }
 
 struct DocNodeCodeBlock : public DocNodeBlock {
@@ -123,25 +124,26 @@ struct DocNodeCodeBlock : public DocNodeBlock {
 };
 
 template<>
-inline const DocNodeCodeBlock *DocNode::as<DocNodeCodeBlock>() const {
-	assert(type == NODE_CODE_BLOCK);
-	return static_cast<const DocNodeCodeBlock *>(this);
+inline const DocNodeCodeBlock& DocNode::as<DocNodeCodeBlock>() const {
+	assert(type == node_code_block);
+	return static_cast<const DocNodeCodeBlock&>(*this);
 }
 
 struct DocNodeTableColumn : public DocNodeBlock {
 	enum Align : std::uint8_t {
-		ALIGN_AUTO,
-		ALIGN_LEFT,
-		ALIGN_CENTER,
-		ALIGN_RIGHT
+		align_auto,
+		align_left,
+		align_center,
+		align_right
 	};
+
 	Align align;
 };
 
 template<>
-inline const DocNodeTableColumn *DocNode::as<DocNodeTableColumn>() const {
-	assert(type == NODE_TABLE_COLUMN);
-	return static_cast<const DocNodeTableColumn *>(this);
+inline const DocNodeTableColumn& DocNode::as<DocNodeTableColumn>() const {
+	assert(type == node_table_column);
+	return static_cast<const DocNodeTableColumn&>(*this);
 }
 
 struct DocNodeList : public DocNodeBlock {
@@ -150,9 +152,9 @@ struct DocNodeList : public DocNodeBlock {
 };
 
 template<>
-inline const DocNodeList *DocNode::as<DocNodeList>() const {
-	assert(type == NODE_LIST);
-	return static_cast<const DocNodeList *>(this);
+inline const DocNodeList& DocNode::as<DocNodeList>() const {
+	assert(type == node_list);
+	return static_cast<const DocNodeList&>(*this);
 }
 
 struct DocNodeLink : public DocNodeBlock {
@@ -161,9 +163,9 @@ struct DocNodeLink : public DocNodeBlock {
 };
 
 template<>
-inline const DocNodeLink *DocNode::as<DocNodeLink>() const {
-	assert(type == NODE_LINK);
-	return static_cast<const DocNodeLink *>(this);
+inline const DocNodeLink& DocNode::as<DocNodeLink>() const {
+	assert(type == node_link);
+	return static_cast<const DocNodeLink&>(*this);
 }
 
 struct DocNodeHeading : public DocNodeBlock {
@@ -172,9 +174,9 @@ struct DocNodeHeading : public DocNodeBlock {
 };
 
 template<>
-inline const DocNodeHeading *DocNode::as<DocNodeHeading>() const {
-	assert(type == NODE_HEADING);
-	return static_cast<const DocNodeHeading *>(this);
+inline const DocNodeHeading& DocNode::as<DocNodeHeading>() const {
+	assert(type == node_heading);
+	return static_cast<const DocNodeHeading&>(*this);
 }
 
 struct DocNodeLiteral : public DocNode {
@@ -182,16 +184,16 @@ struct DocNodeLiteral : public DocNode {
 };
 
 template<>
-inline const DocNodeLiteral *DocNode::as<DocNodeLiteral>() const {
-	assert(type == NODE_TEXT || type == NODE_CODE || type == NODE_HTML);
-	return static_cast<const DocNodeLiteral *>(this);
+inline const DocNodeLiteral& DocNode::as<DocNodeLiteral>() const {
+	assert(type == node_text || type == node_code || type == node_html);
+	return static_cast<const DocNodeLiteral&>(*this);
 }
 
 struct DocNodeSymbolLink : public DocNode {
 	enum TagType : std::uint8_t {
-		NO_TAG,
-		SEE_TAG,
-		MODULE_TAG
+		no_tag,
+		see_tag,
+		module_tag
 	};
 
 	TagType tag_type;
@@ -199,11 +201,11 @@ struct DocNodeSymbolLink : public DocNode {
 };
 
 template<>
-inline const DocNodeSymbolLink *DocNode::as<DocNodeSymbolLink>() const {
-	assert(type == NODE_SYMBOL_LINK);
-	return static_cast<const DocNodeSymbolLink *>(this);
+inline const DocNodeSymbolLink& DocNode::as<DocNodeSymbolLink>() const {
+	assert(type == node_symbol_link);
+	return static_cast<const DocNodeSymbolLink&>(*this);
 }
 
-std::string symbol_link_target(const DocNodeSymbolLink *node, const Definition *context = nullptr);
+std::string symbol_link_target(const DocNodeSymbolLink& node, const Definition* context = nullptr);
 
 #endif // MINTDOC_DOCNODE_H

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,62 +22,69 @@
  */
 
 #include "mint/scheduler/exception.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/data.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/reference.h"
+#include "mint/scheduler/process.h"
 #include "mint/scheduler/processor.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/memory/operatortool.h"
 #include "mint/memory/casttool.h"
+#include "mint/scheduler/scheduler.h"
+#include "mint/system/assert.h"
 #include "mint/system/error.h"
+#include <cassert>
+#include <utility>
 
 using namespace mint;
 
-Exception::Exception(Reference &&reference, const Process *process) :
-	Process(AbstractSyntaxTree::instance()->create_cursor(process->cursor())),
-	m_reference(std::forward<Reference>(reference)),
-	m_handled(false) {
-	set_thread_id(process->get_thread_id());
+Exception::Exception(Reference&& reference, const Process& process) :
+    Process(process.cursor().make_thread()),
+    _reference(std::move(reference)),
+    _handled(false) {
+	set_thread_id(process.get_thread_id());
 }
 
 Exception::~Exception() {}
 
 void Exception::setup() {
 
-	lock_processor();
+	auto _ = ProcessorLocker();
 
-	if (m_reference.data()->format == Data::FMT_OBJECT) {
+	if (is_instance_of(_reference, Data::object_format)) {
 
-		Object *object = m_reference.data<Object>();
-		Class *metadata = object->metadata;
+		auto& object = _reference.data<Object>();
+		auto& metadata = object.metadata;
 
-		if (WeakReference *data = object->data) {
-			auto member = metadata->members().find(builtin_symbols::SHOW_METHOD);
-			if (member != metadata->members().end()) {
-				WeakReference handler = WeakReference::share(Class::MemberInfo::get(member->second, data));
-				if (handler.data()->format == Data::FMT_FUNCTION) {
-					call_error_callbacks();
-					cursor()->stack().emplace_back(std::forward<Reference>(m_reference));
-					cursor()->waiting_calls().emplace(std::forward<Reference>(handler));
-					cursor()->waiting_calls().top().set_metadata(member->second->owner);
+		if (WeakReference* data = object.data) {
+			if (auto* member = metadata.find_member(builtin_symbols::show_method)) {
+				WeakReference handler = Class::MemberInfo::get(*member, data);
+				if (is_instance_of(handler, Data::function_format)) {
+					auto* scheduler = Scheduler::instance();
+					assert_x(scheduler, __func__, "execution should be done using a scheduler");
+					call_error_callbacks(to_string(scheduler->invoke(_reference, Symbol("toString"))));
+					cursor().stack().emplace_back(std::forward<Reference>(_reference));
+					cursor().waiting_calls().emplace(std::forward<Reference>(handler), member->owner);
 					call_member_operator(cursor(), 0);
-					m_handled = true;
+					_handled = true;
 				}
 			}
 		}
 	}
-
-	unlock_processor();
 }
 
 void Exception::cleanup() {
 
-	if (m_handled) {
+	if (_handled) {
 		call_exit_callback();
 	}
 	else {
 		lock_processor();
-		error("exception : %s", to_string(m_reference).c_str());
+		error("exception : {}", to_string(_reference));
 	}
 }
 
-bool mint::is_exception(Process *process) {
-	return dynamic_cast<Exception *>(process) != nullptr;
+bool mint::is_exception(Process& process) {
+	return dynamic_cast<Exception*>(&process) != nullptr;
 }

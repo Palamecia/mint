@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,36 +24,43 @@
 #ifndef SYMBOLEVALUATOR_H
 #define SYMBOLEVALUATOR_H
 
-#include <mint/compiler/lexicalhandler.h>
-#include <mint/ast/cursor.h>
-#include <optional>
+#include "mint/ast/symbol.h"
+#include "mint/compiler/lexicalhandler.h"
+#include "mint/ast/cursor.h"
+#include "mint/compiler/token.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/symboltable.h"
+#include <functional>
 #include <cstdint>
+#include <optional>
+#include <string>
 
 class SymbolEvaluator : public mint::LexicalHandler {
 public:
-	SymbolEvaluator(mint::Cursor *cursor);
+	SymbolEvaluator(mint::Cursor& cursor);
 
-	[[nodiscard]] const std::optional<mint::WeakReference> &get_reference() const;
+	[[nodiscard]] const std::optional<mint::WeakReference>& get_reference() const;
 	[[nodiscard]] std::string get_symbol_name() const;
 
 protected:
-	enum State : std::uint8_t {
-		READ_IDENT,
-		READ_MEMBER,
-		READ_OPERATOR
+	enum class State : std::uint8_t {
+		read_ident,
+		read_member,
+		read_operator
 	};
 
-	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;
+	bool on_token(mint::Token type, const std::string& token, std::string::size_type offset) override;
 
 private:
-	std::optional<mint::WeakReference> get_symbol_reference(mint::SymbolTable *symbols, const mint::Symbol &symbol);
-	std::optional<mint::WeakReference> get_member_reference(mint::Reference &reference, const mint::Symbol &member);
+	std::optional<mint::WeakReference> get_symbol_reference(mint::SymbolTable& symbols, const mint::Symbol& symbol);
+	std::optional<mint::WeakReference> get_member_reference(const mint::Reference& reference,
+	    const mint::Symbol& member);
 
-	mint::Cursor *m_cursor;
-	State m_state = READ_IDENT;
+	std::reference_wrapper<mint::Cursor> _cursor;
+	State _state = State::read_ident;
 
-	std::optional<mint::WeakReference> m_reference;
-	std::string m_symbol_name;
+	std::optional<mint::WeakReference> _reference;
+	std::string _symbol_name;
 };
 
 #endif // SYMBOLEVALUATOR_H

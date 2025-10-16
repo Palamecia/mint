@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,38 +22,43 @@
  */
 
 #include "mint/memory/symboltable.h"
+#include "mint/ast/symbol.h"
 #include "mint/memory/memorytool.h"
 #include "mint/memory/globaldata.h"
 #include "mint/memory/class.h"
+#include "mint/memory/reference.h"
+#include <cassert>
+#include <cstddef>
+#include <memory>
 
 using namespace mint;
 
-SymbolTable::SymbolTable(Class *metadata) :
-	m_metadata(metadata),
-	m_fasts(nullptr) {}
+SymbolTable::SymbolTable(GlobalData& global_data, Class* metadata) :
+    _global_data(global_data),
+    _metadata(metadata) {
+	register_root();
+}
 
 SymbolTable::~SymbolTable() {
-	delete[] m_fasts;
+	unregister_root();
 }
 
-Class *SymbolTable::get_metadata() const {
-	return m_metadata;
+Class* SymbolTable::get_metadata() const {
+	return _metadata;
 }
 
-PackageData *SymbolTable::get_package() const {
-
-	if (m_package.empty()) {
-		return GlobalData::instance();
+PackageData& SymbolTable::get_package() const {
+	if (_package.empty()) {
+		return _global_data.get();
 	}
-
-	return m_package.back();
+	return _package.back().get();
 }
 
-WeakReference &SymbolTable::create_fast_reference(const Symbol &name, size_t index) {
-	return *(m_fasts[index] = std::make_unique<WeakReference>(get_symbol(this, name)));
+WeakReference& SymbolTable::create_fast_reference(const Symbol& name, std::size_t index) {
+	return *(_fasts[index] = std::make_unique<WeakReference>(get_symbol(*this, _global_data.get(), name)));
 }
 
-WeakReference &SymbolTable::create_fast_reference(Reference::Flags flags, const Symbol &name, size_t index) {
-	return *(m_fasts[index] = std::make_unique<WeakReference>(
-				 WeakReference::share(m_symbols.emplace(name, WeakReference(flags)).first->second)));
+WeakReference& SymbolTable::create_fast_reference(Reference::Flags flags, const Symbol& name, std::size_t index) {
+	return *(
+	    _fasts[index] = std::make_unique<WeakReference>(_symbols.emplace(name, WeakReference(flags)).first->second));
 }

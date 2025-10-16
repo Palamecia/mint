@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -25,39 +25,44 @@
 #define MINT_PROCESS_BRACEMATCHER_H
 
 #include "mint/compiler/lexicalhandler.h"
+#include "mint/compiler/token.h"
 
+#include <cstddef>
 #include <optional>
+#include <string>
+#include <vector>
 
 namespace mint {
 
 class BraceMatcher : public LexicalHandler {
 public:
-	BraceMatcher() = delete;
-	BraceMatcher(BraceMatcher &&) = delete;
-	BraceMatcher(const BraceMatcher &) = delete;
-	BraceMatcher(std::pair<std::string_view::size_type, bool> &match, std::string_view::size_type offset);
+	BraceMatcher(std::string_view::size_type offset);
+	BraceMatcher(BraceMatcher&&) = delete;
+	BraceMatcher(const BraceMatcher&) = delete;
 	~BraceMatcher() override = default;
 
-	BraceMatcher &operator=(BraceMatcher &&) = delete;
-	BraceMatcher &operator=(const BraceMatcher &) = delete;
+	BraceMatcher& operator=(BraceMatcher&&) = delete;
+	BraceMatcher& operator=(const BraceMatcher&) = delete;
+
+	[[nodiscard]] std::pair<std::string_view::size_type, bool> match() const;
 
 protected:
-	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;
+	bool on_token(mint::Token type, const std::string& token, std::string::size_type offset) override;
 	bool on_comment_begin(std::string::size_type offset) override;
 	bool on_comment_end(std::string::size_type offset) override;
 	bool on_script_end() override;
 
 private:
-	std::pair<std::string_view::size_type, bool> &m_match;
-	std::string_view::size_type m_offset;
+	std::string_view::size_type _offset;
+	std::pair<std::string_view::size_type, bool> _match = {std::string_view::npos, true};
 
-	bool m_comment = false;
-	std::optional<size_t> m_brace_open;
-	std::vector<size_t> m_brace_depth;
-	std::optional<size_t> m_bracket_open;
-	std::vector<size_t> m_bracket_depth;
-	std::optional<size_t> m_parenthesis_open;
-	std::vector<size_t> m_parenthesis_depth;
+	bool _comment = false;
+	std::optional<std::size_t> _brace_open;
+	std::vector<std::size_t> _brace_depth;
+	std::optional<std::size_t> _bracket_open;
+	std::vector<std::size_t> _bracket_depth;
+	std::optional<std::size_t> _parenthesis_open;
+	std::vector<std::size_t> _parenthesis_depth;
 };
 
 }

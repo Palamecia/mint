@@ -4,7 +4,7 @@ add_executable(test-system)
 
 target_sources(
 	test-system
-	PRIVATE
+PRIVATE
 	bufferstream.cpp
 	datastream.cpp
 	error.cpp
@@ -17,9 +17,10 @@ target_sources(
 
 target_link_libraries(
 	test-system
-	GTest::Main
-	GTest::GTest
-	mint_library
+PRIVATE
+	libmint
+	GTest::gtest
+	GTest::gtest_main
 )
 
 gtest_discover_tests(test-system)

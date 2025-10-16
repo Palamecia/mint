@@ -1,45 +1,51 @@
-#ifndef ITERATOR_GENERATOR_H
-#define ITERATOR_GENERATOR_H
+#ifndef LIBMINT_MEMORY_BUILTIN_ITERATOR_GENERATOR_H
+#define LIBMINT_MEMORY_BUILTIN_ITERATOR_GENERATOR_H
 
 #include "iterator_items.h"
+#include "iterator_p.h"
 #include "mint/ast/savedstate.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/reference.h"
+#include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <vector>
 
 namespace mint::internal {
 
 class GeneratorData : public ItemsIteratorData {
 public:
-	GeneratorData(size_t stack_size);
-	GeneratorData(GeneratorData &&) = delete;
-	GeneratorData(const GeneratorData &other);
+	GeneratorData(std::size_t stack_size);
+	GeneratorData(GeneratorData&&) = delete;
+	GeneratorData(const GeneratorData& other);
 	~GeneratorData() override = default;
 
-	GeneratorData &operator=(GeneratorData &&) = delete;
-	GeneratorData &operator=(const GeneratorData &) = delete;
+	GeneratorData& operator=(GeneratorData&&) = delete;
+	GeneratorData& operator=(const GeneratorData&) = delete;
 
-	[[nodiscard]] IteratorData *copy() override;
+	[[nodiscard]] std::unique_ptr<IteratorData> copy() override;
 	void mark() override;
 
 	[[nodiscard]] mint::Iterator::Context::Type get_type() const override;
-	[[nodiscard]] mint::Iterator::Context::value_type &last() override;
 
-	void yield(mint::Iterator::Context::value_type &&value) override;
+	void yield(mint::Iterator::Context::value_type&& value) override;
 	void next() override;
 
 	void finalize() override;
 
 private:
 	enum ExecutionMode : std::uint8_t {
-		SINGLE_PASS,
-		INTERRUPTIBLE
+		single_pass,
+		interruptible
 	};
 
-	ExecutionMode m_execution_mode = INTERRUPTIBLE;
-	std::unique_ptr<mint::SavedState> m_state;
+	ExecutionMode _execution_mode = interruptible;
+	std::unique_ptr<mint::SavedState> _state;
 
-	std::vector<mint::WeakReference> m_stored_stack;
-	size_t m_stack_size;
+	std::vector<mint::WeakReference> _stored_stack;
+	std::size_t _stack_size;
 };
+
 }
 
-#endif // ITERATOR_GENERATOR_H
+#endif // LIBMINT_MEMORY_BUILTIN_ITERATOR_GENERATOR_H

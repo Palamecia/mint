@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -61,8 +61,10 @@ package System {
 			if defined path.toDirectory {
 				return path.toDirectory()
 			}
-			self.path = System.Directory.g_lib.call('mint_directory_to_native_path', path)
-			return self
+			if defined path {
+				self.path = System.Directory.g_lib.call('mint_directory_to_native_path', path)
+				return self
+			}
 		}
 
 		/**

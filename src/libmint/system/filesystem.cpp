@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,38 +23,58 @@
 
 #include "mint/system/filesystem.h"
 #include "mint/system/errno.h"
-#include <cerrno>
-
-#ifdef OS_WINDOWS
-#include "win32/globalsid.h"
-#include <Userenv.h>
-#else
-#include <pwd.h>
-#include <grp.h>
-#include <dlfcn.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#endif
-
-#include <filesystem>
 #include <algorithm>
-#include <sstream>
-#include <cstring>
-#include <string>
+#include <array>
+#include <bit>
+#include <cerrno>
 #include <chrono>
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <gsl/pointers>
+#include <list>
 #include <memory>
+#include <sstream>
+#include <string>
 
-#ifdef OS_WINDOWS
-static constexpr const std::chrono::milliseconds FILE_TIME_DELTA {11644473600000};
-static constexpr const char *LIBRARY_EXTENSION = ".dll";
-static constexpr const char PATH_SEPARATOR = ';';
+#ifdef MINT_OS_WINDOWS
+#include "win32/globalsid.h"
+#include <Windows.h>
+#include <accctrl.h>
+#include <AclAPI.h>
+#include <corecrt_wio.h>
+#include <corecrt_wstdio.h>
+#include <fileapi.h>
+#include <handleapi.h>
+#include <libloaderapi.h>
+#include <minwindef.h>
+#include <processthreadsapi.h>
+#include <securitybaseapi.h>
+#include <stringapiset.h>
+#include <sysinfoapi.h>
+#include <Userenv.h>
+#include <winbase.h>
+#include <winerror.h>
+#include <winnls.h>
+#include <winnt.h>
 #else
-static constexpr const std::chrono::milliseconds FILE_TIME_DELTA {-6437664000000};
-static constexpr const char *LIBRARY_EXTENSION = ".so";
-static constexpr const char PATH_SEPARATOR = ':';
+#include <dlfcn.h>
+#include <grp.h>
+#include <pwd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 
-static constexpr const char *LIBRARY_PATH_VAR = "MINT_LIBRARY_PATH";
+#ifdef MINT_OS_WINDOWS
+static constexpr const char* library_extension = ".dll";
+static constexpr const char path_separator = ';';
+#else
+static constexpr const char* library_extension = ".so";
+static constexpr const char path_separator = ':';
+#endif
+
+static constexpr const char* library_path_var = "MINT_LIBRARY_PATH";
 
 using namespace mint;
 
@@ -62,25 +82,27 @@ extern "C" void find_mint(void) {}
 
 namespace {
 
-std::filesystem::path format_module_path(const std::string &mint_path) {
+std::filesystem::path format_module_path(const std::string& mint_path) {
 	std::string path = mint_path;
-	std::replace(path.begin(), path.end(), '.', '/');
+	std::ranges::replace(path, '.', '/');
 	return path;
 }
 
-#ifdef OS_WINDOWS
-std::wstring wchar_from_multi_byte(const std::string &str) {
-	const int length = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0);
-	if (std::wstring buffer(length, L'\0'); MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, buffer.data(), length)) {
+#ifdef MINT_OS_WINDOWS
+std::wstring wchar_from_multi_byte(const std::string& str) {
+	const int length = MultiByteToWideChar(CP_UTF8, 0, str.data(), -1, nullptr, 0);
+	if (std::wstring buffer(length, L'\0'); MultiByteToWideChar(CP_UTF8, 0, str.data(), -1, buffer.data(), length)) {
+		buffer.resize(length - 1);
 		return buffer;
 	}
 	return {};
 }
 
-std::string wchar_to_multi_byte(const std::wstring &str) {
+std::string wchar_to_multi_byte(const std::wstring& str) {
 	const int length = WideCharToMultiByte(CP_UTF8, 0, str.data(), -1, nullptr, 0, nullptr, nullptr);
 	if (std::string buffer(length, '\0');
-		WideCharToMultiByte(CP_UTF8, 0, str.data(), -1, buffer.data(), length, nullptr, nullptr)) {
+	    WideCharToMultiByte(CP_UTF8, 0, str.data(), -1, buffer.data(), length, nullptr, nullptr)) {
+		buffer.resize(length - 1);
 		return buffer;
 	}
 	return {};
@@ -91,62 +113,62 @@ std::string wchar_to_multi_byte(const std::wstring &str) {
 
 FileSystem::FileSystem() {
 
-#ifdef OS_WINDOWS
-	wchar_t dli_fname[PATH_LENGTH];
-	GetModuleFileNameW(nullptr, dli_fname, PATH_LENGTH);
-	const std::filesystem::path library_path = std::filesystem::path(dli_fname).parent_path().parent_path() / "lib";
-	m_library_path.emplace_back(library_path / "mint");
-	m_scripts_path = library_path / "mint-scripts";
+#ifdef MINT_OS_WINDOWS
+	std::array<wchar_t, path_length> dli_fname {};
+	GetModuleFileNameW(nullptr, dli_fname.data(), static_cast<DWORD>(dli_fname.size()));
+	const auto library_path = std::filesystem::path(dli_fname.data()).parent_path().parent_path() / "lib";
+	_library_path.emplace_back(library_path / "mint");
+	_scripts_path = library_path / "mint-scripts";
 #else
 	Dl_info dl_info;
-	dladdr(reinterpret_cast<void *>(find_mint), &dl_info);
-	const std::filesystem::path library_path = std::filesystem::path(dl_info.dli_fname).parent_path();
-	m_library_path.emplace_back(library_path / "mint");
-	m_scripts_path = library_path / "mint-scripts";
+	dladdr(reinterpret_cast<void*>(find_mint), &dl_info);
+	const auto library_path = std::filesystem::path(dl_info.dli_fname).parent_path();
+	_library_path.emplace_back(library_path / "mint");
+	_scripts_path = library_path / "mint-scripts";
 #endif
 
-	if (const char *var = getenv(LIBRARY_PATH_VAR)) {
+	if (const char* var = std::getenv(library_path_var)) {
 
-		std::string path;
-		std::istringstream stream(var);
+		auto path = std::string();
+		auto stream = std::istringstream(var);
 
-		while (getline(stream, path, PATH_SEPARATOR)) {
-			m_library_path.emplace_back(path);
+		while (getline(stream, path, path_separator)) {
+			_library_path.emplace_back(path);
 		}
 	}
 }
 
-FileSystem &FileSystem::instance() {
+FileSystem& FileSystem::instance() {
 	static FileSystem g_instance;
 	return g_instance;
 }
 
 std::filesystem::path FileSystem::get_main_module_path() const {
-	return m_main_module_path;
+	return _main_module_path;
 }
 
-void FileSystem::set_main_module_path(const std::filesystem::path &path) {
+void FileSystem::set_main_module_path(const std::filesystem::path& path) {
 
-	m_main_module_path = std::filesystem::weakly_canonical(path);
+	_main_module_path = std::filesystem::weakly_canonical(path);
 
-	std::string load_path = m_main_module_path.generic_string();
+	std::string load_path = _main_module_path.generic_string();
 	if (auto pos = load_path.rfind('/'); pos != std::string::npos) {
 		add_to_path(std::filesystem::absolute(load_path.erase(pos)));
 	}
 }
 
-std::filesystem::path FileSystem::get_module_path(const std::string &module) const {
+std::filesystem::path FileSystem::get_module_path(const std::string& module) const {
 
 	const std::filesystem::path module_path = format_module_path(module).replace_extension(".mn");
 
 	if (const std::filesystem::path full_path = std::filesystem::absolute(module_path);
-		std::filesystem::exists(full_path) && check_file_access(full_path, READABLE_FLAG)) {
+	    std::filesystem::exists(full_path) && check_file_access(full_path, readable_flag)) {
 		return full_path;
 	}
 
-	for (const std::filesystem::path &path : m_library_path) {
+	for (const std::filesystem::path& path : _library_path) {
 		if (const std::filesystem::path full_path = std::filesystem::absolute(path / module_path);
-			std::filesystem::exists(full_path) && check_file_access(full_path, READABLE_FLAG)) {
+		    std::filesystem::exists(full_path) && check_file_access(full_path, readable_flag)) {
 			return full_path;
 		}
 	}
@@ -154,17 +176,17 @@ std::filesystem::path FileSystem::get_module_path(const std::string &module) con
 	return {};
 }
 
-std::filesystem::path FileSystem::get_plugin_path(const std::string &plugin) const {
+std::filesystem::path FileSystem::get_plugin_path(const std::string& plugin) const {
 
-	std::filesystem::path plugin_path = format_module_path(plugin).replace_extension(LIBRARY_EXTENSION);
+	std::filesystem::path plugin_path = format_module_path(plugin).replace_extension(library_extension);
 
-	if (std::filesystem::exists(plugin_path) && check_file_access(plugin_path, READABLE_FLAG)) {
+	if (std::filesystem::exists(plugin_path) && check_file_access(plugin_path, readable_flag)) {
 		return plugin_path;
 	}
 
-	for (const std::filesystem::path &path : m_library_path) {
+	for (const std::filesystem::path& path : _library_path) {
 		if (std::filesystem::path full_path = path / plugin_path;
-			std::filesystem::exists(full_path) && check_file_access(full_path, READABLE_FLAG)) {
+		    std::filesystem::exists(full_path) && check_file_access(full_path, readable_flag)) {
 			return full_path;
 		}
 	}
@@ -172,37 +194,37 @@ std::filesystem::path FileSystem::get_plugin_path(const std::string &plugin) con
 	return {};
 }
 
-std::filesystem::path FileSystem::get_script_path(const std::filesystem::path &script) const {
-	return std::filesystem::weakly_canonical(m_scripts_path / script / script).replace_extension(".mn");
+std::filesystem::path FileSystem::get_script_path(const std::filesystem::path& script) const {
+	return std::filesystem::weakly_canonical(_scripts_path / script / script).replace_extension(".mn");
 }
 
-const std::list<std::filesystem::path> &FileSystem::library_path() const {
-	return m_library_path;
+const std::list<std::filesystem::path>& FileSystem::library_path() const {
+	return _library_path;
 }
 
-void FileSystem::add_to_path(const std::filesystem::path &path) {
-	m_library_path.push_back(path);
+void FileSystem::add_to_path(const std::filesystem::path& path) {
+	_library_path.push_back(path);
 }
 
-std::string FileSystem::to_module_path(const std::filesystem::path &root_path, const std::filesystem::path &file_path) {
+std::string FileSystem::to_module_path(const std::filesystem::path& root_path, const std::filesystem::path& file_path) {
 	std::string module_path = std::filesystem::relative(file_path, root_path).generic_string();
 	module_path.resize(module_path.find('.'));
-	std::replace(module_path.begin(), module_path.end(), '/', '.');
+	std::ranges::replace(module_path, '/', '.');
 	return module_path;
 }
 
-std::filesystem::path FileSystem::to_system_path(const std::filesystem::path &root_path,
-												 const std::string &module_path) {
+std::filesystem::path FileSystem::to_system_path(const std::filesystem::path& root_path,
+    const std::string& module_path) {
 	std::string file_path = module_path;
-	std::replace(file_path.begin(), file_path.end(), '.', '/');
+	std::ranges::replace(file_path, '.', '/');
 	return normalized(root_path / file_path);
 }
 
 std::filesystem::path FileSystem::system_root() {
-#ifdef OS_WINDOWS
-	wchar_t root_path[PATH_LENGTH];
-	if (GetSystemDirectoryW(root_path, PATH_LENGTH)) {
-		return root_path;
+#ifdef MINT_OS_WINDOWS
+	std::array<wchar_t, path_length> root_path {};
+	if (GetSystemDirectoryW(root_path.data(), static_cast<UINT>(root_path.size()))) {
+		return root_path.data();
 	}
 	return {};
 #else
@@ -215,7 +237,7 @@ std::filesystem::path FileSystem::root_path() {
 }
 
 std::filesystem::path FileSystem::home_path() {
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 	HANDLE hnd = GetCurrentProcess();
 	std::filesystem::path path;
 
@@ -232,23 +254,23 @@ std::filesystem::path FileSystem::home_path() {
 
 	return path;
 #else
-	if (const struct passwd *pw = getpwuid(getuid())) {
+	if (const struct passwd* pw = getpwuid(getuid())) {
 		return pw->pw_dir;
 	}
 	return {};
 #endif
 }
 
-bool FileSystem::check_file_access(const std::filesystem::path &path, AccessFlags flags) {
+bool FileSystem::check_file_access(const std::filesystem::path& path, AccessFlags flags) {
 	int right = 0;
-#ifdef OS_WINDOWS
-	if (flags & READABLE_FLAG) {
+#ifdef MINT_OS_WINDOWS
+	if (flags & readable_flag) {
 		right |= 0x04;
 	}
-	if (flags & WRITABLE_FLAG) {
+	if (flags & writable_flag) {
 		right |= 0x02;
 	}
-	if (flags & EXECUTABLE_FLAG) {
+	if (flags & executable_flag) {
 		right |= 0x04;
 	}
 	const std::wstring generic_path = path.generic_wstring();
@@ -260,13 +282,13 @@ bool FileSystem::check_file_access(const std::filesystem::path &path, AccessFlag
 	}
 	return true;
 #else
-	if (flags & READABLE_FLAG) {
+	if (flags & readable_flag) {
 		right |= R_OK;
 	}
-	if (flags & WRITABLE_FLAG) {
+	if (flags & writable_flag) {
 		right |= W_OK;
 	}
-	if (flags & EXECUTABLE_FLAG) {
+	if (flags & executable_flag) {
 		right |= X_OK;
 	}
 	const std::string generic_path = path.generic_string();
@@ -280,30 +302,30 @@ bool FileSystem::check_file_access(const std::filesystem::path &path, AccessFlag
 #endif
 }
 
-bool FileSystem::check_file_permissions(const std::filesystem::path &path, Permissions permissions) {
-#ifdef OS_WINDOWS
+bool FileSystem::check_file_permissions(const std::filesystem::path& path, Permissions permissions) {
+#ifdef MINT_OS_WINDOWS
 
-	PSID pOwner = 0;
-	PSID pGroup = 0;
-	PACL pDacl;
+	PSID owner = nullptr;
+	PSID group = nullptr;
+	PACL dacl = nullptr;
 	Permissions data = 0;
-	PSECURITY_DESCRIPTOR pSD;
+	PSECURITY_DESCRIPTOR security_descriptor = nullptr;
 
 	const std::wstring generic_path = path.generic_wstring();
 	if (GetNamedSecurityInfoW(generic_path.c_str(), SE_FILE_OBJECT,
-							  OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION,
-							  &pOwner, &pGroup, &pDacl, NULL, &pSD)
-		!= ERROR_SUCCESS) {
+	        OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION, &owner, &group, &dacl,
+	        nullptr, &security_descriptor)
+	    != ERROR_SUCCESS) {
 		throw std::filesystem::filesystem_error("check_file_permissions", path, last_error_code());
 	}
 
-	ACCESS_MASK access_mask;
+	ACCESS_MASK access_mask = 0;
 	TRUSTEE_W trustee;
 
-	enum {
-		READ_MASK = 0x00000001,
-		WRITE_MASK = 0x00000002,
-		EXEC_MASK = 0x00000020
+	enum AccessBit : DWORD {
+		read_mask = 0x00000001,
+		write_mask = 0x00000002,
+		exec_mask = 0x00000020
 	};
 
 	if (GlobalSid::g_instance.currentUserImpersonatedToken) {
@@ -314,121 +336,122 @@ bool FileSystem::check_file_permissions(const std::filesystem::path &path, Permi
 		DWORD generic_access_rights = GENERIC_READ;
 		MapGenericMask(&generic_access_rights, &mapping);
 		DWORD privileges_length = sizeof(privileges);
-		if (AccessCheck(pSD, GlobalSid::g_instance.currentUserImpersonatedToken, generic_access_rights, &mapping, &privileges,
-						&privileges_length, &granted_access, &result)
-			&& result) {
-			data |= READ_USER_FLAG;
+		if (AccessCheck(security_descriptor, GlobalSid::g_instance.currentUserImpersonatedToken, generic_access_rights,
+		        &mapping, &privileges, &privileges_length, &granted_access, &result)
+		    && result) {
+			data |= read_user_flag;
 		}
 		privileges_length = sizeof(privileges);
 		generic_access_rights = GENERIC_WRITE;
 		MapGenericMask(&generic_access_rights, &mapping);
-		if (AccessCheck(pSD, GlobalSid::g_instance.currentUserImpersonatedToken, generic_access_rights, &mapping, &privileges,
-						&privileges_length, &granted_access, &result)
-			&& result) {
-			data |= WRITE_USER_FLAG;
+		if (AccessCheck(security_descriptor, GlobalSid::g_instance.currentUserImpersonatedToken, generic_access_rights,
+		        &mapping, &privileges, &privileges_length, &granted_access, &result)
+		    && result) {
+			data |= write_user_flag;
 		}
 		privileges_length = sizeof(privileges);
 		generic_access_rights = GENERIC_EXECUTE;
 		MapGenericMask(&generic_access_rights, &mapping);
-		if (AccessCheck(pSD, GlobalSid::g_instance.currentUserImpersonatedToken, generic_access_rights, &mapping, &privileges,
-						&privileges_length, &granted_access, &result)
-			&& result) {
-			data |= EXEC_USER_FLAG;
+		if (AccessCheck(security_descriptor, GlobalSid::g_instance.currentUserImpersonatedToken, generic_access_rights,
+		        &mapping, &privileges, &privileges_length, &granted_access, &result)
+		    && result) {
+			data |= exec_user_flag;
 		}
 	}
 	// fallback to GetEffectiveRightsFromAcl
-	else if (GetEffectiveRightsFromAclW(pDacl, &GlobalSid::g_instance.currentUserTrusteeW, &access_mask) == ERROR_SUCCESS) {
-		if (access_mask & READ_MASK) {
-			data |= READ_USER_FLAG;
+	else if (GetEffectiveRightsFromAclW(dacl, &GlobalSid::g_instance.currentUserTrusteeW, &access_mask)
+	         == ERROR_SUCCESS) {
+		if (access_mask & read_mask) {
+			data |= read_user_flag;
 		}
-		if (access_mask & WRITE_MASK) {
-			data |= WRITE_USER_FLAG;
+		if (access_mask & write_mask) {
+			data |= write_user_flag;
 		}
-		if (access_mask & EXEC_MASK) {
-			data |= EXEC_USER_FLAG;
-		}
-	}
-
-	BuildTrusteeWithSidW(&trustee, pOwner);
-	if (GetEffectiveRightsFromAclW(pDacl, &trustee, &access_mask) == ERROR_SUCCESS) {
-		if (access_mask & READ_MASK) {
-			data |= READ_OWNER_FLAG;
-		}
-		if (access_mask & WRITE_MASK) {
-			data |= WRITE_OWNER_FLAG;
-		}
-		if (access_mask & EXEC_MASK) {
-			data |= EXEC_OWNER_FLAG;
+		if (access_mask & exec_mask) {
+			data |= exec_user_flag;
 		}
 	}
 
-	BuildTrusteeWithSidW(&trustee, pGroup);
-	if (GetEffectiveRightsFromAclW(pDacl, &trustee, &access_mask) == ERROR_SUCCESS) {
-		if (access_mask & READ_MASK) {
-			data |= READ_GROUP_FLAG;
+	BuildTrusteeWithSidW(&trustee, owner);
+	if (GetEffectiveRightsFromAclW(dacl, &trustee, &access_mask) == ERROR_SUCCESS) {
+		if (access_mask & read_mask) {
+			data |= read_owner_flag;
 		}
-		if (access_mask & WRITE_MASK) {
-			data |= WRITE_GROUP_FLAG;
+		if (access_mask & write_mask) {
+			data |= write_owner_flag;
 		}
-		if (access_mask & EXEC_MASK) {
-			data |= EXEC_GROUP_FLAG;
-		}
-	}
-
-	if (GetEffectiveRightsFromAclW(pDacl, &GlobalSid::g_instance.worldTrusteeW, &access_mask) == ERROR_SUCCESS) {
-		if (access_mask & READ_MASK) {
-			data |= READ_OTHER_FLAG;
-		}
-		if (access_mask & WRITE_MASK) {
-			data |= WRITE_OTHER_FLAG;
-		}
-		if (access_mask & EXEC_MASK) {
-			data |= EXEC_OTHER_FLAG;
+		if (access_mask & exec_mask) {
+			data |= exec_owner_flag;
 		}
 	}
 
-	LocalFree(pSD);
+	BuildTrusteeWithSidW(&trustee, group);
+	if (GetEffectiveRightsFromAclW(dacl, &trustee, &access_mask) == ERROR_SUCCESS) {
+		if (access_mask & read_mask) {
+			data |= read_group_flag;
+		}
+		if (access_mask & write_mask) {
+			data |= write_group_flag;
+		}
+		if (access_mask & exec_mask) {
+			data |= exec_group_flag;
+		}
+	}
+
+	if (GetEffectiveRightsFromAclW(dacl, &GlobalSid::g_instance.worldTrusteeW, &access_mask) == ERROR_SUCCESS) {
+		if (access_mask & read_mask) {
+			data |= read_other_flag;
+		}
+		if (access_mask & write_mask) {
+			data |= write_other_flag;
+		}
+		if (access_mask & exec_mask) {
+			data |= exec_other_flag;
+		}
+	}
+
+	LocalFree(security_descriptor);
 	return (data & permissions) == permissions;
 #else
 	mode_t mode = 0;
 
-	if (permissions & READ_OWNER_FLAG) {
+	if (permissions & read_owner_flag) {
 		mode |= S_IRUSR;
 	}
-	if (permissions & WRITE_OWNER_FLAG) {
+	if (permissions & write_owner_flag) {
 		mode |= S_IWUSR;
 	}
-	if (permissions & EXEC_OWNER_FLAG) {
+	if (permissions & exec_owner_flag) {
 		mode |= S_IXUSR;
 	}
-	if (permissions & READ_USER_FLAG) {
+	if (permissions & read_user_flag) {
 		mode |= S_IRUSR;
 	}
-	if (permissions & WRITE_USER_FLAG) {
+	if (permissions & write_user_flag) {
 		mode |= S_IWUSR;
 	}
-	if (permissions & EXEC_USER_FLAG) {
+	if (permissions & exec_user_flag) {
 		mode |= S_IXUSR;
 	}
-	if (permissions & READ_GROUP_FLAG) {
+	if (permissions & read_group_flag) {
 		mode |= S_IRGRP;
 	}
-	if (permissions & WRITE_GROUP_FLAG) {
+	if (permissions & write_group_flag) {
 		mode |= S_IWGRP;
 	}
-	if (permissions & EXEC_GROUP_FLAG) {
+	if (permissions & exec_group_flag) {
 		mode |= S_IXGRP;
 	}
-	if (permissions & READ_OTHER_FLAG) {
+	if (permissions & read_other_flag) {
 		mode |= S_IROTH;
 	}
-	if (permissions & WRITE_OTHER_FLAG) {
+	if (permissions & write_other_flag) {
 		mode |= S_IWOTH;
 	}
-	if (permissions & EXEC_OTHER_FLAG) {
+	if (permissions & exec_other_flag) {
 		mode |= S_IXOTH;
 	}
-	struct stat infos;
+	struct stat infos {};
 	const std::string generic_path = path.generic_string();
 	if (stat(generic_path.c_str(), &infos) != 0) {
 		throw std::filesystem::filesystem_error("check_file_permissions", path, last_error_code());
@@ -437,22 +460,22 @@ bool FileSystem::check_file_permissions(const std::filesystem::path &path, Permi
 #endif
 }
 
-bool FileSystem::is_root(const std::filesystem::path &path) {
+bool FileSystem::is_root(const std::filesystem::path& path) {
 	return path == path.root_path();
 }
 
-bool FileSystem::is_bundle(const std::filesystem::path &path) {
-#ifdef OS_MAC
+bool FileSystem::is_bundle(const std::filesystem::path& path) {
+#ifdef MINT_OS_MAC
 	return /// \todo OSX
 #else
 	return false;
 #endif
 }
 
-bool FileSystem::is_hidden(const std::filesystem::path &path) {
-#ifdef OS_WINDOWS
+bool FileSystem::is_hidden(const std::filesystem::path& path) {
+#ifdef MINT_OS_WINDOWS
 	const std::wstring generic_path = path.generic_wstring();
-	DWORD infos = GetFileAttributesW(generic_path.c_str());
+	const auto infos = GetFileAttributesW(generic_path.c_str());
 
 	if (infos != INVALID_FILE_ATTRIBUTES) {
 		return infos & FILE_ATTRIBUTE_HIDDEN;
@@ -465,31 +488,31 @@ bool FileSystem::is_hidden(const std::filesystem::path &path) {
 #endif
 }
 
-bool FileSystem::is_canonical(const std::filesystem::path &path) {
+bool FileSystem::is_canonical(const std::filesystem::path& path) {
 	return path == std::filesystem::weakly_canonical(path);
 }
 
-bool FileSystem::is_normalized(const std::filesystem::path &path) {
+bool FileSystem::is_normalized(const std::filesystem::path& path) {
 	return path.generic_string() == normalized(path).generic_string();
 }
 
-std::filesystem::path FileSystem::normalized(const std::filesystem::path &path) {
+std::filesystem::path FileSystem::normalized(const std::filesystem::path& path) {
 	return path.lexically_normal().make_preferred();
 }
 
-std::filesystem::file_time_type FileSystem::from_system_time(const std::chrono::system_clock::time_point &time) {
-	return std::filesystem::file_time_type(time.time_since_epoch() + FILE_TIME_DELTA);
+std::filesystem::file_time_type FileSystem::from_system_time(const std::chrono::system_clock::time_point& time) {
+	return std::chrono::clock_cast<std::filesystem::file_time_type::clock>(time);
 }
 
-std::chrono::system_clock::time_point FileSystem::to_system_time(const std::filesystem::file_time_type &time) {
-	return std::chrono::system_clock::time_point(time.time_since_epoch() - FILE_TIME_DELTA);
+std::chrono::system_clock::time_point FileSystem::to_system_time(const std::filesystem::file_time_type& time) {
+	return std::chrono::clock_cast<std::chrono::system_clock>(time);
 }
 
-std::filesystem::file_time_type FileSystem::birth_time(const std::filesystem::path &path) {
-#ifdef OS_WINDOWS
+std::filesystem::file_time_type FileSystem::birth_time(const std::filesystem::path& path) {
+#ifdef MINT_OS_WINDOWS
 	const std::wstring generic_path = path.generic_wstring();
 	HANDLE handle = CreateFileW(generic_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
-								FILE_ATTRIBUTE_NORMAL, nullptr);
+	    FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (handle == INVALID_HANDLE_VALUE) {
 		throw std::filesystem::filesystem_error("birth_time", path, last_error_code());
 	}
@@ -500,23 +523,23 @@ std::filesystem::file_time_type FileSystem::birth_time(const std::filesystem::pa
 	}
 	CloseHandle(handle);
 	return std::filesystem::file_time_type(std::filesystem::file_time_type::duration(
-		(std::filesystem::file_time_type::duration::rep(time.dwHighDateTime) << 32) + time.dwLowDateTime));
+	    (std::filesystem::file_time_type::duration::rep(time.dwHighDateTime) << 32) + time.dwLowDateTime));
 #else
-	struct stat infos;
+	struct stat infos {};
 	const std::string generic_path = path.generic_string();
 	if (stat(generic_path.c_str(), &infos) != 0) {
 		throw std::filesystem::filesystem_error("birth_time", path, last_error_code());
 	}
-	return std::filesystem::file_time_type(std::chrono::seconds(infos.st_ctim.tv_sec)
-										   + std::chrono::nanoseconds(infos.st_ctim.tv_nsec) + FILE_TIME_DELTA);
+	return from_system_time(std::chrono::system_clock::time_point(
+	    std::chrono::seconds(infos.st_ctim.tv_sec) + std::chrono::nanoseconds(infos.st_ctim.tv_nsec)));
 #endif
 }
 
-std::filesystem::file_time_type FileSystem::last_read_time(const std::filesystem::path &path) {
-#ifdef OS_WINDOWS
+std::filesystem::file_time_type FileSystem::last_read_time(const std::filesystem::path& path) {
+#ifdef MINT_OS_WINDOWS
 	const std::wstring generic_path = path.generic_wstring();
 	HANDLE handle = CreateFileW(generic_path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
-								FILE_ATTRIBUTE_NORMAL, nullptr);
+	    FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (handle == INVALID_HANDLE_VALUE) {
 		throw std::filesystem::filesystem_error("last_read_time", path, last_error_code());
 	}
@@ -527,85 +550,87 @@ std::filesystem::file_time_type FileSystem::last_read_time(const std::filesystem
 	}
 	CloseHandle(handle);
 	return std::filesystem::file_time_type(std::filesystem::file_time_type::duration(
-		(std::filesystem::file_time_type::duration::rep(time.dwHighDateTime) << 32) + time.dwLowDateTime));
+	    (std::filesystem::file_time_type::duration::rep(time.dwHighDateTime) << 32) + time.dwLowDateTime));
 #else
-	struct stat infos;
+	struct stat infos {};
 	const std::string generic_path = path.generic_string();
 	if (stat(generic_path.c_str(), &infos) != 0) {
 		throw std::filesystem::filesystem_error("last_read_time", path, last_error_code());
 	}
-	return std::filesystem::file_time_type(std::chrono::seconds(infos.st_atim.tv_sec)
-										   + std::chrono::nanoseconds(infos.st_atim.tv_nsec) + FILE_TIME_DELTA);
+	return from_system_time(std::chrono::system_clock::time_point(
+	    std::chrono::seconds(infos.st_atim.tv_sec) + std::chrono::nanoseconds(infos.st_atim.tv_nsec)));
 #endif
 }
 
-std::string FileSystem::owner(const std::filesystem::path &path) {
-#ifdef OS_WINDOWS
-	PSID pOwner = 0;
-	PSECURITY_DESCRIPTOR pSD;
+std::string FileSystem::owner(const std::filesystem::path& path) {
+#ifdef MINT_OS_WINDOWS
+	PSID owner = nullptr;
+	PSECURITY_DESCRIPTOR security_descriptor = nullptr;
 	const std::wstring generic_path = path.generic_wstring();
-	if (GetNamedSecurityInfoW(generic_path.c_str(), SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &pOwner, NULL, NULL,
-							  NULL, &pSD)
-		!= ERROR_SUCCESS) {
+	if (GetNamedSecurityInfoW(generic_path.c_str(), SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &owner, nullptr,
+	        nullptr, nullptr, &security_descriptor)
+	    != ERROR_SUCCESS) {
 		throw std::filesystem::filesystem_error("owner", path, last_error_code());
 	}
 	DWORD lowner = 0;
 	DWORD ldomain = 0;
 	SID_NAME_USE use = SidTypeUnknown;
-	LookupAccountSidW(nullptr, pOwner, nullptr, &lowner, nullptr, &ldomain, &use);
-	std::wstring owner(lowner, L'\0');
-	std::wstring domain(ldomain, L'\0');
-	if (!LookupAccountSidW(nullptr, pOwner, owner.data(), &lowner, domain.data(), &ldomain, &use)) {
+	LookupAccountSidW(nullptr, owner, nullptr, &lowner, nullptr, &ldomain, &use);
+	std::wstring owner_name(lowner, L'\0');
+	std::wstring domain_name(ldomain, L'\0');
+	if (!LookupAccountSidW(nullptr, owner, owner_name.data(), &lowner, domain_name.data(), &ldomain, &use)) {
 		throw std::filesystem::filesystem_error("owner", path, last_error_code());
 	}
-	return wchar_to_multi_byte(owner);
+	return wchar_to_multi_byte(owner_name);
 #else
-	if (struct passwd *pw = getpwuid(FileSystem::owner_id(path))) {
+	if (const struct passwd* pw = getpwuid(FileSystem::owner_id(path))) {
 		return pw->pw_name;
 	}
 	throw std::filesystem::filesystem_error("owner", path, last_error_code());
 #endif
 }
 
-std::string FileSystem::group(const std::filesystem::path &path) {
-#ifdef OS_WINDOWS
-	PSID pOwner = 0;
-	PSECURITY_DESCRIPTOR pSD;
+std::string FileSystem::group(const std::filesystem::path& path) {
+#ifdef MINT_OS_WINDOWS
+	PSID owner = nullptr;
+	PSECURITY_DESCRIPTOR security_descriptor = nullptr;
 	const std::wstring generic_path = path.generic_wstring();
-	if (GetNamedSecurityInfoW(generic_path.c_str(), SE_FILE_OBJECT, GROUP_SECURITY_INFORMATION, 0, &pOwner, 0, 0, &pSD)
-		!= ERROR_SUCCESS) {
+	if (GetNamedSecurityInfoW(generic_path.c_str(), SE_FILE_OBJECT, GROUP_SECURITY_INFORMATION, 0, &owner, nullptr,
+	        nullptr, &security_descriptor)
+	    != ERROR_SUCCESS) {
 		throw std::filesystem::filesystem_error("group", path, last_error_code());
 	}
 	DWORD lowner = 0;
 	DWORD ldomain = 0;
 	SID_NAME_USE use = SidTypeUnknown;
-	LookupAccountSidW(nullptr, pOwner, nullptr, &lowner, nullptr, &ldomain, &use);
-	std::wstring owner(lowner, L'\0');
-	std::wstring domain(ldomain, L'\0');
-	if (!LookupAccountSidW(nullptr, pOwner, owner.data(), &lowner, domain.data(), &ldomain, &use)) {
+	LookupAccountSidW(nullptr, owner, nullptr, &lowner, nullptr, &ldomain, &use);
+	std::wstring owner_name(lowner, L'\0');
+	std::wstring domain_name(ldomain, L'\0');
+	if (!LookupAccountSidW(nullptr, owner, owner_name.data(), &lowner, domain_name.data(), &ldomain, &use)) {
 		throw std::filesystem::filesystem_error("group", path, last_error_code());
 	}
-	return wchar_to_multi_byte(owner);
+	return wchar_to_multi_byte(owner_name);
 #else
-	if (struct group *gr = getgrgid(FileSystem::group_id(path))) {
+	if (const struct group* gr = getgrgid(FileSystem::group_id(path))) {
 		return gr->gr_name;
 	}
 	throw std::filesystem::filesystem_error("group", path, last_error_code());
 #endif
 }
 
-uid_t FileSystem::owner_id(const std::filesystem::path &path) {
-#ifdef OS_WINDOWS
-	PSID pOwner = 0;
-	PSECURITY_DESCRIPTOR pSD;
+uid_t FileSystem::owner_id(const std::filesystem::path& path) {
+#ifdef MINT_OS_WINDOWS
+	PSID owner = nullptr;
+	PSECURITY_DESCRIPTOR security_descriptor = nullptr;
 	const std::wstring generic_path = path.generic_wstring();
-	if (GetNamedSecurityInfoW(generic_path.c_str(), SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &pOwner, 0, 0, 0, &pSD)
-		!= ERROR_SUCCESS) {
+	if (GetNamedSecurityInfoW(generic_path.c_str(), SE_FILE_OBJECT, OWNER_SECURITY_INFORMATION, &owner, nullptr,
+	        nullptr, nullptr, &security_descriptor)
+	    != ERROR_SUCCESS) {
 		throw std::filesystem::filesystem_error("owner_id", path, last_error_code());
 	}
-	return reinterpret_cast<uid_t>(pOwner);
+	return std::bit_cast<uid_t>(owner);
 #else
-	struct stat infos;
+	struct stat infos {};
 	const std::string generic_path = path.generic_string();
 	if (stat(generic_path.c_str(), &infos) != 0) {
 		throw std::filesystem::filesystem_error("owner_id", path, last_error_code());
@@ -614,18 +639,19 @@ uid_t FileSystem::owner_id(const std::filesystem::path &path) {
 #endif
 }
 
-gid_t FileSystem::group_id(const std::filesystem::path &path) {
-#ifdef OS_WINDOWS
-	PSID pOwner = 0;
-	PSECURITY_DESCRIPTOR pSD;
+gid_t FileSystem::group_id(const std::filesystem::path& path) {
+#ifdef MINT_OS_WINDOWS
+	PSID owner = nullptr;
+	PSECURITY_DESCRIPTOR security_descriptor = nullptr;
 	const std::wstring generic_path = path.generic_wstring();
-	if (GetNamedSecurityInfoW(generic_path.c_str(), SE_FILE_OBJECT, GROUP_SECURITY_INFORMATION, 0, &pOwner, 0, 0, &pSD)
-		!= ERROR_SUCCESS) {
+	if (GetNamedSecurityInfoW(generic_path.c_str(), SE_FILE_OBJECT, GROUP_SECURITY_INFORMATION, 0, &owner, nullptr,
+	        nullptr, &security_descriptor)
+	    != ERROR_SUCCESS) {
 		throw std::filesystem::filesystem_error("group_id", path, last_error_code());
 	}
-	return reinterpret_cast<gid_t>(pOwner);
+	return std::bit_cast<gid_t>(owner);
 #else
-	struct stat infos;
+	struct stat infos {};
 	const std::string generic_path = path.generic_string();
 	if (stat(generic_path.c_str(), &infos) != 0) {
 		throw std::filesystem::filesystem_error("group_id", path, last_error_code());
@@ -634,13 +660,13 @@ gid_t FileSystem::group_id(const std::filesystem::path &path) {
 #endif
 }
 
-bool FileSystem::is_subpath(const std::filesystem::path &path, const std::filesystem::path &base) {
+bool FileSystem::is_subpath(const std::filesystem::path& path, const std::filesystem::path& base) {
 	auto relative_path = std::filesystem::relative(path, base);
 	return !relative_path.empty() && relative_path.native()[0] != '.';
 }
 
-FILE *mint::open_file(const std::filesystem::path &path, const char *mode) {
-#ifdef OS_WINDOWS
+gsl::owner<FILE*> mint::open_file(const std::filesystem::path& path, const char* mode) {
+#ifdef MINT_OS_WINDOWS
 	const std::wstring generic_path = path.generic_wstring();
 	const std::wstring mode_str = wchar_from_multi_byte(mode);
 	return _wfopen(generic_path.c_str(), mode_str.c_str());

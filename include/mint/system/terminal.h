@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,146 +21,169 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_TERMINAL_H
-#define MINT_TERMINAL_H
+#ifndef MINT_SYSTEM_TERMINAL_H
+#define MINT_SYSTEM_TERMINAL_H
 
-#include "mint/system/stdio.h"
 #include "mint/config.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <functional>
 #include <optional>
+#include <string_view>
+#include <utility>
 #include <vector>
 #include <string>
 #include <chrono>
 #include <queue>
 
-#define MINT_TERM_RESET "\033[0m"
-#define MINT_TERM_BOLD "\033[1m"
-#define MINT_TERM_DARK "\033[2m"
-#define MINT_TERM_ITALIC "\033[3m"
-#define MINT_TERM_UNDERLINE "\033[4m"
-#define MINT_TERM_BLINK "\033[5m"
-#define MINT_TERM_REVERSE "\033[7m"
-#define MINT_TERM_CONCEALED "\033[8m"
-#define MINT_TERM_CROSSED "\033[9m"
-#define MINT_TERM_FG_GREY "\033[30m"
-#define MINT_TERM_FG_RED "\033[31m"
-#define MINT_TERM_FG_GREEN "\033[32m"
-#define MINT_TERM_FG_YELLOW "\033[33m"
-#define MINT_TERM_FG_BLUE "\033[34m"
-#define MINT_TERM_FG_MAGENTA "\033[35m"
-#define MINT_TERM_FG_CYAN "\033[36m"
-#define MINT_TERM_FG_WHITE "\033[37m"
-#define MINT_TERM_BG_GREY "\033[40m"
-#define MINT_TERM_BG_RED "\033[41m"
-#define MINT_TERM_BG_GREEN "\033[42m"
-#define MINT_TERM_BG_YELLOW "\033[43m"
-#define MINT_TERM_BG_BLUE "\033[44m"
-#define MINT_TERM_BG_MAGENTA "\033[45m"
-#define MINT_TERM_BG_CYAN "\033[46m"
-#define MINT_TERM_BG_WHITE "\033[47m"
+#define MINT_TERM_OPT_JOIN_15(__opt) __opt
+#define MINT_TERM_OPT_JOIN_14(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_15(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_13(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_14(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_12(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_13(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_11(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_12(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_10(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_11(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_9(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_10(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_8(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_9(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_7(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_8(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_6(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_7(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_5(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_6(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_4(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_5(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_3(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_4(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_2(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_3(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN_1(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_2(__VA_ARGS__))
+#define MINT_TERM_OPT_JOIN(__opt, ...) __opt __VA_OPT__(";" MINT_TERM_OPT_JOIN_1(__VA_ARGS__))
+#define MINT_TERM_OPT(...) "\033[" MINT_TERM_OPT_JOIN(__VA_ARGS__) "m"
+#define MINT_TERM_STDSTR(...) __VA_ARGS__ + "\033[0m"
+#define MINT_TERM_STR(...) __VA_ARGS__ "\033[0m"
 
-#define MINT_TERM_RESET_OPTION "0"
-#define MINT_TERM_BOLD_OPTION "1"
-#define MINT_TERM_DARK_OPTION "2"
-#define MINT_TERM_ITALIC_OPTION "3"
-#define MINT_TERM_UNDERLINE_OPTION "4"
-#define MINT_TERM_BLINK_OPTION "5"
-#define MINT_TERM_REVERSE_OPTION "7"
-#define MINT_TERM_CONCEALED_OPTION "8"
-#define MINT_TERM_CROSSED_OPTION "9"
-#define MINT_TERM_FG_GREY_WITH(_opt) "\033[" _opt ";30m"
-#define MINT_TERM_FG_RED_WITH(_opt) "\033[" _opt ";31m"
-#define MINT_TERM_FG_GREEN_WITH(_opt) "\033[" _opt ";32m"
-#define MINT_TERM_FG_YELLOW_WITH(_opt) "\033[" _opt ";33m"
-#define MINT_TERM_FG_BLUE_WITH(_opt) "\033[" _opt ";34m"
-#define MINT_TERM_FG_MAGENTA_WITH(_opt) "\033[" _opt ";35m"
-#define MINT_TERM_FG_CYAN_WITH(_opt) "\033[" _opt ";36m"
-#define MINT_TERM_FG_WHITE_WITH(_opt) "\033[" _opt ";37m"
-#define MINT_TERM_BG_GREY_WITH(_opt) "\033[" _opt ";40m"
-#define MINT_TERM_BG_RED_WITH(_opt) "\033[" _opt ";41m"
-#define MINT_TERM_BG_GREEN_WITH(_opt) "\033[" _opt ";42m"
-#define MINT_TERM_BG_YELLOW_WITH(_opt) "\033[" _opt ";43m"
-#define MINT_TERM_BG_BLUE_WITH(_opt) "\033[" _opt ";44m"
-#define MINT_TERM_BG_MAGENTA_WITH(_opt) "\033[" _opt ";45m"
-#define MINT_TERM_BG_CYAN_WITH(_opt) "\033[" _opt ";46m"
-#define MINT_TERM_BG_WHITE_WITH(_opt) "\033[" _opt ";47m"
+#define MINT_TERM_RESET "0"
+#define MINT_TERM_BOLD "1"
+#define MINT_TERM_DARK "2"
+#define MINT_TERM_ITALIC "3"
+#define MINT_TERM_UNDERLINE "4"
+#define MINT_TERM_BLINK "5"
+#define MINT_TERM_REVERSE "7"
+#define MINT_TERM_CONCEALED "8"
+#define MINT_TERM_CROSSED "9"
+#define MINT_TERM_RESET_BOLD "21"
+#define MINT_TERM_RESET_DARK "22"
+#define MINT_TERM_RESET_ITALIC "23"
+#define MINT_TERM_RESET_UNDERLINE "24"
+#define MINT_TERM_RESET_BLINK "25"
+#define MINT_TERM_RESET_REVERSE "27"
+#define MINT_TERM_RESET_CONCEALED "28"
+#define MINT_TERM_RESET_CROSSED "29"
+#define MINT_TERM_FG_GREY "30"
+#define MINT_TERM_FG_RED "31"
+#define MINT_TERM_FG_GREEN "32"
+#define MINT_TERM_FG_YELLOW "33"
+#define MINT_TERM_FG_BLUE "34"
+#define MINT_TERM_FG_MAGENTA "35"
+#define MINT_TERM_FG_CYAN "36"
+#define MINT_TERM_FG_WHITE "37"
+#define MINT_TERM_FG_RESET "39"
+#define MINT_TERM_BG_GREY "40"
+#define MINT_TERM_BG_RED "41"
+#define MINT_TERM_BG_GREEN "42"
+#define MINT_TERM_BG_YELLOW "43"
+#define MINT_TERM_BG_BLUE "44"
+#define MINT_TERM_BG_MAGENTA "45"
+#define MINT_TERM_BG_CYAN "46"
+#define MINT_TERM_BG_WHITE "47"
+#define MINT_TERM_BG_RESET "49"
+#define MINT_TERM_FG_DARK_GRAY "90"
+#define MINT_TERM_FG_DARK_RED "91"
+#define MINT_TERM_FG_DARK_GREEN "92"
+#define MINT_TERM_FG_DARK_YELLOW "93"
+#define MINT_TERM_FG_DARK_BLUE "94"
+#define MINT_TERM_FG_DARK_MAGENTA "95"
+#define MINT_TERM_FG_DARK_CYAN "96"
+#define MINT_TERM_FG_DARK_WHITE "97"
+#define MINT_TERM_BG_DARK_GREY "100"
+#define MINT_TERM_BG_DARK_RED "101"
+#define MINT_TERM_BG_DARK_GREEN "102"
+#define MINT_TERM_BG_DARK_YELLOW "103"
+#define MINT_TERM_BG_DARK_BLUE "104"
+#define MINT_TERM_BG_DARK_MAGENTA "105"
+#define MINT_TERM_BG_DARK_CYAN "106"
+#define MINT_TERM_BG_DARK_WHITE "107"
 
 namespace mint {
 
 enum StdStreamFileNo : std::uint8_t {
-	STDIN_FILE_NO = 0,
-	STDOUT_FILE_NO = 1,
-	STDERR_FILE_NO = 2
+	stdin_file_no = 0,
+	stdout_file_no = 1,
+	stderr_file_no = 2
 };
 
 enum TtyEvent : std::uint32_t {
-	EVENT_KEY_MOD_SHIFT = 0x10000000U,
-	EVENT_KEY_MOD_ALT = 0x20000000U,
-	EVENT_KEY_MOD_CTRL = 0x40000000U,
+	event_none = 0,
+	event_key_ctrl_a = 1,
+	event_key_ctrl_b = 2,
+	event_key_ctrl_c = 3,
+	event_key_ctrl_d = 4,
+	event_key_ctrl_e = 5,
+	event_key_ctrl_f = 6,
+	event_key_bell = 7,
+	event_key_backsp = 8,
+	event_key_tab = 9,
+	event_key_linefeed = 10, // ctrl/shift + enter is considered key_linefeed
+	event_key_ctrl_k = 11,
+	event_key_ctrl_l = 12,
+	event_key_enter = 13,
+	event_key_ctrl_n = 14,
+	event_key_ctrl_o = 15,
+	event_key_ctrl_p = 16,
+	event_key_ctrl_q = 17,
+	event_key_ctrl_r = 18,
+	event_key_ctrl_s = 19,
+	event_key_ctrl_t = 20,
+	event_key_ctrl_u = 21,
+	event_key_ctrl_v = 22,
+	event_key_ctrl_w = 23,
+	event_key_ctrl_x = 24,
+	event_key_ctrl_y = 25,
+	event_key_ctrl_z = 26,
+	event_key_esc = 27,
+	event_key_space = 32,
+	event_key_rubout = 127, // always translated to key_backsp
+	event_key_unicode_max = 0x0010ffffU,
 
-	EVENT_KEY_NONE = 0,
-	EVENT_KEY_CTRL_A = 1,
-	EVENT_KEY_CTRL_B = 2,
-	EVENT_KEY_CTRL_C = 3,
-	EVENT_KEY_CTRL_D = 4,
-	EVENT_KEY_CTRL_E = 5,
-	EVENT_KEY_CTRL_F = 6,
-	EVENT_KEY_BELL = 7,
-	EVENT_KEY_BACKSP = 8,
-	EVENT_KEY_TAB = 9,
-	EVENT_KEY_LINEFEED = 10, // ctrl/shift + enter is considered KEY_LINEFEED
-	EVENT_KEY_CTRL_K = 11,
-	EVENT_KEY_CTRL_L = 12,
-	EVENT_KEY_ENTER = 13,
-	EVENT_KEY_CTRL_N = 14,
-	EVENT_KEY_CTRL_O = 15,
-	EVENT_KEY_CTRL_P = 16,
-	EVENT_KEY_CTRL_Q = 17,
-	EVENT_KEY_CTRL_R = 18,
-	EVENT_KEY_CTRL_S = 19,
-	EVENT_KEY_CTRL_T = 20,
-	EVENT_KEY_CTRL_U = 21,
-	EVENT_KEY_CTRL_V = 22,
-	EVENT_KEY_CTRL_W = 23,
-	EVENT_KEY_CTRL_X = 24,
-	EVENT_KEY_CTRL_Y = 25,
-	EVENT_KEY_CTRL_Z = 26,
-	EVENT_KEY_ESC = 27,
-	EVENT_KEY_SPACE = 32,
-	EVENT_KEY_RUBOUT = 127, // always translated to KEY_BACKSP
-	EVENT_KEY_UNICODE_MAX = 0x0010FFFFU,
+	event_key_virt = 0x01000000U,
+	event_key_up = event_key_virt + 0,
+	event_key_down = event_key_virt + 1,
+	event_key_left = event_key_virt + 2,
+	event_key_right = event_key_virt + 3,
+	event_key_home = event_key_virt + 4,
+	event_key_end = event_key_virt + 5,
+	event_key_del = event_key_virt + 6,
+	event_key_pageup = event_key_virt + 7,
+	event_key_pagedown = event_key_virt + 8,
+	event_key_ins = event_key_virt + 9,
 
-	EVENT_KEY_VIRT = 0x01000000U,
-	EVENT_KEY_UP = EVENT_KEY_VIRT + 0,
-	EVENT_KEY_DOWN = EVENT_KEY_VIRT + 1,
-	EVENT_KEY_LEFT = EVENT_KEY_VIRT + 2,
-	EVENT_KEY_RIGHT = EVENT_KEY_VIRT + 3,
-	EVENT_KEY_HOME = EVENT_KEY_VIRT + 4,
-	EVENT_KEY_END = EVENT_KEY_VIRT + 5,
-	EVENT_KEY_DEL = EVENT_KEY_VIRT + 6,
-	EVENT_KEY_PAGEUP = EVENT_KEY_VIRT + 7,
-	EVENT_KEY_PAGEDOWN = EVENT_KEY_VIRT + 8,
-	EVENT_KEY_INS = EVENT_KEY_VIRT + 9,
+	event_key_f1 = event_key_virt + 11,
+	event_key_f2 = event_key_virt + 12,
+	event_key_f3 = event_key_virt + 13,
+	event_key_f4 = event_key_virt + 14,
+	event_key_f5 = event_key_virt + 15,
+	event_key_f6 = event_key_virt + 16,
+	event_key_f7 = event_key_virt + 17,
+	event_key_f8 = event_key_virt + 18,
+	event_key_f9 = event_key_virt + 19,
+	event_key_f10 = event_key_virt + 20,
+	event_key_f11 = event_key_virt + 21,
+	event_key_f12 = event_key_virt + 22,
 
-	EVENT_KEY_F1 = EVENT_KEY_VIRT + 11,
-	EVENT_KEY_F2 = EVENT_KEY_VIRT + 12,
-	EVENT_KEY_F3 = EVENT_KEY_VIRT + 13,
-	EVENT_KEY_F4 = EVENT_KEY_VIRT + 14,
-	EVENT_KEY_F5 = EVENT_KEY_VIRT + 15,
-	EVENT_KEY_F6 = EVENT_KEY_VIRT + 16,
-	EVENT_KEY_F7 = EVENT_KEY_VIRT + 17,
-	EVENT_KEY_F8 = EVENT_KEY_VIRT + 18,
-	EVENT_KEY_F9 = EVENT_KEY_VIRT + 19,
-	EVENT_KEY_F10 = EVENT_KEY_VIRT + 20,
-	EVENT_KEY_F11 = EVENT_KEY_VIRT + 21,
-	EVENT_KEY_F12 = EVENT_KEY_VIRT + 22,
+	event_key_mod_shift = 0x10000000U,
+	event_key_mod_alt = 0x20000000U,
+	event_key_mod_ctrl = 0x40000000U,
 
-	EVENT_BASE = 0x02000000U,
-	EVENT_RESIZE = EVENT_BASE + 1,
-	EVENT_AUTOTAB = EVENT_BASE + 2,
-	EVENT_STOP = EVENT_BASE + 3
+	event_base = 0x02000000U,
+	event_resize = event_base + 1,
+	event_autotab = event_base + 2,
+	event_stop = event_base + 3
 };
 
 struct Completion {
@@ -175,52 +198,52 @@ struct Tty {
 };
 
 struct TerminalInfo {
-	size_t width = 80;
-	size_t height = 25;
+	std::size_t width = 80;
+	std::size_t height = 25;
 };
 
 struct CursorPos {
-	size_t row;
-	size_t column;
+	std::size_t row;
+	std::size_t column;
 };
 
 class MINT_EXPORT Terminal {
 public:
 	using HighlighterFunction = std::function<std::string(std::string_view, std::string_view::size_type)>;
 	using CompletionGeneratorFunction =
-		std::function<bool(std::string_view, std::string_view::size_type, std::vector<Completion> &)>;
+	    std::function<std::optional<std::vector<Completion>>(std::string_view, std::string_view::size_type)>;
 	using BraceMatcherFunction =
-		std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)>;
+	    std::function<std::pair<std::string_view::size_type, bool>(std::string_view, std::string_view::size_type)>;
 
 	Terminal() = default;
 
-	static size_t get_width();
-	static size_t get_height();
+	static std::size_t get_width();
+	static std::size_t get_height();
 
-	static size_t get_cursor_row();
-	static size_t get_cursor_column();
+	static std::size_t get_cursor_row();
+	static std::size_t get_cursor_column();
 
 	static CursorPos get_cursor_pos();
-	static void set_cursor_pos(const CursorPos &pos);
-	static void set_cursor_pos(size_t row, size_t column);
-	static void move_cursor_left(size_t count = 1);
-	static void move_cursor_right(size_t count = 1);
-	static void move_cursor_up(size_t count = 1);
-	static void move_cursor_down(size_t count = 1);
+	static void set_cursor_pos(const CursorPos& pos);
+	static void set_cursor_pos(std::size_t row, std::size_t column);
+	static void move_cursor_left(std::size_t count = 1);
+	static void move_cursor_right(std::size_t count = 1);
+	static void move_cursor_up(std::size_t count = 1);
+	static void move_cursor_down(std::size_t count = 1);
 	static void move_cursor_to_start_of_line();
 
-	void set_prompt(std::function<std::string(size_t)> prompt);
-	void set_auto_braces(const std::string &auto_braces);
+	void set_prompt(std::function<std::string(std::size_t)> prompt);
+	void set_auto_braces(const std::string& auto_braces);
 	void set_highlighter(HighlighterFunction highlight);
 	void set_completion_generator(CompletionGeneratorFunction generator);
 	void set_brace_matcher(BraceMatcherFunction matcher);
 
-	void add_history(const std::string &line);
+	void add_history(const std::string& line);
 	std::optional<std::string> read_line();
 
-	static int printf(FILE *stream, const char *format, ...) __attribute__((format(printf, 2, 3)));
-	static int vprintf(FILE *stream, const char *format, va_list args);
-	static int print(FILE *stream, const char *str);
+	static std::size_t write(FILE* stream, const std::string& str);
+	static void print(FILE* stream, const std::string& str);
+	static void println(FILE* stream, const std::string& str);
 
 	static void clear_to_end_of_line();
 	static void clear_line();
@@ -230,12 +253,12 @@ protected:
 	static TtyEvent event_from_esc(std::optional<std::chrono::milliseconds> timeout);
 	static TtyEvent event_from_osc(byte_t peek, std::optional<std::chrono::milliseconds> timeout);
 	static TtyEvent event_from_csi(byte_t c1, byte_t peek, uint32_t mods0,
-								   std::optional<std::chrono::milliseconds> timeout);
+	    std::optional<std::chrono::milliseconds> timeout);
 	static byte_t read_byte(std::optional<std::chrono::milliseconds> timeout);
 
-	std::pair<std::string_view::size_type, bool> find_matching_brace(size_t brace_pos);
+	std::pair<std::string_view::size_type, bool> find_matching_brace(std::size_t brace_pos);
 	void edit_insert_auto_brace(byte_t c);
-	void edit_remove_auto_brace(size_t pos);
+	void edit_remove_auto_brace(std::size_t pos);
 	void edit_auto_indent(byte_t pre, byte_t post);
 
 	bool edit_pos_is_inside_multi_line();
@@ -283,26 +306,26 @@ private:
 	static TerminalInfo g_term;
 	static Tty g_tty;
 
-	std::string m_input;
-	size_t m_pos = 0;
-	size_t m_input_rows = 1;
-	size_t m_cursor_row = 0;
-	size_t m_cursor_rows = 1;
-	size_t m_indent_size = 4;
-	size_t m_history_idx = 0;
-	std::vector<std::string> m_history;
-	size_t m_completions_idx = 0;
-	std::vector<Completion> m_completions;
-	std::function<std::string(size_t)> m_prompt;
-	std::basic_string<byte_t> m_auto_braces;
-	HighlighterFunction m_highlight;
-	BraceMatcherFunction m_braces_match;
-	CompletionGeneratorFunction m_generate_completions;
+	std::string _input;
+	std::size_t _pos = 0;
+	std::size_t _input_rows = 1;
+	std::size_t _cursor_row = 0;
+	std::size_t _cursor_rows = 1;
+	std::size_t _indent_size = 4;
+	std::size_t _history_idx = 0;
+	std::vector<std::string> _history;
+	std::size_t _completions_idx = 0;
+	std::vector<Completion> _completions;
+	std::function<std::string(std::size_t)> _prompt;
+	std::basic_string<byte_t> _auto_braces;
+	HighlighterFunction _highlight;
+	BraceMatcherFunction _braces_match;
+	CompletionGeneratorFunction _generate_completions;
 };
 
-MINT_EXPORT bool is_term(FILE *stream);
+MINT_EXPORT bool is_term(FILE* stream);
 MINT_EXPORT bool is_term(int fd);
 
 }
 
-#endif // MINT_TERMINAL_H
+#endif // MINT_SYSTEM_TERMINAL_H

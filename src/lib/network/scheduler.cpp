@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,119 +23,250 @@
 
 #include "scheduler.h"
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/casttool.h>
-#include <mint/system/errno.h>
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
+#include "mint/system/errno.h"
+#include <cstddef>
+#include <functional>
+#include <ranges>
+#include <unordered_map>
+#include <vector>
 
-#ifdef OS_UNIX
+#ifdef MINT_OS_WINDOWS
+#include <Windows.h>
+#include <minwindef.h>
+#include <winerror.h>
+#include <WinSock2.h>
+#else
+#include <sys/poll.h>
 #include <sys/socket.h>
 #include <unistd.h>
-using native_handle_t = pollfd;
-#else
-#include <Windows.h>
-using native_handle_t = HANDLE;
 #endif
-
-using namespace mint;
-
-MINT_FUNCTION(mint_scheduler_pollfd_new, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &socket = helper.pop_parameter();
-
-	WeakReference fd = create_object(new PollFd);
-	fd.data<LibObject<PollFd>>()->impl->fd = to_integer(cursor, socket);
-	fd.data<LibObject<PollFd>>()->impl->events = 0;
-	fd.data<LibObject<PollFd>>()->impl->revents = 0;
-#ifdef OS_WINDOWS
-	fd.data<LibObject<PollFd>>()->impl->handle = WSACreateEvent();
-#endif
-
-	helper.return_value(std::move(fd));
-}
-
-MINT_FUNCTION(mint_scheduler_pollfd_delete, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &fd = helper.pop_parameter();
-
-#ifdef OS_WINDOWS
-	WSACloseEvent(fd.data<LibObject<PollFd>>()->impl->handle);
-#endif
-	delete fd.data<LibObject<PollFd>>()->impl;
-}
-
-MINT_FUNCTION(mint_scheduler_set_events, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &events = helper.pop_parameter();
-	Reference &fd = helper.pop_parameter();
-
-	fd.data<LibObject<PollFd>>()->impl->events = static_cast<short>(to_number(cursor, events));
-}
-
-MINT_FUNCTION(mint_scheduler_get_events, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &fd = helper.pop_parameter();
-
-	helper.return_value(create_number(fd.data<LibObject<PollFd>>()->impl->events));
-}
-
-MINT_FUNCTION(mint_scheduler_get_revents, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &fd = helper.pop_parameter();
-
-	helper.return_value(create_number(fd.data<LibObject<PollFd>>()->impl->revents));
-}
-
-MINT_FUNCTION(mint_scheduler_poll, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &timeout = helper.pop_parameter();
-	WeakReference handles = std::move(helper.pop_parameter());
-
-	std::vector<PollFd> fdset;
-	fdset.reserve(handles.data<Array>()->values.size());
-	std::transform(handles.data<Array>()->values.begin(), handles.data<Array>()->values.end(),
-				   std::back_inserter(fdset), [](const Array::values_type::value_type &fd) {
-					   return *fd.data<LibObject<PollFd>>()->impl;
-				   });
-
-	helper.return_value(
-		create_boolean(Scheduler::instance().poll(fdset, static_cast<int>(to_integer(cursor, timeout)))));
-
-	size_t i = 0;
-
-	for (const Array::values_type::value_type &fd : handles.data<Array>()->values) {
-		fd.data<LibObject<PollFd>>()->impl->revents = fdset[i++].revents;
-	}
-}
 
 namespace {
 
-native_handle_t to_native_handle(const PollFd &desc) {
-#ifdef OS_UNIX
-	pollfd handle;
+mint::WeakReference mint_scheduler_pollfd_new(mint::Cursor& cursor, const mint::Reference& socket) {
+	return mint::create_c_object(cursor.ast(), new PollFd {
+	                                               .fd = mint::to_integer<SOCKET>(cursor, socket),
+	                                               .events = 0,
+	                                               .revents = 0,
+#ifdef MINT_OS_WINDOWS
+	                                               .handle = WSACreateEvent(),
+#endif
+	                                           });
+}
 
-	handle.fd = desc.fd;
-	handle.events = 0;
-	handle.revents = 0;
+mint::WeakReference mint_scheduler_pollfd_delete(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
+#ifdef MINT_OS_WINDOWS
+	WSACloseEvent(fd.data<mint::LibObject<PollFd>>().ptr->handle);
+#endif
+	delete fd.data<mint::LibObject<PollFd>>().ptr;
+	return {};
+}
 
-	if (desc.events & PollFd::READ_EVENT) {
+mint::WeakReference mint_scheduler_set_events(mint::Cursor& cursor, const mint::Reference& fd,
+    const mint::Reference& events) {
+	fd.data<mint::LibObject<PollFd>>().ptr->events = mint::to_integer<short>(cursor, events);
+	return {};
+}
+
+mint::WeakReference mint_scheduler_get_events(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
+	return mint::create_number(fd.data<mint::LibObject<PollFd>>().ptr->events);
+}
+
+mint::WeakReference mint_scheduler_get_revents(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
+	return mint::create_number(fd.data<mint::LibObject<PollFd>>().ptr->revents);
+}
+
+mint::WeakReference mint_scheduler_poll(mint::Cursor& cursor, const mint::Reference& handles,
+    const mint::Reference& timeout) {
+
+	std::vector<PollFd> fdset(std::from_range,
+	    std::views::transform(handles.data<mint::Array>().values, [](const auto& fd) {
+		    return *fd.template data<mint::LibObject<PollFd>>().ptr;
+	    }));
+
+	const auto result = Scheduler::instance().poll(fdset, mint::to_integer<int>(cursor, timeout));
+
+	for (const auto& [fd, poll_fd] : std::views::zip(handles.data<mint::Array>().values, fdset)) {
+		fd.data<mint::LibObject<PollFd>>().ptr->revents = poll_fd.revents;
+	}
+
+	return mint::create_boolean(result);
+}
+
+}
+
+Scheduler::Error::Error(bool status) :
+    Error(status, status ? 0 : errno_from_io_last_error()) {}
+
+Scheduler::Error::Error(bool status, int errno_value) :
+    _status(status),
+    _errno(errno_value) {}
+
+Scheduler::Error::operator bool() const {
+	return !_status;
+}
+
+int Scheduler::Error::get_errno() const {
+	return _errno;
+}
+
+Scheduler::Scheduler() {
+#ifdef MINT_OS_WINDOWS
+	WSAStartup(MAKEWORD(2, 0), &_wsa_data);
+#endif
+}
+
+Scheduler::~Scheduler() {
+#ifdef MINT_OS_WINDOWS
+	WSACleanup();
+#endif
+}
+
+Scheduler& Scheduler::instance() {
+	static Scheduler g_instance;
+	return g_instance;
+}
+
+SOCKET Scheduler::open_socket(int domain, int type, int protocol) {
+
+	const auto fd = ::socket(domain, type, protocol);
+
+	if (fd != INVALID_SOCKET) {
+		_sockets.emplace(fd, SocketInfo {
+		                         .blocked = false,
+		                         .blocking = true,
+		                         .listening = false,
+		                     });
+	}
+
+	return fd;
+}
+
+void Scheduler::accept_socket(SOCKET fd) {
+	_sockets.emplace(fd, SocketInfo {
+	                         .blocked = false,
+	                         .blocking = true,
+	                         .listening = false,
+	                     });
+}
+
+Scheduler::Error Scheduler::close_socket(SOCKET fd) {
+	_sockets.erase(fd);
+#ifdef MINT_OS_UNIX
+	return close(fd) == 0;
+#else
+	return closesocket(fd) == 0;
+#endif
+}
+
+bool Scheduler::is_socket_listening(SOCKET fd) const {
+
+	auto i = _sockets.find(fd);
+
+	if (i != _sockets.end()) {
+		return i->second.listening;
+	}
+
+	return false;
+}
+
+void Scheduler::set_socket_listening(SOCKET fd, bool listening) {
+
+	auto i = _sockets.find(fd);
+
+	if (i != _sockets.end()) {
+		i->second.listening = listening;
+	}
+}
+
+bool Scheduler::is_socket_blocking(SOCKET fd) const {
+
+	auto i = _sockets.find(fd);
+
+	if (i != _sockets.end()) {
+		return i->second.blocking;
+	}
+
+	return true;
+}
+
+void Scheduler::set_socket_blocking(SOCKET fd, bool blocking) {
+
+	auto i = _sockets.find(fd);
+
+	if (i != _sockets.end()) {
+		i->second.blocking = blocking;
+	}
+}
+
+bool Scheduler::is_socket_blocked(SOCKET fd) const {
+
+	auto i = _sockets.find(fd);
+
+	if (i != _sockets.end()) {
+		return i->second.blocked;
+	}
+
+	return false;
+}
+
+void Scheduler::set_socket_blocked(SOCKET fd, bool blocked) {
+
+	auto i = _sockets.find(fd);
+
+	if (i != _sockets.end()) {
+		i->second.blocked = blocked;
+	}
+}
+
+bool Scheduler::poll(std::vector<PollFd>& fdset, int timeout) {
+
+	std::vector<native_handle_t> handles(std::from_range,
+	    std::views::transform(fdset, std::bind_front(&Scheduler::to_native_handle, this)));
+
+#ifdef MINT_OS_UNIX
+	bool result = ::poll(handles.data(), handles.size(), timeout) != 0;
+#else
+	bool result = WSAWaitForMultipleEvents(static_cast<DWORD>(handles.size()), handles.data(), false,
+	                  static_cast<DWORD>(timeout), true)
+	              != WSA_WAIT_TIMEOUT;
+#endif
+
+	for (std::size_t i = 0; i < handles.size(); ++i) {
+		if (revents_from_native_handle(fdset[i], handles[i])) {
+			result = true;
+		}
+	}
+
+	return result;
+}
+
+native_handle_t Scheduler::to_native_handle(const PollFd& desc) const {
+#ifdef MINT_OS_UNIX
+	pollfd handle {
+	    .fd = desc.fd,
+	    .events = 0,
+	    .revents = 0,
+	};
+
+	if (desc.events & PollFd::read_event) {
 		handle.events |= (POLLIN | POLLPRI);
 	}
-	if (desc.events & PollFd::WRITE_EVENT) {
+	if (desc.events & PollFd::write_event) {
 		handle.events |= POLLOUT;
 	}
-	if (desc.events & PollFd::ACCEPT_EVENT) {
+	if (desc.events & PollFd::accept_event) {
 		handle.events |= POLLIN;
 	}
-	if (desc.events & PollFd::ERROR_EVENT) {
+	if (desc.events & PollFd::error_event) {
 		handle.events |= (POLLERR | POLLNVAL);
 	}
-	if (desc.events & PollFd::CLOSE_EVENT) {
+	if (desc.events & PollFd::close_event) {
 		handle.events |= POLLHUP;
 #ifdef POLLRDHUP
 		handle.events |= POLLRDHUP;
@@ -145,20 +276,20 @@ native_handle_t to_native_handle(const PollFd &desc) {
 #else
 	long events = 0;
 
-	if (desc.events & PollFd::READ_EVENT) {
+	if (desc.events & PollFd::read_event) {
 		events |= FD_READ;
 	}
-	if (desc.events & PollFd::WRITE_EVENT) {
+	if (desc.events & PollFd::write_event) {
 		events |= FD_WRITE;
 	}
-	if (desc.events & PollFd::ACCEPT_EVENT) {
+	if (desc.events & PollFd::accept_event) {
 		events |= FD_ACCEPT;
 	}
-	if (desc.events & PollFd::CLOSE_EVENT) {
+	if (desc.events & PollFd::close_event) {
 		events |= FD_CLOSE;
 	}
 
-	if (Scheduler::instance().is_socket_blocked(desc.fd)) {
+	if (is_socket_blocked(desc.fd)) {
 		events |= FD_WRITE;
 	}
 
@@ -167,30 +298,30 @@ native_handle_t to_native_handle(const PollFd &desc) {
 #endif
 }
 
-bool revents_from_native_handle(PollFd &desc, const native_handle_t &handle) {
+bool Scheduler::revents_from_native_handle(PollFd& desc, [[maybe_unused]] const native_handle_t& handle) {
 
 	bool fake_event = false;
 	desc.revents = 0;
 
-#ifdef OS_UNIX
+#ifdef MINT_OS_UNIX
 	if ((handle.revents & (POLLIN | POLLPRI)) && !Scheduler::instance().is_socket_listening(handle.fd)) {
-		desc.revents |= PollFd::READ_EVENT;
+		desc.revents |= PollFd::read_event;
 	}
 	if (handle.revents & POLLOUT) {
-		desc.revents |= PollFd::WRITE_EVENT;
+		desc.revents |= PollFd::write_event;
 	}
 	if ((handle.revents & POLLIN) && Scheduler::instance().is_socket_listening(handle.fd)) {
-		desc.revents |= PollFd::ACCEPT_EVENT;
+		desc.revents |= PollFd::accept_event;
 	}
 	if (handle.revents & (POLLERR | POLLNVAL)) {
-		desc.revents |= PollFd::ERROR_EVENT;
+		desc.revents |= PollFd::error_event;
 	}
 	if (handle.revents & POLLHUP) {
-		desc.revents |= PollFd::CLOSE_EVENT;
+		desc.revents |= PollFd::close_event;
 	}
 #ifdef POLLRDHUP
 	if (handle.revents & POLLRDHUP) {
-		desc.revents |= PollFd::CLOSE_EVENT;
+		desc.revents |= PollFd::close_event;
 	}
 #endif
 #else
@@ -198,35 +329,35 @@ bool revents_from_native_handle(PollFd &desc, const native_handle_t &handle) {
 	WSAEnumNetworkEvents(desc.fd, desc.handle, &events);
 
 	if (events.lNetworkEvents & FD_READ) {
-		if ((desc.events & PollFd::ERROR_EVENT) && events.iErrorCode[FD_READ_BIT]) {
-			desc.revents |= PollFd::ERROR_EVENT;
+		if ((desc.events & PollFd::error_event) && events.iErrorCode[FD_READ_BIT]) {
+			desc.revents |= PollFd::error_event;
 		}
-		desc.revents |= PollFd::READ_EVENT;
+		desc.revents |= PollFd::read_event;
 	}
 	if (events.lNetworkEvents & FD_WRITE) {
-		if ((desc.events & PollFd::ERROR_EVENT) && events.iErrorCode[FD_WRITE_BIT]) {
-			desc.revents |= PollFd::ERROR_EVENT;
+		if ((desc.events & PollFd::error_event) && events.iErrorCode[FD_WRITE_BIT]) {
+			desc.revents |= PollFd::error_event;
 		}
-		desc.revents |= PollFd::WRITE_EVENT;
+		desc.revents |= PollFd::write_event;
 	}
 	if (events.lNetworkEvents & FD_ACCEPT) {
-		if ((desc.events & PollFd::ERROR_EVENT) && events.iErrorCode[FD_ACCEPT_BIT]) {
-			desc.revents |= PollFd::ERROR_EVENT;
+		if ((desc.events & PollFd::error_event) && events.iErrorCode[FD_ACCEPT_BIT]) {
+			desc.revents |= PollFd::error_event;
 		}
-		desc.revents |= PollFd::ACCEPT_EVENT;
+		desc.revents |= PollFd::accept_event;
 	}
 	if (events.lNetworkEvents & FD_CLOSE) {
-		if ((desc.events & PollFd::ERROR_EVENT) && events.iErrorCode[FD_CLOSE_BIT]) {
-			desc.revents |= PollFd::ERROR_EVENT;
+		if ((desc.events & PollFd::error_event) && events.iErrorCode[FD_CLOSE_BIT]) {
+			desc.revents |= PollFd::error_event;
 		}
-		desc.revents |= PollFd::CLOSE_EVENT;
+		desc.revents |= PollFd::close_event;
 	}
 
-	if (Scheduler::instance().is_socket_blocked(desc.fd)) {
-		Scheduler::instance().set_socket_blocked(desc.fd, events.lNetworkEvents & FD_WRITE);
+	if (is_socket_blocked(desc.fd)) {
+		set_socket_blocked(desc.fd, events.lNetworkEvents & FD_WRITE);
 	}
-	else if (desc.events & PollFd::WRITE_EVENT) {
-		desc.revents |= PollFd::WRITE_EVENT;
+	else if (desc.events & PollFd::write_event) {
+		desc.revents |= PollFd::write_event;
 		fake_event = true;
 	}
 #endif
@@ -234,215 +365,73 @@ bool revents_from_native_handle(PollFd &desc, const native_handle_t &handle) {
 	return fake_event;
 }
 
-}
-
-Scheduler::Error::Error(bool status) :
-	Error(status, status ? 0 : errno_from_io_last_error()) {}
-
-Scheduler::Error::Error(bool status, int errno_value) :
-	m_status(status),
-	m_errno(errno_value) {}
-
-Scheduler::Error::operator bool() const {
-	return !m_status;
-}
-
-int Scheduler::Error::get_errno() const {
-	return m_errno;
-}
-
-Scheduler::Scheduler() {
-#ifdef OS_WINDOWS
-	WSADATA wsaData;
-	WSAStartup(MAKEWORD(2, 0), &wsaData);
-#endif
-}
-
-Scheduler::~Scheduler() {
-#ifdef OS_WINDOWS
-	WSACleanup();
-#endif
-}
-
-Scheduler &Scheduler::instance() {
-	static Scheduler g_instance;
-	return g_instance;
-}
-
-SOCKET Scheduler::open_socket(int domain, int type, int protocol) {
-
-	SOCKET fd = ::socket(domain, type, protocol);
-
-	if (fd != INVALID_SOCKET) {
-		m_sockets.emplace(fd, SocketInfo {false, true, false});
-	}
-
-	return fd;
-}
-
-void Scheduler::accept_socket(SOCKET fd) {
-	m_sockets.emplace(fd, SocketInfo {false, true, false});
-}
-
-Scheduler::Error Scheduler::close_socket(SOCKET fd) {
-	m_sockets.erase(fd);
-#ifdef OS_UNIX
-	return close(fd) == 0;
-#else
-	return closesocket(fd) == 0;
-#endif
-}
-
-bool Scheduler::is_socket_listening(SOCKET fd) const {
-
-	auto i = m_sockets.find(fd);
-
-	if (i != m_sockets.end()) {
-		return i->second.listening;
-	}
-
-	return false;
-}
-
-void Scheduler::set_socket_listening(SOCKET fd, bool listening) {
-
-	auto i = m_sockets.find(fd);
-
-	if (i != m_sockets.end()) {
-		i->second.listening = listening;
-	}
-}
-
-bool Scheduler::is_socket_blocking(SOCKET fd) const {
-
-	auto i = m_sockets.find(fd);
-
-	if (i != m_sockets.end()) {
-		return i->second.blocking;
-	}
-
-	return true;
-}
-
-void Scheduler::set_socket_blocking(SOCKET fd, bool blocking) {
-
-	auto i = m_sockets.find(fd);
-
-	if (i != m_sockets.end()) {
-		i->second.blocking = blocking;
-	}
-}
-
-bool Scheduler::is_socket_blocked(SOCKET fd) const {
-
-	auto i = m_sockets.find(fd);
-
-	if (i != m_sockets.end()) {
-		return i->second.blocked;
-	}
-
-	return false;
-}
-
-void Scheduler::set_socket_blocked(SOCKET fd, bool blocked) {
-
-	auto i = m_sockets.find(fd);
-
-	if (i != m_sockets.end()) {
-		i->second.blocked = blocked;
-	}
-}
-
-bool Scheduler::poll(std::vector<PollFd> &fdset, int timeout) {
-
-	std::vector<native_handle_t> handles;
-	handles.reserve(fdset.size());
-	std::transform(std::begin(fdset), std::end(fdset), std::back_inserter(handles), to_native_handle);
-
-#ifdef OS_UNIX
-	bool result = ::poll(handles.data(), handles.size(), timeout) != 0;
-#else
-	bool result = WSAWaitForMultipleEvents(static_cast<DWORD>(handles.size()), handles.data(), false,
-										   static_cast<DWORD>(timeout), true)
-				  != WSA_WAIT_TIMEOUT;
-#endif
-
-	for (size_t i = 0; i < handles.size(); ++i) {
-		if (revents_from_native_handle(fdset[i], handles[i])) {
-			result = true;
-		}
-	}
-
-	return result;
-}
-
 int errno_from_io_last_error() {
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 	static const std::unordered_map<int, int> g_errno_for = {
-		{WSAEINTR, ECANCELED},
-		{WSAEBADF, EBADF},
-		{WSAEACCES, EACCES},
-		{WSAEFAULT, EFAULT},
-		{WSAEINVAL, EINVAL},
-		{WSAEMFILE, EMFILE},
-		{WSAEWOULDBLOCK, EWOULDBLOCK},
-		{WSAEINPROGRESS, EINPROGRESS},
-		{WSAEALREADY, EALREADY},
-		{WSAENOTSOCK, ENOTSOCK},
-		{WSAEDESTADDRREQ, EDESTADDRREQ},
-		{WSAEMSGSIZE, EMSGSIZE},
-		{WSAEPROTOTYPE, EPROTOTYPE},
-		{WSAENOPROTOOPT, ENOPROTOOPT},
-		{WSAEPROTONOSUPPORT, EPROTONOSUPPORT},
+	    {WSAEINTR, ECANCELED},
+	    {WSAEBADF, EBADF},
+	    {WSAEACCES, EACCES},
+	    {WSAEFAULT, EFAULT},
+	    {WSAEINVAL, EINVAL},
+	    {WSAEMFILE, EMFILE},
+	    {WSAEWOULDBLOCK, EWOULDBLOCK},
+	    {WSAEINPROGRESS, EINPROGRESS},
+	    {WSAEALREADY, EALREADY},
+	    {WSAENOTSOCK, ENOTSOCK},
+	    {WSAEDESTADDRREQ, EDESTADDRREQ},
+	    {WSAEMSGSIZE, EMSGSIZE},
+	    {WSAEPROTOTYPE, EPROTOTYPE},
+	    {WSAENOPROTOOPT, ENOPROTOOPT},
+	    {WSAEPROTONOSUPPORT, EPROTONOSUPPORT},
 #ifdef ESOCKTNOSUPPORT
-		{WSAESOCKTNOSUPPORT, ESOCKTNOSUPPORT},
+	    {WSAESOCKTNOSUPPORT, ESOCKTNOSUPPORT},
 #endif
-		{WSAEOPNOTSUPP, EOPNOTSUPP},
+	    {WSAEOPNOTSUPP, EOPNOTSUPP},
 #ifdef EPFNOSUPPORT
-		{WSAEPFNOSUPPORT, EPFNOSUPPORT},
+	    {WSAEPFNOSUPPORT, EPFNOSUPPORT},
 #endif
-		{WSAEAFNOSUPPORT, EAFNOSUPPORT},
-		{WSAEADDRINUSE, EADDRINUSE},
-		{WSAEADDRNOTAVAIL, EADDRNOTAVAIL},
-		{WSAENETDOWN, ENETDOWN},
-		{WSAENETUNREACH, ENETUNREACH},
-		{WSAENETRESET, ENETRESET},
-		{WSAECONNABORTED, ECONNABORTED},
-		{WSAECONNRESET, ECONNRESET},
-		{WSAENOBUFS, ENOBUFS},
-		{WSAEISCONN, EISCONN},
-		{WSAENOTCONN, ENOTCONN},
+	    {WSAEAFNOSUPPORT, EAFNOSUPPORT},
+	    {WSAEADDRINUSE, EADDRINUSE},
+	    {WSAEADDRNOTAVAIL, EADDRNOTAVAIL},
+	    {WSAENETDOWN, ENETDOWN},
+	    {WSAENETUNREACH, ENETUNREACH},
+	    {WSAENETRESET, ENETRESET},
+	    {WSAECONNABORTED, ECONNABORTED},
+	    {WSAECONNRESET, ECONNRESET},
+	    {WSAENOBUFS, ENOBUFS},
+	    {WSAEISCONN, EISCONN},
+	    {WSAENOTCONN, ENOTCONN},
 #ifdef ESHUTDOWN
-		{WSAESHUTDOWN, ESHUTDOWN},
+	    {WSAESHUTDOWN, ESHUTDOWN},
 #endif
 #ifdef ETOOMANYREFS
-		{WSAETOOMANYREFS, ETOOMANYREFS},
+	    {WSAETOOMANYREFS, ETOOMANYREFS},
 #endif
-		{WSAETIMEDOUT, ETIMEDOUT},
-		{WSAECONNREFUSED, ECONNREFUSED},
-		{WSAELOOP, ELOOP},
-		{WSAENAMETOOLONG, ENAMETOOLONG},
+	    {WSAETIMEDOUT, ETIMEDOUT},
+	    {WSAECONNREFUSED, ECONNREFUSED},
+	    {WSAELOOP, ELOOP},
+	    {WSAENAMETOOLONG, ENAMETOOLONG},
 #ifdef EHOSTDOWN
-		{WSAEHOSTDOWN, EHOSTDOWN},
+	    {WSAEHOSTDOWN, EHOSTDOWN},
 #endif
-		{WSAEHOSTUNREACH, EHOSTUNREACH},
-		{WSAENOTEMPTY, ENOTEMPTY},
+	    {WSAEHOSTUNREACH, EHOSTUNREACH},
+	    {WSAENOTEMPTY, ENOTEMPTY},
 #ifdef EPROCLIM
-		{WSAEPROCLIM, EPROCLIM},
+	    {WSAEPROCLIM, EPROCLIM},
 #endif
 #ifdef EUSERS
-		{WSAEUSERS, EUSERS},
+	    {WSAEUSERS, EUSERS},
 #endif
 #ifdef EDQUOT
-		{WSAEDQUOT, EDQUOT},
+	    {WSAEDQUOT, EDQUOT},
 #endif
 #ifdef ESTALE
-		{WSAESTALE, ESTALE},
+	    {WSAESTALE, ESTALE},
 #endif
 #ifdef EREMOTE
-		{WSAEREMOTE, EREMOTE},
+	    {WSAEREMOTE, EREMOTE},
 #endif
-		/** @todo
+	    /** @todo
 		{ WSASYSNOTREADY, },
 		{ WSAVERNOTSUPPORTED, },
 		{ WSANOTINITIALISED, },
@@ -500,3 +489,10 @@ int errno_from_io_last_error() {
 	return errno;
 #endif
 }
+
+MINT_EXPORT_FUNCTION(mint_scheduler_pollfd_new, 1);
+MINT_EXPORT_FUNCTION(mint_scheduler_pollfd_delete, 1);
+MINT_EXPORT_FUNCTION(mint_scheduler_set_events, 2);
+MINT_EXPORT_FUNCTION(mint_scheduler_get_events, 1);
+MINT_EXPORT_FUNCTION(mint_scheduler_get_revents, 1);
+MINT_EXPORT_FUNCTION(mint_scheduler_poll, 2);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,263 +21,277 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/casttool.h>
-#include <mint/memory/builtin/string.h>
+#include "ip.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
 #include "scheduler.h"
 #include "socket.h"
+#include <algorithm>
+#include <cerrno>
+#include <cstdint>
+#include <iterator>
+#include <vector>
 
-#ifdef OS_UNIX
-#include <sys/ioctl.h>
-#include <sys/types.h>
-#include <netinet/in.h>
+#ifdef MINT_OS_WINDOWS
+#include <cstdio>
+#include <Windows.h>
+#include <winsock2.h>
+#else
+#ifdef MINT_OS_LINUX
 #include <linux/sockios.h>
 #endif
+#include <asm-generic/socket.h>
+#include <memory>
+#include <netinet/in.h>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#endif
 
-using namespace mint;
+namespace {
 
-MINT_FUNCTION(mint_tcp_ip_socket_open, 1, cursor) {
+mint::WeakReference mint_tcp_ip_socket_open(mint::Cursor& cursor, const mint::Reference& ip_version) {
 
-	FunctionHelper helper(cursor, 1);
-	Reference &ip_version = helper.pop_parameter();
-	WeakReference result = create_iterator();
+	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	auto socket_fd = INVALID_SOCKET;
 
-	SOCKET socket_fd = INVALID_SOCKET;
-
-	switch (to_integer(cursor, ip_version)) {
-	case 4:
+	switch (to_integer<int>(cursor, ip_version)) {
+	case mint::ip_version_4:
 		socket_fd = Scheduler::instance().open_socket(AF_INET, SOCK_STREAM, 0);
 		break;
-	case 6:
+	case mint::ip_version_6:
 		socket_fd = Scheduler::instance().open_socket(AF_INET6, SOCK_STREAM, 0);
 		break;
 	default:
-		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_yield(result.data<Iterator>(), create_number(EOPNOTSUPP));
-		helper.return_value(std::move(result));
-		return;
+		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(EOPNOTSUPP));
+		return result;
 	}
 
 	if (socket_fd != INVALID_SOCKET) {
-		iterator_yield(result.data<Iterator>(), create_number(socket_fd));
-		if (set_socket_option(socket_fd, SO_REUSEADDR, SOCKOPT_TRUE)) {
-			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_unsigned_number(socket_fd));
+		if (mint::set_socket_option(socket_fd, SO_REUSEADDR, mint::sockopt_true)) {
+			iterator_yield(result.data<mint::Iterator>(), mint::create_none());
 		}
 		else {
-			iterator_yield(result.data<Iterator>(), create_number(errno));
+			iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno));
 		}
 	}
 	else {
-		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
 	}
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_tcp_ip_socket_send, 2, cursor) {
+mint::WeakReference mint_tcp_ip_socket_send(mint::FunctionHelper& helper, const mint::Reference& socket,
+    mint::Reference& buffer) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &buffer = helper.pop_parameter();
-	Reference &socket = helper.pop_parameter();
-	WeakReference result = create_iterator();
+	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
 
-	SOCKET socket_fd = to_integer(cursor, socket);
-	std::vector<uint8_t> *buf = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
-	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
+	const auto socket_fd = to_integer<SOCKET>(helper.cursor(), socket);
+	std::vector<std::uint8_t>* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto io_status =
+	    helper.reference(mint::symbols::network).member(mint::symbols::end_point).member(mint::symbols::io_status);
 
-#ifdef OS_WINDOWS
-	int flags = 0;
+#ifdef MINT_OS_WINDOWS
+	const auto flags = 0;
 #else
-	int flags = MSG_NOSIGNAL;
+	const auto flags = MSG_NOSIGNAL;
 #endif
 
-	auto count = send(socket_fd, reinterpret_cast<const char *>(buf->data()), buf->size(), flags);
+	const auto count = send(socket_fd, reinterpret_cast<const char*>(buf->data()), static_cast<int>(buf->size()), flags);
 
 	switch (count) {
 	case -1:
 		switch (const int error = errno_from_io_last_error()) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
-			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_would_block).share());
 			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 
 		case EPIPE:
-			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_closed).share());
 			break;
 
 		default:
-			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-			iterator_yield(result.data<Iterator>(), create_number(error));
+			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_error).share());
+			iterator_yield(result.data<mint::Iterator>(), mint::create_number(error));
 			break;
 		}
 		break;
 	case 0:
-		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+		iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_closed).share());
 		break;
 	default:
-		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
-		iterator_yield(result.data<Iterator>(), create_number(count));
+		iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_success).share());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_signed_number(count));
 		break;
 	}
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_tcp_ip_socket_recv, 2, cursor) {
+mint::WeakReference mint_tcp_ip_socket_recv(mint::FunctionHelper& helper, const mint::Reference& socket,
+    mint::Reference& buffer) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &buffer = helper.pop_parameter();
-	Reference &socket = helper.pop_parameter();
-	WeakReference result = create_iterator();
+	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+
+	const auto socket_fd = to_integer<SOCKET>(helper.cursor(), socket);
+	std::vector<std::uint8_t>* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto io_status =
+	    helper.reference(mint::symbols::network).member(mint::symbols::end_point).member(mint::symbols::io_status);
 
 	socklen_t length = 0;
-	SOCKET socket_fd = to_integer(cursor, socket);
-	std::vector<uint8_t> *buf = buffer.data<LibObject<std::vector<uint8_t>>>()->impl;
-	auto IOStatus = helper.reference(symbols::Network).member(symbols::EndPoint).member(symbols::IOStatus);
-
-#ifdef OS_UNIX
+#ifdef MINT_OS_UNIX
 	if (ioctl(socket_fd, SIOCINQ, &length) != -1) {
 #else
 	length = BUFSIZ; /// @todo get better value
 #endif
 
-		std::unique_ptr<uint8_t[]> local_buffer(new uint8_t[length]);
-		auto count = recv(socket_fd, reinterpret_cast<char *>(local_buffer.get()), static_cast<size_t>(length), 0);
+		auto local_buffer = std::make_unique<std::uint8_t[]>(length);
+		auto count = recv(socket_fd, reinterpret_cast<char*>(local_buffer.get()), static_cast<int>(length), 0);
 
 		switch (count) {
 		case -1:
 			switch (const int error = errno_from_io_last_error()) {
 			case EINPROGRESS:
 			case EWOULDBLOCK:
-				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOWouldBlock));
+				iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_would_block).share());
 				Scheduler::instance().set_socket_blocked(socket_fd, true);
 				break;
 
 			case EPIPE:
-				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+				iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_closed).share());
 				break;
 
 			default:
-				iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-				iterator_yield(result.data<Iterator>(), create_number(error));
+				iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_error).share());
+				iterator_yield(result.data<mint::Iterator>(), mint::create_number(error));
 				break;
 			}
 			break;
 		case 0:
-			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOClosed));
+			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_closed).share());
 			break;
 		default:
-			iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOSuccess));
-			copy_n(local_buffer.get(), count, back_inserter(*buf));
+			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_success).share());
+			std::copy_n(local_buffer.get(), count, std::back_inserter(*buf));
 			break;
 		}
-#ifdef OS_UNIX
+#ifdef MINT_OS_UNIX
 	}
 	else {
-		iterator_yield(result.data<Iterator>(), IOStatus.member(symbols::IOError));
-		iterator_yield(result.data<Iterator>(), create_number(errno));
+		iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_error).share());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno));
 	}
 #endif
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_socket_setup_tcp_options, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &TcpSocketOption = helper.pop_parameter();
+mint::WeakReference mint_socket_setup_tcp_options(mint::Cursor& /*cursor*/, const mint::Reference& tcp_socket_option) {
 
 #define BIND_TCP_VALUE(_enum, _option) \
-	_enum.data<Object>()->metadata->globals()[#_option]->value.data<Number>()->value = TCP_##_option
+	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = TCP_##_option
 #define BIND_TCP_DISABLE(_enum, _option) \
-	_enum.data<Object>()->metadata->globals()[#_option]->value.move_data(WeakReference::create<None>())
+	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
 
 #ifdef TCP_MAXSEG
-	BIND_TCP_VALUE(TcpSocketOption, MAXSEG);
+	BIND_TCP_VALUE(tcp_socket_option, MAXSEG);
 #else
-	BIND_TCP_DISABLE(TcpSocketOption, MAXSEG);
+	BIND_TCP_DISABLE(tcp_socket_option, MAXSEG);
 #endif
 #ifdef TCP_NODELAY
-	BIND_TCP_VALUE(TcpSocketOption, NODELAY);
+	BIND_TCP_VALUE(tcp_socket_option, NODELAY);
 #else
-	BIND_TCP_DISABLE(TcpSocketOption, NODELAY);
+	BIND_TCP_DISABLE(tcp_socket_option, NODELAY);
 #endif
+
+	return {};
 }
 
-MINT_FUNCTION(mint_socket_get_tcp_option_number, 2, cursor) {
+mint::WeakReference mint_socket_get_tcp_option_number(mint::Cursor& cursor, const mint::Reference& socket,
+    mint::Reference& option) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &option = helper.pop_parameter();
-	Reference &socket = helper.pop_parameter();
-	WeakReference result = create_iterator();
+	mint::WeakReference result = mint::create_iterator(cursor.ast());
 
-	const SOCKET socket_fd = to_integer(cursor, socket);
-	const int option_id = to_integer(cursor, option);
+	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
+	const auto option_id = to_integer<int>(cursor, option);
 	int option_value = 0;
 
-	if (get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
-		iterator_yield(result.data<Iterator>(), create_number(option_value));
+	if (mint::get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(option_value));
 	}
 	else {
-		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
 	}
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_socket_set_tcp_option_number, 3, cursor) {
+mint::WeakReference mint_socket_set_tcp_option_number(mint::Cursor& cursor, const mint::Reference& socket,
+    mint::Reference& option, const mint::Reference& value) {
 
-	FunctionHelper helper(cursor, 3);
-	Reference &value = helper.pop_parameter();
-	Reference &option = helper.pop_parameter();
-	Reference &socket = helper.pop_parameter();
+	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
+	const auto option_id = to_integer<int>(cursor, option);
+	const auto option_value = to_integer<int>(cursor, value);
 
-	const SOCKET socket_fd = to_integer(cursor, socket);
-	const int option_id = to_integer(cursor, option);
-	const int option_value = to_integer(cursor, value);
-
-	if (!set_socket_option(socket_fd, IPPROTO_TCP, option_id, option_value)) {
-		helper.return_value(create_number(errno_from_io_last_error()));
+	if (!mint::set_socket_option(socket_fd, IPPROTO_TCP, option_id, option_value)) {
+		return mint::create_number(errno_from_io_last_error());
 	}
+
+	return {};
 }
 
-MINT_FUNCTION(mint_socket_get_tcp_option_boolean, 2, cursor) {
+mint::WeakReference mint_socket_get_tcp_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
+    mint::Reference& option) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &option = helper.pop_parameter();
-	Reference &socket = helper.pop_parameter();
-	WeakReference result = create_iterator();
+	mint::WeakReference result = mint::create_iterator(cursor.ast());
 
-	const SOCKET socket_fd = to_integer(cursor, socket);
-	const int option_id = to_integer(cursor, option);
-	sockopt_bool option_value = SOCKOPT_FALSE;
+	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
+	const auto option_id = to_integer<int>(cursor, option);
+	mint::sockopt_bool option_value = mint::sockopt_false;
 
-	if (get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
-		iterator_yield(result.data<Iterator>(), create_boolean(option_value != SOCKOPT_FALSE));
+	if (mint::get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
+		iterator_yield(result.data<mint::Iterator>(), mint::create_boolean(option_value != mint::sockopt_false));
 	}
 	else {
-		iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
-		iterator_yield(result.data<Iterator>(), create_number(errno_from_io_last_error()));
+		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
 	}
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_socket_set_tcp_option_boolean, 3, cursor) {
+mint::WeakReference mint_socket_set_tcp_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
+    mint::Reference& option, const mint::Reference& value) {
 
-	FunctionHelper helper(cursor, 3);
-	Reference &value = helper.pop_parameter();
-	Reference &option = helper.pop_parameter();
-	Reference &socket = helper.pop_parameter();
+	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
+	const auto option_id = to_integer<int>(cursor, option);
+	const mint::sockopt_bool option_value = to_boolean(value) ? mint::sockopt_true : mint::sockopt_false;
 
-	const SOCKET socket_fd = to_integer(cursor, socket);
-	const int option_id = to_integer(cursor, option);
-	const sockopt_bool option_value = to_boolean(value) ? SOCKOPT_TRUE : SOCKOPT_FALSE;
-
-	if (!set_socket_option(socket_fd, IPPROTO_TCP, option_id, option_value)) {
-		helper.return_value(create_number(errno_from_io_last_error()));
+	if (!mint::set_socket_option(socket_fd, IPPROTO_TCP, option_id, option_value)) {
+		return mint::create_number(errno_from_io_last_error());
 	}
+
+	return {};
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_tcp_ip_socket_open, 1);
+MINT_EXPORT_FUNCTION(mint_tcp_ip_socket_send, 2);
+MINT_EXPORT_FUNCTION(mint_tcp_ip_socket_recv, 2);
+MINT_EXPORT_FUNCTION(mint_socket_setup_tcp_options, 1);
+MINT_EXPORT_FUNCTION(mint_socket_get_tcp_option_number, 2);
+MINT_EXPORT_FUNCTION(mint_socket_set_tcp_option_number, 3);
+MINT_EXPORT_FUNCTION(mint_socket_get_tcp_option_boolean, 2);
+MINT_EXPORT_FUNCTION(mint_socket_set_tcp_option_boolean, 3);

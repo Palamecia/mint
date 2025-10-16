@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,71 +24,61 @@
 #ifndef MDBG_INTERACTIVEDEBUGGER_H
 #define MDBG_INTERACTIVEDEBUGGER_H
 
+#include "commandrunner.h"
 #include "debuggerbackend.h"
 
-#include <mint/system/terminal.h>
+#include "mint/ast/module.h"
+#include "mint/debug/cursordebugger.h"
+#include "mint/debug/debuginterface.h"
+#include "mint/scheduler/scheduler.h"
+#include "mint/system/terminal.h"
+#include <unordered_set>
 
 class InteractiveDebugger : public DebuggerBackend {
 public:
-	InteractiveDebugger() = default;
-	InteractiveDebugger(const InteractiveDebugger &) = delete;
-	InteractiveDebugger(InteractiveDebugger &&) = delete;
-	~InteractiveDebugger();
+	InteractiveDebugger();
 
-	InteractiveDebugger &operator=(const InteractiveDebugger &) = delete;
-	InteractiveDebugger &operator=(InteractiveDebugger &&) = delete;
+	bool setup(Debugger& debugger, mint::Scheduler& scheduler) override;
+	bool process_events(Debugger& debugger, mint::CursorDebugger& cursor) override;
+	bool check(Debugger& debugger, mint::CursorDebugger& cursor) override;
+	void cleanup(Debugger& debugger, mint::Scheduler& scheduler) override;
 
-	bool setup(Debugger *debugger, mint::Scheduler *scheduler) override;
-	bool handle_events(Debugger *debugger, mint::CursorDebugger *cursor) override;
-	bool check(Debugger *debugger, mint::CursorDebugger *cursor) override;
-	void cleanup(Debugger *debugger, mint::Scheduler *scheduler) override;
+	void on_thread_started(Debugger& debugger, mint::CursorDebugger& cursor) override;
+	void on_thread_exited(Debugger& debugger, mint::CursorDebugger& cursor) override;
 
-	void on_thread_started(Debugger *debugger, mint::CursorDebugger *cursor) override;
-	void on_thread_exited(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	void on_breakpoint_created(Debugger& debugger, const mint::Breakpoint& breakpoint) override;
+	void on_breakpoint_deleted(Debugger& debugger, const mint::Breakpoint& breakpoint) override;
 
-	void on_breakpoint_created(Debugger *debugger, const mint::Breakpoint &breakpoint) override;
-	void on_breakpoint_deleted(Debugger *debugger, const mint::Breakpoint &breakpoint) override;
+	void on_module_loaded(Debugger& debugger, mint::CursorDebugger& cursor, mint::Module& module) override;
 
-	void on_module_loaded(Debugger *debugger, mint::CursorDebugger *cursor, mint::Module *module) override;
+	bool on_breakpoint(Debugger& debugger, mint::CursorDebugger& cursor,
+	    const std::unordered_set<mint::Breakpoint::Id>& breakpoints) override;
+	bool on_exception(Debugger& debugger, mint::CursorDebugger& cursor) override;
+	bool on_pause(Debugger& debugger, mint::CursorDebugger& cursor) override;
+	bool on_step(Debugger& debugger, mint::CursorDebugger& cursor) override;
 
-	bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor,
-					   const std::unordered_set<mint::Breakpoint::Id> &breakpoints) override;
-	bool on_exception(Debugger *debugger, mint::CursorDebugger *cursor) override;
-	bool on_pause(Debugger *debugger, mint::CursorDebugger *cursor) override;
-	bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) override;
+	void on_exit(Debugger& debugger, int code) override;
+	void on_error(Debugger& debugger) override;
 
-	void on_exit(Debugger *debugger, int code) override;
-	void on_error(Debugger *debugger) override;
-
-protected:
-	bool on_continue(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_next(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_enter(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_return(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_thread(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_backtrace(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_print(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_list(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_show(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_eval(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-	bool on_quit(Debugger *debugger, mint::CursorDebugger *cursor, std::istringstream &stream);
-
-	void print_commands();
+	void stop();
 
 private:
-	struct Command {
-		std::vector<std::string> names;
-		std::string desc;
-		bool (InteractiveDebugger::*func)(Debugger *, mint::CursorDebugger *, std::istringstream &);
-	};
+	static void init_continue(CommandRunner::Command& command);
+	static void init_next(CommandRunner::Command& command);
+	static void init_enter(CommandRunner::Command& command);
+	static void init_return(CommandRunner::Command& command);
+	static void init_thread(CommandRunner::Command& command);
+	static void init_backtrace(CommandRunner::Command& command);
+	static void init_breakpoint(CommandRunner::Command& command);
+	static void init_print(CommandRunner::Command& command);
+	static void init_list(CommandRunner::Command& command);
+	static void init_show(CommandRunner::Command& command);
+	static void init_eval(CommandRunner::Command& command);
+	void init_quit(CommandRunner::Command& command);
 
-	static std::vector<Command> g_commands;
-
-	bool call_command(const std::string &command, Debugger *debugger, mint::CursorDebugger *cursor,
-					  std::istringstream &stream);
-
-	mint::Terminal m_terminal;
+	CommandRunner _command_runner;
+	mint::Terminal _terminal;
+	bool _running = true;
 };
 
 #endif // MDBG_INTERACTIVEDEBUGGER_H

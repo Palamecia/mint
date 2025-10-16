@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,9 +23,10 @@
 
 #include "casetable.h"
 #include "branch.h"
+#include <memory>
 
 using namespace mint;
 
-CaseTable::Label::Label(Branch *parent) :
-	condition(new SubBranch(parent)),
-	offset(parent->next_node_offset()) {}
+CaseTable::Label::Label(Branch& parent) :
+    condition(std::make_unique<SubBranch>(parent)),
+    offset(parent.next_node_offset()) {}

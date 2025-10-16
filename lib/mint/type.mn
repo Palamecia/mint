@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -348,8 +348,7 @@ def [g_lib = lib('libmint-mint')] type(object) {
  * name and no standard instanciation is applicable.
  * 
  * By default, each created member is public and local. Members visibility can be
- * changed using the `private` and `protected` function. Global members can be
- * created using the `createGlobalMember` function.
+ * changed using the `private` and `protected` function.
  */
 def [g_lib = lib('libmint-mint')] type(type, members) {
 	return g_lib.call('mint_lang_create_type', type, [], members)
@@ -369,8 +368,7 @@ def [g_lib = lib('libmint-mint')] type(type, members) {
  * name and no standard instanciation is applicable.
  * 
  * By default, each created member is public and local. Members visibility can be
- * changed using the `private` and `protected` function. Global members can be
- * created using the `createGlobalMember` function.
+ * changed using the `private` and `protected` function.
  */
 def [g_lib = lib('libmint-mint')] type(type, bases, members) {
 	return g_lib.call('mint_lang_create_type', type, bases, members)
@@ -385,20 +383,6 @@ def [g_lib = lib('libmint-mint')] getMemberInfo(type, memberName) {
 	if info = g_lib.call('mint_type_get_member_info', type, memberName) {
 		return MemberInfo(*info)
 	}
-}
-
-/**
- * Creates a new global member named `memberName` for the type given by `type` if no
- * global member with the same name already exists.
- * 
- * If `value` is given, the member is initialized with the given value; otherwise
- * the member is initialized to `none`.
- * 
- * Returns `type` if the members was successfully created; otherwise returns
- * `none`.
- */
-def [g_lib = lib('libmint-mint')] createGlobalMember(type, memberName, value = none) {
-	return g_lib.call('mint_lang_create_object_global', type, memberName, value) ? type : none
 }
 
 /**
@@ -454,7 +438,7 @@ def [g_lib = lib('libmint-mint')] isCopyable(type) {
  * of the method call is returned; otherwise a built-in copy operation is
  * performed.
  */
-def [g_lib = lib('libmint-mint')] copy(value) {
+def [g_lib = lib('libmint-mint')] clone(value) {
 
 	if defined value.clone {
 		return value.clone()

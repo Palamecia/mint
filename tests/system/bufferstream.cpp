@@ -1,14 +1,14 @@
+#include <cstdio>
 #include <gtest/gtest.h>
-#include <mint/system/bufferstream.h>
-
-using namespace mint;
+#include <string>
+#include "mint/system/bufferstream.h"
 
 TEST(bufferstream, get_char) {
 
-	std::string buffer = "test1\ntest2";
-	BufferStream stream(buffer);
+	const auto buffer = std::string("test1\ntest2");
+	mint::BufferStream stream(buffer);
 
-	for (char c : buffer) {
+	for (const char c : buffer) {
 		EXPECT_EQ(c, stream.get_char());
 	}
 
@@ -18,10 +18,10 @@ TEST(bufferstream, get_char) {
 
 TEST(bufferstream, at_end) {
 
-	std::string buffer = "test1\ntest2\n";
-	BufferStream stream(buffer);
+	const auto buffer = std::string("test1\ntest2\n");
+	mint::BufferStream stream(buffer);
 
-	for (char c : buffer) {
+	for (const char c : buffer) {
 		EXPECT_FALSE(stream.at_end());
 		EXPECT_EQ(c, stream.get_char());
 	}
@@ -37,12 +37,12 @@ TEST(bufferstream, at_end) {
 
 TEST(bufferstream, is_valid) {
 
-	BufferStream stream("");
+	const auto stream = mint::BufferStream("");
 	EXPECT_TRUE(stream.is_valid());
 }
 
 TEST(bufferstream, path) {
 
-	BufferStream stream("");
+	const auto stream = mint::BufferStream("");
 	EXPECT_EQ("buffer", stream.path());
 }

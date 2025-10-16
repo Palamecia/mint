@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,41 +21,43 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_BUILTIN_LIBRARY_H
-#define MINT_BUILTIN_LIBRARY_H
+#ifndef MINT_MEMORY_BUILTIN_LIBRARY_H
+#define MINT_MEMORY_BUILTIN_LIBRARY_H
 
+#include "mint/config.h"
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
+#include <memory>
 
 namespace mint {
 
+class AbstractSyntaxTree;
+class GarbageCollector;
 class Plugin;
 
 class MINT_EXPORT LibraryClass : public Class {
-	friend class GlobalData;
 public:
-	static LibraryClass *instance();
-
-private:
-	LibraryClass();
+	explicit LibraryClass(AbstractSyntaxTree& ast);
+	static LibraryClass& instance(AbstractSyntaxTree& ast);
 };
 
-struct MINT_EXPORT Library : public Object {
+class MINT_EXPORT Library : public Object {
 	friend class GarbageCollector;
 public:
-	Library();
-	Library(Library &&other) noexcept;
-	Library(const Library &other);
+	Library(AbstractSyntaxTree& ast);
+	Library(Library&& other) noexcept;
+	Library(const Library& other);
 	~Library() override;
 
-	Library &operator=(Library &&other) noexcept;
-	Library &operator=(const Library &other);
+	Library& operator=(Library&& other) noexcept;
+	Library& operator=(const Library& other);
 
-	Plugin *plugin;
+	std::unique_ptr<Plugin> plugin;
 
 private:
 	static LocalPool<Library> g_pool;
 };
+
 }
 
-#endif // MINT_BUILTIN_LIBRARY_H
+#endif // MINT_MEMORY_BUILTIN_LIBRARY_H

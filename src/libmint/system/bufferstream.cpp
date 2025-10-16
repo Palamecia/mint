@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,21 +23,19 @@
 
 #include "mint/system/bufferstream.h"
 
-#include <cstring>
+#include <cstdio>
+#include <filesystem>
+#include <string>
+#include <utility>
 
 using namespace mint;
 
-BufferStream::BufferStream(const std::string &buffer) :
-	m_buffer(strdup(buffer.c_str())),
-	m_cptr(m_buffer),
-	m_status(READY) {}
-
-BufferStream::~BufferStream() {
-	free(const_cast<char *>(m_buffer));
-}
+BufferStream::BufferStream(std::string buffer) :
+    _buffer(std::move(buffer)),
+    _status(Status::ready) {}
 
 bool BufferStream::at_end() const {
-	return m_status == OVER;
+	return _status == Status::over;
 }
 
 bool BufferStream::is_valid() const {
@@ -49,22 +47,25 @@ std::filesystem::path BufferStream::path() const {
 }
 
 int BufferStream::read_char() {
-	switch (m_status) {
-	case READY:
-		if (*m_cptr == '\0') {
-			m_status = FLUSH;
+	switch (_status) {
+	case Status::ready:
+		if (_pos == _buffer.size()) {
+			_status = Status::flush;
 			return '\n';
 		}
 		break;
-	case FLUSH:
-		m_status = OVER;
+	case Status::flush:
+		_status = Status::over;
 		return EOF;
-	case OVER:
+	case Status::over:
 		return EOF;
 	}
 	return next_buffered_char();
 }
 
 int BufferStream::next_buffered_char() {
-	return *m_cptr++;
+	if (_pos < _buffer.size()) {
+		return _buffer[_pos++];
+	}
+	return 0;
 }

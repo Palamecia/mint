@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,32 +24,40 @@
 #ifndef MINTDOC_GENERATORS_ABSTRACTGENERATOR_H
 #define MINTDOC_GENERATORS_ABSTRACTGENERATOR_H
 
-#include "dictionary.h"
+#include "definition.h"
+#include "module.h"
+#include "page.h"
 #include <filesystem>
+#include <functional>
+#include <vector>
+
+class Dictionary;
 
 class AbstractGenerator {
 public:
 	AbstractGenerator() = default;
-	AbstractGenerator(const AbstractGenerator &) = delete;
-	AbstractGenerator(AbstractGenerator &&) = delete;
+	AbstractGenerator(const AbstractGenerator&) = delete;
+	AbstractGenerator(AbstractGenerator&&) = delete;
 	virtual ~AbstractGenerator();
 
-	AbstractGenerator &operator=(const AbstractGenerator &) = delete;
-	AbstractGenerator &operator=(AbstractGenerator &&) = delete;
+	AbstractGenerator& operator=(const AbstractGenerator&) = delete;
+	AbstractGenerator& operator=(AbstractGenerator&&) = delete;
 
-	virtual void setup_links(const Dictionary *dictionary, Module *module) = 0;
+	virtual void setup_links(const Dictionary& dictionary, Module& module) = 0;
 
-	virtual void generate_module_list(const Dictionary *dictionary, const std::filesystem::path &path,
-									  const std::vector<Module *> &modules) = 0;
-	virtual void generate_module(const Dictionary *dictionary, const std::filesystem::path &path, Module *module) = 0;
+	virtual void generate_module_list(const Dictionary& dictionary, const std::filesystem::path& path,
+	    const std::vector<std::reference_wrapper<const Module>>& modules) = 0;
+	virtual void generate_module(const Dictionary& dictionary, const std::filesystem::path& path,
+	    const Module& module) = 0;
 
-	virtual void generate_package_list(const Dictionary *dictionary, const std::filesystem::path &path,
-									   const std::vector<Package *> &packages) = 0;
-	virtual void generate_package(const Dictionary *dictionary, const std::filesystem::path &path, Package *package) = 0;
+	virtual void generate_package_list(const Dictionary& dictionary, const std::filesystem::path& path,
+	    const std::vector<std::reference_wrapper<const Package>>& packages) = 0;
+	virtual void generate_package(const Dictionary& dictionary, const std::filesystem::path& path,
+	    const Package& package) = 0;
 
-	virtual void generate_page_list(const Dictionary *dictionary, const std::filesystem::path &path,
-									const std::vector<Page *> &pages) = 0;
-	virtual void generate_page(const Dictionary *dictionary, const std::filesystem::path &path, Page *page) = 0;
+	virtual void generate_page_list(const Dictionary& dictionary, const std::filesystem::path& path,
+	    const std::vector<std::reference_wrapper<const Page>>& pages) = 0;
+	virtual void generate_page(const Dictionary& dictionary, const std::filesystem::path& path, const Page& page) = 0;
 };
 
 #endif // MINTDOC_GENERATORS_ABSTRACTGENERATOR_H

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,19 +22,41 @@
  */
 
 #include "mint/system/terminal.h"
+#include "mint/config.h"
 #include "mint/system/utf8.h"
 #include "mint/system/assert.h"
 #include "mint/system/errno.h"
 
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <ctype.h>
+#include <functional>
+#include <optional>
+#include <print>
+#include <stdio.h>
 #include <string>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string_view>
+#include <system_error>
+#include <tuple>
 #include <utility>
+#include <vector>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include "win32/terminal.h"
+#include <Windows.h>
+#include <corecrt_io.h>
+#include <handleapi.h>
 #include <io.h>
+#include <processenv.h>
+#include <winbase.h>
+#include <winnt.h>
 #else
 #include "unix/terminal.h"
 #include <unistd.h>
@@ -42,70 +64,82 @@
 #endif
 
 using namespace mint;
-using std::chrono::operator""ms;
+using namespace std::chrono_literals;
 
 TerminalInfo Terminal::g_term;
 Tty Terminal::g_tty;
 
-size_t Terminal::get_width() {
+std::size_t Terminal::get_width() {
 	TerminalInfo term;
 	term_update_dim(&term);
 	return term.width;
 }
 
-size_t Terminal::get_height() {
+std::size_t Terminal::get_height() {
 	TerminalInfo term;
 	term_update_dim(&term);
 	return term.height;
 }
 
-size_t Terminal::get_cursor_row() {
-	CursorPos pos = {0, 0};
+std::size_t Terminal::get_cursor_row() {
+	CursorPos pos = {
+	    .row = 0,
+	    .column = 0,
+	};
 	term_get_cursor_pos(&pos);
 	return pos.row;
 }
 
-size_t Terminal::get_cursor_column() {
-	CursorPos pos = {0, 0};
+std::size_t Terminal::get_cursor_column() {
+	CursorPos pos = {
+	    .row = 0,
+	    .column = 0,
+	};
 	term_get_cursor_pos(&pos);
 	return pos.column;
 }
 
 CursorPos Terminal::get_cursor_pos() {
-	CursorPos pos = {0, 0};
+	CursorPos pos = {
+	    .row = 0,
+	    .column = 0,
+	};
 	term_get_cursor_pos(&pos);
 	return pos;
 }
 
-void Terminal::set_cursor_pos(const CursorPos &pos) {
+void Terminal::set_cursor_pos(const CursorPos& pos) {
 	term_set_cursor_pos(pos);
 }
 
-void Terminal::set_cursor_pos(size_t row, size_t column) {
-	term_set_cursor_pos({row, column});
+void Terminal::set_cursor_pos(std::size_t row, std::size_t column) {
+	term_set_cursor_pos({
+	    .row = row,
+	    .column = column,
+	});
 }
 
-void Terminal::move_cursor_left(size_t count) {
+void Terminal::move_cursor_left(std::size_t count) {
 	if (count) {
-		printf(stdout, "\033[%zdD", count);
+		std::print(stdout, "\033[{}D", count);
 	}
 }
 
-void Terminal::move_cursor_right(size_t count) {
+void Terminal::move_cursor_right(std::size_t count) {
 	if (count) {
-		printf(stdout, "\033[%zdC", count);
+		std::print(stdout, "\033[{}C", count);
 	}
 }
 
-void Terminal::move_cursor_up(size_t count) {
+void Terminal::move_cursor_up(std::size_t count) {
 	if (count) {
-		printf(stdout, "\033[%zdA", count);
+		std::print(stdout, "\033[{}A", count);
 	}
 }
 
-void Terminal::move_cursor_down(size_t count) {
+void Terminal::move_cursor_down(std::size_t count) {
 	if (count) {
-		printf(stdout, "\033[%zdB", count);
+		std::print(stdout, "\033[{}B", count);
 	}
 }
 
@@ -113,37 +147,37 @@ void Terminal::move_cursor_to_start_of_line() {
 	print(stdout, "\r");
 }
 
-void Terminal::set_prompt(std::function<std::string(size_t)> prompt) {
-	m_prompt = std::move(prompt);
+void Terminal::set_prompt(std::function<std::string(std::size_t)> prompt) {
+	_prompt = std::move(prompt);
 }
 
-void Terminal::set_auto_braces(const std::string &auto_braces) {
-	m_auto_braces = reinterpret_cast<const byte_t *>(auto_braces.data());
+void Terminal::set_auto_braces(const std::string& auto_braces) {
+	_auto_braces = reinterpret_cast<const byte_t*>(auto_braces.data());
 }
 
 void Terminal::set_highlighter(HighlighterFunction highlight) {
-	m_highlight = std::move(highlight);
+	_highlight = std::move(highlight);
 }
 
 void Terminal::set_completion_generator(CompletionGeneratorFunction generator) {
-	m_generate_completions = std::move(generator);
+	_generate_completions = std::move(generator);
 }
 
 void Terminal::set_brace_matcher(BraceMatcherFunction matcher) {
-	m_braces_match = std::move(matcher);
+	_braces_match = std::move(matcher);
 }
 
-void Terminal::add_history(const std::string &line) {
-	auto it = m_history.begin();
-	while (it != m_history.end()) {
+void Terminal::add_history(const std::string& line) {
+	auto it = _history.begin();
+	while (it != _history.end()) {
 		if (*it == line) {
-			it = m_history.erase(it);
+			it = _history.erase(it);
 		}
 		else {
 			++it;
 		}
 	}
-	m_history.push_back(line);
+	_history.push_back(line);
 }
 
 std::optional<std::string> Terminal::read_line() {
@@ -153,152 +187,116 @@ std::optional<std::string> Terminal::read_line() {
 	return buffer;
 }
 
-int Terminal::print(FILE *stream, const char *str) {
+std::size_t Terminal::write(FILE* stream, const std::string& str) {
+#ifdef MINT_OS_WINDOWS
+	if (str.empty()) {
+		return 0;
+	}
 
-#ifdef OS_UNIX
-	return fputs(str, stream);
-#else
-	HANDLE hTerminal = INVALID_HANDLE_VALUE;
+	HANDLE terminal = INVALID_HANDLE_VALUE;
 
 	if (stream == stdout) {
-		hTerminal = GetStdHandle(STD_OUTPUT_HANDLE);
+		terminal = GetStdHandle(STD_OUTPUT_HANDLE);
 	}
 	else if (stream == stderr) {
-		hTerminal = GetStdHandle(STD_ERROR_HANDLE);
+		terminal = GetStdHandle(STD_ERROR_HANDLE);
 	}
 	else {
-		return fputs(str, stream);
-	}
-
-	if (term_vt100_enabled_for_console(hTerminal)) {
-		return WriteMultiByteToConsoleW(hTerminal, str);
-	}
-
-	int written_all = 0;
-
-	while (const char *cptr = strstr(str, "\033[")) {
-
-		int written = WriteMultiByteToConsoleW(hTerminal, str, static_cast<int>(cptr - str));
-
-		if (written == EOF) {
-			errno = errno_from_error_code(last_error_code());
-			return written;
+		const auto amount = std::fputs(str.data(), stream);
+		if (amount == EOF) {
+			throw std::system_error(last_error_code());
 		}
+		return amount;
+	}
 
-		str = term_handle_vt100_sequence(hTerminal, cptr + 2);
+	if (term_vt100_enabled_for_console(terminal)) {
+		const auto amount = WriteMultiByteToConsoleW(terminal, str.data(), static_cast<int>(str.size()));
+		if (amount == EOF) {
+			throw std::system_error(last_error_code());
+		}
+		return amount;
+	}
+
+	std::size_t written_all = 0;
+	auto view = std::string_view(str);
+
+	for (auto pos = view.find("\033["); pos != std::string_view::npos; pos = view.find("\033[")) {
+		const auto buffer = view.substr(0, pos);
+		const auto written = WriteMultiByteToConsoleW(terminal, buffer.data(), static_cast<int>(buffer.size()));
+		if (written == EOF) {
+			throw std::system_error(last_error_code());
+		}
+		view = term_handle_vt100_sequence(terminal, view.substr(pos + 2));
 		written_all += written;
 	}
 
-	if (*str) {
-		int written = WriteMultiByteToConsoleW(hTerminal, str);
+	if (!view.empty()) {
+		const auto written = WriteMultiByteToConsoleW(terminal, view.data(), static_cast<int>(view.size()));
 		if (written == EOF) {
-			errno = errno_from_error_code(last_error_code());
-			return written;
+			throw std::system_error(last_error_code());
 		}
 		written_all += written;
 	}
 
 	return written_all;
-#endif
-}
-
-int Terminal::printf(FILE *stream, const char *format, ...) {
-	va_list args;
-	va_start(args, format);
-	int written = Terminal::vprintf(stream, format, args);
-	va_end(args);
-	return written;
-}
-
-int Terminal::vprintf(FILE *stream, const char *format, va_list args) {
-
-#ifdef OS_UNIX
-	return vfprintf(stream, format, args);
 #else
-	HANDLE hTerminal = INVALID_HANDLE_VALUE;
+	const auto amount = std::fputs(str.data(), stream);
+	if (amount == EOF) {
+		throw std::system_error(last_error_code());
+	}
+	return static_cast<std::size_t>(amount);
+#endif
+}
 
-	switch (int fd = fileno(stream)) {
-	case STDOUT_FILE_NO:
-		hTerminal = GetStdHandle(STD_OUTPUT_HANDLE);
-		break;
-	case STDERR_FILE_NO:
-		hTerminal = GetStdHandle(STD_ERROR_HANDLE);
-		break;
-	default:
-		return vfprintf(stream, format, args);
+void Terminal::print(FILE* stream, const std::string& str) {
+#ifdef MINT_OS_WINDOWS
+	if (str.empty()) {
+		return;
 	}
 
-	int written = 0;
-	int written_all = 0;
+	HANDLE terminal = INVALID_HANDLE_VALUE;
 
-	if (term_vt100_enabled_for_console(hTerminal)) {
-		while (const char *cptr = strstr(format, "%")) {
+	if (stream == stdout) {
+		terminal = GetStdHandle(STD_OUTPUT_HANDLE);
+	}
+	else if (stream == stderr) {
+		terminal = GetStdHandle(STD_ERROR_HANDLE);
+	}
+	else {
+		if (std::fputs(str.data(), stream) == EOF) {
+			throw std::system_error(last_error_code());
+		}
+		return;
+	}
 
-			if (int prefix_length = static_cast<int>(cptr - format)) {
-				written = WriteMultiByteToConsoleW(hTerminal, format, prefix_length);
-				if (written == EOF) {
-					errno = errno_from_error_code(last_error_code());
-					return written;
-				}
-				written_all += written;
-			}
-
-			format = cptr + 1;
-			written = term_handle_format_flags(hTerminal, &format, &args);
-			if (written == EOF) {
-				errno = errno_from_error_code(last_error_code());
-				return written;
-			}
-			written_all += written;
+	if (term_vt100_enabled_for_console(terminal)) {
+		if (WriteMultiByteToConsoleW(terminal, str.data(), static_cast<int>(str.size())) == EOF) {
+			throw std::system_error(last_error_code());
 		}
 	}
 	else {
-		while (const char *cptr = strpbrk(format, "%\033")) {
-
-			if (int prefix_length = static_cast<int>(cptr - format)) {
-				written = WriteMultiByteToConsoleW(hTerminal, format, prefix_length);
-				if (written == EOF) {
-					errno = errno_from_error_code(last_error_code());
-					return written;
-				}
-				written_all += written;
+		auto view = std::string_view(str);
+		for (auto pos = view.find("\033["); pos != std::string_view::npos; pos = view.find("\033[")) {
+			const auto buffer = view.substr(0, pos);
+			if (WriteMultiByteToConsoleW(terminal, buffer.data(), static_cast<int>(buffer.size())) == EOF) {
+				throw std::system_error(last_error_code());
 			}
-
-			switch (*cptr) {
-			case '%':
-				format = cptr + 1;
-				written = term_handle_format_flags(hTerminal, &format, &args);
-				if (written == EOF) {
-					errno = errno_from_error_code(last_error_code());
-					return written;
-				}
-				written_all += written;
-				break;
-			case '\033':
-				if (cptr[1] == '[') {
-					format = term_handle_vt100_sequence(hTerminal, cptr + 2);
-				}
-				else {
-					format = cptr + 1;
-				}
-				break;
-			default:
-				break;
+			view = term_handle_vt100_sequence(terminal, view.substr(pos + 2));
+		}
+		if (!view.empty()) {
+			if (WriteMultiByteToConsoleW(terminal, view.data(), static_cast<int>(view.size())) == EOF) {
+				throw std::system_error(last_error_code());
 			}
 		}
 	}
-
-	if (*format) {
-		int written = WriteMultiByteToConsoleW(hTerminal, format);
-		if (written == EOF) {
-			errno = errno_from_error_code(last_error_code());
-			return written;
-		}
-		written_all += written;
-	}
-
-	return written_all;
+#else
+	std::print(stream, "{}", str);
 #endif
+}
+
+void Terminal::println(FILE* stream, const std::string& str) {
+	print(stream, str);
+	print(stream, "\n");
 }
 
 void Terminal::clear_to_end_of_line() {
@@ -311,7 +309,7 @@ void Terminal::clear_line() {
 
 TtyEvent Terminal::wait_for_event(std::optional<std::chrono::milliseconds> timeout) {
 
-	TtyEvent event;
+	TtyEvent event = event_none;
 
 	// is there a push_count back code?
 	if (!g_tty.event_buffer.empty()) {
@@ -321,12 +319,12 @@ TtyEvent Terminal::wait_for_event(std::optional<std::chrono::milliseconds> timeo
 	}
 
 	// read a single char/byte from a character stream
-	byte_t byte = read_byte(timeout);
+	const auto byte = read_byte(timeout);
 	if (!byte) {
-		return EVENT_KEY_NONE;
+		return event_none;
 	}
 
-	if (byte == EVENT_KEY_ESC) {
+	if (byte == event_key_esc) {
 		event = event_from_esc(100ms);
 	}
 	else if (isascii(byte)) {
@@ -340,37 +338,37 @@ TtyEvent Terminal::wait_for_event(std::optional<std::chrono::milliseconds> timeo
 	auto key = event & 0x0FFFFFFFU;
 	auto mods = event & 0xF0000000U;
 
-	// treat EVENT_KEY_RUBOUT (0x7F) as EVENT_KEY_BACKSP
-	if (key == EVENT_KEY_RUBOUT) {
-		event = static_cast<TtyEvent>(EVENT_KEY_BACKSP | mods);
+	// treat event_key_rubout (0x7F) as event_key_backsp
+	if (key == event_key_rubout) {
+		event = static_cast<TtyEvent>(event_key_backsp | mods);
 	}
 	// ctrl+'_' is translated to '\x1F' on Linux, translate it back
-	else if (key == '\x1F' && (mods & EVENT_KEY_MOD_ALT) == 0) {
+	else if (key == '\x1F' && (mods & event_key_mod_alt) == 0) {
 		key = '_';
-		event = static_cast<TtyEvent>(EVENT_KEY_MOD_CTRL | '_');
+		event = static_cast<TtyEvent>(event_key_mod_ctrl | '_');
 	}
-	// treat ctrl/shift + enter always as EVENT_KEY_LINEFEED for portability
-	else if (key == EVENT_KEY_ENTER
-			 && (mods == EVENT_KEY_MOD_SHIFT || mods == EVENT_KEY_MOD_ALT || mods == EVENT_KEY_MOD_CTRL)) {
-		event = EVENT_KEY_LINEFEED;
+	// treat ctrl/shift + enter always as event_key_linefeed for portability
+	else if (key == event_key_enter
+	         && (mods == event_key_mod_shift || mods == event_key_mod_alt || mods == event_key_mod_ctrl)) {
+		event = event_key_linefeed;
 	}
 	// treat ctrl+tab always as shift+tab for portability
-	else if (event == (EVENT_KEY_MOD_CTRL | EVENT_KEY_TAB)) {
-		event = static_cast<TtyEvent>(EVENT_KEY_MOD_SHIFT | EVENT_KEY_TAB);
+	else if (event == (event_key_mod_ctrl | event_key_tab)) {
+		event = static_cast<TtyEvent>(event_key_mod_shift | event_key_tab);
 	}
 	// treat ctrl+end/alt+>/alt-down and ctrl+home/alt+</alt-up always as pagedown/pageup for portability
-	else if (event == (EVENT_KEY_MOD_ALT | EVENT_KEY_DOWN) || event == (EVENT_KEY_MOD_ALT | '>')
-			 || event == (EVENT_KEY_MOD_CTRL | EVENT_KEY_END)) {
-		event = EVENT_KEY_PAGEDOWN;
+	else if (event == (event_key_mod_alt | event_key_down) || event == (event_key_mod_alt | '>')
+	         || event == (event_key_mod_ctrl | event_key_end)) {
+		event = event_key_pagedown;
 	}
-	else if (event == (EVENT_KEY_MOD_ALT | EVENT_KEY_UP) || event == (EVENT_KEY_MOD_ALT | '<')
-			 || event == (EVENT_KEY_MOD_CTRL | EVENT_KEY_HOME)) {
-		event = EVENT_KEY_PAGEUP;
+	else if (event == (event_key_mod_alt | event_key_up) || event == (event_key_mod_alt | '<')
+	         || event == (event_key_mod_ctrl | event_key_home)) {
+		event = event_key_pageup;
 	}
 
 	// treat C0 codes without EVENT_KEY_MOD_CTRL
-	if (key < ' ' && (mods & EVENT_KEY_MOD_CTRL) != 0) {
-		event = static_cast<TtyEvent>(event & ~EVENT_KEY_MOD_CTRL);
+	if (key < ' ' && (mods & event_key_mod_ctrl) != 0) {
+		event = static_cast<TtyEvent>(event & ~event_key_mod_ctrl);
 	}
 
 	return event;
@@ -383,59 +381,63 @@ TtyEvent Terminal::event_from_esc(std::optional<std::chrono::milliseconds> timeo
 
 	// lone ESC?
 	if (!(peek = read_byte(timeout))) {
-		return EVENT_KEY_ESC;
+		return event_key_esc;
 	}
 
 	// treat ESC ESC as Alt modifier (macOS sends ESC ESC [ [A-D] for alt-<cursor>)
-	if (peek == EVENT_KEY_ESC) {
-		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10}
-												   : std::nullopt))) {
-			return static_cast<TtyEvent>(EVENT_KEY_ESC | EVENT_KEY_MOD_ALT); // ESC <anychar>
+	if (peek == event_key_esc) {
+		if (!(peek = read_byte(timeout.transform([](std::chrono::milliseconds value) {
+			    return value / 10;
+		    })))) {
+			return static_cast<TtyEvent>(event_key_esc | event_key_mod_alt); // ESC <anychar>
 		}
-		mods |= EVENT_KEY_MOD_ALT;
+		mods |= event_key_mod_alt;
 	}
 
 	// CSI ?
 	if (peek == '[') {
-		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10}
-												   : std::nullopt))) {
-			return static_cast<TtyEvent>('[' | EVENT_KEY_MOD_ALT); // ESC <anychar>
+		if (!(peek = read_byte(timeout.transform([](std::chrono::milliseconds value) {
+			    return value / 10;
+		    })))) {
+			return static_cast<TtyEvent>('[' | event_key_mod_alt); // ESC <anychar>
 		}
-		return event_from_csi('[', peek, mods,
-							  timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10}
-												  : std::nullopt); // ESC [ ...
+		return event_from_csi('[', peek, mods, timeout.transform([](std::chrono::milliseconds value) {
+			return value / 10;
+		})); // ESC [ ...
 	}
 
 	// SS3?
 	if (peek == 'O' || peek == 'o' || peek == '?' /*vt52*/) {
-		uint8_t c1 = peek;
-		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10}
-												   : std::nullopt))) {
-			return static_cast<TtyEvent>(c1 | EVENT_KEY_MOD_ALT); // ESC <anychar>
+		const std::uint8_t c1 = peek;
+		if (!(peek = read_byte(timeout.transform([](std::chrono::milliseconds value) {
+			    return value / 10;
+		    })))) {
+			return static_cast<TtyEvent>(c1 | event_key_mod_alt); // ESC <anychar>
 		}
 		if (c1 == 'o') {
 			// ETerm uses this for ctrl+<cursor>
-			mods |= EVENT_KEY_MOD_CTRL;
+			mods |= event_key_mod_ctrl;
 		}
 		// treat all as standard SS3 'O'
-		return event_from_csi('O', peek, mods,
-							  timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10}
-												  : std::nullopt); // ESC [Oo?] ...
+		return event_from_csi('O', peek, mods, timeout.transform([](std::chrono::milliseconds value) {
+			return value / 10;
+		})); // ESC [Oo?] ...
 	}
 
 	// OSC: we may get a delayed query response; ensure it is ignored
 	if (peek == ']') {
-		if (!(peek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10}
-												   : std::nullopt))) {
-			return static_cast<TtyEvent>(']' | EVENT_KEY_MOD_ALT); // ESC <anychar>
+		if (!(peek = read_byte(timeout.transform([](std::chrono::milliseconds value) {
+			    return value / 10;
+		    })))) {
+			return static_cast<TtyEvent>(']' | event_key_mod_alt); // ESC <anychar>
 		}
-		return event_from_osc(peek, timeout.has_value()
-										? std::optional<std::chrono::milliseconds> {timeout.value() / 10}
-										: std::nullopt); // ESC ] ...
+		return event_from_osc(peek, timeout.transform([](std::chrono::milliseconds value) {
+			return value / 10;
+		})); // ESC ] ...
 	}
 
 	// Alt+<char>
-	return static_cast<TtyEvent>(peek | EVENT_KEY_MOD_ALT); // ESC <anychar>
+	return static_cast<TtyEvent>(peek | event_key_mod_alt); // ESC <anychar>
 }
 
 TtyEvent Terminal::event_from_osc(byte_t peek, std::optional<std::chrono::milliseconds> timeout) {
@@ -452,7 +454,7 @@ TtyEvent Terminal::event_from_osc(byte_t peek, std::optional<std::chrono::millis
 			if (!(peek = read_byte(timeout))) {
 				break;
 			}
-			byte_t c1 = peek;
+			const byte_t c1 = peek;
 			if (c1 == '\\') {
 				break;
 			}
@@ -462,7 +464,7 @@ TtyEvent Terminal::event_from_osc(byte_t peek, std::optional<std::chrono::millis
 			break;
 		}
 	}
-	return EVENT_KEY_NONE;
+	return event_none;
 }
 
 //-------------------------------------------------------------
@@ -472,159 +474,159 @@ TtyEvent Terminal::event_from_osc(byte_t peek, std::optional<std::chrono::millis
 static TtyEvent esc_decode_vt(uint32_t vt_code) {
 	switch (vt_code) {
 	case 1:
-		return EVENT_KEY_HOME;
+		return event_key_home;
 	case 2:
-		return EVENT_KEY_INS;
+		return event_key_ins;
 	case 3:
-		return EVENT_KEY_DEL;
+		return event_key_del;
 	case 4:
-		return EVENT_KEY_END;
+		return event_key_end;
 	case 5:
-		return EVENT_KEY_PAGEUP;
+		return event_key_pageup;
 	case 6:
-		return EVENT_KEY_PAGEDOWN;
+		return event_key_pagedown;
 	case 7:
-		return EVENT_KEY_HOME;
+		return event_key_home;
 	case 8:
-		return EVENT_KEY_END;
+		return event_key_end;
 	case 10:
-		return EVENT_KEY_F1;
+		return event_key_f1;
 	case 11:
-		return EVENT_KEY_F2;
+		return event_key_f2;
 	case 12:
-		return EVENT_KEY_F3;
+		return event_key_f3;
 	case 13:
-		return EVENT_KEY_F4;
+		return event_key_f4;
 	case 14:
-		return EVENT_KEY_F5;
+		return event_key_f5;
 	case 15:
-		return EVENT_KEY_F6;
+		return event_key_f6;
 	case 16:
-		return EVENT_KEY_F5; // minicom
+		return event_key_f5; // minicom
 	default:
 		if (vt_code >= 17 && vt_code <= 21) {
-			return static_cast<TtyEvent>(EVENT_KEY_F1 + 5 + (vt_code - 17));
+			return static_cast<TtyEvent>(event_key_f1 + 5 + (vt_code - 17));
 		}
 		if (vt_code >= 23 && vt_code <= 26) {
-			return static_cast<TtyEvent>(EVENT_KEY_F1 + 10 + (vt_code - 23));
+			return static_cast<TtyEvent>(event_key_f1 + 10 + (vt_code - 23));
 		}
 		if (vt_code >= 28 && vt_code <= 29) {
-			return static_cast<TtyEvent>(EVENT_KEY_F1 + 14 + (vt_code - 28));
+			return static_cast<TtyEvent>(event_key_f1 + 14 + (vt_code - 28));
 		}
 		if (vt_code >= 31 && vt_code <= 34) {
-			return static_cast<TtyEvent>(EVENT_KEY_F1 + 16 + (vt_code - 31));
+			return static_cast<TtyEvent>(event_key_f1 + 16 + (vt_code - 31));
 		}
 	}
-	return EVENT_KEY_NONE;
+	return event_none;
 }
 
-static TtyEvent esc_decode_xterm(uint8_t xcode) {
+static TtyEvent esc_decode_xterm(std::uint8_t xcode) {
 	// ESC [
 	switch (xcode) {
 	case 'A':
-		return EVENT_KEY_UP;
+		return event_key_up;
 	case 'B':
-		return EVENT_KEY_DOWN;
+		return event_key_down;
 	case 'C':
-		return EVENT_KEY_RIGHT;
+		return event_key_right;
 	case 'D':
-		return EVENT_KEY_LEFT;
+		return event_key_left;
 	case 'E':
 		return static_cast<TtyEvent>('5'); // numpad 5
 	case 'F':
-		return EVENT_KEY_END;
+		return event_key_end;
 	case 'H':
-		return EVENT_KEY_HOME;
+		return event_key_home;
 	case 'Z':
-		return static_cast<TtyEvent>(EVENT_KEY_TAB | EVENT_KEY_MOD_SHIFT);
+		return static_cast<TtyEvent>(event_key_tab | event_key_mod_shift);
 	// Freebsd:
 	case 'I':
-		return EVENT_KEY_PAGEUP;
+		return event_key_pageup;
 	case 'L':
-		return EVENT_KEY_INS;
+		return event_key_ins;
 	case 'M':
-		return EVENT_KEY_F1;
+		return event_key_f1;
 	case 'N':
-		return EVENT_KEY_F2;
+		return event_key_f2;
 	case 'O':
-		return EVENT_KEY_F3;
+		return event_key_f3;
 	case 'P':
-		return EVENT_KEY_F4; // note: differs from <https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences>
+		return event_key_f4; // note: differs from <https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_(Control_Sequence_Introducer)_sequences>
 	case 'Q':
-		return EVENT_KEY_F5;
+		return event_key_f5;
 	case 'R':
-		return EVENT_KEY_F6;
+		return event_key_f6;
 	case 'S':
-		return EVENT_KEY_F7;
+		return event_key_f7;
 	case 'T':
-		return EVENT_KEY_F8;
+		return event_key_f8;
 	case 'U':
-		return EVENT_KEY_PAGEDOWN; // Mach
+		return event_key_pagedown; // Mach
 	case 'V':
-		return EVENT_KEY_PAGEUP; // Mach
+		return event_key_pageup; // Mach
 	case 'W':
-		return EVENT_KEY_F11;
+		return event_key_f11;
 	case 'X':
-		return EVENT_KEY_F12;
+		return event_key_f12;
 	case 'Y':
-		return EVENT_KEY_END; // Mach
+		return event_key_end; // Mach
 	}
-	return EVENT_KEY_NONE;
+	return event_none;
 }
 
-static TtyEvent esc_decode_ss3(uint8_t ss3_code) {
+static TtyEvent esc_decode_ss3(std::uint8_t ss3_code) {
 	// ESC O
 	switch (ss3_code) {
 	case 'A':
-		return EVENT_KEY_UP;
+		return event_key_up;
 	case 'B':
-		return EVENT_KEY_DOWN;
+		return event_key_down;
 	case 'C':
-		return EVENT_KEY_RIGHT;
+		return event_key_right;
 	case 'D':
-		return EVENT_KEY_LEFT;
+		return event_key_left;
 	case 'E':
 		return static_cast<TtyEvent>('5'); // numpad 5
 	case 'F':
-		return EVENT_KEY_END;
+		return event_key_end;
 	case 'H':
-		return EVENT_KEY_HOME;
+		return event_key_home;
 	case 'I':
-		return EVENT_KEY_TAB;
+		return event_key_tab;
 	case 'Z':
-		return static_cast<TtyEvent>(EVENT_KEY_TAB | EVENT_KEY_MOD_SHIFT);
+		return static_cast<TtyEvent>(event_key_tab | event_key_mod_shift);
 	case 'M':
-		return EVENT_KEY_LINEFEED;
+		return event_key_linefeed;
 	case 'P':
-		return EVENT_KEY_F1;
+		return event_key_f1;
 	case 'Q':
-		return EVENT_KEY_F2;
+		return event_key_f2;
 	case 'R':
-		return EVENT_KEY_F3;
+		return event_key_f3;
 	case 'S':
-		return EVENT_KEY_F4;
+		return event_key_f4;
 	// on Mach
 	case 'T':
-		return EVENT_KEY_F5;
+		return event_key_f5;
 	case 'U':
-		return EVENT_KEY_F6;
+		return event_key_f6;
 	case 'V':
-		return EVENT_KEY_F7;
+		return event_key_f7;
 	case 'W':
-		return EVENT_KEY_F8;
+		return event_key_f8;
 	case 'X':
-		return EVENT_KEY_F9; // '=' on vt220
+		return event_key_f9; // '=' on vt220
 	case 'Y':
-		return EVENT_KEY_F10;
+		return event_key_f10;
 	// numpad
 	case 'a':
-		return EVENT_KEY_UP;
+		return event_key_up;
 	case 'b':
-		return EVENT_KEY_DOWN;
+		return event_key_down;
 	case 'c':
-		return EVENT_KEY_RIGHT;
+		return event_key_right;
 	case 'd':
-		return EVENT_KEY_LEFT;
+		return event_key_left;
 	case 'j':
 		return static_cast<TtyEvent>('*');
 	case 'k':
@@ -634,65 +636,65 @@ static TtyEvent esc_decode_ss3(uint8_t ss3_code) {
 	case 'm':
 		return static_cast<TtyEvent>('-');
 	case 'n':
-		return EVENT_KEY_DEL; // '.'
+		return event_key_del; // '.'
 	case 'o':
 		return static_cast<TtyEvent>('/');
 	case 'p':
-		return EVENT_KEY_INS;
+		return event_key_ins;
 	case 'q':
-		return EVENT_KEY_END;
+		return event_key_end;
 	case 'r':
-		return EVENT_KEY_DOWN;
+		return event_key_down;
 	case 's':
-		return EVENT_KEY_PAGEDOWN;
+		return event_key_pagedown;
 	case 't':
-		return EVENT_KEY_LEFT;
+		return event_key_left;
 	case 'u':
 		return static_cast<TtyEvent>('5');
 	case 'v':
-		return EVENT_KEY_RIGHT;
+		return event_key_right;
 	case 'w':
-		return EVENT_KEY_HOME;
+		return event_key_home;
 	case 'x':
-		return EVENT_KEY_UP;
+		return event_key_up;
 	case 'y':
-		return EVENT_KEY_PAGEUP;
+		return event_key_pageup;
 	}
-	return EVENT_KEY_NONE;
+	return event_none;
 }
 
 TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0,
-								  std::optional<std::chrono::milliseconds> timeout) {
+    std::optional<std::chrono::milliseconds> timeout) {
 
 	// CSI starts with 0x9b (c1=='[') | ESC [ (c1=='[') | ESC [Oo?] (c1 == 'O')  /* = SS3 */
 
 	// check for extra starter '[' (Linux sends ESC [ [ 15 ~  for F5 for example)
 	if (c1 == '[' && strchr("[Oo", static_cast<char>(peek)) != nullptr) {
-		uint8_t cx = peek;
+		std::uint8_t cx = peek;
 		if (!(peek = read_byte(timeout))) {
 			c1 = cx;
 		}
 	}
 
 	// "special" characters ('?' is used for private sequences)
-	uint8_t special = 0;
+	std::uint8_t special = 0;
 	if (strchr(":<=>?", static_cast<char>(peek)) != nullptr) {
 		special = peek;
 		if (!(peek = read_byte(timeout))) {
 			g_tty.byte_buffer.push(special);
-			return static_cast<TtyEvent>(c1 | EVENT_KEY_MOD_ALT); // Alt+<anychar>
+			return static_cast<TtyEvent>(c1 | event_key_mod_alt); // Alt+<anychar>
 		}
 	}
 
-	static auto read_csi_num =
-		[read_byte = &Terminal::read_byte](uint8_t *ppeek,
-										   std::optional<std::chrono::milliseconds> timeout) -> uint32_t {
+	static auto read_csi_num = [read_byte = &Terminal::read_byte](std::uint8_t* ppeek,
+	                               std::optional<std::chrono::milliseconds> timeout) -> uint32_t {
 		uint32_t i = 0;
-		size_t count = 0;
+		std::size_t count = 0;
 		while (isdigit(*ppeek) && count < 16) {
-			uint8_t digit = *ppeek - '0';
-			if ((*ppeek = read_byte(timeout.has_value() ? std::optional<std::chrono::milliseconds> {timeout.value() / 10}
-														: std::nullopt))) {
+			std::uint8_t digit = *ppeek - '0';
+			if ((*ppeek = read_byte(timeout.transform([](std::chrono::milliseconds value) {
+				    return value / 10;
+			    })))) {
 				i = 10 * i + digit;
 				++count;
 			}
@@ -707,13 +709,13 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0,
 	uint32_t num1 = read_csi_num(&peek, timeout), num2 = 1;
 	if (peek == ';') {
 		if (!(peek = read_byte(timeout))) {
-			return EVENT_KEY_NONE;
+			return event_none;
 		}
 		num2 = read_csi_num(&peek, timeout);
 	}
 
 	// the final character (we do not allow 'intermediate characters')
-	uint8_t final = peek;
+	std::uint8_t final = peek;
 	uint32_t modifiers = mods0;
 
 	// Adjust special cases into standard ones.
@@ -730,19 +732,19 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0,
 	else if (final == '^' || final == '$' || final == '@') {
 		// Eterm/rxvt/urxt
 		if (final == '^') {
-			modifiers |= EVENT_KEY_MOD_CTRL;
+			modifiers |= event_key_mod_ctrl;
 		}
 		if (final == '$') {
-			modifiers |= EVENT_KEY_MOD_SHIFT;
+			modifiers |= event_key_mod_shift;
 		}
 		if (final == '@') {
-			modifiers |= EVENT_KEY_MOD_SHIFT | EVENT_KEY_MOD_CTRL;
+			modifiers |= event_key_mod_shift | event_key_mod_ctrl;
 		}
 		final = '~';
 	}
 	else if (c1 == '[' && final >= 'a' && final <= 'd') { // note: do not catch ESC [ .. u  (for unicode)
 		// ESC [ [a-d]  : on Eterm for shift+ cursor
-		modifiers |= EVENT_KEY_MOD_SHIFT;
+		modifiers |= event_key_mod_shift;
 		final = 'A' + (final - 'a');
 	}
 
@@ -759,18 +761,18 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0,
 		}
 		num2--;
 		if (num2 & 0x1) {
-			modifiers |= EVENT_KEY_MOD_SHIFT;
+			modifiers |= event_key_mod_shift;
 		}
 		if (num2 & 0x2) {
-			modifiers |= EVENT_KEY_MOD_ALT;
+			modifiers |= event_key_mod_alt;
 		}
 		if (num2 & 0x4) {
-			modifiers |= EVENT_KEY_MOD_CTRL;
+			modifiers |= event_key_mod_ctrl;
 		}
 	}
 
 	// and translate
-	TtyEvent event = EVENT_KEY_NONE;
+	TtyEvent event = event_none;
 	if (final == '~') {
 		// vt codes
 		event = esc_decode_vt(num1);
@@ -789,10 +791,10 @@ TtyEvent Terminal::event_from_csi(byte_t c1, byte_t peek, uint32_t mods0,
 	}
 	else if (c1 == '[' && final == 'R') {
 		// cursor position
-		event = EVENT_KEY_NONE;
+		event = event_none;
 	}
 
-	return (event != EVENT_KEY_NONE ? static_cast<TtyEvent>(event | modifiers) : EVENT_KEY_NONE);
+	return (event != event_none ? static_cast<TtyEvent>(event | modifiers) : event_none);
 }
 
 byte_t Terminal::read_byte(std::optional<std::chrono::milliseconds> timeout) {
@@ -804,7 +806,7 @@ byte_t Terminal::read_byte(std::optional<std::chrono::milliseconds> timeout) {
 
 	// in our pushback buffer?
 	if (!g_tty.byte_buffer.empty()) {
-		byte_t byte = g_tty.byte_buffer.front();
+		const byte_t byte = g_tty.byte_buffer.front();
 		g_tty.byte_buffer.pop();
 		return byte;
 	}
@@ -814,7 +816,7 @@ byte_t Terminal::read_byte(std::optional<std::chrono::milliseconds> timeout) {
 
 // skip an escape sequence
 // <https://www.xfree86.org/current/ctlseqs.html>
-static bool skip_esc(std::string_view str, size_t *esclen) {
+static bool skip_esc(std::string_view str, std::size_t* esclen) {
 	if (str.empty() || str.size() <= 1 || str[0] != '\033') {
 		return false;
 	}
@@ -824,12 +826,12 @@ static bool skip_esc(std::string_view str, size_t *esclen) {
 	if (strchr("[PX^_]", str[1]) != nullptr) {
 		// CSI (ESC [), DCS (ESC P), SOS (ESC X), PM (ESC ^), APC (ESC _), and OSC (ESC ]): terminated with a special sequence
 		bool final_csi = (str[1] == '['); // CSI terminates with 0x40-0x7F; otherwise ST (bell or ESC \)
-		size_t n = 2;
+		std::size_t n = 2;
 		while (str.size() > n) {
 			byte_t c = str[n++];
 			if ((final_csi && c >= 0x40 && c <= 0x7F) // terminating byte: @A–Z[\]^_`a–z{|}~
-				|| (!final_csi && c == '\x07')		  // bell
-				|| (c == '\x02')) {					  // STX terminates as well
+			    || (!final_csi && c == '\x07')        // bell
+			    || (c == '\x02')) {                   // STX terminates as well
 				if (esclen) {
 					*esclen = n;
 				}
@@ -862,24 +864,24 @@ static bool skip_esc(std::string_view str, size_t *esclen) {
 }
 
 // The column width of a codepoint (0, 1, or 2)
-static size_t grapheme_column_width(std::string_view str) {
+static std::size_t grapheme_column_width(std::string_view str) {
 	if (str.empty()) {
 		return 0;
 	}
 	if (static_cast<byte_t>(str.front()) < ' ') {
 		return 0; // also for CSI escape sequences
 	}
-	size_t w = utf8_grapheme_code_point_count(str);
-#ifdef OS_WINDOWS
-	return std::max(size_t {1}, w); // windows console seems to use at least one column
+	std::size_t w = utf8_grapheme_code_point_count(str);
+#ifdef MINT_OS_WINDOWS
+	return std::max(std::size_t {1}, w); // windows console seems to use at least one column
 #else
 	return w;
 #endif
 }
 
 // Offset to the next codepoint, treats CSI escape sequences as a single code point.
-static std::tuple<size_t, size_t> next_column(std::string_view str, size_t pos, size_t column) {
-	size_t offset = 0;
+static std::tuple<std::size_t, std::size_t> next_column(std::string_view str, std::size_t pos, std::size_t column) {
+	std::size_t offset = 0;
 	if (pos <= str.size()) {
 		if (!skip_esc(str.substr(pos), &offset)) {
 			offset = utf8_code_point_length(str[pos]);
@@ -891,11 +893,11 @@ static std::tuple<size_t, size_t> next_column(std::string_view str, size_t pos, 
 	return {offset, grapheme_column_width(str.substr(pos))};
 }
 
-static size_t to_input_pos(std::string_view str, const CursorPos &cursor) {
+static std::size_t to_input_pos(std::string_view str, const CursorPos& cursor) {
 	if (str.empty()) {
 		return 0;
 	}
-	size_t pos = 0;
+	std::size_t pos = 0;
 	CursorPos cur = {0, 0};
 	while (pos < str.size()) {
 		if (str[pos] == '\n') {
@@ -922,11 +924,14 @@ static size_t to_input_pos(std::string_view str, const CursorPos &cursor) {
 }
 
 static CursorPos to_cursor_pos(std::string_view str, std::string_view::size_type length = std::string_view::npos) {
-	CursorPos cursor = {0, 0};
+	CursorPos cursor = {
+	    .row = 0,
+	    .column = 0,
+	};
 	if (str.empty()) {
 		return cursor;
 	}
-	size_t pos = 0;
+	std::size_t pos = 0;
 	while (pos < std::min(length, str.size())) {
 		if (str[pos] == '\n') {
 			cursor.column = 0;
@@ -945,12 +950,19 @@ static CursorPos to_cursor_pos(std::string_view str, std::string_view::size_type
 	return cursor;
 }
 
-static size_t column_count(std::string_view str, std::string_view::size_type length = std::string_view::npos) {
+namespace {
+
+std::size_t column_count(std::string_view str, std::string_view::size_type length = std::string_view::npos) {
+
 	if (str.empty()) {
 		return 0;
 	}
-	size_t count = 0, pos = 0;
-	while (pos < std::min(length, str.size())) {
+
+	length = std::min(length, str.length());
+	std::size_t count = 0;
+	std::size_t pos = 0;
+
+	while (pos < length) {
 		auto [offset, width] = next_column(str, pos, count);
 		if (!offset) {
 			break;
@@ -958,27 +970,30 @@ static size_t column_count(std::string_view str, std::string_view::size_type len
 		count += width;
 		pos += offset;
 	}
+
 	return count;
 }
 
-std::pair<std::string_view::size_type, bool> Terminal::find_matching_brace(size_t brace_pos) {
+}
 
-	if (m_braces_match) {
-		return m_braces_match(m_input, brace_pos);
+std::pair<std::string_view::size_type, bool> Terminal::find_matching_brace(std::size_t brace_pos) {
+
+	if (_braces_match) {
+		return _braces_match(_input, brace_pos);
 	}
 
-	if (!m_auto_braces.empty()) {
+	if (!_auto_braces.empty()) {
 		bool balanced = true;
 		auto pos = std::string_view::npos;
-		const byte_t brace = m_input[brace_pos];
-		for (size_t b = 0; b < m_auto_braces.size(); b += 2) {
-			const size_t open = m_auto_braces[b];
-			const size_t close = m_auto_braces[b + 1];
-			std::optional<size_t> open_count, close_count;
-			std::vector<size_t> close_graph;
-			size_t count = 0;
-			for (size_t i = 0; i < m_input.size(); ++i) {
-				if (m_input[i] == open) {
+		const byte_t brace = _input[brace_pos];
+		for (std::size_t b = 0; b < _auto_braces.size(); b += 2) {
+			const std::size_t open = _auto_braces[b];
+			const std::size_t close = _auto_braces[b + 1];
+			std::optional<std::size_t> open_count, close_count;
+			std::vector<std::size_t> close_graph;
+			std::size_t count = 0;
+			for (std::size_t i = 0; i < _input.size(); ++i) {
+				if (_input[i] == open) {
 					if (open == close) {
 						if (brace == open) {
 							if (count) {
@@ -1012,7 +1027,7 @@ std::pair<std::string_view::size_type, bool> Terminal::find_matching_brace(size_
 						++count;
 					}
 				}
-				else if (m_input[i] == close) {
+				else if (_input[i] == close) {
 					--count;
 					if (open_count && *open_count == count) {
 						open_count = std::nullopt;
@@ -1037,43 +1052,43 @@ std::pair<std::string_view::size_type, bool> Terminal::find_matching_brace(size_
 }
 
 void Terminal::edit_insert_auto_brace(byte_t c) {
-	if (m_auto_braces.empty()) {
+	if (_auto_braces.empty()) {
 		return;
 	}
-	for (const byte_t *b = m_auto_braces.data(); *b != 0; b += 2) {
+	for (const byte_t* b = _auto_braces.data(); *b != 0; b += 2) {
 		if (*b == c) {
 			const byte_t close = b[1];
-			if (*b == close && m_pos < m_input.size() && m_input[m_pos] == c) {
-				m_input.erase(m_pos, 1);
+			if (*b == close && _pos < _input.size() && _input[_pos] == c) {
+				_input.erase(_pos, 1);
 			}
 			else {
-				m_input.insert(m_pos, 1, close);
+				_input.insert(_pos, 1, close);
 			}
-			auto [_, balanced] = find_matching_brace(m_pos);
+			auto [_, balanced] = find_matching_brace(_pos);
 			if (!balanced) {
-				m_input.erase(m_pos, 1);
+				_input.erase(_pos, 1);
 			}
 			return;
 		}
 		else if (b[1] == c) {
 			// close brace, check if there we don't overwrite to the right
-			if (m_input[m_pos] == c) {
-				m_input.erase(m_pos, 1);
+			if (_input[_pos] == c) {
+				_input.erase(_pos, 1);
 			}
 			return;
 		}
 	}
 }
 
-void Terminal::edit_remove_auto_brace(size_t pos) {
+void Terminal::edit_remove_auto_brace(std::size_t pos) {
 	auto [offset, balanced] = find_matching_brace(pos);
-	if (balanced && offset != std::string_view::npos && offset >= m_pos) {
-		m_input.erase(offset, 1);
+	if (balanced && offset != std::string_view::npos && offset >= _pos) {
+		_input.erase(offset, 1);
 	}
 }
 
-static size_t indent_size(const std::string_view str, std::string_view::size_type pos) {
-	size_t count = 0;
+static std::size_t indent_size(const std::string_view str, std::string_view::size_type pos) {
+	std::size_t count = 0;
 	auto offset = str.rfind('\n', pos - 2) + 1;
 	while (str[offset++] == ' ') {
 		count++;
@@ -1082,40 +1097,40 @@ static size_t indent_size(const std::string_view str, std::string_view::size_typ
 }
 
 void Terminal::edit_auto_indent(byte_t pre, byte_t post) {
-	assert(m_pos > 0 && m_input[m_pos - 1] == '\n');
-	if (m_pos > 1) {
-		if (m_input[m_pos - 2] == pre && m_input[m_pos] == post) {
-			size_t indent = indent_size(m_input, m_pos);
-			m_input.insert(m_pos, indent + m_indent_size, ' ');
-			m_pos += indent + m_indent_size;
-			m_input.insert(m_pos, 1, '\n');
-			m_input.insert(m_pos + 1, indent, ' ');
+	assert(_pos > 0 && _input[_pos - 1] == '\n');
+	if (_pos > 1) {
+		if (_input[_pos - 2] == pre && _input[_pos] == post) {
+			std::size_t indent = indent_size(_input, _pos);
+			_input.insert(_pos, indent + _indent_size, ' ');
+			_pos += indent + _indent_size;
+			_input.insert(_pos, 1, '\n');
+			_input.insert(_pos + 1, indent, ' ');
 		}
-		else if (size_t indent = indent_size(m_input, m_pos)) {
-			m_input.insert(m_pos, indent, ' ');
-			m_pos += indent;
+		else if (std::size_t indent = indent_size(_input, _pos)) {
+			_input.insert(_pos, indent, ' ');
+			_pos += indent;
 		}
 	}
 }
 
 bool Terminal::edit_pos_is_inside_multi_line() {
-	auto pos = m_input.rfind('\n');
-	return pos != std::string::npos && pos > m_pos;
+	auto pos = _input.rfind('\n');
+	return pos != std::string::npos && pos > _pos;
 }
 
 bool Terminal::edit_pos_is_inside_braces() {
 
-	if (m_braces_match) {
-		return !m_braces_match(m_input.substr(0, m_pos), m_pos).second;
+	if (_braces_match) {
+		return !_braces_match(_input.substr(0, _pos), _pos).second;
 	}
 
-	if (!m_auto_braces.empty()) {
-		for (size_t b = 0; b < m_auto_braces.size(); b += 2) {
-			const size_t open = m_auto_braces[b];
-			const size_t close = m_auto_braces[b + 1];
-			size_t count = 0;
-			for (size_t i = 0; i < m_pos; ++i) {
-				if (m_input[i] == open) {
+	if (!_auto_braces.empty()) {
+		for (std::size_t b = 0; b < _auto_braces.size(); b += 2) {
+			const std::size_t open = _auto_braces[b];
+			const std::size_t close = _auto_braces[b + 1];
+			std::size_t count = 0;
+			for (std::size_t i = 0; i < _pos; ++i) {
+				if (_input[i] == open) {
 					if (open == close) {
 						count = !count;
 					}
@@ -1123,7 +1138,7 @@ bool Terminal::edit_pos_is_inside_braces() {
 						++count;
 					}
 				}
-				else if (m_input[i] == close) {
+				else if (_input[i] == close) {
 					--count;
 				}
 			}
@@ -1138,31 +1153,31 @@ bool Terminal::edit_pos_is_inside_braces() {
 }
 
 bool Terminal::edit_is_multi_line() {
-	return m_input.find('\n') != std::string::npos;
+	return _input.find('\n') != std::string::npos;
 }
 
 void Terminal::edit_cursor_to_start() {
-	m_pos = 0;
+	_pos = 0;
 }
 
 void Terminal::edit_cursor_to_end() {
-	m_pos = m_input.size();
+	_pos = _input.size();
 }
 
 void Terminal::edit_cursor_line_start() {
-	if (!m_input.empty()) {
-		const auto from = m_input[m_pos] != '\n' ? m_pos : m_pos - 1;
-		m_pos = m_input.rfind('\n', from) + 1;
+	if (!_input.empty()) {
+		const auto from = _input[_pos] != '\n' ? _pos : _pos - 1;
+		_pos = _input.rfind('\n', from) + 1;
 	}
 }
 
 void Terminal::edit_cursor_line_end() {
-	auto pos = m_input.find('\n', m_pos);
+	auto pos = _input.find('\n', _pos);
 	if (pos == std::string::npos) {
-		m_pos = m_input.length();
+		_pos = _input.length();
 	}
 	else {
-		m_pos = pos;
+		_pos = pos;
 	}
 }
 
@@ -1172,226 +1187,226 @@ static bool is_word_delimiter(byte_t b) {
 }
 
 void Terminal::edit_cursor_prev_word() {
-	auto pos = utf8_previous_code_point_byte_index(m_input, m_pos);
-	while (pos != std::string_view::npos && is_word_delimiter(m_input[pos])) {
-		m_pos = pos;
-		pos = utf8_previous_code_point_byte_index(m_input, pos);
+	auto pos = utf8_previous_code_point_byte_index(_input, _pos);
+	while (pos != std::string_view::npos && is_word_delimiter(_input[pos])) {
+		_pos = pos;
+		pos = utf8_previous_code_point_byte_index(_input, pos);
 	}
-	while (pos != std::string_view::npos && !is_word_delimiter(m_input[pos])) {
-		m_pos = pos;
-		pos = utf8_previous_code_point_byte_index(m_input, pos);
+	while (pos != std::string_view::npos && !is_word_delimiter(_input[pos])) {
+		_pos = pos;
+		pos = utf8_previous_code_point_byte_index(_input, pos);
 	}
 }
 
 void Terminal::edit_cursor_next_word() {
-	while (m_pos < m_input.size() && !is_word_delimiter(m_input[m_pos])) {
-		m_pos = utf8_next_code_point_byte_index(m_input, m_pos);
+	while (_pos < _input.size() && !is_word_delimiter(_input[_pos])) {
+		_pos = utf8_next_code_point_byte_index(_input, _pos);
 	}
-	while (m_pos < m_input.size() && is_word_delimiter(m_input[m_pos])) {
-		m_pos = utf8_next_code_point_byte_index(m_input, m_pos);
+	while (_pos < _input.size() && is_word_delimiter(_input[_pos])) {
+		_pos = utf8_next_code_point_byte_index(_input, _pos);
 	}
 }
 
 void Terminal::edit_cursor_row_up() {
-	CursorPos pos = to_cursor_pos(m_input, m_pos);
+	CursorPos pos = to_cursor_pos(_input, _pos);
 	if (pos.row == 0) {
 		edit_history_prev();
 	}
 	else {
 		pos.row--;
-		m_pos = to_input_pos(m_input, pos);
+		_pos = to_input_pos(_input, pos);
 	}
 }
 
 void Terminal::edit_cursor_row_down() {
-	CursorPos pos = to_cursor_pos(m_input, m_pos);
-	if (pos.row == m_input_rows) {
+	CursorPos pos = to_cursor_pos(_input, _pos);
+	if (pos.row == _input_rows) {
 		edit_history_next();
 	}
 	else {
 		pos.row++;
-		m_pos = to_input_pos(m_input, pos);
+		_pos = to_input_pos(_input, pos);
 	}
 }
 
 void Terminal::edit_cursor_left() {
-	if (m_pos) {
-		m_pos = utf8_previous_code_point_byte_index(m_input, m_pos);
+	if (_pos) {
+		_pos = utf8_previous_code_point_byte_index(_input, _pos);
 	}
 }
 
 void Terminal::edit_cursor_right() {
-	if (m_pos < m_input.size()) {
-		m_pos = utf8_next_code_point_byte_index(m_input, m_pos);
+	if (_pos < _input.size()) {
+		_pos = utf8_next_code_point_byte_index(_input, _pos);
 	}
 }
 
 void Terminal::edit_cursor_match_brace() {
-	auto [pos, _] = find_matching_brace(m_pos);
+	auto [pos, _] = find_matching_brace(_pos);
 	if (pos != std::string_view::npos) {
-		m_pos = pos;
+		_pos = pos;
 	}
 }
 
 void Terminal::edit_delete_to_start_of_line() {
-	auto from = m_input.rfind('\n', m_pos);
+	auto from = _input.rfind('\n', _pos);
 	if (from == std::string::npos) {
 		from = 0;
 	}
-	m_input.erase(from, m_pos - from);
-	m_pos = from;
+	_input.erase(from, _pos - from);
+	_pos = from;
 }
 
 void Terminal::edit_delete_to_end_of_line() {
-	auto to = m_input.find('\n', m_pos);
+	auto to = _input.find('\n', _pos);
 	if (to == std::string::npos) {
-		to = m_input.size();
+		to = _input.size();
 	}
-	m_input.erase(m_pos, to - m_pos);
+	_input.erase(_pos, to - _pos);
 }
 
 void Terminal::edit_delete_to_start_of_word() {
-	auto from = m_pos;
-	auto pos = utf8_previous_code_point_byte_index(m_input, from);
-	while (pos != std::string_view::npos && is_word_delimiter(m_input[pos])) {
+	auto from = _pos;
+	auto pos = utf8_previous_code_point_byte_index(_input, from);
+	while (pos != std::string_view::npos && is_word_delimiter(_input[pos])) {
 		from = pos;
-		pos = utf8_previous_code_point_byte_index(m_input, pos);
+		pos = utf8_previous_code_point_byte_index(_input, pos);
 	}
-	while (pos != std::string_view::npos && !is_word_delimiter(m_input[pos])) {
+	while (pos != std::string_view::npos && !is_word_delimiter(_input[pos])) {
 		from = pos;
-		pos = utf8_previous_code_point_byte_index(m_input, pos);
+		pos = utf8_previous_code_point_byte_index(_input, pos);
 	}
-	m_input.erase(from, m_pos - from);
-	m_pos = from;
+	_input.erase(from, _pos - from);
+	_pos = from;
 }
 
 void Terminal::edit_delete_to_end_of_word() {
-	auto to = m_pos;
-	while (to < m_input.size() && !is_word_delimiter(m_input[to])) {
-		to = utf8_next_code_point_byte_index(m_input, to);
+	auto to = _pos;
+	while (to < _input.size() && !is_word_delimiter(_input[to])) {
+		to = utf8_next_code_point_byte_index(_input, to);
 	}
-	while (to < m_input.size() && is_word_delimiter(m_input[to])) {
-		to = utf8_next_code_point_byte_index(m_input, to);
+	while (to < _input.size() && is_word_delimiter(_input[to])) {
+		to = utf8_next_code_point_byte_index(_input, to);
 	}
-	m_input.erase(m_pos, m_pos + to);
+	_input.erase(_pos, _pos + to);
 }
 
 void Terminal::edit_delete_indent() {
-	if (!m_input.empty()) {
-		const auto from = m_input[m_pos] != '\n' ? m_pos : m_pos - 1;
-		auto pos = m_input.rfind('\n', from) + 1;
-		for (size_t i = 0; i < m_indent_size && pos < m_input.size() && m_input[pos] == ' '; ++i) {
-			m_input.erase(pos, 1);
-			m_pos--;
+	if (!_input.empty()) {
+		const auto from = _input[_pos] != '\n' ? _pos : _pos - 1;
+		auto pos = _input.rfind('\n', from) + 1;
+		for (std::size_t i = 0; i < _indent_size && pos < _input.size() && _input[pos] == ' '; ++i) {
+			_input.erase(pos, 1);
+			_pos--;
 		}
 	}
 }
 
 void Terminal::edit_delete_char() {
-	if (m_pos < m_input.size()) {
-		edit_remove_auto_brace(m_pos);
-		m_input.erase(m_pos, utf8_code_point_length(m_input[m_pos]));
+	if (_pos < _input.size()) {
+		edit_remove_auto_brace(_pos);
+		_input.erase(_pos, utf8_code_point_length(_input[_pos]));
 	}
 }
 
 void Terminal::edit_delete_all() {
-	m_input.clear();
-	m_pos = 0;
+	_input.clear();
+	_pos = 0;
 }
 
 void Terminal::edit_backspace() {
-	if (m_pos) {
-		edit_remove_auto_brace(m_pos - 1);
+	if (_pos) {
+		edit_remove_auto_brace(_pos - 1);
 	}
-	if (const size_t pos = m_pos) {
-		const size_t prev = utf8_previous_code_point_byte_index(m_input, m_pos);
-		m_input.erase(prev, pos - prev);
-		m_pos = prev;
+	if (const std::size_t pos = _pos) {
+		const std::size_t prev = utf8_previous_code_point_byte_index(_input, _pos);
+		_input.erase(prev, pos - prev);
+		_pos = prev;
 	}
 }
 
 void Terminal::edit_swap_char() {
-	if (utf8_code_point_count(m_input) > 1) {
-		if (m_pos == m_input.size()) {
-			const size_t to = utf8_previous_code_point_byte_index(m_input, m_pos);
-			const size_t from = utf8_previous_code_point_byte_index(m_input, to);
-			m_input.insert(m_pos, m_input.substr(from, utf8_code_point_length(m_input[from])));
-			m_input.erase(from, utf8_code_point_length(m_input[from]));
+	if (utf8_code_point_count(_input) > 1) {
+		if (_pos == _input.size()) {
+			const std::size_t to = utf8_previous_code_point_byte_index(_input, _pos);
+			const std::size_t from = utf8_previous_code_point_byte_index(_input, to);
+			_input.insert(_pos, _input.substr(from, utf8_code_point_length(_input[from])));
+			_input.erase(from, utf8_code_point_length(_input[from]));
 		}
-		else if (m_pos) {
-			const size_t from = utf8_previous_code_point_byte_index(m_input, m_pos);
-			m_input.insert(utf8_next_code_point_byte_index(m_input, m_pos),
-						   m_input.substr(from, utf8_code_point_length(m_input[from])));
-			m_input.erase(from, utf8_code_point_length(m_input[from]));
-			m_pos = utf8_next_code_point_byte_index(m_input, m_pos);
+		else if (_pos) {
+			const std::size_t from = utf8_previous_code_point_byte_index(_input, _pos);
+			_input.insert(utf8_next_code_point_byte_index(_input, _pos),
+			    _input.substr(from, utf8_code_point_length(_input[from])));
+			_input.erase(from, utf8_code_point_length(_input[from]));
+			_pos = utf8_next_code_point_byte_index(_input, _pos);
 		}
 		else {
-			const size_t to = utf8_code_point_length(m_input[m_pos]);
-			m_input.insert(utf8_next_code_point_byte_index(m_input, to),
-						   m_input.substr(0, utf8_code_point_length(m_input.front())));
-			m_input.erase(0, utf8_code_point_length(m_input.front()));
-			m_pos = utf8_next_code_point_byte_index(m_input, m_pos);
+			const std::size_t to = utf8_code_point_length(_input[_pos]);
+			_input.insert(utf8_next_code_point_byte_index(_input, to),
+			    _input.substr(0, utf8_code_point_length(_input.front())));
+			_input.erase(0, utf8_code_point_length(_input.front()));
+			_pos = utf8_next_code_point_byte_index(_input, _pos);
 		}
 	}
 }
 
 void Terminal::edit_swap_line_up() {
-	const auto pos = m_input[m_pos] == '\n' ? m_pos - 1 : m_pos;
-	const auto from = m_input.rfind('\n', pos) + 1;
-	const auto to = m_input.find('\n', pos);
+	const auto pos = _input[_pos] == '\n' ? _pos - 1 : _pos;
+	const auto from = _input.rfind('\n', pos) + 1;
+	const auto to = _input.find('\n', pos);
 	if (from > 1) {
 		const auto length = to != std::string::npos ? to - from + 1 : to;
-		const auto target = m_input.rfind('\n', from - 2) + 1;
-		const auto line = m_input.substr(from, length);
+		const auto target = _input.rfind('\n', from - 2) + 1;
+		const auto line = _input.substr(from, length);
 		if (length != std::string::npos) {
-			m_input.erase(from, length);
-			m_input.insert(target, line);
+			_input.erase(from, length);
+			_input.insert(target, line);
 		}
 		else {
-			m_input.erase(from - 1, length);
-			m_input.insert(target, line + "\n");
+			_input.erase(from - 1, length);
+			_input.insert(target, line + "\n");
 		}
 		edit_cursor_row_up();
 	}
 }
 
 void Terminal::edit_swap_line_down() {
-	const auto pos = m_input[m_pos] == '\n' ? m_pos - 1 : m_pos;
-	const auto from = m_input.rfind('\n', pos) + 1;
-	const auto to = m_input.find('\n', pos);
+	const auto pos = _input[_pos] == '\n' ? _pos - 1 : _pos;
+	const auto from = _input.rfind('\n', pos) + 1;
+	const auto to = _input.find('\n', pos);
 	if (to != std::string::npos) {
 		const auto length = to - from + 1;
-		const auto target = m_input.find('\n', to + 1) + 1;
-		const auto line = m_input.substr(from, length);
+		const auto target = _input.find('\n', to + 1) + 1;
+		const auto line = _input.substr(from, length);
 		if (target) {
-			m_input.insert(target, line);
-			m_input.erase(from, length);
+			_input.insert(target, line);
+			_input.erase(from, length);
 		}
 		else {
-			m_input.append("\n" + line);
-			m_input.erase(from, length);
-			m_input.pop_back();
+			_input.append("\n" + line);
+			_input.erase(from, length);
+			_input.pop_back();
 		}
 		edit_cursor_row_down();
 	}
 }
 
 void Terminal::edit_insert_char(byte_t c) {
-	m_input.insert(m_pos++, 1, c);
+	_input.insert(_pos++, 1, c);
 	edit_insert_auto_brace(c);
-	if (c == '\n' && m_auto_braces.size() > 1) {
-		edit_auto_indent(m_auto_braces[0], m_auto_braces[1]);
+	if (c == '\n' && _auto_braces.size() > 1) {
+		edit_auto_indent(_auto_braces[0], _auto_braces[1]);
 	}
 }
 
 void Terminal::edit_insert_indent() {
-	m_input.insert(m_pos, m_indent_size, ' ');
-	m_pos += m_indent_size;
+	_input.insert(_pos, _indent_size, ' ');
+	_pos += _indent_size;
 }
 
 void Terminal::edit_clear_screen() {
-	move_cursor_up(to_cursor_pos(m_input, m_pos).row + 1);
-	for (size_t row = 0; row < g_term.height; ++row) {
+	move_cursor_up(to_cursor_pos(_input, _pos).row + 1);
+	for (std::size_t row = 0; row < g_term.height; ++row) {
 		if (row) {
 			print(stdout, "\n");
 		}
@@ -1401,19 +1416,19 @@ void Terminal::edit_clear_screen() {
 }
 
 void Terminal::edit_history_prev() {
-	if (m_history_idx > 0) {
-		if (m_history_idx == m_history.size() - 1) {
-			m_history.back() = m_input;
+	if (_history_idx > 0) {
+		if (_history_idx == _history.size() - 1) {
+			_history.back() = _input;
 		}
-		m_input = m_history[--m_history_idx];
-		m_pos = m_input.size();
+		_input = _history[--_history_idx];
+		_pos = _input.size();
 	}
 }
 
 void Terminal::edit_history_next() {
-	if (m_history_idx < m_history.size() - 1) {
-		m_input = m_history[++m_history_idx];
-		m_pos = m_input.size();
+	if (_history_idx < _history.size() - 1) {
+		_input = _history[++_history_idx];
+		_pos = _input.size();
 	}
 }
 
@@ -1427,10 +1442,13 @@ void Terminal::edit_history_search_forward() {
 
 bool Terminal::edit_generate_completions() {
 
-	if (m_generate_completions) {
-		m_completions.clear();
-		m_completions_idx = 0;
-		return m_generate_completions(m_input, m_pos, m_completions);
+	if (_generate_completions) {
+		_completions.clear();
+		_completions_idx = 0;
+		if (auto completions = _generate_completions(_input, _pos)) {
+			_completions = std::move(*completions);
+			return true;
+		}
 	}
 
 	return false;
@@ -1438,22 +1456,22 @@ bool Terminal::edit_generate_completions() {
 
 void Terminal::edit_refresh(bool for_validation) {
 
-	const bool has_trailing_new_line = !m_input.empty() && m_input.back() == '\n';
-	const CursorPos input_cursor = to_cursor_pos(m_input, m_pos);
+	const bool has_trailing_new_line = !_input.empty() && _input.back() == '\n';
+	const CursorPos input_cursor = to_cursor_pos(_input, _pos);
 
-	const std::string input = m_highlight ? m_highlight(m_input, m_pos) : m_input;
+	const std::string input = _highlight ? _highlight(_input, _pos) : _input;
 	std::vector<std::pair<std::string::size_type, bool>> line_breaks;
 	std::vector<std::string> prompts;
 
-	m_input_rows = 0;
-	prompts.push_back(m_prompt ? m_prompt(m_input_rows) : "");
-	size_t prompt_width = column_count(prompts.back());
+	_input_rows = 0;
+	prompts.push_back(_prompt ? _prompt(_input_rows) : "");
+	std::size_t prompt_width = column_count(prompts.back());
 
 	// calculate rows separation including word wrap
-	for (size_t pos = 0, column = 0; pos < input.size();) {
+	for (std::size_t pos = 0, column = 0; pos < input.size();) {
 		if (input[pos] == '\n') {
 			line_breaks.emplace_back(pos, true);
-			prompts.push_back(m_prompt ? m_prompt(++m_input_rows) : "");
+			prompts.push_back(_prompt ? _prompt(++_input_rows) : "");
 			prompt_width = column_count(prompts.back());
 			column = 0;
 			pos++;
@@ -1476,41 +1494,43 @@ void Terminal::edit_refresh(bool for_validation) {
 	}
 
 	line_breaks.emplace_back(std::string::npos, true);
-	m_input_rows++;
+	_input_rows++;
 
 	// move cursor back to start of input
-	move_cursor_down(m_cursor_rows - m_cursor_row - 1);
-	while (--m_cursor_rows) {
+	move_cursor_down(_cursor_rows - _cursor_row - 1);
+	while (--_cursor_rows) {
 		clear_line();
 		move_cursor_up();
 	}
 
-	size_t begin_row = 0;
-	size_t end_row = m_input_rows + 1;
-	size_t begin_completion = 0;
-	size_t end_completion = m_completions.size();
+	std::size_t begin_row = 0;
+	std::size_t end_row = _input_rows + 1;
+	std::size_t begin_completion = 0;
+	std::size_t end_completion = _completions.size();
 
 	// calculate the new cursor row and total rows needed
 	if (!for_validation && g_term.height < end_row + end_completion) {
-		const size_t input_page_size = m_completions.empty() ? g_term.height : 2 * (g_term.height / 3);
+		const std::size_t input_page_size = _completions.empty() ? g_term.height : 2 * (g_term.height / 3);
 		if (input_cursor.row < input_page_size) {
-			end_row = std::min(input_page_size, m_input_rows + 1);
+			end_row = std::min(input_page_size, _input_rows + 1);
 		}
 		else {
 			begin_row = (input_cursor.row / input_page_size) * input_page_size;
-			end_row = std::min(begin_row + input_page_size, m_input_rows + 1);
+			end_row = std::min(begin_row + input_page_size, _input_rows + 1);
 		}
-		if (!m_completions.empty()) {
+		if (!_completions.empty()) {
 			end_completion = g_term.height - end_row - begin_row - 2;
-			if (m_completions_idx >= end_completion) {
-				const size_t completion_page_size = end_completion - 1;
-				begin_completion = (m_completions_idx / completion_page_size) * completion_page_size;
-				end_completion = std::min(begin_completion + completion_page_size, m_completions.size());
+			if (_completions_idx >= end_completion) {
+				const std::size_t completion_page_size = end_completion - 1;
+				begin_completion = (_completions_idx / completion_page_size) * completion_page_size;
+				end_completion = std::min(begin_completion + completion_page_size, _completions.size());
 			}
 		}
 	}
 
-	size_t from = 0, row = 0, next_prompt = 0;
+	std::size_t from = 0;
+	std::size_t row = 0;
+	std::size_t next_prompt = 0;
 	prompt_width = column_count(prompts[input_cursor.row]);
 
 	// render rows
@@ -1523,10 +1543,10 @@ void Terminal::edit_refresh(bool for_validation) {
 		if (row >= begin_row && row < end_row) {
 
 			if (row == next_prompt && row == input_cursor.row) {
-				m_cursor_row = m_cursor_rows + (prompt_width + input_cursor.column) / g_term.width;
+				_cursor_row = _cursor_rows + ((prompt_width + input_cursor.column) / g_term.width);
 			}
 
-			if (m_cursor_rows++) {
+			if (_cursor_rows++) {
 				print(stdout, "\n");
 			}
 			else {
@@ -1534,11 +1554,10 @@ void Terminal::edit_refresh(bool for_validation) {
 			}
 
 			if (row == next_prompt) {
-				print(stdout, prompts[next_prompt++].c_str());
+				print(stdout, prompts[next_prompt++]);
 			}
 
-			const std::string input_line = input.substr(from, to - from);
-			print(stdout, input_line.c_str());
+			print(stdout, input.substr(from, to - from));
 		}
 
 		if (new_line) {
@@ -1551,34 +1570,34 @@ void Terminal::edit_refresh(bool for_validation) {
 	}
 
 	if (begin_completion) {
-		m_cursor_rows++;
+		_cursor_rows++;
 		print(stdout, "\n");
 		print(stdout, "          ⮝          ");
 	}
 
-	for (size_t idx = begin_completion; idx < end_completion; ++idx) {
-		m_cursor_rows++;
+	for (std::size_t idx = begin_completion; idx < end_completion; ++idx) {
+		_cursor_rows++;
 		print(stdout, "\n");
-		if (idx == m_completions_idx) {
-			printf(stdout, "\033[1;7m %s \033[0m", m_completions[idx].token.c_str());
+		if (idx == _completions_idx) {
+			std::print(stdout, "\033[1;7m {} \033[0m", _completions[idx].token);
 		}
 		else {
-			printf(stdout, "\033[0m %s \033[0m", m_completions[idx].token.c_str());
+			std::print(stdout, "\033[0m {} \033[0m", _completions[idx].token);
 		}
 	}
 
-	if (end_completion < m_completions.size()) {
-		m_cursor_rows++;
+	if (end_completion < _completions.size()) {
+		_cursor_rows++;
 		print(stdout, "\n");
 		print(stdout, "          ⮟          ");
 	}
 
 	// move cursor back to edit position
 	move_cursor_to_start_of_line();
-	move_cursor_up(m_cursor_rows - m_cursor_row - 1);
+	move_cursor_up(_cursor_rows - _cursor_row - 1);
 	move_cursor_right((prompt_width + input_cursor.column) % g_term.width);
 
-#ifdef OS_UNIX
+#ifdef MINT_OS_UNIX
 	fflush(stdout);
 #endif
 }
@@ -1586,15 +1605,15 @@ void Terminal::edit_refresh(bool for_validation) {
 std::optional<std::string> Terminal::edit() {
 
 	// set up an edit buffer
-	m_cursor_rows = 1;
-	m_cursor_row = 0;
-	m_input_rows = 1;
-	m_input.clear();
-	m_pos = 0;
+	_cursor_rows = 1;
+	_cursor_row = 0;
+	_input_rows = 1;
+	_input.clear();
+	_pos = 0;
 
 	// always a history entry for the current input
-	m_history_idx = m_history.size();
-	m_history.emplace_back("");
+	_history_idx = _history.size();
+	_history.emplace_back("");
 
 	// process keys
 	TtyEvent event; // current key code
@@ -1605,39 +1624,39 @@ std::optional<std::string> Terminal::edit() {
 		event = wait_for_event();
 
 		// Completion Operations
-		if (!m_completions.empty()) {
-			Completion completion = m_completions[m_completions_idx];
+		if (!_completions.empty()) {
+			Completion completion = _completions[_completions_idx];
 			switch (static_cast<uint32_t>(event)) {
 			// Operations that may return
-			case EVENT_KEY_ENTER:
-				m_input.replace(completion.offset, m_pos - completion.offset, completion.token);
-				m_pos = completion.offset + completion.token.size();
-				m_completions.clear();
-				m_completions_idx = 0;
+			case event_key_enter:
+				_input.replace(completion.offset, _pos - completion.offset, completion.token);
+				_pos = completion.offset + completion.token.size();
+				_completions.clear();
+				_completions_idx = 0;
 				continue;
-			case EVENT_KEY_UP:
-				if (m_completions_idx == 0) {
-					m_completions_idx = m_completions.size() - 1;
+			case event_key_up:
+				if (_completions_idx == 0) {
+					_completions_idx = _completions.size() - 1;
 				}
 				else {
-					m_completions_idx--;
+					_completions_idx--;
 				}
 				continue;
-			case EVENT_KEY_TAB:
-			case EVENT_KEY_DOWN:
-				m_completions_idx = (m_completions_idx + 1) % m_completions.size();
+			case event_key_tab:
+			case event_key_down:
+				_completions_idx = (_completions_idx + 1) % _completions.size();
 				continue;
-			case EVENT_KEY_DEL:
-			case EVENT_KEY_BACKSP:
-				g_tty.event_buffer.push(EVENT_AUTOTAB);
+			case event_key_del:
+			case event_key_backsp:
+				g_tty.event_buffer.push(event_autotab);
 				break;
 			default:
 				if (isascii(event) || (event & 0xEE000U) == 0xEE000U) {
-					g_tty.event_buffer.push(EVENT_AUTOTAB);
+					g_tty.event_buffer.push(event_autotab);
 				}
 				else {
-					m_completions.clear();
-					m_completions_idx = 0;
+					_completions.clear();
+					_completions_idx = 0;
 				}
 				break;
 			}
@@ -1646,31 +1665,31 @@ std::optional<std::string> Terminal::edit() {
 		// Editing Operations
 		switch (static_cast<uint32_t>(event)) {
 		// Operations that may return
-		case EVENT_KEY_ENTER:
+		case event_key_enter:
 			if (edit_pos_is_inside_multi_line() || edit_pos_is_inside_braces()) {
 				edit_insert_char('\n');
 			}
 			else {
 				// otherwise done
-				m_input += '\n';
+				_input += '\n';
 				done = true;
 			}
 			break;
-		case EVENT_KEY_CTRL_D:
-			if (m_input.empty()) {
+		case event_key_ctrl_d:
+			if (_input.empty()) {
 				// ctrl+D on empty quits with NULL
 				done = true;
 				break;
 			}
 			edit_delete_char(); // otherwise it is like delete
 			break;
-		case EVENT_KEY_CTRL_C:
-		case EVENT_STOP:
+		case event_key_ctrl_c:
+		case event_stop:
 			// ctrl+C or STOP event quits with NULL
 			done = true;
 			break;
-		case EVENT_KEY_ESC:
-			if (m_input.empty()) {
+		case event_key_esc:
+			if (_input.empty()) {
 				// ESC on empty input returns with empty input
 				done = true;
 				break;
@@ -1678,57 +1697,57 @@ std::optional<std::string> Terminal::edit() {
 			edit_delete_all(); // otherwise delete the current input
 			// edit_delete_line();  // otherwise delete the current line
 			break;
-		case EVENT_KEY_BELL: // ^G
+		case event_key_bell: // ^G
 			// ctrl+G cancels (and returns empty input)
 			edit_delete_all();
 			done = true;
 			break;
 
 		// Events
-		case EVENT_RESIZE:
+		case event_resize:
 			term_update_dim(&g_term);
 			break;
-		case EVENT_AUTOTAB:
+		case event_autotab:
 			if (!edit_generate_completions()) {
 				/// \todo on no completion available
 			}
 			break;
 
 		// Completion, history, help
-		case EVENT_KEY_TAB:
+		case event_key_tab:
 			if (!edit_generate_completions()) {
 				edit_insert_indent();
 			}
 			break;
-		case EVENT_KEY_MOD_ALT | '?':
+		case event_key_mod_alt | '?':
 			if (!edit_generate_completions()) {
 				/// \todo on no completion available
 			}
 			break;
-		case EVENT_KEY_CTRL_R:
+		case event_key_ctrl_r:
 			edit_history_search_backward();
 			break;
-		case EVENT_KEY_CTRL_S:
+		case event_key_ctrl_s:
 			edit_history_search_forward();
 			break;
-		case EVENT_KEY_CTRL_P:
+		case event_key_ctrl_p:
 			edit_history_prev();
 			break;
-		case EVENT_KEY_CTRL_N:
+		case event_key_ctrl_n:
 			edit_history_next();
 			break;
-		case EVENT_KEY_CTRL_L:
+		case event_key_ctrl_l:
 			edit_clear_screen();
 			break;
 
 		// Navigation
-		case EVENT_KEY_LEFT:
-		case EVENT_KEY_CTRL_B:
+		case event_key_left:
+		case event_key_ctrl_b:
 			edit_cursor_left();
 			break;
-		case EVENT_KEY_RIGHT:
-		case EVENT_KEY_CTRL_F:
-			if (m_pos == m_input.size()) {
+		case event_key_right:
+		case event_key_ctrl_f:
+			if (_pos == _input.size()) {
 				if (!edit_generate_completions()) {
 					/// \todo on no completion available
 				}
@@ -1737,7 +1756,7 @@ std::optional<std::string> Terminal::edit() {
 				edit_cursor_right();
 			}
 			break;
-		case EVENT_KEY_UP:
+		case event_key_up:
 			if (edit_is_multi_line()) {
 				edit_cursor_row_up();
 			}
@@ -1745,7 +1764,7 @@ std::optional<std::string> Terminal::edit() {
 				edit_history_prev();
 			}
 			break;
-		case EVENT_KEY_DOWN:
+		case event_key_down:
 			if (edit_is_multi_line()) {
 				edit_cursor_row_down();
 			}
@@ -1753,23 +1772,23 @@ std::optional<std::string> Terminal::edit() {
 				edit_history_next();
 			}
 			break;
-		case EVENT_KEY_HOME:
-		case EVENT_KEY_CTRL_A:
+		case event_key_home:
+		case event_key_ctrl_a:
 			edit_cursor_line_start();
 			break;
-		case EVENT_KEY_END:
-		case EVENT_KEY_CTRL_E:
+		case event_key_end:
+		case event_key_ctrl_e:
 			edit_cursor_line_end();
 			break;
-		case EVENT_KEY_MOD_CTRL | EVENT_KEY_LEFT:
-		case EVENT_KEY_MOD_SHIFT | EVENT_KEY_LEFT:
-		case EVENT_KEY_MOD_ALT | 'b':
+		case event_key_mod_ctrl | event_key_left:
+		case event_key_mod_shift | event_key_left:
+		case event_key_mod_alt | 'b':
 			edit_cursor_prev_word();
 			break;
-		case EVENT_KEY_MOD_CTRL | EVENT_KEY_RIGHT:
-		case EVENT_KEY_MOD_SHIFT | EVENT_KEY_RIGHT:
-		case EVENT_KEY_MOD_ALT | 'f':
-			if (m_pos == m_input.size()) {
+		case event_key_mod_ctrl | event_key_right:
+		case event_key_mod_shift | event_key_right:
+		case event_key_mod_alt | 'f':
+			if (_pos == _input.size()) {
 				if (!edit_generate_completions()) {
 					/// \todo on no completion available
 				}
@@ -1778,67 +1797,67 @@ std::optional<std::string> Terminal::edit() {
 				edit_cursor_next_word();
 			}
 			break;
-		case EVENT_KEY_MOD_CTRL | EVENT_KEY_HOME:
-		case EVENT_KEY_MOD_SHIFT | EVENT_KEY_HOME:
-		case EVENT_KEY_PAGEUP:
-		case EVENT_KEY_MOD_ALT | '<':
+		case event_key_mod_ctrl | event_key_home:
+		case event_key_mod_shift | event_key_home:
+		case event_key_pageup:
+		case event_key_mod_alt | '<':
 			edit_cursor_to_start();
 			break;
-		case EVENT_KEY_MOD_CTRL | EVENT_KEY_END:
-		case EVENT_KEY_MOD_SHIFT | EVENT_KEY_END:
-		case EVENT_KEY_PAGEDOWN:
-		case EVENT_KEY_MOD_ALT | '>':
+		case event_key_mod_ctrl | event_key_end:
+		case event_key_mod_shift | event_key_end:
+		case event_key_pagedown:
+		case event_key_mod_alt | '>':
 			edit_cursor_to_end();
 			break;
-		case EVENT_KEY_MOD_ALT | 'm':
+		case event_key_mod_alt | 'm':
 			edit_cursor_match_brace();
 			break;
 
 		// Deletion
-		case EVENT_KEY_BACKSP:
+		case event_key_backsp:
 			edit_backspace();
 			break;
-		case EVENT_KEY_DEL:
+		case event_key_del:
 			edit_delete_char();
 			break;
-		case EVENT_KEY_CTRL_W:
-		case EVENT_KEY_MOD_ALT | EVENT_KEY_DEL:
-		case EVENT_KEY_MOD_ALT | EVENT_KEY_BACKSP:
+		case event_key_ctrl_w:
+		case event_key_mod_alt | event_key_del:
+		case event_key_mod_alt | event_key_backsp:
 			edit_delete_to_start_of_word();
 			break;
-		case EVENT_KEY_MOD_ALT | 'd':
+		case event_key_mod_alt | 'd':
 			edit_delete_to_end_of_word();
 			break;
-		case EVENT_KEY_CTRL_U:
+		case event_key_ctrl_u:
 			edit_delete_to_start_of_line();
 			break;
-		case EVENT_KEY_CTRL_K:
+		case event_key_ctrl_k:
 			edit_delete_to_end_of_line();
 			break;
-		case EVENT_KEY_MOD_SHIFT | EVENT_KEY_TAB:
+		case event_key_mod_shift | event_key_tab:
 			edit_delete_indent();
 			break;
-		case EVENT_KEY_CTRL_T:
+		case event_key_ctrl_t:
 			edit_swap_char();
 			break;
-		case EVENT_KEY_MOD_CTRL | EVENT_KEY_UP:
+		case event_key_mod_ctrl | event_key_up:
 			edit_swap_line_up();
 			break;
-		case EVENT_KEY_MOD_CTRL | EVENT_KEY_DOWN:
+		case event_key_mod_ctrl | event_key_down:
 			edit_swap_line_down();
 			break;
 
 		// Editing
-		case EVENT_KEY_LINEFEED: // '\n' (ctrl+J, shift+enter)
+		case event_key_linefeed: // '\n' (ctrl+J, shift+enter)
 			edit_insert_char('\n');
 			break;
 		default:
 			if (isascii(event)) {
 				edit_insert_char(static_cast<byte_t>(event));
 			}
-			else if (const size_t len = utf8_code_point_length(event)) {
+			else if (const std::size_t len = utf8_code_point_length(event)) {
 				edit_insert_char(static_cast<byte_t>(event));
-				for (size_t i = 1; i < len; ++i) {
+				for (std::size_t i = 1; i < len; ++i) {
 					edit_insert_char(read_byte(0ms));
 				}
 			}
@@ -1847,27 +1866,27 @@ std::optional<std::string> Terminal::edit() {
 	}
 
 	// goto end
-	m_pos = m_input.size();
+	_pos = _input.size();
 
 	// refresh once more but without brace matching
 	edit_refresh(true);
 	print(stdout, "\n");
 
 	// input was canceled ?
-	if ((event == EVENT_KEY_CTRL_D && m_input.empty()) || event == EVENT_KEY_CTRL_C || event == EVENT_STOP) {
+	if ((event == event_key_ctrl_d && _input.empty()) || event == event_key_ctrl_c || event == event_stop) {
 		return std::nullopt;
 	}
 
 	// update history
-	m_history.pop_back();
-	if (m_input.size() > 1) {
-		add_history(m_input.substr(0, m_input.size() - 1));
+	_history.pop_back();
+	if (_input.size() > 1) {
+		add_history(_input.substr(0, _input.size() - 1));
 	}
 
-	return m_input;
+	return _input;
 }
 
-bool mint::is_term(FILE *stream) {
+bool mint::is_term(FILE* stream) {
 	return isatty(fileno(stream));
 }
 

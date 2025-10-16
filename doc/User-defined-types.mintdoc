@@ -400,9 +400,21 @@ class MyClass {
     member = 5
 }
 
-myObject = MyClass()
+let myObject = MyClass()
 myObject.member    // gives 5
 myObject.method(5) // call MyClass.method(myObject, 5)
+```
+
+The `?.` operator can also be used to access a member of the object. With this operator, if the object is [[`none`|Built-in-types#none]], the object is returned; otherwise the behaviour is the same as with the `.` operator.
+
+**Example**:
+
+```mn
+let myObject = MyClass()
+myObject?.member    // gives the value of myObject.member
+
+myObject = none
+myObject?.member    // gives none
 ```
 
 > [!NOTE]

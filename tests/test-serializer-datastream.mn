@@ -9,6 +9,11 @@ class TestDataStream : Test.Case {
 		s.write(uint8(42))
 		self.expectEqual(uint8(42), s.getUInt8())
 		self.expectEqual(uint8(42), s.getUInt8())
+
+		s.remove(s.size())
+		s.write(uint32(65536))
+		self.expectEqual(uint32(65536), s.getUInt32())
+		self.expectEqual(uint32(65536), s.getUInt32())
 	}
 
 	const def testRead(self) {

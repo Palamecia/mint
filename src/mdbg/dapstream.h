@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -25,50 +25,53 @@
 #define MDBG_DAPSTREAM_H
 
 #include "dapmessage.h"
+#include <cstddef>
+#include <string>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include <Windows.h>
+#include <winnt.h>
 #endif
 
 class DapStreamReader : public DapMessageReader {
 public:
 	DapStreamReader();
-	DapStreamReader(const DapStreamReader &) = delete;
-	DapStreamReader(DapStreamReader &&) = delete;
+	DapStreamReader(const DapStreamReader&) = delete;
+	DapStreamReader(DapStreamReader&&) = delete;
 	~DapStreamReader();
 
-	DapStreamReader &operator=(const DapStreamReader &) = delete;
-	DapStreamReader &operator=(DapStreamReader &&) = delete;
+	DapStreamReader& operator=(const DapStreamReader&) = delete;
+	DapStreamReader& operator=(DapStreamReader&&) = delete;
 
 protected:
-	size_t read(std::string &data) override;
+	std::size_t read(std::string& data) override;
 
 private:
-#ifdef OS_WINDOWS
-	HANDLE m_handle;
+#ifdef MINT_OS_WINDOWS
+	HANDLE _handle;
 #else
-	int m_fd;
+	int _fd;
 #endif
 };
 
 class DapStreamWriter : public DapMessageWriter {
 public:
 	DapStreamWriter();
-	DapStreamWriter(const DapStreamWriter &) = delete;
-	DapStreamWriter(DapStreamWriter &&) = delete;
+	DapStreamWriter(const DapStreamWriter&) = delete;
+	DapStreamWriter(DapStreamWriter&&) = delete;
 	~DapStreamWriter();
 
-	DapStreamWriter &operator=(const DapStreamWriter &) = delete;
-	DapStreamWriter &operator=(DapStreamWriter &&) = delete;
+	DapStreamWriter& operator=(const DapStreamWriter&) = delete;
+	DapStreamWriter& operator=(DapStreamWriter&&) = delete;
 
 protected:
-	size_t write(const std::string &data) override;
+	std::size_t write(const std::string& data) override;
 
 private:
-#ifdef OS_WINDOWS
-	HANDLE m_handle;
+#ifdef MINT_OS_WINDOWS
+	HANDLE _handle;
 #else
-	int m_fd;
+	int _fd;
 #endif
 };
 

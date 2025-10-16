@@ -1,12 +1,13 @@
 #include <gtest/gtest.h>
-#include <mint/debug/debuginfo.h>
-#include <mint/compiler/compiler.h>
-#include <mint/system/bufferstream.h>
-#include <mint/ast/module.h>
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/classregister.h"
+#include "mint/ast/module.h"
+#include "mint/ast/node.h"
+#include "mint/compiler/compiler.h"
+#include "mint/debug/debuginfo.h"
+#include "mint/system/bufferstream.h"
 
-using namespace mint;
-
-class TestModule : public Module {
+class TestModule : public mint::Module {
 public:
 	TestModule() = default;
 	using Module::push_node;
@@ -14,37 +15,37 @@ public:
 
 TEST(debuginfos, new_line) {
 
-	DebugInfo infos;
+	mint::DebugInfo infos;
 	TestModule module;
 
 	infos.new_line(&module, 1);
-	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
 	EXPECT_EQ(1, infos.line_number(0));
 
 	infos.new_line(&module, 5);
-	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
 	EXPECT_EQ(1, infos.line_number(0));
 	EXPECT_EQ(5, infos.line_number(1));
 }
 
 TEST(debuginfos, line_number) {
 
-	DebugInfo infos;
+	mint::DebugInfo infos;
 	TestModule module;
 
 	infos.new_line(&module, 1);
-	module.push_node(Node(Node::EXIT_MODULE));
-	module.push_node(Node(Node::EXIT_MODULE));
-	module.push_node(Node(Node::EXIT_MODULE));
-	module.push_node(Node(Node::EXIT_MODULE));
-	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
 
 	infos.new_line(&module, 2);
-	module.push_node(Node(Node::EXIT_MODULE));
-	module.push_node(Node(Node::EXIT_MODULE));
-	module.push_node(Node(Node::EXIT_MODULE));
-	module.push_node(Node(Node::EXIT_MODULE));
-	module.push_node(Node(Node::EXIT_MODULE));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
 
 	infos.new_line(&module, 3);
 
@@ -64,11 +65,12 @@ TEST(debuginfos, line_number) {
 
 TEST(debuginfos, new_line_from_source) {
 
-	DebugInfo infos;
+	mint::AbstractSyntaxTree ast;
+	mint::DebugInfo infos;
 	TestModule module;
-	Compiler compiler;
+	mint::Compiler compiler(ast);
 
-	BufferStream stream(R"""(/* comment */
+	mint::BufferStream stream(R"""(/* comment */
 
 load module
 
@@ -77,7 +79,11 @@ if defined symbol {
 }
 )""");
 
-	ASSERT_TRUE(compiler.build(&stream, {Module::INVALID_ID, &module, &infos}));
+	ASSERT_TRUE(compiler.build(stream, mint::Module::Info {
+	                                       .id = mint::Module::invalid_id,
+	                                       .module = &module,
+	                                       .debug_info = &infos,
+	                                   }));
 	EXPECT_EQ(3, infos.line_number(0));
 	EXPECT_EQ(3, infos.line_number(1));
 	EXPECT_EQ(5, infos.line_number(2));

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,61 +21,59 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/builtin/string.h>
-#include <mint/debug/debugtool.h>
-#include <mint/ast/abstractsyntaxtree.h>
-#include <mint/ast/asttools.h>
-#include <mint/ast/cursor.h>
+#include "mint/ast/module.h"
+#include "mint/ast/node.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/builtin/string.h"
+#include "mint/debug/debugtool.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/asttools.h"
+#include "mint/ast/cursor.h"
+#include "mint/memory/reference.h"
+#include <cstddef>
 #include <sstream>
+#include <utility>
 
-using namespace mint;
+namespace {
 
-MINT_FUNCTION(mint_assembly_from_function, 1, cursor) {
+mint::WeakReference mint_assembly_from_function(mint::Cursor& cursor, const mint::Reference& object) {
 
-	FunctionHelper helper(cursor, 1);
-	const Reference &object = helper.pop_parameter();
-	WeakReference result = create_hash();
+	mint::WeakReference result = mint::create_hash(cursor.ast());
 
-	for (const auto &signature : object.data<Function>()->mapping) {
+	for (auto& signature : object.data<mint::Function>().mapping) {
 
-		const Module::Handle *handle = signature.second.handle;
-		Cursor *dump_cursor = cursor->ast()->create_cursor(handle->module);
-		dump_cursor->jmp(handle->offset - 1);
+		mint::Module::Handle& handle = signature.second.handle();
+		auto dump_cursor = mint::Cursor(cursor.ast(), handle.module);
+		dump_cursor.jmp(handle.offset - 1);
 
-		auto end_offset = static_cast<size_t>(dump_cursor->next().parameter);
-		std::stringstream stream;
+		const auto end_offset = static_cast<std::size_t>(dump_cursor.next().as_parameter());
+		auto stream = std::stringstream();
 
-		for (size_t offset = dump_cursor->offset(); offset < end_offset; offset = dump_cursor->offset()) {
-			dump_command(offset, dump_cursor->next().command, dump_cursor, stream);
+		for (std::size_t offset = dump_cursor.offset(); offset < end_offset; offset = dump_cursor.offset()) {
+			mint::dump_command(dump_cursor, stream);
 		}
 
-		hash_insert(result.data<Hash>(), create_number(signature.first), create_string(stream.str()));
+		hash_insert(result.data<mint::Hash>(), mint::create_signed_number(signature.first),
+		    mint::create_string(cursor.ast(), std::move(stream).str()));
 	}
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_assembly_from_module, 1, cursor) {
+mint::WeakReference mint_assembly_from_module(mint::Cursor& cursor, const mint::Reference& object) {
 
-	FunctionHelper helper(cursor, 1);
-	const Reference &object = helper.pop_parameter();
+	auto dump_cursor = load_module(object.data<mint::String>().str, cursor.ast());
+	auto stream = std::stringstream();
 
-	Cursor *dump_cursor = load_module(object.data<String>()->str, cursor->ast());
-	bool has_next = true;
-	std::stringstream stream;
-
-	while (has_next) {
-		const size_t offset = dump_cursor->offset();
-		switch (Node::Command command = dump_cursor->next().command) {
-		case Node::EXIT_MODULE:
-			dump_command(offset, command, dump_cursor, stream);
-			has_next = false;
-			break;
-		default:
-			dump_command(offset, command, dump_cursor, stream);
-		}
+	while (mint::dump_command(*dump_cursor, stream) != mint::Node::Command::exit_module) {
+		;
 	}
 
-	helper.return_value(create_string(stream.str()));
+	return mint::create_string(cursor.ast(), std::move(stream).str());
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_assembly_from_function, 1)
+MINT_EXPORT_FUNCTION(mint_assembly_from_module, 1)

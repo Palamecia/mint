@@ -8,50 +8,26 @@ jobs:
     runs-on: windows-latest
     
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: |
         choco install -y winflexbison3
-        git clone https://github.com/win-iconv/win-iconv.git
-        pushd win-iconv
-        mkdir build
-        pushd build
-        cmake -DBUILD_SHARED_LIBS=ON ..
-        cmake --build . --target INSTALL --config Debug
-        cmake --build . --target INSTALL --config Release
+        git clone https://github.com/microsoft/vcpkg.git
+        pushd vcpkg
+        .\bootstrap-vcpkg.bat
         popd
-        popd
-        git clone https://github.com/google/googletest.git
-        pushd googletest
-        mkdir build
-        pushd build
-        cmake -DBUILD_SHARED_LIBS=ON ..
-        cmake --build . --target INSTALL --config Debug
-        cmake --build . --target INSTALL --config Release
     - name: configure
       run: |
-        $env:Path += ";$env:ICONV_ROOT;$env:GTEST_ROOT"
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_DEFAULT_CMP0074=NEW ..
-      env:
-        ICONV_ROOT: C:/Program Files (x86)/win_iconv
-        GTEST_ROOT: C:/Program Files (x86)/googletest-distribution
+        $env:VCPKG_ROOT = ".\vcpkg"
+        $env:PATH = "$env:VCPKG_ROOT;$env:PATH"
+        cmake --preset=vcpkg -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release
     - name: make
       run: |
-        $env:Path += ";$env:GTEST_ROOT/bin"
-        cmake --build . --target ALL_BUILD --config Release
-        cmake --build . --target INSTALL --config Release
-      working-directory: ./build
-      env:
-        GTEST_ROOT: C:/Program Files (x86)/googletest-distribution
+        cmake --build build --target ALL_BUILD --config Release
+        cmake --build build --target INSTALL --config Release
     - name: run tests
-      run: |
-        $env:Path += ";$env:GTEST_ROOT/bin"
-        ctest
+      run: ctest
       working-directory: ./build
-      env:
-        GTEST_ROOT: C:/Program Files (x86)/googletest-distribution
     - name: run library tests
       run: C:\mint\bin\mint .\test.mn
       working-directory: ./tests

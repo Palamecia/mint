@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,348 +21,399 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/casttool.h>
-#include <mint/system/filesystem.h>
+#include "mint/ast/cursor.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/class.h"
+#include "mint/memory/data.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
+#include <array>
 #include <chrono>
+#include <format>
+#include <optional>
+#include <ranges>
+#include <regex>
+#include <stdexcept>
+#include <string>
 
-#ifdef OS_UNIX
-#include "unix/tzfile.h"
+#ifdef MINT_OS_WINDOWS
+#include <__msvc_chrono.hpp>
 #else
-#include "win32/wintz.h"
+#include <bits/chrono.h>
 #endif
-
-using namespace mint;
 
 namespace symbols {
 
-static const Symbol System("System");
-static const Symbol WeekDay("WeekDay");
+const mint::Symbol system("System");
+const mint::Symbol week_day("WeekDay");
 
-static const Symbol days[] {
-	Symbol("Sunday"),	Symbol("Monday"), Symbol("Tuesday"),  Symbol("Wednesday"),
-	Symbol("Thursday"), Symbol("Friday"), Symbol("Saturday"),
+const std::array days {
+    mint::Symbol("Sunday"),
+    mint::Symbol("Monday"),
+    mint::Symbol("Tuesday"),
+    mint::Symbol("Wednesday"),
+    mint::Symbol("Thursday"),
+    mint::Symbol("Friday"),
+    mint::Symbol("Saturday"),
 };
 
 }
 
-MINT_FUNCTION(mint_timezone_open, 1, cursor) {
+namespace {
 
-	FunctionHelper helper(cursor, 1);
-	const Reference &name = helper.pop_parameter();
+std::optional<std::chrono::minutes> to_offset(const std::string& name) {
+	if (std::smatch match; std::regex_match(name, match, std::regex(R"(([+-])(\d{2}):(\d{2}))"))) {
+		const auto is_negative = match[1] == "-";
+		const auto hours_offset = std::chrono::hours(std::stoi(match[2]));
+		const auto minutes_offset = std::chrono::minutes(std::stoi(match[3]));
+		const auto offset = std::chrono::minutes(minutes_offset + hours_offset);
+		return is_negative ? -offset : +offset;
+	}
+	return {};
+}
 
-	std::string name_str = to_string(name);
-	if (TimeZone *tz = mint::timezone_find(name_str.c_str())) {
-		helper.return_value(create_object(tz));
+std::chrono::minutes to_offset(mint::Cursor& cursor, const mint::Reference& offset) {
+	return std::chrono::minutes(mint::to_integer<std::chrono::minutes::rep>(cursor, offset));
+}
+
+template<class Duration, class TimePoint>
+std::chrono::zoned_time<Duration> to_zoned_time(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    TimePoint time_point) {
+	if (mint::is_instance_of(zoneinfo, mint::Class::libobject)) {
+		return std::chrono::zoned_time<Duration>(zoneinfo.data<mint::LibObject<std::chrono::time_zone>>().ptr,
+		    time_point);
+	}
+	if (mint::is_instance_of(zoneinfo, mint::Data::number_format)) {
+		return std::chrono::zoned_time<Duration>(time_point - to_offset(cursor, zoneinfo));
+	}
+	return {};
+}
+
+mint::WeakReference mint_timezone_locate(mint::Cursor& cursor, const mint::Reference& name) {
+	const auto name_str = to_string(name);
+	if (auto offset = to_offset(name_str)) {
+		return mint::create_signed_number(offset->count());
+	}
+	try {
+		return mint::create_c_object(cursor.ast(), std::chrono::locate_zone(name_str));
+	}
+	catch (std::runtime_error&) {
+		return {};
 	}
 }
 
-MINT_FUNCTION(mint_timezone_close, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &zoneinfo = helper.pop_parameter();
-
-	mint::timezone_free(zoneinfo.data<LibObject<TimeZone>>()->impl);
-}
-
-MINT_FUNCTION(mint_timezone_match, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	const Reference &other = helper.pop_parameter();
-	const Reference &self = helper.pop_parameter();
-
-	helper.return_value(create_boolean(
-		mint::timezone_match(self.data<LibObject<TimeZone>>()->impl, other.data<LibObject<TimeZone>>()->impl)));
-}
-
-MINT_FUNCTION(mint_timezone_current_name, 0, cursor) {
-
-	FunctionHelper helper(cursor, 0);
-
-	helper.return_value(create_string(mint::timezone_default_name()));
-}
-
-MINT_FUNCTION(mint_timezone_set_current, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &name = helper.pop_parameter();
-
-	std::string name_str = to_string(name);
-	if (int error = mint::timezone_set_default(name_str.c_str())) {
-		helper.return_value(create_number(error));
+mint::WeakReference mint_timezone_get_name(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+	if (mint::is_instance_of(d_ptr, mint::Class::libobject)) {
+		return mint::create_string(cursor.ast(), d_ptr.data<mint::LibObject<std::chrono::time_zone>>().ptr->name());
 	}
+	if (mint::is_instance_of(d_ptr, mint::Data::number_format)) {
+		const auto offset = to_offset(cursor, d_ptr);
+		const auto hours_offset = std::chrono::floor<std::chrono::hours>(offset);
+		const auto minutes_offset = std::chrono::minutes(offset - hours_offset);
+		return mint::create_string(cursor.ast(), std::format("{}{}:{}", offset < std::chrono::minutes(0) ? '-' : '+',
+		                                             hours_offset.count(), minutes_offset.count()));
+	}
+	return {};
 }
 
-MINT_FUNCTION(mint_timezone_list, 0, cursor) {
+mint::WeakReference mint_timezone_match(mint::Cursor& cursor, const mint::Reference& self,
+    const mint::Reference& other) {
+	if (mint::is_instance_of(self, mint::Class::libobject) && mint::is_instance_of(other, mint::Class::libobject)) {
+		return mint::create_boolean(*self.data<mint::LibObject<std::chrono::time_zone>>().ptr
+		                            == *other.data<mint::LibObject<std::chrono::time_zone>>().ptr);
+	}
+	if (mint::is_instance_of(self, mint::Data::number_format)
+	    && mint::is_instance_of(other, mint::Data::number_format)) {
+		return mint::create_boolean(to_offset(cursor, self) == to_offset(cursor, other));
+	}
+	return mint::create_boolean(false);
+}
 
-	FunctionHelper helper(cursor, 0);
-	WeakReference result = create_array();
+mint::WeakReference mint_timezone_current(mint::Cursor& cursor) {
+	return mint::create_c_object(cursor.ast(), std::chrono::current_zone());
+}
 
-	for (const std::string &name : mint::timezone_list_names()) {
-		array_append(result.data<Array>(), create_string(name));
+mint::WeakReference mint_timezone_list(mint::Cursor& cursor) {
+	return mint::create_array(cursor.ast(),
+	    {std::from_range, std::views::transform(std::chrono::get_tzdb().zones, [&](const auto& time_zone) {
+		     return mint::create_string(cursor.ast(), time_zone.name());
+	     })});
+}
+
+mint::WeakReference mint_timezone_seconds_since_epoch(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    mint::Reference& year, const mint::Reference& mon, const mint::Reference& mday, const mint::Reference& hour,
+    const mint::Reference& min, mint::Reference& sec) {
+
+	const auto date = std::chrono::year_month_day(std::chrono::year(mint::to_integer<int>(cursor, year)),
+	    std::chrono::month(mint::to_integer<int>(cursor, mon)), std::chrono::day(mint::to_integer<int>(cursor, mday)));
+	if (!date.ok()) {
+		return {};
 	}
 
-	helper.return_value(std::move(result));
-}
+	const auto time = std::chrono::hh_mm_ss<std::chrono::seconds>(
+	    std::chrono::hours(mint::to_integer<int>(cursor, hour))
+	    + std::chrono::minutes(mint::to_integer<int>(cursor, min))
+	    + std::chrono::seconds(mint::to_integer<int>(cursor, sec)));
 
-MINT_FUNCTION(mint_timezone_seconds_since_epoch, 7, cursor) {
-
-	FunctionHelper helper(cursor, 7);
-	tm time;
-
-	memset(&time, 0, sizeof(time));
-
-	time.tm_sec = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-	time.tm_min = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-	time.tm_hour = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-	time.tm_mday = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-	time.tm_mon = static_cast<int>(to_integer(cursor, helper.pop_parameter())) - 1;
-	time.tm_year = static_cast<int>(to_integer(cursor, helper.pop_parameter())) - TM_YEAR_BASE;
-	const Reference &zoneinfo = helper.pop_parameter();
-
-	bool ok = true;
-	time_t seconds = mint::timezone_mktime(zoneinfo.data<LibObject<TimeZone>>()->impl, time, &ok);
-
-	if (ok) {
-		helper.return_value(create_number(seconds));
+	if (mint::is_instance_of(zoneinfo, mint::Class::libobject)) {
+		const auto date_time =
+		    std::chrono::zoned_time<std::chrono::seconds>(zoneinfo.data<mint::LibObject<std::chrono::time_zone>>().ptr,
+		        std::chrono::local_days(date) + time.to_duration())
+		        .get_sys_time();
+		return mint::create_signed_number(date_time.time_since_epoch().count());
 	}
-}
-
-MINT_FUNCTION(mint_timezone_milliseconds_since_epoch, 8, cursor) {
-
-	FunctionHelper helper(cursor, 8);
-	tm time;
-
-	memset(&time, 0, sizeof(time));
-
-	auto msec = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-	time.tm_sec = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-	time.tm_min = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-	time.tm_hour = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-	time.tm_mday = static_cast<int>(to_integer(cursor, helper.pop_parameter()));
-	time.tm_mon = static_cast<int>(to_integer(cursor, helper.pop_parameter())) - 1;
-	time.tm_year = static_cast<int>(to_integer(cursor, helper.pop_parameter())) - TM_YEAR_BASE;
-	const Reference &zoneinfo = helper.pop_parameter();
-
-	bool ok = true;
-	intmax_t milliseconds = mint::timezone_mktime(zoneinfo.data<LibObject<TimeZone>>()->impl, time, &ok);
-
-	if (ok) {
-		milliseconds *= 1000;
-		milliseconds += msec;
-		helper.return_value(create_number(milliseconds));
+	if (mint::is_instance_of(zoneinfo, mint::Data::number_format)) {
+		const auto offset = to_offset(cursor, zoneinfo);
+		const auto date_time = std::chrono::sys_time<std::chrono::seconds>(
+		    std::chrono::sys_days(date) + time.to_duration() - offset);
+		return mint::create_signed_number(date_time.time_since_epoch().count());
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_timezone_time_from_duration, 2, cursor) {
+mint::WeakReference mint_timezone_milliseconds_since_epoch(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    mint::Reference& year, const mint::Reference& mon, const mint::Reference& mday, const mint::Reference& hour,
+    const mint::Reference& min, mint::Reference& sec, const mint::Reference& msec) {
 
-	FunctionHelper helper(cursor, 2);
-	const Reference &timepoint = helper.pop_parameter();
-	const Reference &zoneinfo = helper.pop_parameter();
-
-	bool ok = true;
-	int msec = timepoint.data<LibObject<std::chrono::milliseconds>>()->impl->count() % 1000;
-	auto seconds = static_cast<time_t>(
-		std::chrono::duration_cast<std::chrono::seconds>(*timepoint.data<LibObject<std::chrono::milliseconds>>()->impl)
-			.count());
-
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(create_iterator(create_number(time.tm_year + TM_YEAR_BASE), create_number(time.tm_mon + 1),
-											create_number(time.tm_mday), create_number(time.tm_hour),
-											create_number(time.tm_min), create_number(time.tm_sec),
-											create_number(msec)));
+	const auto date = std::chrono::year_month_day(std::chrono::year(mint::to_integer<int>(cursor, year)),
+	    std::chrono::month(mint::to_integer<int>(cursor, mon)), std::chrono::day(mint::to_integer<int>(cursor, mday)));
+	if (!date.ok()) {
+		return {};
 	}
-}
 
-MINT_FUNCTION(mint_timezone_time_from_seconds, 2, cursor) {
+	const auto time = std::chrono::hh_mm_ss<std::chrono::milliseconds>(
+	    std::chrono::hours(mint::to_integer<int>(cursor, hour))
+	    + std::chrono::minutes(mint::to_integer<int>(cursor, min))
+	    + std::chrono::seconds(mint::to_integer<int>(cursor, sec))
+	    + std::chrono::milliseconds(mint::to_integer<int>(cursor, msec)));
 
-	FunctionHelper helper(cursor, 2);
-	Reference &timepoint = helper.pop_parameter();
-	Reference &zoneinfo = helper.pop_parameter();
-
-	bool ok = true;
-	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint));
-
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(create_iterator(create_number(time.tm_year + TM_YEAR_BASE), create_number(time.tm_mon + 1),
-											create_number(time.tm_mday), create_number(time.tm_hour),
-											create_number(time.tm_min), create_number(time.tm_sec)));
+	if (mint::is_instance_of(zoneinfo, mint::Class::libobject)) {
+		const auto date_time = std::chrono::zoned_time<std::chrono::milliseconds>(
+		    zoneinfo.data<mint::LibObject<std::chrono::time_zone>>().ptr,
+		    std::chrono::local_days(date) + time.to_duration())
+		                           .get_sys_time();
+		return mint::create_signed_number(date_time.time_since_epoch().count());
 	}
-}
-
-MINT_FUNCTION(mint_timezone_time_from_milliseconds, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &timepoint = helper.pop_parameter();
-	Reference &zoneinfo = helper.pop_parameter();
-
-	bool ok = true;
-	auto msec = static_cast<int>(to_integer(cursor, timepoint) % 1000);
-	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
-
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(create_iterator(create_number(time.tm_year + TM_YEAR_BASE), create_number(time.tm_mon + 1),
-											create_number(time.tm_mday), create_number(time.tm_hour),
-											create_number(time.tm_min), create_number(time.tm_sec),
-											create_number(msec)));
+	if (mint::is_instance_of(zoneinfo, mint::Data::number_format)) {
+		const auto offset = to_offset(cursor, zoneinfo);
+		const auto date_time = std::chrono::sys_time<std::chrono::milliseconds>(
+		    std::chrono::sys_days(date) + time.to_duration() - offset);
+		return mint::create_signed_number(date_time.time_since_epoch().count());
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_timezone_week_day_from_duration, 2, cursor) {
+mint::WeakReference mint_timezone_time_from_time_point(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    const mint::Reference& duration) {
 
-	FunctionHelper helper(cursor, 2);
-	const Reference &timepoint = helper.pop_parameter();
-	const Reference &zoneinfo = helper.pop_parameter();
+	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
+	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
 
-	bool ok = true;
-	auto seconds = static_cast<time_t>(
-		std::chrono::duration_cast<std::chrono::seconds>(*timepoint.data<LibObject<std::chrono::milliseconds>>()->impl)
-			.count());
-
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(
-			helper.reference(symbols::System).member(symbols::WeekDay).member(symbols::days[time.tm_wday]));
+	const auto days = std::chrono::floor<std::chrono::days>(zoned_time.get_local_time());
+	const auto date = std::chrono::year_month_day(days);
+	if (!date.ok()) {
+		return {};
 	}
+
+	const auto time = std::chrono::hh_mm_ss<std::chrono::milliseconds>(
+	    std::chrono::local_time(zoned_time.get_local_time() - days).time_since_epoch());
+
+	return create_iterator_from(cursor.ast(), mint::create_signed_number(static_cast<int>(date.year())),
+	    mint::create_signed_number(static_cast<unsigned>(date.month())),
+	    mint::create_signed_number(static_cast<unsigned>(date.day())), mint::create_signed_number(time.hours().count()),
+	    mint::create_signed_number(time.minutes().count()), mint::create_signed_number(time.seconds().count()),
+	    mint::create_signed_number(static_cast<int>(time.subseconds().count())));
 }
 
-MINT_FUNCTION(mint_timezone_week_day_from_seconds, 2, cursor) {
+mint::WeakReference mint_timezone_time_from_seconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    mint::Reference& duration) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &timepoint = helper.pop_parameter();
-	Reference &zoneinfo = helper.pop_parameter();
+	const auto zoned_time = to_zoned_time<std::chrono::seconds>(cursor, zoneinfo,
+	    std::chrono::sys_time(std::chrono::seconds(mint::to_integer<std::chrono::seconds::rep>(cursor, duration))));
 
-	bool ok = true;
-	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint));
-
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(
-			helper.reference(symbols::System).member(symbols::WeekDay).member(symbols::days[time.tm_wday]));
+	const auto days = std::chrono::floor<std::chrono::days>(zoned_time.get_local_time());
+	const auto date = std::chrono::year_month_day(days);
+	if (!date.ok()) {
+		return {};
 	}
+
+	const auto time = std::chrono::hh_mm_ss<std::chrono::seconds>(
+	    std::chrono::local_time(zoned_time.get_local_time() - days).time_since_epoch());
+
+	return create_iterator_from(cursor.ast(), mint::create_signed_number(static_cast<int>(date.year())),
+	    mint::create_signed_number(static_cast<unsigned>(date.month())),
+	    mint::create_signed_number(static_cast<unsigned>(date.day())), mint::create_signed_number(time.hours().count()),
+	    mint::create_signed_number(time.minutes().count()), mint::create_signed_number(time.seconds().count()));
 }
 
-MINT_FUNCTION(mint_timezone_week_day_from_milliseconds, 2, cursor) {
+mint::WeakReference mint_timezone_time_from_milliseconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    mint::Reference& duration) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &timepoint = helper.pop_parameter();
-	Reference &zoneinfo = helper.pop_parameter();
+	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
+	    std::chrono::sys_time(
+	        std::chrono::milliseconds(mint::to_integer<std::chrono::milliseconds::rep>(cursor, duration))));
 
-	bool ok = true;
-	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
-
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(
-			helper.reference(symbols::System).member(symbols::WeekDay).member(symbols::days[time.tm_wday]));
+	const auto days = std::chrono::floor<std::chrono::days>(zoned_time.get_local_time());
+	const auto date = std::chrono::year_month_day(days);
+	if (!date.ok()) {
+		return {};
 	}
+
+	const auto time = std::chrono::hh_mm_ss<std::chrono::milliseconds>(
+	    std::chrono::local_time(zoned_time.get_local_time() - days).time_since_epoch());
+
+	return create_iterator_from(cursor.ast(), mint::create_signed_number(static_cast<int>(date.year())),
+	    mint::create_signed_number(static_cast<unsigned>(date.month())),
+	    mint::create_signed_number(static_cast<unsigned>(date.day())), mint::create_signed_number(time.hours().count()),
+	    mint::create_signed_number(time.minutes().count()), mint::create_signed_number(time.seconds().count()),
+	    mint::create_signed_number(static_cast<int>(time.subseconds().count())));
 }
 
-MINT_FUNCTION(mint_timezone_year_day_from_duration, 2, cursor) {
+mint::WeakReference mint_timezone_week_day_from_time_point(mint::FunctionHelper& helper,
+    const mint::Reference& zoneinfo, const mint::Reference& duration) {
 
-	FunctionHelper helper(cursor, 2);
-	const Reference &timepoint = helper.pop_parameter();
-	const Reference &zoneinfo = helper.pop_parameter();
+	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(helper.cursor(), zoneinfo,
+	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
 
-	bool ok = true;
-	auto seconds = static_cast<time_t>(
-		std::chrono::duration_cast<std::chrono::seconds>(*timepoint.data<LibObject<std::chrono::milliseconds>>()->impl)
-			.count());
-
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(create_number(time.tm_yday));
+	const auto weekday = std::chrono::weekday(std::chrono::floor<std::chrono::days>(zoned_time.get_local_time()));
+	if (!weekday.ok()) {
+		return {};
 	}
+
+	return helper.reference(symbols::system)
+	    .member(symbols::week_day)
+	    .member(symbols::days.at(weekday.c_encoding()))
+	    .share();
 }
 
-MINT_FUNCTION(mint_timezone_year_day_from_seconds, 2, cursor) {
+mint::WeakReference mint_timezone_week_day_from_seconds(mint::FunctionHelper& helper, const mint::Reference& zoneinfo,
+    mint::Reference& duration) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &timepoint = helper.pop_parameter();
-	Reference &zoneinfo = helper.pop_parameter();
+	const auto zoned_time = to_zoned_time<std::chrono::seconds>(helper.cursor(), zoneinfo,
+	    std::chrono::sys_time(
+	        std::chrono::seconds(mint::to_integer<std::chrono::seconds::rep>(helper.cursor(), duration))));
 
-	bool ok = true;
-	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint));
-
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(create_number(time.tm_yday));
+	const auto weekday = std::chrono::weekday(std::chrono::floor<std::chrono::days>(zoned_time.get_local_time()));
+	if (!weekday.ok()) {
+		return {};
 	}
+
+	return helper.reference(symbols::system)
+	    .member(symbols::week_day)
+	    .member(symbols::days.at(weekday.c_encoding()))
+	    .share();
 }
 
-MINT_FUNCTION(mint_timezone_year_day_from_milliseconds, 2, cursor) {
+mint::WeakReference mint_timezone_week_day_from_milliseconds(mint::FunctionHelper& helper,
+    const mint::Reference& zoneinfo, const mint::Reference& duration) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &timepoint = helper.pop_parameter();
-	Reference &zoneinfo = helper.pop_parameter();
+	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(helper.cursor(), zoneinfo,
+	    std::chrono::sys_time(
+	        std::chrono::milliseconds(mint::to_integer<std::chrono::milliseconds::rep>(helper.cursor(), duration))));
 
-	bool ok = true;
-	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
-
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(create_number(time.tm_yday));
+	const auto weekday = std::chrono::weekday(std::chrono::floor<std::chrono::days>(zoned_time.get_local_time()));
+	if (!weekday.ok()) {
+		return {};
 	}
+
+	return helper.reference(symbols::system)
+	    .member(symbols::week_day)
+	    .member(symbols::days.at(weekday.c_encoding()))
+	    .share();
 }
 
-MINT_FUNCTION(mint_timezone_is_dst_from_duration, 2, cursor) {
+mint::WeakReference mint_timezone_year_day_from_time_point(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    const mint::Reference& duration) {
 
-	FunctionHelper helper(cursor, 2);
-	const Reference &timepoint = helper.pop_parameter();
-	const Reference &zoneinfo = helper.pop_parameter();
+	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
+	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
 
-	bool ok = true;
-	time_t seconds = static_cast<time_t>(
-		std::chrono::duration_cast<std::chrono::seconds>(*timepoint.data<LibObject<std::chrono::milliseconds>>()->impl)
-			.count());
+	const auto days = std::chrono::floor<std::chrono::days>(zoned_time.get_local_time()).time_since_epoch();
+	const auto day_of_year = (days
+	                          - std::chrono::duration_cast<std::chrono::days>(
+	                              std::chrono::floor<std::chrono::years>(days)));
 
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(create_boolean(time.tm_isdst));
-	}
+	return mint::create_signed_number(day_of_year.count());
 }
 
-MINT_FUNCTION(mint_timezone_is_dst_from_seconds, 2, cursor) {
+mint::WeakReference mint_timezone_year_day_from_seconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    mint::Reference& duration) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &timepoint = helper.pop_parameter();
-	Reference &zoneinfo = helper.pop_parameter();
+	const auto zoned_time = to_zoned_time<std::chrono::seconds>(cursor, zoneinfo,
+	    std::chrono::sys_time(std::chrono::seconds(mint::to_integer<std::chrono::seconds::rep>(cursor, duration))));
 
-	bool ok = true;
-	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint));
+	const auto days = std::chrono::floor<std::chrono::days>(zoned_time.get_local_time()).time_since_epoch();
+	const auto day_of_year = (days
+	                          - std::chrono::duration_cast<std::chrono::days>(
+	                              std::chrono::floor<std::chrono::years>(days)));
 
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(create_boolean(time.tm_isdst));
-	}
+	return mint::create_signed_number(day_of_year.count());
 }
 
-MINT_FUNCTION(mint_timezone_is_dst_from_milliseconds, 2, cursor) {
+mint::WeakReference mint_timezone_year_day_from_milliseconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    mint::Reference& duration) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &timepoint = helper.pop_parameter();
-	Reference &zoneinfo = helper.pop_parameter();
+	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
+	    std::chrono::sys_time(
+	        std::chrono::milliseconds(mint::to_integer<std::chrono::milliseconds::rep>(cursor, duration))));
 
-	bool ok = true;
-	auto seconds = static_cast<time_t>(to_integer(cursor, timepoint) / 1000);
+	const auto days = std::chrono::floor<std::chrono::days>(zoned_time.get_local_time()).time_since_epoch();
+	const auto day_of_year = (days
+	                          - std::chrono::duration_cast<std::chrono::days>(
+	                              std::chrono::floor<std::chrono::years>(days)));
 
-	tm &&time = mint::timezone_localtime(zoneinfo.data<LibObject<TimeZone>>()->impl, seconds, &ok);
-
-	if (ok) {
-		helper.return_value(create_boolean(time.tm_isdst));
-	}
+	return mint::create_signed_number(day_of_year.count());
 }
+
+mint::WeakReference mint_timezone_is_dst_from_time_point(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    const mint::Reference& duration) {
+
+	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
+	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
+
+	return mint::create_boolean(zoned_time.get_info().save != std::chrono::minutes(0));
+}
+
+mint::WeakReference mint_timezone_is_dst_from_seconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    mint::Reference& duration) {
+
+	const auto zoned_time = to_zoned_time<std::chrono::seconds>(cursor, zoneinfo,
+	    std::chrono::sys_time(std::chrono::seconds(mint::to_integer<std::chrono::seconds::rep>(cursor, duration))));
+
+	return mint::create_boolean(zoned_time.get_info().save != std::chrono::minutes(0));
+}
+
+mint::WeakReference mint_timezone_is_dst_from_milliseconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+    mint::Reference& duration) {
+
+	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
+	    std::chrono::sys_time(
+	        std::chrono::milliseconds(mint::to_integer<std::chrono::milliseconds::rep>(cursor, duration))));
+
+	return mint::create_boolean(zoned_time.get_info().save != std::chrono::minutes(0));
+}
+
+}
+
+MINT_EXPORT_FUNCTION(mint_timezone_locate, 1);
+MINT_EXPORT_FUNCTION(mint_timezone_get_name, 1);
+MINT_EXPORT_FUNCTION(mint_timezone_match, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_current, 0);
+MINT_EXPORT_FUNCTION(mint_timezone_list, 0);
+MINT_EXPORT_FUNCTION(mint_timezone_seconds_since_epoch, 7);
+MINT_EXPORT_FUNCTION(mint_timezone_milliseconds_since_epoch, 8);
+MINT_EXPORT_FUNCTION(mint_timezone_time_from_time_point, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_time_from_seconds, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_time_from_milliseconds, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_week_day_from_time_point, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_week_day_from_seconds, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_week_day_from_milliseconds, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_year_day_from_time_point, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_year_day_from_seconds, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_year_day_from_milliseconds, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_is_dst_from_time_point, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_is_dst_from_seconds, 2);
+MINT_EXPORT_FUNCTION(mint_timezone_is_dst_from_milliseconds, 2);

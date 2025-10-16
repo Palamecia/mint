@@ -1,13 +1,12 @@
+#include <cstddef>
 #include <gtest/gtest.h>
-#include <mint/compiler/lexer.h>
+#include "mint/compiler/lexer.h"
 #include "mint/system/bufferstream.h"
-
-using namespace mint;
 
 TEST(lexer, next_token) {
 
-	BufferStream stream("test test2+test3 + loadtest4 4.5 6..7 'with white space'");
-	Lexer lexer(&stream);
+	mint::BufferStream stream("test test2+test3 + loadtest4 4.5 6..7 'with white space'");
+	mint::Lexer lexer(stream);
 
 	EXPECT_EQ("test", lexer.next_token());
 	EXPECT_EQ("test2", lexer.next_token());
@@ -39,7 +38,7 @@ TEST(lexer, at_end) {
 
 TEST(datastream, set_new_line_callback) {
 
-	BufferStream stream(R"""(/* comment */
+	mint::BufferStream stream(R"""(/* comment */
 
 load module
 
@@ -48,12 +47,12 @@ if defined symbol {
 }
 )""");
 
-	size_t line_number = 1;
-	stream.set_new_line_callback([&line_number](size_t number) {
+	std::size_t line_number = 1;
+	stream.set_new_line_callback([&line_number](std::size_t number) {
 		line_number = number;
 	});
 
-	Lexer lexer(&stream);
+	mint::Lexer lexer(stream);
 
 	ASSERT_EQ("\n", lexer.next_token());
 	EXPECT_EQ(2, line_number);

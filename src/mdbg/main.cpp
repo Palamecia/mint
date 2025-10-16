@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,29 +22,10 @@
  */
 
 #include "debugger.h"
+#include "mint/system/arguments.h"
+#include <ranges>
 
-#ifdef OS_WINDOWS
-
-#include <Windows.h>
-
-int wmain(int argc, wchar_t **argv) {
-	char **utf8_argv = static_cast<char **>(malloc(argc * sizeof(char *)));
-	for (int i = 0; i < argc; ++i) {
-		int length = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
-		utf8_argv[i] = static_cast<char *>(malloc(length * sizeof(char)));
-		WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, utf8_argv[i], length, nullptr, nullptr);
-	}
-	Debugger debugger(argc, utf8_argv);
-	int status = debugger.run();
-	for (int i = 0; i < argc; ++i) {
-		free(utf8_argv[i]);
-	}
-	free(utf8_argv);
-	return status;
-}
-#else
-int main(int argc, char **argv) {
-	Debugger debugger(argc, argv);
+int main() {
+	auto debugger = Debugger({std::from_range, std::views::drop(mint::arguments(), 1)});
 	return debugger.run();
 }
-#endif

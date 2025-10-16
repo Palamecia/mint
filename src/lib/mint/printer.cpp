@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,30 +21,34 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/ast/cursor.h>
+#include "mint/ast/printer.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/functiontool.h"
+#include "mint/ast/cursor.h"
+#include "mint/memory/reference.h"
 
-using namespace mint;
+namespace {
 
-MINT_FUNCTION(mint_printer_current_handle, 0, cursor) {
+mint::WeakReference mint_printer_write(mint::Cursor& /*cursor*/, const mint::Reference& object,
+    const mint::Reference& data) {
+	mint::Printer* printer = object.data<mint::LibObject<mint::Printer>>().ptr;
+	printer->print(data);
+	return {};
+}
 
-	cursor->exit_call();
-	cursor->exit_call();
+}
 
-	if (Printer *printer = cursor->printer()) {
-		cursor->stack().emplace_back(create_object(printer));
+MINT_RAW_FUNCTION(mint_printer_current_handle, 0, cursor) {
+
+	cursor.exit_call();
+	cursor.exit_call();
+
+	if (mint::Printer* printer = cursor.printer()) {
+		cursor.stack().emplace_back(mint::create_c_object(cursor.ast(), printer));
 	}
 	else {
-		cursor->stack().emplace_back(WeakReference::create<None>());
+		cursor.stack().emplace_back(mint::create_none());
 	}
 }
 
-MINT_FUNCTION(mint_printer_write, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &data = helper.pop_parameter();
-	Reference &object = helper.pop_parameter();
-
-	Printer *printer = object.data<LibObject<Printer>>()->impl;
-	printer->print(data);
-}
+MINT_EXPORT_FUNCTION(mint_printer_write, 2);

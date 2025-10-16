@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,50 +21,104 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_ALGORITHM_HPP
-#define MINT_ALGORITHM_HPP
+#ifndef MINT_MEMORY_ALGORITHM_HPP
+#define MINT_MEMORY_ALGORITHM_HPP
 
+#include "mint/ast/classregister.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
+#include "mint/memory/builtin/library.h"
+#include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/string.h"
 #include "mint/memory/builtin/iterator.h"
+#include "mint/memory/data.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/symboltable.h"
 #include "mint/system/utf8.h"
+#include <functional>
+#include <utility>
 
 namespace mint {
 
-template<class Function>
-void for_each(Reference &ref, Function function) {
+template<class... Ts>
+struct Overloaded : Ts... {
+	using Ts::operator()...;
+};
 
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
+template<class R, class Visitor>
+R visit(Visitor&& visitor, const Reference& reference) {
+	switch (reference.data().format()) {
+	case Data::none_format:
+		return std::invoke(std::forward<Visitor>(visitor), reference.data<None>());
+	case Data::null_format:
+		return std::invoke(std::forward<Visitor>(visitor), reference.data<Null>());
+	case Data::number_format:
+		return std::invoke(std::forward<Visitor>(visitor), reference.data<Number>());
+	case Data::boolean_format:
+		return std::invoke(std::forward<Visitor>(visitor), reference.data<Boolean>());
+	case Data::object_format:
+		switch (reference.data<Object>().metadata.metatype()) {
+		case Class::object:
+			return std::invoke(std::forward<Visitor>(visitor), reference.data<Object>());
+		case Class::string:
+			return std::invoke(std::forward<Visitor>(visitor), reference.data<String>());
+		case Class::regex:
+			return std::invoke(std::forward<Visitor>(visitor), reference.data<Regex>());
+		case Class::array:
+			return std::invoke(std::forward<Visitor>(visitor), reference.data<Array>());
+		case Class::hash:
+			return std::invoke(std::forward<Visitor>(visitor), reference.data<Hash>());
+		case Class::iterator:
+			return std::invoke(std::forward<Visitor>(visitor), reference.data<Iterator>());
+		case Class::library:
+			return std::invoke(std::forward<Visitor>(visitor), reference.data<Library>());
+		case Class::libobject:
+			return std::invoke(std::forward<Visitor>(visitor), reference.data());
+		}
+		return std::invoke(std::forward<Visitor>(visitor), reference.data<Object>());
+	case Data::package_format:
+		return std::invoke(std::forward<Visitor>(visitor), reference.data<Package>());
+	case Data::function_format:
+		return std::invoke(std::forward<Visitor>(visitor), reference.data<Function>());
+	}
+	if constexpr (!std::is_same_v<void, R>) {
+		return {};
+	}
+}
+
+template<class Function>
+void for_each(AbstractSyntaxTree& ast, const Reference& ref, Function function) {
+	switch (ref.data().format()) {
+	case Data::none_format:
 		break;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::STRING:
-			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
-				auto *substr = GarbageCollector::instance().alloc<String>(*i);
-				substr->construct();
-				function(WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, substr));
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			for (const auto& item : views::utf8(ref.data<String>().str)) {
+				auto substr = make_weak_reference<String>(Reference::const_address | Reference::const_value, ast, item);
+				substr.data<String>().construct();
+				function(std::move(substr));
 			}
 			break;
-		case Class::ARRAY:
-			for (Array::values_type::value_type &item : ref.data<Array>()->values) {
+		case Class::array:
+			for (auto& item : ref.data<Array>().values) {
 				function(std::forward<Reference>(item));
 			}
 			break;
-		case Class::HASH:
-			for (Hash::values_type::value_type &item : ref.data<Hash>()->values) {
-				auto *element = GarbageCollector::instance().alloc<Iterator>();
-				element->construct();
-				iterator_yield(element, hash_get_key(item));
-				iterator_yield(element, hash_get_value(item));
-				function(WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, element));
+		case Class::hash:
+			for (auto& item : ref.data<Hash>().values) {
+				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value, ast);
+				iterator_yield(element.data<Iterator>(), hash_get_key(item));
+				iterator_yield(element.data<Iterator>(), hash_get_value(item));
+				element.data<Iterator>().construct();
+				function(std::move(element));
 			}
 			break;
-		case Class::ITERATOR:
-			while (!ref.data<Iterator>()->ctx.empty()) {
-				function(ref.data<Iterator>()->ctx.value());
-				ref.data<Iterator>()->ctx.next();
+		case Class::iterator:
+			while (!ref.data<Iterator>().ctx.empty()) {
+				function(ref.data<Iterator>().ctx.get());
+				ref.data<Iterator>().ctx.next();
 			}
 			break;
 		default:
@@ -78,46 +132,45 @@ void for_each(Reference &ref, Function function) {
 }
 
 template<class Function>
-bool for_each_if(Reference &ref, Function function) {
-
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
+bool for_each_if(AbstractSyntaxTree& ast, const Reference& ref, Function function) {
+	switch (ref.data().format()) {
+	case Data::none_format:
 		break;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::STRING:
-			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
-				auto *substr = GarbageCollector::instance().alloc<String>(*i);
-				substr->construct();
-				if (UNLIKELY(!function(WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, substr)))) {
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			for (const auto& item : views::utf8(ref.data<String>().str)) {
+				auto substr = make_weak_reference<String>(Reference::const_address | Reference::const_value, ast, item);
+				substr.data<String>().construct();
+				if (!function(std::move(substr))) [[unlikely]] {
 					return false;
 				}
 			}
 			break;
-		case Class::ARRAY:
-			for (Array::values_type::value_type &item : ref.data<Array>()->values) {
-				if (!function(std::forward<Reference>(item))) {
+		case Class::array:
+			for (auto& item : ref.data<Array>().values) {
+				if (!function(std::forward<Reference>(item))) [[unlikely]] {
 					return false;
 				}
 			}
 			break;
-		case Class::HASH:
-			for (Hash::values_type::value_type &item : ref.data<Hash>()->values) {
-				auto *element = GarbageCollector::instance().alloc<Iterator>();
-				element->construct();
-				iterator_yield(element, hash_get_key(item));
-				iterator_yield(element, hash_get_value(item));
-				if (UNLIKELY(!function(WeakReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, element)))) {
+		case Class::hash:
+			for (auto& item : ref.data<Hash>().values) {
+				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value, ast);
+				iterator_yield(element.data<Iterator>(), hash_get_key(item));
+				iterator_yield(element.data<Iterator>(), hash_get_value(item));
+				element.data<Iterator>().construct();
+				if (!function(std::move(element))) [[unlikely]] {
 					return false;
 				}
 			}
 			break;
-		case Class::ITERATOR:
-			while (!ref.data<Iterator>()->ctx.empty()) {
-				if (UNLIKELY(!function(ref.data<Iterator>()->ctx.value()))) {
+		case Class::iterator:
+			while (!ref.data<Iterator>().ctx.empty()) {
+				if (!function(ref.data<Iterator>().ctx.get())) [[unlikely]] {
 					return false;
 				}
-				ref.data<Iterator>()->ctx.next();
+				ref.data<Iterator>().ctx.next();
 			}
 			break;
 		default:
@@ -128,10 +181,9 @@ bool for_each_if(Reference &ref, Function function) {
 	default:
 		return function(ref);
 	}
-
 	return true;
 }
 
 }
 
-#endif // MINT_ALGORITHM_HPP
+#endif // MINT_MEMORY_ALGORITHM_HPP

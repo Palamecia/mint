@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_ERRNO_H
-#define MINT_ERRNO_H
+#ifndef MINT_SYSTEM_ERRNO_H
+#define MINT_SYSTEM_ERRNO_H
 
 #include <mint/config.h>
 #include <system_error>
@@ -30,9 +30,9 @@
 
 namespace mint {
 
-MINT_EXPORT int errno_from_error_code(const std::error_code &code);
+MINT_EXPORT int errno_from_error_code(const std::error_code& code);
 MINT_EXPORT std::error_code last_error_code();
 
 }
 
-#endif // MINT_ERRNO_H
+#endif // MINT_SYSTEM_ERRNO_H

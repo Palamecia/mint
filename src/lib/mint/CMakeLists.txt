@@ -1,7 +1,10 @@
 project(mint-mint)
 
-add_library(${PROJECT_NAME}
-	MODULE
+add_library(mint-mint MODULE)
+
+target_sources(
+	mint-mint
+PRIVATE
 	assembly.cpp
 	evalresultprinter.cpp
 	evalresultprinter.h
@@ -18,12 +21,22 @@ add_library(${PROJECT_NAME}
 )
 
 set_target_properties(
-	${PROJECT_NAME}
+	mint-mint
 	PROPERTIES
 	PREFIX lib
+	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
 )
 
-target_link_libraries(${PROJECT_NAME} mint_library)
+target_link_libraries(
+	mint-mint
+PRIVATE
+	libmint
+)
 
 # Install
-mint_install_library(${PROJECT_NAME} SUBDIR mint)
+install(
+	TARGETS mint-mint
+	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+)

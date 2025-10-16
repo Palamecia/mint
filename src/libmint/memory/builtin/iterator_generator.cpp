@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,58 +24,60 @@
 #include "iterator_generator.h"
 #include "iterator_items.h"
 #include "mint/memory/builtin/iterator.h"
+#include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
+#include "mint/system/assert.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <iterator>
+#include <memory>
+#include <utility>
+#include <vector>
 
 using namespace mint::internal;
 using namespace mint;
 
-GeneratorData::GeneratorData(size_t stack_size) :
-	m_state(nullptr),
-	m_stack_size(stack_size) {}
+GeneratorData::GeneratorData(std::size_t stack_size) :
+    _state(nullptr),
+    _stack_size(stack_size) {}
 
-GeneratorData::GeneratorData(const GeneratorData &other) :
-	ItemsIteratorData(other),
-	m_state(nullptr),
-	m_stack_size(other.m_stack_size) {}
+GeneratorData::GeneratorData(const GeneratorData& other) :
+    ItemsIteratorData(other),
+    _state(nullptr),
+    _stack_size(other._stack_size) {}
 
-mint::internal::IteratorData *GeneratorData::copy() {
+std::unique_ptr<IteratorData> GeneratorData::copy() {
 	GeneratorData::finalize();
-	return new GeneratorData(*this);
+	return std::make_unique<GeneratorData>(*this);
 }
 
 void GeneratorData::mark() {
 	ItemsIteratorData::mark();
-	for (const Reference &item : m_stored_stack) {
-		item.data()->mark();
+	for (const Reference& item : _stored_stack) {
+		item.data().mark();
 	}
 }
 
 Iterator::Context::Type GeneratorData::get_type() const {
-	return Iterator::Context::GENERATOR;
+	return Iterator::Context::generator;
 }
 
-Iterator::Context::value_type &GeneratorData::last() {
-	GeneratorData::finalize();
-	return ItemsIteratorData::last();
-}
-
-void GeneratorData::yield(Iterator::Context::value_type &&value) {
+void GeneratorData::yield(Iterator::Context::value_type&& value) {
 
 	ItemsIteratorData::yield(std::move(value));
 
-	switch (m_execution_mode) {
-	case SINGLE_PASS:
+	switch (_execution_mode) {
+	case single_pass:
 		break;
 
-	case INTERRUPTIBLE:
-		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
-		move(std::next(cursor->stack().begin(), static_cast<std::vector<WeakReference>::difference_type>(m_stack_size)),
-			 cursor->stack().end(), back_inserter(m_stored_stack));
-		cursor->stack().resize(m_stack_size);
-		m_state = cursor->interrupt();
+	case interruptible:
+		Cursor& cursor = mint::Scheduler::current_process()->cursor();
+		std::move(std::next(cursor.stack().begin(),
+		              static_cast<std::vector<WeakReference>::difference_type>(_stack_size)),
+		    cursor.stack().end(), back_inserter(_stored_stack));
+		cursor.stack().resize(_stack_size);
+		_state = cursor.interrupt();
 		break;
 	}
 }
@@ -84,26 +86,28 @@ void GeneratorData::next() {
 
 	ItemsIteratorData::next();
 
-	if (m_state) {
-		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
-		m_stack_size = cursor->stack().size();
-		move(m_stored_stack.begin(), m_stored_stack.end(), back_inserter(cursor->stack()));
-		m_stored_stack.clear();
-		if (cursor->is_in_builtin()) {
-			Scheduler::instance()->create_generator(std::move(m_state));
+	if (_state) {
+		Cursor& cursor = mint::Scheduler::current_process()->cursor();
+		_stack_size = cursor.stack().size();
+		std::ranges::move(_stored_stack, back_inserter(cursor.stack()));
+		_stored_stack.clear();
+		if (cursor.is_in_builtin()) {
+			Scheduler::instance()->create_generator(std::move(_state));
 		}
 		else {
-			cursor->restore(std::move(m_state));
+			cursor.restore(std::move(_state));
 		}
 	}
 }
 
 void GeneratorData::finalize() {
-	if (m_state) {
-		m_execution_mode = SINGLE_PASS;
-		Cursor *cursor = Scheduler::instance()->current_process()->cursor();
-		move(m_stored_stack.begin(), m_stored_stack.end(), back_inserter(cursor->stack()));
-		m_stored_stack.clear();
-		Scheduler::instance()->create_generator(std::move(m_state));
+	if (_state) {
+		_execution_mode = single_pass;
+		auto* scheduler = Scheduler::instance();
+		assert_x(scheduler, __func__, "execution should be done using a scheduler");
+		Cursor& cursor = mint::Scheduler::current_process()->cursor();
+		std::ranges::move(_stored_stack, back_inserter(cursor.stack()));
+		_stored_stack.clear();
+		scheduler->create_generator(std::move(_state));
 	}
 }

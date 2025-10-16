@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,290 +21,217 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/builtin/library.h>
-#include <mint/memory/builtin/regex.h>
-#include <mint/memory/builtin/string.h>
-#include <mint/memory/globaldata.h>
-#include <mint/memory/casttool.h>
-#include <mint/ast/classregister.h>
-#include <mint/system/plugin.h>
-
-using namespace mint;
+#include "mint/ast/symbol.h"
+#include "mint/memory/data.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
+#include "mint/memory/classtool.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
+#include "mint/ast/classregister.h"
+#include "mint/system/plugin.h"
+#include <ranges>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace symbols {
 
-static const Symbol name("name");
-static const Symbol flags("flags");
+static const mint::Symbol name("name");
+static const mint::Symbol flags("flags");
 
-static const std::string MemberInfo("MemberInfo");
+static const std::string member_info("MemberInfo");
 
 }
 
-MINT_FUNCTION(mint_type_to_number, 1, cursor) {
+namespace {
 
-	FunctionHelper helper(cursor, 1);
-	Reference &value = helper.pop_parameter();
-	helper.return_value(create_number(to_number(cursor, value)));
+mint::WeakReference mint_type_to_number(mint::Cursor& cursor, const mint::Reference& value) {
+	return mint::create_number(to_number(cursor, value));
 }
 
-MINT_FUNCTION(mint_type_to_boolean, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &value = helper.pop_parameter();
-	helper.return_value(create_boolean(to_boolean(value)));
+mint::WeakReference mint_type_to_boolean(mint::Cursor& /*cursor*/, const mint::Reference& value) {
+	return mint::create_boolean(to_boolean(value));
 }
 
-MINT_FUNCTION(mint_type_to_string, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &value = helper.pop_parameter();
-	helper.return_value(create_string(to_string(value)));
+mint::WeakReference mint_type_to_string(mint::Cursor& cursor, const mint::Reference& value) {
+	return mint::create_string(cursor.ast(), to_string(value));
 }
 
-MINT_FUNCTION(mint_type_to_regex, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &value = helper.pop_parameter();
-	WeakReference result = WeakReference::create<Regex>();
-	result.data<Regex>()->initializer = "/" + to_string(value) + "/";
-	result.data<Regex>()->expr = to_regex(value);
-	result.data<Regex>()->construct();
-	helper.return_value(std::move(result));
+mint::WeakReference mint_type_to_regex(mint::Cursor& cursor, const mint::Reference& value) {
+	return mint::create_regex(cursor.ast(), mint::to_string(value), mint::to_regex(value));
 }
 
-MINT_FUNCTION(mint_type_to_array, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &value = helper.pop_parameter();
-	helper.return_value(create_array(to_array(value)));
+mint::WeakReference mint_type_to_array(mint::Cursor& cursor, const mint::Reference& value) {
+	return mint::create_array(cursor.ast(), mint::to_array(value));
 }
 
-MINT_FUNCTION(mint_type_to_hash, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &value = helper.pop_parameter();
-	helper.return_value(create_hash(to_hash(value)));
+mint::WeakReference mint_type_to_hash(mint::Cursor& cursor, const mint::Reference& value) {
+	return mint::create_hash(cursor.ast(), mint::to_hash(value));
 }
 
-MINT_FUNCTION(mint_lang_get_type, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &object = helper.pop_parameter();
-
-	if (is_instance_of(object, Class::OBJECT)) {
-		helper.return_value(WeakReference::create<Object>(object.data<Object>()->metadata));
+mint::WeakReference mint_lang_get_type(mint::Cursor& /*cursor*/, const mint::Reference& object) {
+	if (is_instance_of(object, mint::Class::object)) {
+		return mint::create_object(object.data<mint::Object>().metadata);
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_lang_create_type, 3, cursor) {
+mint::WeakReference mint_lang_create_type(mint::Cursor& cursor, const mint::Reference& type,
+    const mint::Reference& bases, const mint::Reference& members) {
 
-	FunctionHelper helper(cursor, 3);
-	Reference &members = helper.pop_parameter();
-	Reference &bases = helper.pop_parameter();
-	Reference &type = helper.pop_parameter();
+	auto base_list = std::vector<mint::ClassRegister::Path>();
 
-	auto *description = new ClassDescription(GlobalData::instance(), Reference::DEFAULT, to_string(type));
-
-	for (Reference &base : to_array(bases)) {
-		switch (base.data()->format) {
-		case Data::FMT_OBJECT:
-			description->add_base(base.data<Object>()->metadata->get_description()->get_path());
+	for (const mint::Reference& base : mint::to_array(bases)) {
+		switch (base.data().format()) {
+		case mint::Data::object_format:
+			base_list.emplace_back(base.data<mint::Object>().metadata.get_description().get_path());
 			break;
-
 		default:
-			description->add_base(Symbol(to_string(base)));
+			base_list.emplace_back(to_string(base));
 			break;
 		}
 	}
 
-	for (auto &member : to_hash(members)) {
-		if (is_instance_of(member.first, symbols::MemberInfo)) {
-			Symbol symbol(to_string(get_member_ignore_visibility(member.first.data<Object>(), symbols::name)));
-			Reference::Flags flags = static_cast<Reference::Flags>(
-				to_integer(cursor, get_member_ignore_visibility(member.first.data<Object>(), symbols::flags)));
-			if (std::optional<Class::Operator> op = get_symbol_operator(symbol)) {
-				description->create_member(*op, WeakReference(flags, member.second.data()));
-			}
-			else {
-				description->create_member(symbol, WeakReference(flags, member.second.data()));
-			}
+	auto member_list = std::vector<std::pair<mint::Symbol, mint::WeakReference>>();
+
+	for (auto& member : to_hash(members)) {
+		if (is_instance_of(member.first, symbols::member_info)) {
+			const auto symbol = mint::Symbol(
+			    to_string(get_member_ignore_visibility(member.first.data<mint::Object>(), symbols::name)));
+			const auto flags = to_integer<mint::Reference::Flags>(cursor,
+			    get_member_ignore_visibility(member.first.data<mint::Object>(), symbols::flags));
+			member_list.emplace_back(symbol, mint::WeakReference(flags, member.second.data()));
 		}
 		else {
-			Symbol symbol(to_string(member.first));
-			if (std::optional<Class::Operator> op = get_symbol_operator(symbol)) {
-				description->create_member(*op, std::move(member.second));
-			}
-			else {
-				description->create_member(symbol, std::move(member.second));
-			}
+			member_list.emplace_back(mint::Symbol(to_string(member.first)), std::move(member.second));
 		}
 	}
 
-	if (Class *prototype = description->generate()) {
-		helper.return_value(WeakReference::create<Object>(prototype));
-	}
-
-	GlobalData::instance()->create_class(description);
+	return mint::create_alias(mint::create_class(cursor.ast(), to_string(type), base_list, member_list));
 }
 
-MINT_FUNCTION(mint_type_get_member_info, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &member_name = helper.pop_parameter();
-	Reference &type = helper.pop_parameter();
-
-	if (is_instance_of(type, Class::OBJECT)) {
-		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
-		if (i != type.data<Object>()->metadata->members().end()) {
-			helper.return_value(create_iterator(WeakReference::share(member_name),
-												create_number(i->second->value.flags() & ~Reference::TEMPORARY),
-												WeakReference::create<Object>(i->second->owner)));
+mint::WeakReference mint_type_get_member_info(mint::Cursor& cursor, const mint::Reference& type,
+    mint::Reference& member_name) {
+	if (is_instance_of(type, mint::Class::object)) {
+		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
+			return create_iterator_from(cursor.ast(), mint::WeakReference(member_name),
+			    mint::create_number(member->value.flags() & ~mint::Reference::temporary),
+			    mint::create_alias(member->owner));
 		}
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_type_is_member_private, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	const Reference &member_name = helper.pop_parameter();
-	const Reference &type = helper.pop_parameter();
-
-	if (is_instance_of(type, Class::OBJECT)) {
-		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
-		if (i != type.data<Object>()->metadata->members().end()) {
-			helper.return_value(WeakReference::create<Boolean>((i->second->value.flags() & Reference::VISIBILITY_MASK)
-															   == Reference::PRIVATE_VISIBILITY));
+mint::WeakReference mint_type_is_member_private(mint::Cursor& /*cursor*/, const mint::Reference& type,
+    const mint::Reference& member_name) {
+	if (is_instance_of(type, mint::Class::object)) {
+		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
+			return mint::create_boolean(
+			    (member->value.flags() & mint::Reference::visibility_mask) == mint::Reference::private_visibility);
 		}
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_type_is_member_protected, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	const Reference &member_name = helper.pop_parameter();
-	const Reference &type = helper.pop_parameter();
-
-	if (is_instance_of(type, Class::OBJECT)) {
-		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
-		if (i != type.data<Object>()->metadata->members().end()) {
-			helper.return_value(WeakReference::create<Boolean>((i->second->value.flags() & Reference::VISIBILITY_MASK)
-															   == Reference::PROTECTED_VISIBILITY));
+mint::WeakReference mint_type_is_member_protected(mint::Cursor& /*cursor*/, const mint::Reference& type,
+    const mint::Reference& member_name) {
+	if (is_instance_of(type, mint::Class::object)) {
+		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
+			return mint::create_boolean(
+			    (member->value.flags() & mint::Reference::visibility_mask) == mint::Reference::protected_visibility);
 		}
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_type_get_member_owner, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	const Reference &member_name = helper.pop_parameter();
-	const Reference &type = helper.pop_parameter();
-
-	if (is_instance_of(type, Class::OBJECT)) {
-		auto i = type.data<Object>()->metadata->members().find(Symbol(to_string(member_name)));
-		if (i != type.data<Object>()->metadata->members().end()) {
-			helper.return_value(WeakReference::create<Object>(i->second->owner));
+mint::WeakReference mint_type_get_member_owner(mint::Cursor& /*cursor*/, const mint::Reference& type,
+    const mint::Reference& member_name) {
+	if (is_instance_of(type, mint::Class::object)) {
+		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
+			return mint::create_alias(member->owner);
 		}
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_type_is_copyable, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &type = helper.pop_parameter();
-
-	switch (type.data()->format) {
-	case Data::FMT_OBJECT:
-		helper.return_value(create_boolean(type.data<Object>()->metadata->is_copyable()));
-		break;
-
-	default:
-		helper.return_value(create_boolean(true));
-		break;
+mint::WeakReference mint_type_is_copyable(mint::Cursor& /*cursor*/, const mint::Reference& type) {
+	if (!mint::is_instance_of(type, mint::Data::object_format)) {
+		return mint::create_boolean(true);
 	}
+	return mint::create_boolean(type.data<mint::Object>().metadata.is_copyable());
 }
 
-MINT_FUNCTION(mint_type_deep_copy, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &value = helper.pop_parameter();
-	helper.return_value(WeakReference::clone(value));
+mint::WeakReference mint_type_deep_copy(mint::Cursor& /*cursor*/, const mint::Reference& value) {
+	return {mint::copy_from, value};
 }
 
-MINT_FUNCTION(mint_type_is_class, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &object = helper.pop_parameter();
-	helper.return_value(create_boolean(mint::is_class(object)));
+mint::WeakReference mint_type_is_class(mint::Cursor& /*cursor*/, const mint::Reference& object) {
+	return mint::create_boolean(mint::is_class(object));
 }
 
-MINT_FUNCTION(mint_type_is_object, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &object = helper.pop_parameter();
-
-	if (object.data()->format == Data::FMT_OBJECT) {
-		helper.return_value(create_boolean(mint::is_object(object.data<Object>())));
+mint::WeakReference mint_type_is_object(mint::Cursor& /*cursor*/, const mint::Reference& object) {
+	if (mint::is_instance_of(object, mint::Data::object_format)) {
+		return mint::create_boolean(mint::is_object(object.data<mint::Object>()));
 	}
-	else {
-		helper.return_value(create_boolean(true));
-	}
+	return mint::create_boolean(true);
 }
 
-MINT_FUNCTION(mint_type_super, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &type = helper.pop_parameter();
-	WeakReference result = create_array();
-
-	if (type.data()->format == Data::FMT_OBJECT) {
-		for (Class *base : type.data<Object>()->metadata->bases()) {
-			array_append(result.data<Array>(), WeakReference::create<Object>(base));
-		}
+mint::WeakReference mint_type_super(mint::Cursor& cursor, const mint::Reference& type) {
+	if (type.data().format() == mint::Data::object_format) {
+		return mint::create_array(cursor.ast(),
+		    {std::from_range, std::views::transform(type.data<mint::Object>().metadata.bases(), [](mint::Class& base) {
+			     return mint::create_alias(base);
+		     })});
 	}
-
-	helper.return_value(std::move(result));
+	return mint::create_array(cursor.ast());
 }
 
-MINT_FUNCTION(mint_type_is_base_of, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &type = helper.pop_parameter();
-	Reference &base = helper.pop_parameter();
-
-	if (base.data()->format == Data::FMT_OBJECT && type.data()->format == Data::FMT_OBJECT) {
-		helper.return_value(create_boolean(base.data<Object>()->metadata->is_base_of(type.data<Object>()->metadata)));
+mint::WeakReference mint_type_is_base_of(mint::Cursor& /*cursor*/, const mint::Reference& base,
+    const mint::Reference& type) {
+	if (base.data().format() == mint::Data::object_format && type.data().format() == mint::Data::object_format) {
+		return mint::create_boolean(base.data<mint::Object>().metadata.is_base_of(type.data<mint::Object>().metadata));
 	}
-	else {
-		helper.return_value(create_boolean(false));
-	}
+	return mint::create_boolean(false);
 }
 
-MINT_FUNCTION(mint_type_is_base_or_same, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &type = helper.pop_parameter();
-	Reference &base = helper.pop_parameter();
-
-	if (base.data()->format == Data::FMT_OBJECT && type.data()->format == Data::FMT_OBJECT) {
-		helper.return_value(
-			create_boolean(base.data<Object>()->metadata->is_base_or_same(type.data<Object>()->metadata)));
+mint::WeakReference mint_type_is_base_or_same(mint::Cursor& /*cursor*/, const mint::Reference& base,
+    const mint::Reference& type) {
+	if (base.data().format() == mint::Data::object_format && type.data().format() == mint::Data::object_format) {
+		return mint::create_boolean(
+		    base.data<mint::Object>().metadata.is_base_or_same(type.data<mint::Object>().metadata));
 	}
-	else {
-		helper.return_value(create_boolean(false));
-	}
+	return mint::create_boolean(false);
 }
 
-MINT_FUNCTION(mint_type_is_instance_of, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &type = helper.pop_parameter();
-	Reference &object = helper.pop_parameter();
-
-	if (object.data()->format == Data::FMT_OBJECT && type.data()->format == Data::FMT_OBJECT) {
-		helper.return_value(create_boolean(object.data<Object>()->metadata == type.data<Object>()->metadata));
+mint::WeakReference mint_type_is_instance_of(mint::Cursor& /*cursor*/, const mint::Reference& object,
+    const mint::Reference& type) {
+	if (object.data().format() == mint::Data::object_format && type.data().format() == mint::Data::object_format) {
+		return mint::create_boolean(object.data<mint::Object>().metadata.is_same(type.data<mint::Object>().metadata));
 	}
-	else {
-		helper.return_value(create_boolean(false));
-	}
+	return mint::create_boolean(false);
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_type_to_number, 1);
+MINT_EXPORT_FUNCTION(mint_type_to_boolean, 1);
+MINT_EXPORT_FUNCTION(mint_type_to_string, 1);
+MINT_EXPORT_FUNCTION(mint_type_to_regex, 1);
+MINT_EXPORT_FUNCTION(mint_type_to_array, 1);
+MINT_EXPORT_FUNCTION(mint_type_to_hash, 1);
+MINT_EXPORT_FUNCTION(mint_lang_get_type, 1);
+MINT_EXPORT_FUNCTION(mint_lang_create_type, 3);
+MINT_EXPORT_FUNCTION(mint_type_get_member_info, 2);
+MINT_EXPORT_FUNCTION(mint_type_is_member_private, 2);
+MINT_EXPORT_FUNCTION(mint_type_is_member_protected, 2);
+MINT_EXPORT_FUNCTION(mint_type_get_member_owner, 2);
+MINT_EXPORT_FUNCTION(mint_type_is_copyable, 1);
+MINT_EXPORT_FUNCTION(mint_type_deep_copy, 1);
+MINT_EXPORT_FUNCTION(mint_type_is_class, 1);
+MINT_EXPORT_FUNCTION(mint_type_is_object, 1);
+MINT_EXPORT_FUNCTION(mint_type_super, 1);
+MINT_EXPORT_FUNCTION(mint_type_is_base_of, 2);
+MINT_EXPORT_FUNCTION(mint_type_is_base_or_same, 2);
+MINT_EXPORT_FUNCTION(mint_type_is_instance_of, 2);

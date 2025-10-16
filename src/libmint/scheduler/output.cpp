@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,100 +23,114 @@
 
 #include "mint/scheduler/output.h"
 #include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/module.h"
+#include "mint/debug/debuginfo.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/library.h"
+#include "mint/memory/data.h"
 #include "mint/memory/memorytool.h"
 #include "mint/memory/globaldata.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/casttool.h"
 #include "mint/memory/class.h"
 #include "mint/system/string.h"
 #include "mint/system/terminal.h"
 #include "mint/system/plugin.h"
+#include <cstdio>
+#include <format>
+#include <ranges>
+#include <string>
 
 using namespace mint;
 
-static std::string reference_value(const Reference &reference) {
-	switch (reference.data()->format) {
-	case Data::FMT_NONE:
-		return MINT_TERM_DARK "none" MINT_TERM_RESET;
-	case Data::FMT_NULL:
-		return MINT_TERM_DARK "null" MINT_TERM_RESET;
-	case Data::FMT_PACKAGE:
-		return MINT_TERM_FG_MAGENTA "package:" MINT_TERM_RESET " " + reference.data<Package>()->data->full_name()
-			   + MINT_TERM_RESET;
-	case Data::FMT_FUNCTION:
-		return MINT_TERM_FG_MAGENTA "function:" MINT_TERM_RESET " "
-			   + mint::join(reference.data<Function>()->mapping, ", ",
-							[ast = AbstractSyntaxTree::instance()](auto it) {
-								Module *module = ast->get_module(it->second.handle->module);
-								DebugInfo *infos = ast->get_debug_info(it->second.handle->module);
-								return std::to_string(it->first) + "@" + ast->get_module_name(module) + "(line "
-									   + std::to_string(infos->line_number(it->second.handle->offset)) + ")";
-							})
-			   + MINT_TERM_RESET;
-	case Data::FMT_OBJECT:
-		switch (reference.data<Object>()->metadata->metatype()) {
-		case Class::OBJECT:
+namespace {
+
+std::string reference_value(const AbstractSyntaxTree& ast, const Reference& reference) {
+	switch (reference.data().format()) {
+	case Data::none_format:
+		return MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_DARK) "none");
+	case Data::null_format:
+		return MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_DARK) "null");
+	case Data::package_format:
+		return std::format(MINT_TERM_STR(
+		                       MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "package:" MINT_TERM_OPT(MINT_TERM_RESET) " {}"),
+		    reference.data<Package>().data.full_name());
+	case Data::function_format:
+		return std::format(MINT_TERM_STR(
+		                       MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "function:" MINT_TERM_OPT(MINT_TERM_RESET) " {}"),
+		    std::views::transform(reference.data<Function>().mapping,
+		        [&ast](const auto& item) {
+			        const auto& module = item.second.handle().module;
+			        DebugInfo* infos = ast.find_debug_info(module);
+			        return std::format("{}@{}(line {})", std::to_string(item.first), ast.get_module_name(module),
+			            std::to_string(infos->line_number(item.second.handle().offset)));
+		        })
+		        | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
+	case Data::object_format:
+		switch (reference.data<Object>().metadata.metatype()) {
+		case Class::object:
 			if (mint::is_class(reference.data<Object>())) {
-				return MINT_TERM_FG_MAGENTA "class:" MINT_TERM_RESET " "
-					   + reference.data<Object>()->metadata->full_name() + MINT_TERM_RESET;
+				return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "class:" MINT_TERM_OPT(
+				                       MINT_TERM_RESET) " {}"),
+				    reference.data<Object>().metadata.full_name());
 			}
-			return MINT_TERM_FG_MAGENTA "object:" MINT_TERM_RESET " " + reference.data<Object>()->metadata->full_name()
-				   + " \033[2m(" + to_string(reference.data()) + ")" MINT_TERM_RESET;
-		case Class::STRING:
-			return MINT_TERM_FG_GREEN "'" + to_string(reference) + "'" MINT_TERM_RESET;
-		case Class::REGEX:
-			return MINT_TERM_FG_RED + to_string(reference) + MINT_TERM_RESET;
-		case Class::ARRAY:
-			return "[ "
-				   + mint::join(reference.data<Array>()->values, ", ",
-								[](auto it) {
-									return reference_value(*it);
-								})
-				   + " ]";
-		case Class::HASH:
-			return "{ "
-				   + mint::join(reference.data<Hash>()->values, ", ",
-								[](auto it) {
-									return reference_value(it->first) + ": " + reference_value(it->second);
-								})
-				   + " }";
-		case Class::ITERATOR:
-			if (std::optional<WeakReference> &&item = iterator_get(reference.data<Iterator>())) {
-				return MINT_TERM_FG_MAGENTA "iterator:" MINT_TERM_RESET " " + reference_value(item.value())
-					   + MINT_TERM_RESET;
+			return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "object:" MINT_TERM_OPT(
+			                       MINT_TERM_RESET) " {} " MINT_TERM_OPT(MINT_TERM_DARK) "({})"),
+			    reference.data<Object>().metadata.full_name(), to_string(&reference.data()));
+		case Class::string:
+			return MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_YELLOW) "'" + to_string(reference) + "'");
+		case Class::regex:
+			return MINT_TERM_STDSTR(MINT_TERM_OPT(MINT_TERM_FG_RED) + to_string(reference));
+		case Class::array:
+			return std::format("[ {} ]", std::views::transform(reference.data<Array>().values,
+			                                 [&ast](const auto& item) {
+				                                 return reference_value(ast, item);
+			                                 })
+			                                 | std::views::join_with(std::string(", "))
+			                                 | std::ranges::to<std::string>());
+		case Class::hash:
+			return std::format("{{ {} }}",
+			    std::views::transform(reference.data<Hash>().values,
+			        [&ast](const auto& item) {
+				        return reference_value(ast, item.first) + ": " + reference_value(ast, item.second);
+			        })
+			        | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
+		case Class::iterator:
+			if (auto item = iterator_get(reference.data<Iterator>())) {
+				return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "iterator:" MINT_TERM_OPT(
+				                       MINT_TERM_RESET) " {}"),
+				    reference_value(ast, *item));
 			}
-			return MINT_TERM_FG_MAGENTA "iterator:" MINT_TERM_FG_YELLOW " empty" MINT_TERM_RESET;
-		case Class::LIBRARY:
-			return MINT_TERM_FG_MAGENTA "library:" MINT_TERM_RESET " "
-				   + reference.data<Library>()->plugin->get_path().generic_string() + MINT_TERM_RESET;
-		case Class::LIBOBJECT:
-			return MINT_TERM_FG_MAGENTA "libobject:" MINT_TERM_RESET " " + to_string(reference.data())
-				   + MINT_TERM_RESET;
+			return MINT_TERM_STR(
+			    MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "iterator:" MINT_TERM_OPT(MINT_TERM_FG_YELLOW) " empty");
+		case Class::library:
+			return std::format(MINT_TERM_STR(
+			                       MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "library:" MINT_TERM_OPT(MINT_TERM_RESET) " {}"),
+			    reference.data<Library>().plugin->get_path().generic_string());
+		case Class::libobject:
+			return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "libobject:" MINT_TERM_OPT(
+			                       MINT_TERM_RESET) " {}"),
+			    to_string(&reference.data()));
 		}
 		break;
 	default:
-		return MINT_TERM_FG_YELLOW + to_string(reference) + MINT_TERM_RESET;
+		return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_GREEN) "{}"), to_string(reference));
 	}
 	return {};
 }
+
+}
+
+mint::Output::Output(AbstractSyntaxTree& ast) :
+    _ast(ast) {}
 
 Output::~Output() {
 	Terminal::print(stdout, "\n");
 }
 
-Output &Output::instance() {
-
-	static Output g_instance;
-
-	return g_instance;
-}
-
-void Output::print(Reference &reference) {
-	Terminal::printf(stdout, "%s\n", reference_value(reference).c_str());
-}
-
-bool Output::global() const {
-	return true;
+void Output::print(const Reference& reference) {
+	Terminal::println(stdout, reference_value(_ast, reference));
 }

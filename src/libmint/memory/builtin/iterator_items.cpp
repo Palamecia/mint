@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,258 +23,295 @@
 
 #include "iterator_items.h"
 #include "iterator_p.h"
-#include "memory/reference.h"
-#include "mint/memory/functiontool.h"
+#include "mint/ast/classregister.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/string.h"
+#include "mint/memory/class.h"
+#include "mint/memory/data.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/reference.h"
 #include "mint/system/utf8.h"
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
 #include <limits>
+#include <memory>
 #include <utility>
 
 using namespace mint::internal;
 using namespace mint;
 
+std::allocator<WeakReference> ItemsIteratorData::g_allocator;
+
+ItemsIteratorViewData::ItemsIteratorViewData(mint::WeakReference* data, std::size_t capacity, std::size_t size,
+    std::size_t pos) :
+    _data(data),
+    _capacity(capacity),
+    _size(size),
+    _pos(pos) {}
+
+mint::Iterator::Context::reference ItemsIteratorViewData::front() {
+	return _data[_pos];
+}
+
+mint::Iterator::Context::reference ItemsIteratorViewData::back() {
+	return _data[(_pos + _size - 1) % _capacity];
+}
+
+mint::Iterator::Context::reference ItemsIteratorViewData::get() {
+	return _data[(_pos + _cur) % _capacity];
+}
+
+bool ItemsIteratorViewData::empty() const {
+	return _cur == _size;
+}
+
+void ItemsIteratorViewData::prev() {
+	--_cur;
+}
+
+void ItemsIteratorViewData::next() {
+	++_cur;
+}
+
 ItemsIteratorData::ItemsIteratorData() :
-	m_capacity(1) {
-	m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
+    _capacity(1) {
+	_data = g_allocator.allocate(_capacity);
 }
 
-ItemsIteratorData::ItemsIteratorData(size_t capacity) :
-	m_capacity(capacity) {
-	m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
+ItemsIteratorData::ItemsIteratorData(std::size_t capacity) :
+    _capacity(capacity) {
+	_data = g_allocator.allocate(_capacity);
 }
 
-ItemsIteratorData::ItemsIteratorData(Reference &ref) {
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
-		m_capacity = 1;
-		m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
+ItemsIteratorData::ItemsIteratorData(AbstractSyntaxTree& ast, const Reference& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
+		_capacity = 1;
+		_data = g_allocator.allocate(_capacity);
 		break;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::STRING:
-			m_capacity = ref.data<String>()->str.size();
-			m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
-				new (m_data + m_size++) WeakReference(create_string(*i));
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			_capacity = ref.data<String>().str.size();
+			_data = g_allocator.allocate(_capacity);
+			for (const auto& item : views::utf8(ref.data<String>().str)) {
+				std::construct_at(_data + _size++, create_string(ast, item));
 			}
 			break;
-		case Class::ARRAY:
-			m_capacity = ref.data<Array>()->values.size();
-			m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-			for (auto &item : ref.data<Array>()->values) {
-				new (m_data + m_size++) WeakReference(array_get_item(item));
+		case Class::array:
+			_capacity = ref.data<Array>().values.size();
+			_data = g_allocator.allocate(_capacity);
+			for (auto& item : ref.data<Array>().values) {
+				std::construct_at(_data + _size++, array_get_item(item));
 			}
 			break;
-		case Class::HASH:
-			m_capacity = ref.data<Hash>()->values.size();
-			m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-			for (auto &item : ref.data<Hash>()->values) {
-				WeakReference element(Reference::CONST_ADDRESS | Reference::CONST_VALUE,
-									  GarbageCollector::instance().alloc<Iterator>(2));
-				element.data<Iterator>()->ctx.yield(hash_get_key(item));
-				element.data<Iterator>()->ctx.yield(hash_get_value(item));
-				element.data<Iterator>()->construct();
-				new (m_data + m_size++) WeakReference(WeakReference::share(element));
+		case Class::hash:
+			_capacity = ref.data<Hash>().values.size();
+			_data = g_allocator.allocate(_capacity);
+			for (auto& item : ref.data<Hash>().values) {
+				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value, ast, 2);
+				element.data<Iterator>().ctx.yield(hash_get_key(item));
+				element.data<Iterator>().ctx.yield(hash_get_value(item));
+				element.data<Iterator>().construct();
+				std::construct_at(_data + _size++, element);
 			}
 			break;
-		case Class::ITERATOR:
-			m_capacity = ref.data<Iterator>()->ctx.size();
-			m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-			for (Reference &item : ref.data<Iterator>()->ctx) {
-				new (m_data + m_size++) WeakReference(WeakReference::share(item));
+		case Class::iterator:
+			_capacity = ref.data<Iterator>().ctx.size();
+			_data = g_allocator.allocate(_capacity);
+			for (const Reference& item : ref.data<Iterator>().ctx) {
+				std::construct_at(_data + _size++, item);
 			}
 			break;
 		default:
-			m_capacity = 1;
-			m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-			new (m_data + m_size++) WeakReference(std::forward<Reference>(ref));
+			_capacity = 1;
+			_data = g_allocator.allocate(_capacity);
+			std::construct_at(_data + _size++, ref);
 			break;
 		}
 		break;
 	default:
-		m_capacity = 1;
-		m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-		new (m_data + m_size++) WeakReference(std::forward<Reference>(ref));
+		_capacity = 1;
+		_data = g_allocator.allocate(_capacity);
+		std::construct_at(_data + _size++, ref);
 		break;
 	}
 }
 
-ItemsIteratorData::ItemsIteratorData(Reference &&ref) {
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
-		m_capacity = 1;
-		m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
+ItemsIteratorData::ItemsIteratorData(AbstractSyntaxTree& ast, Reference&& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
+		_capacity = 1;
+		_data = g_allocator.allocate(_capacity);
 		break;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::STRING:
-			m_capacity = ref.data<String>()->str.size();
-			m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-			for (utf8iterator i = ref.data<String>()->str.begin(); i != ref.data<String>()->str.end(); ++i) {
-				new (m_data + m_size++) WeakReference(create_string(*i));
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			_capacity = ref.data<String>().str.size();
+			_data = g_allocator.allocate(_capacity);
+			for (const auto& item : views::utf8(ref.data<String>().str)) {
+				std::construct_at(_data + _size++, create_string(ast, item));
 			}
 			break;
-		case Class::ARRAY:
-			m_capacity = ref.data<Array>()->values.size();
-			m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-			for (auto &item : ref.data<Array>()->values) {
-				new (m_data + m_size++) WeakReference(array_get_item(item));
+		case Class::array:
+			_capacity = ref.data<Array>().values.size();
+			_data = g_allocator.allocate(_capacity);
+			for (auto& item : ref.data<Array>().values) {
+				std::construct_at(_data + _size++, array_get_item(item));
 			}
 			break;
-		case Class::HASH:
-			m_capacity = ref.data<Hash>()->values.size();
-			m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-			for (auto &item : ref.data<Hash>()->values) {
-				WeakReference element(Reference::CONST_ADDRESS | Reference::CONST_VALUE,
-									  GarbageCollector::instance().alloc<Iterator>(2));
-				element.data<Iterator>()->ctx.yield(hash_get_key(item));
-				element.data<Iterator>()->ctx.yield(hash_get_value(item));
-				element.data<Iterator>()->construct();
-				new (m_data + m_size++) WeakReference(WeakReference::share(element));
+		case Class::hash:
+			_capacity = ref.data<Hash>().values.size();
+			_data = g_allocator.allocate(_capacity);
+			for (auto& item : ref.data<Hash>().values) {
+				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value, ast, 2);
+				element.data<Iterator>().ctx.yield(hash_get_key(item));
+				element.data<Iterator>().ctx.yield(hash_get_value(item));
+				element.data<Iterator>().construct();
+				std::construct_at(_data + _size++, element);
 			}
 			break;
-		case Class::ITERATOR:
-			m_capacity = ref.data<Iterator>()->ctx.size();
-			m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-			for (Reference &item : ref.data<Iterator>()->ctx) {
-				new (m_data + m_size++) WeakReference(WeakReference::share(item));
+		case Class::iterator:
+			_capacity = ref.data<Iterator>().ctx.size();
+			_data = g_allocator.allocate(_capacity);
+			for (const Reference& item : ref.data<Iterator>().ctx) {
+				std::construct_at(_data + _size++, item);
 			}
 			break;
 		default:
-			m_capacity = 1;
-			m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-			new (m_data + m_size++) WeakReference(std::move(ref));
+			_capacity = 1;
+			_data = g_allocator.allocate(_capacity);
+			std::construct_at(_data + _size++, std::move(ref));
 			break;
 		}
 		break;
 	default:
-		m_capacity = 1;
-		m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-		new (m_data + m_size++) WeakReference(std::move(ref));
+		_capacity = 1;
+		_data = g_allocator.allocate(_capacity);
+		std::construct_at(_data + _size++, std::move(ref));
 		break;
 	}
 }
 
-ItemsIteratorData::ItemsIteratorData(ItemsIteratorData &&other) noexcept :
-	m_data(other.m_data),
-	m_capacity(other.m_capacity),
-	m_size(other.m_size),
-	m_pos(other.m_pos) {
-	other.m_data = nullptr;
-	other.m_size = 0;
+ItemsIteratorData::ItemsIteratorData(ItemsIteratorData&& other) noexcept :
+    _data(other._data),
+    _capacity(other._capacity),
+    _size(other._size),
+    _pos(other._pos) {
+	other._data = nullptr;
+	other._size = 0;
 }
 
-ItemsIteratorData::ItemsIteratorData(const ItemsIteratorData &other) :
-	m_data(static_cast<WeakReference *>(malloc(other.m_capacity * sizeof(WeakReference)))),
-	m_capacity(other.m_capacity) {
-	while (m_size < other.m_size) {
-		new (m_data + m_size)
-			WeakReference(WeakReference::share(other.m_data[(other.m_pos + m_size) % other.m_capacity]));
-		++m_size;
+ItemsIteratorData::ItemsIteratorData(const ItemsIteratorData& other) :
+    _data(g_allocator.allocate(other._capacity)),
+    _capacity(other._capacity) {
+	while (_size < other._size) {
+		std::construct_at(_data + _size, other._data[(other._pos + _size) % other._capacity]);
+		++_size;
 	}
 }
 
 ItemsIteratorData::~ItemsIteratorData() {
-	for (size_t i = 0; i < m_size; ++i) {
-		m_data[(m_pos + i) % m_capacity].~WeakReference();
+	for (std::size_t i = 0; i < _size; ++i) {
+		std::destroy_at(_data + ((_pos + i) % _capacity));
 	}
-	free(m_data);
+	g_allocator.deallocate(_data, _capacity);
 }
 
-mint::internal::IteratorData *ItemsIteratorData::copy() {
-	return new ItemsIteratorData(*this);
+std::unique_ptr<IteratorViewData> ItemsIteratorData::view() {
+	return std::make_unique<ItemsIteratorViewData>(_data, _capacity, _size, _pos);
+}
+
+std::unique_ptr<IteratorData> ItemsIteratorData::copy() {
+	return std::make_unique<ItemsIteratorData>(*this);
 }
 
 void ItemsIteratorData::mark() {
-	for (size_t i = 0; i < m_size; ++i) {
-		m_data[(m_pos + i) % m_capacity].data()->mark();
+	for (std::size_t i = 0; i < _size; ++i) {
+		_data[(_pos + i) % _capacity].data().mark();
 	}
 }
 
 Iterator::Context::Type ItemsIteratorData::get_type() const {
-	return Iterator::Context::ITEMS;
+	return Iterator::Context::items;
 }
 
-Iterator::Context::value_type &ItemsIteratorData::value() {
-	return m_data[m_pos];
+Iterator::Context::value_type& ItemsIteratorData::get() {
+	return _data[_pos];
 }
 
-Iterator::Context::value_type &ItemsIteratorData::last() {
-	return m_data[(m_pos + m_size - 1) % m_capacity];
+std::size_t ItemsIteratorData::capacity() const {
+	return _capacity;
 }
 
-size_t ItemsIteratorData::capacity() const {
-	return m_capacity;
-}
+void ItemsIteratorData::reserve(std::size_t capacity) {
+	if (_capacity < capacity) {
 
-void ItemsIteratorData::reserve(size_t capacity) {
-	if (m_capacity < capacity) {
+		WeakReference* data = _data;
+		std::swap(_capacity, capacity);
+		_data = g_allocator.allocate(_capacity);
 
-		WeakReference *data = m_data;
-		std::swap(m_capacity, capacity);
-		m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
-
-		for (size_t i = 0; i < m_size; ++i) {
-			WeakReference *item = data + ((m_pos + i) % capacity);
-			new (m_data + i) WeakReference(std::move(*item));
+		for (std::size_t i = 0; i < _size; ++i) {
+			WeakReference* item = data + ((_pos + i) % capacity);
+			std::construct_at(_data + i, std::move(*item));
 			item->~WeakReference();
 		}
 
-		free(data);
-		m_pos = 0;
+		g_allocator.deallocate(data, capacity);
+		_pos = 0;
 	}
 }
 
-void ItemsIteratorData::yield(Iterator::Context::value_type &&value) {
-	if (m_size >= m_capacity) {
+void ItemsIteratorData::yield(Iterator::Context::value_type&& value) {
+	if (_size >= _capacity) {
 		increase_size();
 	}
-	new (m_data + ((m_pos + m_size) % m_capacity)) WeakReference(std::move(value));
-	++m_size;
+	std::construct_at(_data + ((_pos + _size) % _capacity), std::move(value));
+	++_size;
 }
 
 void ItemsIteratorData::next() {
-	assert(m_size != 0);
-	m_data[m_pos].~WeakReference();
-	m_pos = (m_pos + 1) % m_capacity;
-	--m_size;
+	assert(_size != 0);
+	std::destroy_at(_data + _pos);
+	_pos = (_pos + 1) % _capacity;
+	--_size;
 }
 
 void ItemsIteratorData::finalize() {}
 
 void ItemsIteratorData::clear() {
-	for (size_t i = 0; i < m_size; ++i) {
-		m_data[(m_pos + i) % m_capacity].~WeakReference();
+	for (std::size_t i = 0; i < _size; ++i) {
+		std::destroy_at(_data + ((_pos + i) % _capacity));
 	}
-	m_size = m_pos = 0;
+	_size = _pos = 0;
 }
 
-size_t ItemsIteratorData::size() const {
-	return m_size;
+std::size_t ItemsIteratorData::size() const {
+	return _size;
 }
 
 bool ItemsIteratorData::empty() const {
-	return m_size == 0;
+	return _size == 0;
 }
 
 void ItemsIteratorData::increase_size() {
 
-	const size_t capacity = m_capacity;
-	WeakReference *data = m_data;
+	const std::size_t capacity = _capacity;
+	WeakReference* data = _data;
 
-	m_capacity = std::min(capacity * 2, std::numeric_limits<size_t>::max());
-	m_data = static_cast<WeakReference *>(malloc(m_capacity * sizeof(WeakReference)));
+	_capacity = std::min(capacity * 2, std::numeric_limits<std::size_t>::max());
+	_data = g_allocator.allocate(_capacity);
 
-	for (size_t i = 0; i < m_size; ++i) {
-		WeakReference *item = data + ((m_pos + i) % capacity);
-		new (m_data + i) WeakReference(std::move(*item));
-		item->~WeakReference();
+	for (std::size_t i = 0; i < _size; ++i) {
+		WeakReference* item = data + ((_pos + i) % capacity);
+		std::construct_at(_data + i, std::move(*item));
+		std::destroy_at(item);
 	}
 
-	free(data);
-	m_pos = 0;
+	g_allocator.deallocate(data, capacity);
+	_pos = 0;
 }

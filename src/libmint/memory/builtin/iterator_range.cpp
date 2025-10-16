@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,97 +23,146 @@
 
 #include "iterator_range.h"
 #include "iterator_p.h"
-#include "memory/object.h"
-#include "memory/reference.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
 
+#include <cassert>
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <utility>
 
 using namespace mint::internal;
 using namespace mint;
 
 namespace {
 
-constexpr RangeFunctions RANGE_DATA_ASCENDING_FUNCTIONS = {
-	[](double current) {
-		return current + 1;
-	},
-	[](double begin, double end) {
-		return static_cast<size_t>(end - begin);
-	},
+constexpr RangeFunctions range_data_ascending_functions = {
+    .inc =
+        [](double current) {
+	        return current + 1;
+        },
+    .dec =
+        [](double current) {
+	        return current - 1;
+        },
+    .size =
+        [](double begin, double end) {
+	        return static_cast<std::size_t>(end - begin);
+        },
 };
 
-constexpr RangeFunctions RANGE_DATA_DESCENDING_FUNCTIONS = {
-	[](double current) {
-		return current - 1;
-	},
-	[](double begin, double end) {
-		return static_cast<size_t>(begin - end);
-	},
+constexpr RangeFunctions range_data_descending_functions = {
+    .inc =
+        [](double current) {
+	        return current - 1;
+        },
+    .dec =
+        [](double current) {
+	        return current + 1;
+        },
+    .size =
+        [](double begin, double end) {
+	        return static_cast<std::size_t>(begin - end);
+        },
 };
 
 WeakReference creat_item(double value) {
-	return {Reference::DEFAULT, GarbageCollector::instance().alloc<Number>(value)};
+	return make_weak_reference<Number>(Reference::default_flags, value);
 }
 
+}
+
+RangeIteratorViewData::RangeIteratorViewData(const RangeFunctions& func, mint::WeakReference& head,
+    mint::WeakReference& tail) :
+    _func(func),
+    _head(head),
+    _tail(tail),
+    _cur(head) {}
+
+mint::Iterator::Context::reference RangeIteratorViewData::front() {
+	return _head;
+}
+
+mint::Iterator::Context::reference RangeIteratorViewData::back() {
+	return _tail;
+}
+
+mint::Iterator::Context::reference RangeIteratorViewData::get() {
+	return _cur;
+}
+
+bool RangeIteratorViewData::empty() const {
+	return fabs(_cur.data<Number>().value - (_tail.data<Number>().value + 1)) < 1.;
+}
+
+void RangeIteratorViewData::prev() {
+	_cur = creat_item(_func.get().dec(_head.data<Number>().value));
+}
+
+void RangeIteratorViewData::next() {
+	_cur = creat_item(_func.get().inc(_head.data<Number>().value));
 }
 
 RangeIteratorData::RangeIteratorData(double begin, double end) :
-	m_head(creat_item(begin)),
-	m_tail(creat_item(end - 1)),
-	m_func(begin < end ? &RANGE_DATA_ASCENDING_FUNCTIONS : &RANGE_DATA_DESCENDING_FUNCTIONS) {}
+    _func(begin < end ? range_data_ascending_functions : range_data_descending_functions),
+    _head(creat_item(begin)),
+    _tail(creat_item(end - 1)) {}
 
-RangeIteratorData::RangeIteratorData(const RangeIteratorData &other) :
-	m_head(creat_item(other.m_head.data<Number>()->value)),
-	m_tail(creat_item(other.m_tail.data<Number>()->value)),
-	m_func(other.m_func) {}
+RangeIteratorData::RangeIteratorData(const RangeIteratorData& other) :
+    _func(other._func),
+    _head(creat_item(other._head.data<Number>().value)),
+    _tail(creat_item(other._tail.data<Number>().value)) {}
 
-mint::internal::IteratorData *RangeIteratorData::copy() {
-	return new RangeIteratorData(*this);
+std::unique_ptr<IteratorViewData> RangeIteratorData::view() {
+	return std::make_unique<RangeIteratorViewData>(_func.get(), _head, _tail);
+}
+
+std::unique_ptr<IteratorData> RangeIteratorData::copy() {
+	return std::make_unique<RangeIteratorData>(*this);
 }
 
 void RangeIteratorData::mark() {
-	m_head.data()->mark();
-	m_tail.data()->mark();
+	_head.data().mark();
+	_tail.data().mark();
 }
 
 Iterator::Context::Type RangeIteratorData::get_type() const {
-	return Iterator::Context::RANGE;
+	return Iterator::Context::range;
 }
 
-Iterator::Context::value_type &RangeIteratorData::value() {
-	return m_head;
+Iterator::Context::value_type& RangeIteratorData::get() {
+	return _head;
 }
 
-Iterator::Context::value_type &RangeIteratorData::last() {
-	return m_tail;
-}
-
-size_t RangeIteratorData::capacity() const {
+std::size_t RangeIteratorData::capacity() const {
 	return 2;
 }
 
-void RangeIteratorData::reserve([[maybe_unused]] size_t capacity) {
+void RangeIteratorData::reserve(std::size_t /*capacity*/) {
 	assert(false);
 }
 
-void RangeIteratorData::yield([[maybe_unused]] Iterator::Context::value_type &&value) {
+void RangeIteratorData::yield(Iterator::Context::value_type&& value) {
+	const auto consumer = WeakReference(std::move(value));
 	assert(false);
 }
 
 void RangeIteratorData::next() {
-	m_head = creat_item(m_func->inc(m_head.data<Number>()->value));
+	_head = creat_item(_func.get().inc(_head.data<Number>().value));
 }
 
 void RangeIteratorData::finalize() {}
 
 void RangeIteratorData::clear() {
-	m_head = WeakReference::share(m_tail);
+	_head = _tail;
 }
 
-size_t RangeIteratorData::size() const {
-	return m_func->size(m_head.data<Number>()->value, m_tail.data<Number>()->value + 1);
+std::size_t RangeIteratorData::size() const {
+	return _func.get().size(_head.data<Number>().value, _tail.data<Number>().value + 1);
 }
 
 bool RangeIteratorData::empty() const {
-	return fabs(m_head.data<Number>()->value - (m_tail.data<Number>()->value + 1)) < 1.;
+	return fabs(_head.data<Number>().value - (_tail.data<Number>().value + 1)) < 1.;
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,102 +21,118 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_GLOBALDATA_H
-#define MINT_GLOBALDATA_H
+#ifndef MINT_MEMORY_GLOBALDATA_H
+#define MINT_MEMORY_GLOBALDATA_H
 
 #include "mint/ast/classregister.h"
+#include "mint/ast/symbol.h"
+#include "mint/config.h"
+#include "mint/memory/data.h"
+#include "mint/memory/garbagecollector.h"
+#include "mint/memory/reference.h"
 #include "mint/memory/symboltable.h"
 
 #include <array>
+#include <functional>
+#include <memory>
+#include <ranges>
+#include <string>
+#include <unordered_map>
+#include <utility>
 
 namespace mint {
 
 class MINT_EXPORT PackageData : public ClassRegister {
 public:
-	PackageData(PackageData &&) = delete;
-	PackageData(const PackageData &) = delete;
+	explicit PackageData(AbstractSyntaxTree& ast, const std::string& name, PackageData* owner = nullptr);
+	PackageData(PackageData&&) = delete;
+	PackageData(const PackageData&) = delete;
 	~PackageData() override;
 
-	PackageData &operator=(PackageData &&) = delete;
-	PackageData &operator=(const PackageData &) = delete;
-	
+	PackageData& operator=(PackageData&&) = delete;
+	PackageData& operator=(const PackageData&) = delete;
+
 	[[nodiscard]] Symbol name() const;
 	[[nodiscard]] std::string full_name() const;
-
 	[[nodiscard]] Path get_path() const;
 
-	[[nodiscard]] PackageData *get_package() const;
-	[[nodiscard]] PackageData *get_package(const Symbol &name);
-	[[nodiscard]] PackageData *find_package(const Symbol &name) const;
+	[[nodiscard]] PackageData* get_owner_package() const;
+	[[nodiscard]] PackageData& get_package(const Symbol& name);
+	[[nodiscard]] PackageData* find_package(const Symbol& name) const;
+
+	[[nodiscard]] auto packages() {
+		return std::views::transform(_packages,
+		    [](auto& item) -> std::pair<Symbol, std::reference_wrapper<PackageData>> {
+			    return {item.first, *item.second};
+		    });
+	}
 
 	void register_class(Id id);
-	Class *get_class(const Symbol &name);
+	[[nodiscard]] Class* find_class(const Symbol& name) const;
 
-	inline SymbolTable &symbols();
+	[[nodiscard]] auto classes() {
+		return std::views::filter(_symbols, [](auto& item) {
+			return item.second.data().format() == Data::object_format
+			       && item.second.template data<Object>().data == nullptr;
+		}) | std::views::transform([](auto& item) -> std::pair<Symbol, std::reference_wrapper<Class>> {
+			return {item.first, item.second.template data<Object>().metadata};
+		});
+	}
+
+	[[nodiscard]] inline const SymbolTable& symbols() const;
+	[[nodiscard]] inline SymbolTable& symbols();
 
 	void cleanup_memory() override;
 	void cleanup_metadata() override;
 
-protected:
-	explicit PackageData(const std::string &name, PackageData *owner = nullptr);
-
 private:
-	Symbol m_name;
-	PackageData *m_owner;
-	SymbolMapping<PackageData *> m_packages;
-	SymbolTable m_symbols;
+	Symbol _name;
+	PackageData* _owner;
+	std::unordered_map<Symbol, std::unique_ptr<PackageData>> _packages;
+	SymbolTable _symbols;
 };
 
 class MINT_EXPORT GlobalData : public PackageData {
 	friend class AbstractSyntaxTree;
 public:
-	GlobalData(GlobalData &&) = delete;
-	GlobalData(const GlobalData &) = delete;
-	~GlobalData() override;
-
-	GlobalData &operator=(GlobalData &&) = delete;
-	GlobalData &operator=(const GlobalData &) = delete;
-
-	static GlobalData *instance();
+	GlobalData(AbstractSyntaxTree& ast);
 
 	template<class BuiltinClass>
-	BuiltinClass *builtin(Class::Metatype type);
+	BuiltinClass& builtin(Class::Metatype type);
 
-	inline Reference *none_ref();
-	inline Reference *null_ref();
+	static inline Reference& none_ref();
+	static inline Reference& null_ref();
 
 	void cleanup_builtin();
 
-protected:
-	GlobalData();
-
 private:
-	static GlobalData *g_instance;
-	std::array<Class *, Class::BUILTIN_CLASS_COUNT> m_builtin;
-	Reference *m_none = nullptr;
-	Reference *m_null = nullptr;
+	std::array<std::unique_ptr<Class>, Class::builtin_class_count> _builtin;
 };
 
-SymbolTable &PackageData::symbols() {
-	return m_symbols;
+const SymbolTable& PackageData::symbols() const {
+	return _symbols;
+}
+
+SymbolTable& PackageData::symbols() {
+	return _symbols;
 }
 
 template<class BuiltinClass>
-BuiltinClass *GlobalData::builtin(Class::Metatype type) {
-	if (auto *instance = static_cast<BuiltinClass *>(m_builtin[type])) {
-		return instance;
+BuiltinClass& GlobalData::builtin(Class::Metatype type) {
+	if (auto* instance = static_cast<BuiltinClass*>(_builtin[type].get())) {
+		return *instance;
 	}
-	return static_cast<BuiltinClass *>(m_builtin[type] = new BuiltinClass);
+	return *static_cast<BuiltinClass*>((_builtin[type] = std::make_unique<BuiltinClass>(ast())).get());
 }
 
-Reference *GlobalData::none_ref() {
-	return m_none ? m_none : m_none = new StrongReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, new None);
+Reference& GlobalData::none_ref() {
+	return GarbageCollector::instance().none_ref();
 }
 
-Reference *GlobalData::null_ref() {
-	return m_null ? m_null : m_null = new StrongReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, new Null);
+Reference& GlobalData::null_ref() {
+	return GarbageCollector::instance().null_ref();
 }
 
 }
 
-#endif // MINT_GLOBALDATA_H
+#endif // MINT_MEMORY_GLOBALDATA_H

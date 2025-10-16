@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,44 +21,56 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_COMPILER_H
-#define MINT_COMPILER_H
+#ifndef MINT_COMPILER_COMPILER_H
+#define MINT_COMPILER_COMPILER_H
 
+#include "mint/ast/classregister.h"
+#include "mint/config.h"
+#include "mint/memory/data.h"
 #include "mint/system/datastream.h"
 #include "mint/ast/module.h"
+#include <cstdint>
+#include <functional>
+#include <string>
 
 namespace mint {
 
 class MINT_EXPORT Compiler {
 public:
-	enum DataHint : std::uint8_t {
-		DATA_UNKNOWN_HINT,
-		DATA_NUMBER_HINT,
-		DATA_STRING_HINT,
-		DATA_REGEX_HINT,
-		DATA_TRUE_HINT,
-		DATA_FALSE_HINT,
-		DATA_NULL_HINT,
-		DATA_NONE_HINT
+	enum class DataHint : std::uint8_t {
+		data_unknown_hint,
+		data_number_hint,
+		data_string_hint,
+		data_regex_hint,
+		data_true_hint,
+		data_false_hint,
+		data_null_hint,
+		data_none_hint
 	};
 
-	Compiler();
+	Compiler(AbstractSyntaxTree& ast);
 
 	[[nodiscard]] bool is_printing() const;
 	void set_printing(bool enabled);
 
-	bool build(DataStream *stream, const Module::Info &node);
+	bool build(DataStream& stream, const Module::Info& node);
 
-	static Data *make_data(const std::string &token, DataHint hint);
-	static Data *make_library(const std::string &token);
-	static Data *make_array();
-	static Data *make_hash();
-	static Data *make_none();
+	Data* make_data(const std::string& token, DataHint hint);
+	Data& make_library(const std::string& token);
+	static Data& make_package(PackageData& package);
+	static Data& make_number(double value);
+	static Data& make_boolean(bool value);
+	Data& make_array();
+	Data& make_hash();
+	static Data& make_none();
+
+	AbstractSyntaxTree& ast();
 
 private:
-	bool m_printing;
+	std::reference_wrapper<AbstractSyntaxTree> _ast;
+	bool _printing = false;
 };
 
 }
 
-#endif // MINT_COMPILER_H
+#endif // MINT_COMPILER_COMPILER_H

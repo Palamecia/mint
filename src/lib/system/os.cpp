@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,140 +21,135 @@
  * IN THE SOFTWARE.
  */
 
+#include "mint/ast/symbol.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
-#include "mint/system/assert.h"
+#include "mint/memory/reference.h"
 #include "mint/system/errno.h"
+#include <string>
+#include <utility>
 
-#include <cstdlib>
-
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
+#include <array>
 #include <Windows.h>
+#include <processenv.h>
+#include <stringapiset.h>
+#include <winnls.h>
+#else
+#undef linux
 #endif
 
-using namespace mint;
+namespace symbols {
+
+static const mint::Symbol system("System");
+static const mint::Symbol os_type("OSType");
+static const mint::Symbol linux("Linux");
+static const mint::Symbol windows("Windows");
+static const mint::Symbol mac_os("MacOs");
+
+}
 
 namespace {
 
-#ifdef OS_WINDOWS
-std::wstring utf8_to_windows(const std::string &str) {
-
-	std::wstring buffer(MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, nullptr, 0), L'\0');
-
-	if (MultiByteToWideChar(CP_UTF8, 0, str.c_str(), -1, buffer.data(), buffer.length())) {
+#ifdef MINT_OS_WINDOWS
+std::wstring utf8_to_windows(const std::string& str) {
+	const int length = MultiByteToWideChar(CP_UTF8, 0, str.data(), -1, nullptr, 0);
+	if (std::wstring buffer(length, L'\0'); MultiByteToWideChar(CP_UTF8, 0, str.data(), -1, buffer.data(), length)) {
+		buffer.resize(length - 1);
 		return buffer;
 	}
-
 	return {};
 }
 
-std::string windows_to_utf8(const std::wstring &str) {
-
-	std::string buffer(WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, nullptr, 0, nullptr, nullptr), '\0');
-
-	if (WideCharToMultiByte(CP_UTF8, 0, str.c_str(), -1, buffer.data(), buffer.length(), nullptr, nullptr)) {
+std::string windows_to_utf8(const std::wstring& str) {
+	const int length = WideCharToMultiByte(CP_UTF8, 0, str.data(), -1, nullptr, 0, nullptr, nullptr);
+	if (std::string buffer(length, '\0');
+	    WideCharToMultiByte(CP_UTF8, 0, str.data(), -1, buffer.data(), length, nullptr, nullptr)) {
+		buffer.resize(length - 1);
 		return buffer;
 	}
-
 	return {};
 }
 #endif
 
-}
+mint::WeakReference mint_os_get_type(mint::FunctionHelper& helper) {
 
-namespace symbols {
-static const Symbol System("System");
-static const Symbol OSType("OSType");
-static const Symbol Linux("Linux");
-static const Symbol Windows("Windows");
-static const Symbol MacOS("MacOs");
-}
+	const mint::ReferenceHelper os_type = helper.reference(symbols::system).member(symbols::os_type);
 
-MINT_FUNCTION(mint_os_get_type, 0, cursor) {
-
-	FunctionHelper helper(cursor, 0);
-	const ReferenceHelper OSType = helper.reference(symbols::System).member(symbols::OSType);
-
-#if defined(OS_UNIX)
-	helper.return_value(OSType.member(symbols::Linux));
-#elif defined(OS_WINDOWS)
-	helper.return_value(OSType.member(symbols::Windows));
-#elif defined(OS_MAC)
-	helper.return_value(OSType.member(symbols::MacOS));
+#ifdef MINT_OS_UNIX
+	return os_type.member(symbols::linux).share();
+#elifdef MINT_OS_WINDOWS
+	return os_type.member(symbols::windows).share();
+#elifdef MINT_OS_MAC
+	return os_type.member(symbols::mac_os).share();
 #else
-	assert_x(false, "mint_os_get_type", "unsupported operating system");
+	assert_x(false, __func__, "unsupported operating system");
 #endif
 }
 
-MINT_FUNCTION(mint_os_get_name, 0, cursor) {
-
-	FunctionHelper helper(cursor, 0);
+mint::WeakReference mint_os_get_name(mint::Cursor& /*cursor*/) {
+	return {};
 }
 
-MINT_FUNCTION(mint_os_get_version, 0, cursor) {
-
-	FunctionHelper helper(cursor, 0);
+mint::WeakReference mint_os_get_version(mint::Cursor& /*cursor*/) {
+	return {};
 }
 
-MINT_FUNCTION(mint_os_get_environment, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	WeakReference default_value = std::move(helper.pop_parameter());
-	const Reference &name = helper.pop_parameter();
-
-#ifdef OS_WINDOWS
-	wchar_t buffer[32767];
-
+mint::WeakReference mint_os_get_environment(mint::Cursor& cursor, const mint::Reference& name,
+    mint::WeakReference& default_value) {
+#ifdef MINT_OS_WINDOWS
+	std::array<wchar_t, 32767> buffer;
 	std::wstring name_str = utf8_to_windows(to_string(name));
-	if (GetEnvironmentVariableW(name_str.c_str(), buffer, sizeof(buffer))) {
-		helper.return_value(create_string(windows_to_utf8(buffer)));
+	if (GetEnvironmentVariableW(name_str.data(), buffer.data(), buffer.size())) {
+		return mint::create_string(cursor.ast(), windows_to_utf8(buffer.data()));
 	}
 #else
-	std::string name_str = to_string(name);
-	if (const char *value = getenv(name_str.c_str())) {
-		helper.return_value(create_string(value));
+	const auto name_str = to_string(name);
+	if (const char* value = std::getenv(name_str.c_str())) {
+		return mint::create_string(cursor.ast(), value);
 	}
 #endif
-	else {
-		helper.return_value(std::move(default_value));
-	}
+	return std::move(default_value);
 }
 
-MINT_FUNCTION(mint_os_set_environment, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	const Reference &value = helper.pop_parameter();
-	const Reference &name = helper.pop_parameter();
-
-#ifdef OS_WINDOWS
+mint::WeakReference mint_os_set_environment(mint::Cursor& /*cursor*/, const mint::Reference& name,
+    const mint::Reference& value) {
+#ifdef MINT_OS_WINDOWS
 	std::wstring name_str = utf8_to_windows(to_string(name));
 	std::wstring value_str = utf8_to_windows(to_string(value));
 	if (!SetEnvironmentVariableW(name_str.c_str(), value_str.c_str())) {
-		helper.return_value(create_number(errno_from_error_code(last_error_code())));
+		return mint::create_number(mint::errno_from_error_code(mint::last_error_code()));
 	}
 #else
-	std::string name_str = to_string(name);
-	std::string value_str = to_string(value);
+	const auto name_str = to_string(name);
+	const auto value_str = to_string(value);
 	if (setenv(name_str.c_str(), value_str.c_str(), true)) {
-		helper.return_value(create_number(errno));
+		return mint::create_number(errno);
 	}
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_os_unset_environment, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &name = helper.pop_parameter();
-
-#ifdef OS_WINDOWS
+mint::WeakReference mint_os_unset_environment(mint::Cursor& /*cursor*/, const mint::Reference& name) {
+#ifdef MINT_OS_WINDOWS
 	std::wstring name_str = utf8_to_windows(to_string(name));
 	if (!SetEnvironmentVariableW(name_str.c_str(), nullptr)) {
-		helper.return_value(create_number(errno_from_error_code(last_error_code())));
+		return mint::create_number(mint::errno_from_error_code(mint::last_error_code()));
 	}
 #else
-	std::string name_str = to_string(name);
+	const auto name_str = to_string(name);
 	if (unsetenv(name_str.c_str())) {
-		helper.return_value(create_number(errno));
+		return mint::create_number(errno);
 	}
 #endif
+	return {};
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_os_get_type, 0)
+MINT_EXPORT_FUNCTION(mint_os_get_name, 0)
+MINT_EXPORT_FUNCTION(mint_os_get_version, 0)
+MINT_EXPORT_FUNCTION(mint_os_get_environment, 2)
+MINT_EXPORT_FUNCTION(mint_os_set_environment, 2)
+MINT_EXPORT_FUNCTION(mint_os_unset_environment, 1)

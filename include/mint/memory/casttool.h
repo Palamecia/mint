@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,36 +21,101 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_CASTTOOL_H
-#define MINT_CASTTOOL_H
+#ifndef MINT_MEMORY_CASTTOOL_H
+#define MINT_MEMORY_CASTTOOL_H
 
+#include "mint/config.h"
+#include "mint/memory/garbagecollector.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 
+#include <concepts>
+#include <cstdint>
 #include <regex>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
 
 namespace mint {
 
 class Cursor;
 
-MINT_EXPORT double to_unsigned_number(const std::string &str, bool *error = nullptr);
-MINT_EXPORT double to_signed_number(const std::string &str, bool *error = nullptr);
+MINT_EXPORT double to_number(Cursor& cursor, const Reference& ref);
+MINT_EXPORT double to_number(Cursor& cursor, Reference&& ref);
+MINT_EXPORT std::intmax_t to_signed_integer(Cursor& cursor, const Reference& ref);
+MINT_EXPORT std::intmax_t to_signed_integer(Cursor& cursor, Reference&& ref);
+MINT_EXPORT std::uintmax_t to_unsigned_integer(Cursor& cursor, const Reference& ref);
+MINT_EXPORT std::uintmax_t to_unsigned_integer(Cursor& cursor, Reference&& ref);
+MINT_EXPORT bool to_boolean(const Reference& ref);
+MINT_EXPORT std::string to_char(const Reference& ref);
+MINT_EXPORT std::string to_string(const Reference& ref);
+MINT_EXPORT std::regex to_regex(const Reference& ref);
+MINT_EXPORT Array::values_type to_array(const Reference& ref);
+MINT_EXPORT Hash::values_type to_hash(const Reference& ref);
 
-MINT_EXPORT uintmax_t to_unsigned_integer(const std::string &str, bool *error = nullptr);
-MINT_EXPORT intmax_t to_signed_integer(const std::string &str, bool *error = nullptr);
+MINT_EXPORT double to_unsigned_number(std::string_view str);
+MINT_EXPORT double to_signed_number(std::string_view str);
 
-MINT_EXPORT intmax_t to_integer(double value);
-MINT_EXPORT intmax_t to_integer(Cursor *cursor, Reference &ref);
-MINT_EXPORT intmax_t to_integer(Cursor *cursor, Reference &&ref);
-MINT_EXPORT double to_number(Cursor *cursor, Reference &ref);
-MINT_EXPORT double to_number(Cursor *cursor, Reference &&ref);
-MINT_EXPORT bool to_boolean(const Reference &ref);
-MINT_EXPORT std::string to_char(const Reference &ref);
-MINT_EXPORT std::string to_string(const Reference &ref);
-MINT_EXPORT std::regex to_regex(Reference &ref);
-MINT_EXPORT Array::values_type to_array(Reference &ref);
-MINT_EXPORT Hash::values_type to_hash(Reference &ref);
+MINT_EXPORT std::uintmax_t to_unsigned_integer(std::string_view str);
+MINT_EXPORT std::intmax_t to_signed_integer(std::string_view str);
+
+MINT_EXPORT double to_signed_number(std::intmax_t value);
+MINT_EXPORT double to_unsigned_number(std::uintmax_t value);
+
+MINT_EXPORT std::intmax_t to_signed_integer(double value);
+MINT_EXPORT std::uintmax_t to_unsigned_integer(double value);
+
+template<std::integral T>
+T to_integer(Cursor& cursor, const Reference& ref) {
+	if constexpr (std::is_signed_v<T>) {
+		return static_cast<T>(to_signed_integer(cursor, ref));
+	}
+	else {
+		return static_cast<T>(to_unsigned_integer(cursor, ref));
+	}
+}
+
+template<std::integral T>
+T to_integer(Cursor& cursor, Reference&& ref) {
+	if constexpr (std::is_signed_v<T>) {
+		return static_cast<T>(to_signed_integer(cursor, std::move(ref)));
+	}
+	else {
+		return static_cast<T>(to_unsigned_integer(cursor, std::move(ref)));
+	}
+}
+
+template<std::integral T>
+T to_integer(std::string_view str) {
+	if constexpr (std::is_signed_v<T>) {
+		return static_cast<T>(to_signed_integer(str));
+	}
+	else {
+		return static_cast<T>(to_unsigned_integer(str));
+	}
+}
+
+template<std::integral T>
+double to_number(T value) {
+	if constexpr (std::is_signed_v<T>) {
+		return to_signed_number(value);
+	}
+	else {
+		return to_unsigned_number(value);
+	}
+}
+
+template<std::integral T>
+T to_integer(double value) {
+	if constexpr (std::is_signed_v<T>) {
+		return static_cast<T>(to_signed_integer(value));
+	}
+	else {
+		return static_cast<T>(to_unsigned_integer(value));
+	}
+}
 
 }
 
-#endif // MINT_CASTTOOL_H
+#endif // MINT_MEMORY_CASTTOOL_H

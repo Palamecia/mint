@@ -64,8 +64,8 @@
 		"grammars": [
 			{
 				"language": "mint",
-				"scopeName": "source.mint",
-				"path": "./syntaxes/mint.tmLanguage"
+				"scopeName": "source.mn",
+				"path": "./syntaxes/mint.tmLanguage.json"
 			}
 		],
 		"debuggers": [

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -417,6 +417,12 @@ class JsonStream : Serializer.DocumentStream {
 			if token =~ /\d/ or token == '-' or token == '+' {
 				for (var c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
 					token << c
+				}
+				if c === '.' {
+					token << c
+					for (c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
+						token << c
+					}
 				}
 				self.discardToken()
 				return number(token)

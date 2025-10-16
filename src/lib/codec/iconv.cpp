@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,169 +21,157 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/builtin/string.h>
+#include "mint/ast/cursor.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/builtin/string.h"
 #include <algorithm>
+#include <array>
+#include <bit>
+#include <cerrno>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
 #include <iterator>
 #include <iconv.h>
+#include <vector>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #ifndef WINICONV_CONST
 #define WINICONV_CONST
 #endif
 #endif
 
-using namespace mint;
+namespace {
 
-struct iconv_context_t {
+struct IconvContext {
 	iconv_t decode_cd;
 	iconv_t encode_cd;
 };
 
-static constexpr size_t ICONV_FAILED = size_t(-1);
+constexpr std::size_t iconv_failed = std::size_t(-1);
 
 namespace symbols {
 
-static const Symbol Codec("Codec");
-static const Symbol Iconv("Iconv");
-static const Symbol State("State");
+const mint::Symbol codec_type("Codec");
+const mint::Symbol iconv_type("Iconv");
+const mint::Symbol state_type("State");
 
-static const Symbol Invalid("Invalid");
-static const Symbol Success("Success");
-static const Symbol NeedMore("NeedMore");
+const mint::Symbol invalid("Invalid");
+const mint::Symbol success("Success");
+const mint::Symbol need_more("NeedMore");
 
 }
 
-MINT_FUNCTION(mint_iconv_open, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &encoding = helper.pop_parameter();
-
-	auto *context = new iconv_context_t;
-	context->decode_cd = iconv_open("UTF-8", encoding.data<String>()->str.c_str());
-	context->encode_cd = iconv_open(encoding.data<String>()->str.c_str(), "UTF-8");
-
-	helper.return_value(create_object(context));
+mint::WeakReference mint_iconv_open(mint::Cursor& cursor, const mint::Reference& encoding) {
+	return mint::create_c_object(cursor.ast(),
+	    new IconvContext {
+	        .decode_cd = iconv_open("UTF-8", encoding.data<mint::String>().str.c_str()),
+	        .encode_cd = iconv_open(encoding.data<mint::String>().str.c_str(), "UTF-8"),
+	    });
 }
 
-MINT_FUNCTION(mint_iconv_close, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &context = helper.pop_parameter();
-
-	iconv_close(context.data<LibObject<iconv_context_t>>()->impl->decode_cd);
-	iconv_close(context.data<LibObject<iconv_context_t>>()->impl->encode_cd);
+mint::WeakReference mint_iconv_close(mint::Cursor& /*cursor*/, const mint::Reference& context) {
+	iconv_close(context.data<mint::LibObject<IconvContext>>().ptr->decode_cd);
+	iconv_close(context.data<mint::LibObject<IconvContext>>().ptr->encode_cd);
+	delete context.data<mint::LibObject<IconvContext>>().ptr;
+	return {};
 }
 
-MINT_FUNCTION(mint_iconv_decode, 3, cursor) {
+mint::WeakReference mint_iconv_decode(mint::FunctionHelper& helper, const mint::Reference& context,
+    mint::Reference& buffer, const mint::Reference& stream) {
 
-	FunctionHelper helper(cursor, 3);
-	const Reference &stream = helper.pop_parameter();
-	const Reference &buffer = helper.pop_parameter();
-	const Reference &context = helper.pop_parameter();
+	iconv_t cd = context.data<mint::LibObject<IconvContext>>().ptr->decode_cd;
+	auto state_type = helper.reference(symbols::codec_type).member(symbols::iconv_type).member(symbols::state_type);
 
-	bool finished = false;
-	iconv_t cd = context.data<LibObject<iconv_context_t>>()->impl->decode_cd;
-	auto State = helper.reference(symbols::Codec).member(symbols::Iconv).member(symbols::State);
-
-#ifdef OS_WINDOWS
-	WINICONV_CONST auto *inbuf = (WINICONV_CONST char *)(stream.data<LibObject<std::vector<uint8_t>>>()->impl->data());
+#ifdef MINT_OS_WINDOWS
+	WINICONV_CONST auto* inbuf =
+	    (WINICONV_CONST char*)(stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data());
 #else
-	auto *inbuf = (char *)(stream.data<LibObject<std::vector<uint8_t>>>()->impl->data());
+	auto* inbuf = (char*)(stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data());
 #endif
-	size_t inlen = stream.data<LibObject<std::vector<uint8_t>>>()->impl->size();
+	std::size_t inlen = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size();
 
-	char outbuf[BUFSIZ];
-	size_t outlen = BUFSIZ;
+	std::array<char, BUFSIZ> outbuf = {};
+	std::size_t outlen = BUFSIZ;
 
-	while (!finished) {
+	for (;;) {
 
-		char *outptr = outbuf;
-		size_t count = iconv(cd, &inbuf, &inlen, &outptr, &outlen);
+		auto* outptr = outbuf.data();
+		const auto count = iconv(cd, &inbuf, &inlen, &outptr, &outlen);
 
-		if (count == ICONV_FAILED) {
+		if (count == iconv_failed) {
 			switch (errno) {
 			case E2BIG:
-				copy_n(outbuf, BUFSIZ - outlen, back_inserter(buffer.data<String>()->str));
+				std::copy_n(outbuf.data(), BUFSIZ - outlen, std::back_inserter(buffer.data<mint::String>().str));
 				outlen = BUFSIZ;
 				break;
-
 			case EILSEQ:
-				helper.return_value(State.member(symbols::Invalid));
-				finished = true;
-				break;
-
+				return state_type.member(symbols::invalid).share();
 			case EINVAL:
-				helper.return_value(State.member(symbols::NeedMore));
-				finished = true;
-				break;
-
+				return state_type.member(symbols::need_more).share();
 			default:
 				break;
 			}
 		}
 		else {
-			copy_n(outbuf, BUFSIZ - outlen, back_inserter(buffer.data<String>()->str));
-			helper.return_value(State.member(symbols::Success));
-			finished = true;
+			std::copy_n(outbuf.data(), BUFSIZ - outlen, std::back_inserter(buffer.data<mint::String>().str));
+			return state_type.member(symbols::success).share();
 		}
 	}
 }
 
-MINT_FUNCTION(mint_iconv_encode, 3, cursor) {
+mint::WeakReference mint_iconv_encode(mint::FunctionHelper& helper, const mint::Reference& context,
+    mint::Reference& buffer, const mint::Reference& stream) {
 
-	FunctionHelper helper(cursor, 3);
-	const Reference &stream = helper.pop_parameter();
-	Reference &buffer = helper.pop_parameter();
-	const Reference &context = helper.pop_parameter();
+	iconv_t cd = context.data<mint::LibObject<IconvContext>>().ptr->encode_cd;
+	auto state_type = helper.reference(symbols::codec_type).member(symbols::iconv_type).member(symbols::state_type);
 
-	bool finished = false;
-	iconv_t cd = context.data<LibObject<iconv_context_t>>()->impl->encode_cd;
-	auto State = helper.reference(symbols::Codec).member(symbols::Iconv).member(symbols::State);
-
-#ifdef OS_WINDOWS
-	WINICONV_CONST auto *inbuf = (WINICONV_CONST char *)(buffer.data<String>()->str.c_str());
+#ifdef MINT_OS_WINDOWS
+	WINICONV_CONST auto* inbuf = (WINICONV_CONST char*)(buffer.data<mint::String>().str.c_str());
 #else
-	auto *inbuf = (char *)(buffer.data<String>()->str.c_str());
+	auto* inbuf = (char*)(buffer.data<mint::String>().str.c_str());
 #endif
-	size_t inlen = buffer.data<String>()->str.size();
+	std::size_t inlen = buffer.data<mint::String>().str.size();
 
-	char outbuf[BUFSIZ];
-	size_t outlen = BUFSIZ;
+	std::array<char, BUFSIZ> outbuf = {};
+	std::size_t outlen = BUFSIZ;
 
-	while (!finished) {
+	for (;;) {
 
-		char *outptr = outbuf;
-		size_t count = iconv(cd, &inbuf, &inlen, &outptr, &outlen);
+		auto* outptr = outbuf.data();
+		const auto count = iconv(cd, &inbuf, &inlen, &outptr, &outlen);
 
-		if (count == ICONV_FAILED) {
+		if (count == iconv_failed) {
 			switch (errno) {
 			case E2BIG:
-				copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen,
-					   back_inserter(*stream.data<LibObject<std::vector<uint8_t>>>()->impl));
+				std::copy_n(reinterpret_cast<std::uint8_t*>(outbuf.data()), BUFSIZ - outlen,
+				    std::back_inserter(*stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
 				outlen = BUFSIZ;
 				break;
 
 			case EILSEQ:
-				helper.return_value(State.member(symbols::Invalid));
-				finished = true;
-				break;
-
+				return state_type.member(symbols::invalid).share();
 			case EINVAL:
-				helper.return_value(State.member(symbols::NeedMore));
-				finished = true;
-				break;
-
+				return state_type.member(symbols::need_more).share();
 			default:
 				break;
 			}
 		}
 		else {
-			copy_n(reinterpret_cast<uint8_t *>(outbuf), BUFSIZ - outlen,
-				   back_inserter(*stream.data<LibObject<std::vector<uint8_t>>>()->impl));
-			stream.data<LibObject<std::vector<uint8_t>>>()->impl->push_back('\0');
-			helper.return_value(State.member(symbols::Success));
-			finished = true;
+			std::copy_n(reinterpret_cast<std::uint8_t*>(outbuf.data()), BUFSIZ - outlen,
+			    std::back_inserter(*stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
+			stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->push_back('\0');
+			return state_type.member(symbols::success).share();
 		}
 	}
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_iconv_open, 1)
+MINT_EXPORT_FUNCTION(mint_iconv_close, 1)
+MINT_EXPORT_FUNCTION(mint_iconv_decode, 3)
+MINT_EXPORT_FUNCTION(mint_iconv_encode, 3)

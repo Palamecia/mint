@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,30 +21,31 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_SAVEDSTATE_H
-#define MINT_SAVEDSTATE_H
+#ifndef MINT_AST_SAVEDSTATE_H
+#define MINT_AST_SAVEDSTATE_H
 
 #include "mint/ast/cursor.h"
+#include "mint/config.h"
 
+#include <functional>
 #include <stack>
 
 namespace mint {
 
 struct MINT_EXPORT SavedState {
-	SavedState() = delete;
-	SavedState(SavedState &&other) = delete;
-	SavedState(const SavedState &other) = delete;
-	SavedState(Cursor *cursor, Cursor::Context *context);
+	SavedState(SavedState&& other) = delete;
+	SavedState(const SavedState& other) = delete;
+	SavedState(Cursor& cursor, Cursor::Context* context);
 	~SavedState();
 
-	SavedState &operator=(SavedState &&other) = delete;
-	SavedState &operator=(const SavedState &other) = delete;
-	
-	Cursor *cursor;
-	Cursor::Context *context;
+	SavedState& operator=(SavedState&& other) = delete;
+	SavedState& operator=(const SavedState& other) = delete;
+
+	std::reference_wrapper<Cursor> cursor;
+	Cursor::Context* context;
 	std::stack<Cursor::RetrievePoint> retrieve_points;
 };
 
 }
 
-#endif // MINT_SAVEDSTATE_H
+#endif // MINT_AST_SAVEDSTATE_H

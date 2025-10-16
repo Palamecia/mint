@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,15 +22,17 @@
  */
 
 #include "mint/memory/builtin/libobject.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/memory/class.h"
 #include "mint/memory/globaldata.h"
 
 using namespace mint;
 
-LibObjectClass *LibObjectClass::instance() {
-	return GlobalData::instance()->builtin<LibObjectClass>(Class::LIBOBJECT);
+LibObjectClass& LibObjectClass::instance(AbstractSyntaxTree& ast) {
+	return ast.global_data().builtin<LibObjectClass>(Class::libobject);
 }
 
-LibObjectClass::LibObjectClass() :
-	Class("libobject", Class::LIBOBJECT) {
-	create_builtin_member(DELETE_OPERATOR);
+LibObjectClass::LibObjectClass(AbstractSyntaxTree& ast) :
+    Class(ast.global_data(), "libobject", Class::libobject) {
+	create_builtin_member(delete_operator);
 }

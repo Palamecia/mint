@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,35 +21,41 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_DESTRUCTOR_H
-#define MINT_DESTRUCTOR_H
+#ifndef MINT_SCHEDULER_DESTRUCTOR_H
+#define MINT_SCHEDULER_DESTRUCTOR_H
 
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/config.h"
+#include "mint/memory/reference.h"
 #include "mint/scheduler/process.h"
 #include "mint/memory/object.h"
+#include <functional>
 
 namespace mint {
 
 class MINT_EXPORT Destructor : public Process {
 public:
-	Destructor(Object *object, Reference &&member, Class *owner, const Process *process = nullptr);
-	Destructor(Destructor &&) = delete;
-	Destructor(const Destructor &) = delete;
+	Destructor(Object* object, const Reference& member, Class& owner, const Process* process = nullptr);
+	Destructor(Object* object, const Reference& member, Class& owner, AbstractSyntaxTree& ast);
+	Destructor(Object* object, const Reference& member, Class& owner, const Process& process);
+	Destructor(Destructor&&) = delete;
+	Destructor(const Destructor&) = delete;
 	~Destructor() override;
 
-	Destructor &operator=(Destructor &&) = delete;
-	Destructor &operator=(const Destructor &) = delete;
+	Destructor& operator=(Destructor&&) = delete;
+	Destructor& operator=(const Destructor&) = delete;
 
 	void setup() override;
 	void cleanup() override;
 
 private:
-	Class *m_owner;
-	Object *m_object;
-	StrongReference m_member;
+	std::reference_wrapper<Class> _owner;
+	Object* _object;
+	StrongReference _member;
 };
 
-MINT_EXPORT bool is_destructor(Process *process);
+MINT_EXPORT bool is_destructor(Process& process);
 
 }
 
-#endif // MINT_DESTRUCTOR_H
+#endif // MINT_SCHEDULER_DESTRUCTOR_H

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,19 +21,27 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_CURSOR_H
-#define MINT_CURSOR_H
+#ifndef MINT_AST_CURSOR_H
+#define MINT_AST_CURSOR_H
 
-#include "mint/ast/node.h"
 #include "mint/ast/module.h"
+#include "mint/ast/node.h"
 #include "mint/ast/printer.h"
-#include "mint/memory/symboltable.h"
-#include "mint/memory/reference.h"
-#include "mint/system/poolallocator.hpp"
+#include "mint/config.h"
 #include "mint/debug/lineinfo.h"
+#include "mint/memory/garbagecollector.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/symboltable.h"
+#include "mint/system/poolallocator.hpp"
 
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 #include <stack>
 
@@ -43,64 +51,111 @@ struct SavedState;
 class AbstractSyntaxTree;
 
 class MINT_EXPORT Cursor {
-	friend class AbstractSyntaxTree;
 	friend class CursorDebugger;
 	friend struct SavedState;
 public:
 	class MINT_EXPORT Call {
 	public:
-		enum Flag : std::uint8_t {
-			STANDARD_CALL = 0x00,
-			MEMBER_CALL = 0x01,
-			OPERATOR_CALL = 0x02
-		};
+		using Flags = std::uint8_t;
+		static constexpr Flags standard_call = 0x00;
+		static constexpr Flags member_call = 0x01;
+		static constexpr Flags operator_call = 0x02;
 
-		using Flags = std::underlying_type_t<Flag>;
-
-		Call() = delete;
-		Call(Call &&other) noexcept;
-		Call(const Call &other) = delete;
-		explicit Call(Reference &function);
-		explicit Call(Reference &&function);
-		~Call() = default;
-
-		Call &operator=(Call &&other) noexcept;
-		Call &operator=(const Call &other) = delete;
+		Call(const Reference& function, Class* metadata = nullptr);
+		Call(const Reference& function, Class& metadata);
+		Call(Reference&& function, Class* metadata = nullptr);
+		Call(Reference&& function, Class& metadata);
 
 		[[nodiscard]] Flags get_flags() const;
 		void set_flags(Flags flags);
 
-		[[nodiscard]] Class *get_metadata() const;
-		void set_metadata(Class *metadata);
+		[[nodiscard]] Class* get_metadata() const;
+		void set_metadata(Class* metadata);
+		void set_metadata(Class& metadata);
 
 		[[nodiscard]] int extra_argument_count() const;
-		void add_extra_argument(size_t count);
+		void add_extra_argument(std::size_t count);
 
-		Reference &function();
+		Reference& function();
 
 	private:
-		StrongReference m_function;
-		Class *m_metadata = nullptr;
-		int m_extra_args = 0;
-		Flags m_flags = STANDARD_CALL;
+		WeakReference _function;
+		Class* _metadata = nullptr;
+		int _extra_args = 0;
+		Flags _flags = standard_call;
 	};
 
-	using waiting_call_stack_t = std::stack<Call, std::vector<Call>>;
+	class MINT_EXPORT WaitingCallStack : public MemoryRoot {
+		std::vector<Call> _calls;
+	public:
+		WaitingCallStack();
+		WaitingCallStack(const WaitingCallStack&) = delete;
+		WaitingCallStack(WaitingCallStack&&) = delete;
+		~WaitingCallStack();
 
-	Cursor() = delete;
-	Cursor(Cursor &&other) = delete;
-	Cursor(const Cursor &other) = delete;
-	Cursor &operator=(Cursor &&other) = delete;
-	Cursor &operator=(const Cursor &other) = delete;
+		WaitingCallStack& operator=(const WaitingCallStack&) = delete;
+		WaitingCallStack& operator=(WaitingCallStack&&) = delete;
+
+		[[nodiscard]] bool empty() const noexcept {
+			return _calls.empty();
+		}
+
+		[[nodiscard]] std::size_t size() const noexcept {
+			return _calls.size();
+		}
+
+		[[nodiscard]] Call& top() noexcept {
+			return _calls.back();
+		}
+
+		[[nodiscard]] const Call& top() const noexcept {
+			return _calls.back();
+		}
+
+		void push(const Call& call) {
+			_calls.push_back(call);
+		}
+
+		void push(Call&& call) {
+			_calls.push_back(std::move(call));
+		}
+
+		template<class... Args>
+		auto emplace(Args&&... args) {
+			return _calls.emplace_back(std::forward<Args>(args)...);
+		}
+
+		void pop() {
+			_calls.pop_back();
+		}
+
+		void swap(WaitingCallStack& other) noexcept {
+			std::swap(_calls, other._calls);
+		}
+
+		void mark() override;
+	};
+
+	Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent = nullptr);
+	Cursor(AbstractSyntaxTree& ast, Cursor* parent = nullptr);
+	Cursor(Cursor&& other) = delete;
+	Cursor(const Cursor& other) = delete;
 	~Cursor();
 
-	[[nodiscard]] AbstractSyntaxTree *ast() const;
-	[[nodiscard]] Cursor *parent() const;
+	Cursor& operator=(Cursor&& other) = delete;
+	Cursor& operator=(const Cursor& other) = delete;
 
-	inline Node &next();
-	void jmp(size_t pos);
-	void call(Module::Handle *handle, int signature, Class *metadata = nullptr);
-	void call(Module *module, size_t pos, PackageData *package, Class *metadata = nullptr);
+	std::unique_ptr<Cursor> make_thread();
+	bool is_thread() const;
+
+	[[nodiscard]] inline const AbstractSyntaxTree& ast() const;
+	[[nodiscard]] inline AbstractSyntaxTree& ast();
+	[[nodiscard]] inline Cursor* parent() const;
+
+	inline const Node& next();
+	void jmp(std::size_t pos);
+	void call(const Module::Handle& handle, int signature, Class* metadata = nullptr);
+	void call(const Module& module, std::size_t pos, PackageData& package, Class* metadata = nullptr);
 	void exit_call();
 	[[nodiscard]] bool call_in_progress() const;
 
@@ -108,120 +163,123 @@ public:
 	[[nodiscard]] bool is_in_generator() const;
 	std::unique_ptr<SavedState> interrupt();
 	void restore(std::unique_ptr<SavedState> state);
-	void destroy(SavedState *state);
+	void destroy(SavedState* state);
 
 	void begin_generator_expression();
 	void end_generator_expression();
-	void yield_expression(const Reference &ref);
+	void yield_expression(const Reference& ref);
 
-	void open_printer(Printer *printer);
+	void open_printer(std::unique_ptr<Printer>&& printer);
 	void close_printer();
-	Printer *printer();
+	Printer* printer();
 
-	inline std::vector<WeakReference> &stack();
-	inline waiting_call_stack_t &waiting_calls();
-	inline const SymbolTable &symbols() const;
-	inline SymbolTable &symbols();
-	inline Reference &generator();
+	[[nodiscard]] inline std::vector<WeakReference>& stack();
+	[[nodiscard]] inline WaitingCallStack& waiting_calls();
+	[[nodiscard]] inline const SymbolTable& symbols() const;
+	[[nodiscard]] inline SymbolTable& symbols();
+	[[nodiscard]] inline Reference& generator();
 
-	bool load_module(const std::string &module);
+	bool load_module(const std::string& module);
 	bool exit_module();
 
-	void set_retrieve_point(size_t offset);
+	void set_retrieve_point(std::size_t offset);
 	void unset_retrieve_point();
-	void raise(WeakReference exception);
+	void raise(WeakReference&& exception);
 
 	void resume();
 	void retrieve();
-	LineInfoList dump();
-	[[nodiscard]] size_t offset() const;
+	[[nodiscard]] LineInfoList dump() const;
+	[[nodiscard]] std::size_t offset() const;
 
 	void cleanup();
 
 protected:
-	Cursor(AbstractSyntaxTree *ast, Module *module, Cursor *parent = nullptr);
-
 	struct Context {
-		Context() = delete;
-		explicit Context(Module *module);
-		Context(Context &&other) = delete;
-		Context(const Context &other) = delete;
-		~Context();
-
-		Context &operator=(Context &&other) = delete;
-		Context &operator=(const Context &other) = delete;
+		explicit Context(const Module& module);
 
 		std::vector<StrongReference> generator_expression;
-		std::vector<Printer *> printers;
-		SymbolTable *symbols = nullptr;
-		Reference *generator = nullptr;
-		Module *module = nullptr;
-		size_t iptr = 0;
+		std::vector<std::unique_ptr<Printer>> printers;
+		std::unique_ptr<SymbolTable> symbols;
+		std::unique_ptr<WeakReference> generator;
+		std::reference_wrapper<const Module> module;
+		std::size_t iptr = 0;
 	};
 
 	struct RetrievePoint {
-		size_t stack_size;
-		size_t call_stack_size;
-		size_t waiting_calls_count;
-		size_t retrieve_offset;
+		std::size_t stack_size;
+		std::size_t call_stack_size;
+		std::size_t waiting_calls_count;
+		std::size_t retrieve_offset;
 	};
 
 private:
 	using retrieve_point_stack_t = std::stack<RetrievePoint, std::vector<RetrievePoint>>;
 	static PoolAllocator<Context> g_pool;
 
-	AbstractSyntaxTree *m_ast;
-	Cursor *m_parent;
-	Cursor *m_child;
+	std::reference_wrapper<AbstractSyntaxTree> _ast;
+	Cursor* _parent;
+	Cursor* _child;
 
-	std::vector<WeakReference> *m_stack;
-	waiting_call_stack_t m_waiting_calls;
-	std::vector<Context *> m_call_stack;
-	Context *m_current_context;
+	std::vector<WeakReference>* _stack;
+	WaitingCallStack _waiting_calls;
+	std::vector<Context*> _call_stack;
+	Context* _current_context;
 
-	retrieve_point_stack_t m_retrieve_points;
+	retrieve_point_stack_t _retrieve_points;
 };
 
-inline size_t get_stack_base(Cursor *cursor) {
-	return cursor->stack().size() - 1;
+inline std::size_t get_stack_base(Cursor& cursor) {
+	return cursor.stack().size() - 1;
 }
 
-inline WeakReference &&move_from_stack(Cursor *cursor, size_t index) {
-	return std::move(cursor->stack()[index]);
+inline WeakReference&& move_from_stack(Cursor& cursor, std::size_t index) {
+	return std::move(cursor.stack()[index]);
 }
 
-inline WeakReference &load_from_stack(Cursor *cursor, size_t index) {
-	return cursor->stack()[index];
+inline WeakReference& load_from_stack(Cursor& cursor, std::size_t index) {
+	return cursor.stack()[index];
 }
 
-Node &Cursor::next() {
-	assert(m_current_context->iptr <= m_current_context->module->end());
-	return m_current_context->module->at(m_current_context->iptr++);
+const AbstractSyntaxTree& Cursor::ast() const {
+	return _ast;
 }
 
-std::vector<WeakReference> &Cursor::stack() {
-	return *m_stack;
+AbstractSyntaxTree& Cursor::ast() {
+	return _ast;
 }
 
-Cursor::waiting_call_stack_t &Cursor::waiting_calls() {
-	return m_waiting_calls;
+Cursor* Cursor::parent() const {
+	return _parent;
 }
 
-const SymbolTable &Cursor::symbols() const {
-	assert(m_current_context->symbols);
-	return *m_current_context->symbols;
+const Node& Cursor::next() {
+	assert(_current_context->iptr <= _current_context->module.get().end());
+	return _current_context->module.get().node_at(_current_context->iptr++);
 }
 
-SymbolTable &Cursor::symbols() {
-	assert(m_current_context->symbols);
-	return *m_current_context->symbols;
+std::vector<WeakReference>& Cursor::stack() {
+	return *_stack;
 }
 
-Reference &Cursor::generator() {
-	assert(m_current_context->generator);
-	return *m_current_context->generator;
+Cursor::WaitingCallStack& Cursor::waiting_calls() {
+	return _waiting_calls;
+}
+
+const SymbolTable& Cursor::symbols() const {
+	assert(_current_context->symbols);
+	return *_current_context->symbols;
+}
+
+SymbolTable& Cursor::symbols() {
+	assert(_current_context->symbols);
+	return *_current_context->symbols;
+}
+
+Reference& Cursor::generator() {
+	assert(_current_context->generator);
+	return *_current_context->generator;
 }
 
 }
 
-#endif // MINT_CURSOR_H
+#endif // MINT_AST_CURSOR_H

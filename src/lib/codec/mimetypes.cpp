@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,27 +21,35 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/builtin/string.h>
+#include "mint/ast/cursor.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/builtin/string.h"
+#include <cstddef>
+#include <cstdint>
+#include <string>
+#include <vector>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include <urlmon.h>
 #else
 #include <magic.h>
 #endif
 
-using namespace mint;
+namespace {
 
-static std::string mime_type_from_data(const void *buffer, size_t length) {
-#ifdef OS_WINDOWS
-	LPWSTR swContentType = 0;
+std::string mime_type_from_data(const void* buffer, std::size_t length) {
+#ifdef MINT_OS_WINDOWS
+	LPWSTR content_type = nullptr;
 
-	if (FindMimeFromData(NULL, NULL, const_cast<LPVOID>(buffer), static_cast<DWORD>(length), NULL, 0, &swContentType, 0)
-		== S_OK) {
+	if (FindMimeFromData(nullptr, nullptr, const_cast<LPVOID>(buffer), static_cast<DWORD>(length), nullptr, 0,
+	        &content_type, 0)
+	    == S_OK) {
 
-		std::string mime_type(WideCharToMultiByte(CP_UTF8, 0, swContentType, -1, nullptr, 0, nullptr, nullptr), '\0');
-
-		if (WideCharToMultiByte(CP_UTF8, 0, swContentType, -1, mime_type.data(), mime_type.length(), nullptr, nullptr)) {
+		const int length = WideCharToMultiByte(CP_UTF8, 0, content_type, -1, nullptr, 0, nullptr, nullptr);
+		if (std::string mime_type(length, '\0');
+		    WideCharToMultiByte(CP_UTF8, 0, content_type, -1, mime_type.data(), length, nullptr, nullptr)) {
 			return mime_type;
 		}
 
@@ -49,7 +57,7 @@ static std::string mime_type_from_data(const void *buffer, size_t length) {
 	}
 #else
 	magic_t cookie = magic_open(MAGIC_MIME);
-	const char *mime_type = magic_buffer(cookie, buffer, length);
+	const char* mime_type = magic_buffer(cookie, buffer, length);
 	magic_close(cookie);
 
 	if (mime_type) {
@@ -60,18 +68,18 @@ static std::string mime_type_from_data(const void *buffer, size_t length) {
 	return {};
 }
 
-MINT_FUNCTION(mint_mime_type_from_buffer, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &data = helper.pop_parameter();
-	helper.return_value(create_string(mime_type_from_data(data.data<LibObject<std::vector<uint8_t>>>()->impl->data(),
-														  data.data<LibObject<std::vector<uint8_t>>>()->impl->size())));
+mint::WeakReference mint_mime_type_from_buffer(mint::Cursor& cursor, const mint::Reference& data) {
+	return mint::create_string(cursor.ast(),
+	    mime_type_from_data(data.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data(),
+	        data.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()));
 }
 
-MINT_FUNCTION(mint_mime_type_from_string, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &data = helper.pop_parameter();
-	helper.return_value(
-		create_string(mime_type_from_data(data.data<String>()->str.data(), data.data<String>()->str.size())));
+mint::WeakReference mint_mime_type_from_string(mint::Cursor& cursor, const mint::Reference& data) {
+	return mint::create_string(cursor.ast(),
+	    mime_type_from_data(data.data<mint::String>().str.data(), data.data<mint::String>().str.size()));
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_mime_type_from_buffer, 1)
+MINT_EXPORT_FUNCTION(mint_mime_type_from_string, 1)

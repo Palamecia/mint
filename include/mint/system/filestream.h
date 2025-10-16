@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,24 +21,27 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_FILESTREAM_H
-#define MINT_FILESTREAM_H
+#ifndef MINT_SYSTEM_FILESTREAM_H
+#define MINT_SYSTEM_FILESTREAM_H
 
+#include "mint/config.h"
 #include "mint/system/datastream.h"
 
+#include <cstdio>
 #include <filesystem>
+#include <gsl/pointers>
 
 namespace mint {
 
 class MINT_EXPORT FileStream : public DataStream {
 public:
-	explicit FileStream(const std::filesystem::path &name);
-	FileStream(FileStream &&) = delete;
-	FileStream(const FileStream &) = delete;
+	explicit FileStream(const std::filesystem::path& name);
+	FileStream(FileStream&&) = delete;
+	FileStream(const FileStream&) = delete;
 	~FileStream() override;
 
-	FileStream &operator=(FileStream &&) = delete;
-	FileStream &operator=(const FileStream &) = delete;
+	FileStream& operator=(FileStream&&) = delete;
+	FileStream& operator=(const FileStream&) = delete;
 
 	[[nodiscard]] bool at_end() const override;
 
@@ -50,11 +53,11 @@ protected:
 	int next_buffered_char() override;
 
 private:
-	FILE *m_file;
-	std::filesystem::path m_path;
-	bool m_over;
+	gsl::owner<FILE*> _file;
+	std::filesystem::path _path;
+	bool _over;
 };
 
 }
 
-#endif // MINT_FILESTREAM_H
+#endif // MINT_SYSTEM_FILESTREAM_H

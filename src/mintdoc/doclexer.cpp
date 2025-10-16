@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,137 +22,142 @@
  */
 
 #include "doclexer.h"
+#include <cctype>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <sstream>
+#include <string>
+#include <tuple>
+#include <unordered_map>
 
-#include <mint/config.h>
-
-const std::unordered_map<std::string, DocLexer::Token> DocLexer::OPERATORS = {
-	{"___", TPL_UNDERSCORE_TOKEN},
-	{"__", DBL_UNDERSCORE_TOKEN},
-	{"_", UNDERSCORE_TOKEN},
-	{"-", HYPHEN_TOKEN},
-	{"--", DBL_HYPHEN_TOKEN},
-	{"---", TPL_HYPHEN_TOKEN},
-	{"(", OPEN_PARENTHESIS_TOKEN},
-	{")", CLOSE_PARENTHESIS_TOKEN},
-	{"[", OPEN_BRACKET_TOKEN},
-	{"[[", DBL_OPEN_BRACKET_TOKEN},
-	{"]", CLOSE_BRACKET_TOKEN},
-	{"](", CLOSE_BRACKET_OPEN_PARENTHESIS_TOKEN},
-	{"]]", DBL_CLOSE_BRACKET_TOKEN},
-	{"{", OPEN_BRACE_TOKEN},
-	{"}", CLOSE_BRACE_TOKEN},
-	{"*", ASTERISK_TOKEN},
-	{"**", DBL_ASTERISK_TOKEN},
-	{"***", TPL_ASTERISK_TOKEN},
-	{"\n", LINE_BREAK_TOKEN},
-	{"#", SHARP_TOKEN},
-	{"`", BACKQUOTE_TOKEN},
-	{"``", DBL_BACKQUOTE_TOKEN},
-	{"```", TPL_BACKQUOTE_TOKEN},
-	{"<", LEFT_ANGLED_TOKEN},
-	{">", RIGHT_ANGLED_TOKEN},
-	{"|", PIPE_TOKEN},
-	{"~", TILDE_TOKEN},
-	{"~~", DBL_TILDE_TOKEN},
+const std::unordered_map<std::string, DocLexer::Token> DocLexer::operators = {
+    {"___", Token::tpl_underscore},
+    {"__", Token::dbl_underscore},
+    {"_", Token::underscore},
+    {"-", Token::hyphen},
+    {"--", Token::dbl_hyphen},
+    {"---", Token::tpl_hyphen},
+    {"(", Token::open_parenthesis},
+    {")", Token::close_parenthesis},
+    {"[", Token::open_bracket},
+    {"[[", Token::dbl_open_bracket},
+    {"]", Token::close_bracket},
+    {"](", Token::close_bracket_open_parenthesis},
+    {"]]", Token::dbl_close_bracket},
+    {"{", Token::open_brace},
+    {"}", Token::close_brace},
+    {"*", Token::asterisk},
+    {"**", Token::dbl_asterisk},
+    {"***", Token::tpl_asterisk},
+    {"\n", Token::line_break},
+    {"#", Token::sharp},
+    {"`", Token::backquote},
+    {"``", Token::dbl_backquote},
+    {"```", Token::tpl_backquote},
+    {"<", Token::left_angled},
+    {">", Token::right_angled},
+    {"|", Token::pipe},
+    {"~", Token::tilde},
+    {"~~", Token::dbl_tilde},
 };
 
-DocLexer::DocLexer(std::stringstream &stream) :
-	m_stream(stream),
-	m_cptr(stream.get()) {}
+DocLexer::DocLexer(std::stringstream& stream) :
+    _stream(stream),
+    _cptr(stream.get()) {}
 
 bool DocLexer::skip_to_column(std::size_t column) {
-	while (m_column <= column && !m_stream.eof()) {
-		if (m_cptr == '\n') {
-			m_cptr = next_char();
+	while (_column <= column && !_stream.eof()) {
+		if (_cptr == '\n') {
+			_cptr = next_char();
 			return false;
 		}
-		m_cptr = next_char();
+		_cptr = next_char();
 	}
 	return true;
 }
 
 std::tuple<DocLexer::Token, std::string> DocLexer::next_token() {
 
-	DocLexer::Token token_type = UNKNOWN_TOKEN;
+	DocLexer::Token token_type = unknown_token;
 
-	m_token_column = m_column - 1;
-	m_token.clear();
+	_token_column = _column - 1;
+	_token.clear();
 
-	if (m_cptr == EOF) {
-		return {FILE_END_TOKEN, m_token};
+	if (_cptr == EOF) {
+		return {Token::file_end, _token};
 	}
 
 	enum SearchMode : std::uint8_t {
-		FIND_OPERATOR,
-		FIND_NUMBER,
-		FIND_BLANK,
-		FIND_WORD
+		find_operator,
+		find_number,
+		find_blank,
+		find_word
 	};
 
-	SearchMode find_mode = is_operator(std::string({static_cast<char>(m_cptr)})) ? FIND_OPERATOR
-						   : is_digit(m_cptr)									 ? FIND_NUMBER
-						   : is_white_space(m_cptr)								 ? FIND_BLANK
-																				 : FIND_WORD;
+	const auto find_mode = is_operator(std::string({static_cast<char>(_cptr)})) ? find_operator
+	                       : is_digit(_cptr)                                    ? find_number
+	                       : is_white_space(_cptr)                              ? find_blank
+	                                                                            : find_word;
 
 	switch (find_mode) {
-	case FIND_OPERATOR:
-		while (!is_white_space(m_cptr) && (m_cptr != EOF)
-			   && is_operator(m_token + static_cast<char>(m_cptr), &token_type)) {
-			m_token += static_cast<char>(m_cptr);
-			m_cptr = next_char();
+	case find_operator:
+		while (!is_white_space(_cptr) && (_cptr != EOF) && is_operator(_token + static_cast<char>(_cptr), &token_type)) {
+			_token += static_cast<char>(_cptr);
+			_cptr = next_char();
 		}
-		return {token_type, m_token};
-	case FIND_NUMBER:
-		while (!is_white_space(m_cptr) && (m_cptr != EOF) && is_digit(m_cptr)) {
-			m_token += static_cast<char>(m_cptr);
-			m_cptr = next_char();
+		return {token_type, _token};
+	case find_number:
+		while (!is_white_space(_cptr) && (_cptr != EOF) && is_digit(_cptr)) {
+			_token += static_cast<char>(_cptr);
+			_cptr = next_char();
 		}
-		if (m_cptr != '.') {
-			return {NUMBER_TOKEN, m_token};
+		if (_cptr != '.') {
+			return {Token::number, _token};
 		}
-		m_token += static_cast<char>(m_cptr);
-		m_cptr = next_char();
-		return {NUMBER_PERIOD_TOKEN, m_token};
-	case FIND_BLANK:
-		while (is_white_space(m_cptr)) {
-			m_token += static_cast<char>(m_cptr);
-			m_cptr = next_char();
+		_token += static_cast<char>(_cptr);
+		_cptr = next_char();
+		return {Token::number_period, _token};
+	case find_blank:
+		while (is_white_space(_cptr)) {
+			_token += static_cast<char>(_cptr);
+			_cptr = next_char();
 		}
-		return {BLANK_TOKEN, m_token};
-	case FIND_WORD:
-		while (!is_white_space(m_cptr) && (m_cptr != EOF) && !is_digit(m_cptr)
-			   && !is_operator(std::string({static_cast<char>(m_cptr)}))) {
-			m_token += static_cast<char>(m_cptr);
-			m_cptr = next_char();
+		return {Token::blank, _token};
+	case find_word:
+		while (!is_white_space(_cptr) && (_cptr != EOF) && !is_digit(_cptr)
+		       && !is_operator(std::string({static_cast<char>(_cptr)}))) {
+			_token += static_cast<char>(_cptr);
+			_cptr = next_char();
 		}
-		return {WORD_TOKEN, m_token};
+		return {Token::word, _token};
 	}
 
-	return {FILE_END_TOKEN, m_token};
+	return {Token::file_end, _token};
 }
 
 bool DocLexer::at_end() const {
-	return m_stream.eof();
+	return _stream.eof();
 }
 
 std::size_t DocLexer::get_line_number() const {
-	return m_line;
+	return _line;
 }
 
 std::size_t DocLexer::get_column_number() const {
-	return m_column;
+	return _column;
 }
 
 std::size_t DocLexer::get_token_column_number() const {
-	return m_token_column;
+	return _token_column;
 }
 
 std::size_t DocLexer::get_first_non_blank_column_number() const {
-	return m_first_non_blank_column;
+	return _first_non_blank_column;
 }
 
 bool DocLexer::is_digit(int c) {
-#ifdef BUILD_TYPE_DEBUG
+#ifdef MINT_BUILD_TYPE_DEBUG
 	return isascii(c) && isdigit(c);
 #else
 	return isdigit(c);
@@ -163,12 +168,12 @@ bool DocLexer::is_white_space(int c) {
 	return (c == ' ') || (c == '\t');
 }
 
-bool DocLexer::is_operator(const std::string &token) {
-	return OPERATORS.find(token) != OPERATORS.end();
+bool DocLexer::is_operator(const std::string& token) {
+	return operators.contains(token);
 }
 
-bool DocLexer::is_operator(const std::string &token, Token *type) {
-	if (auto it = OPERATORS.find(token); it != OPERATORS.end()) {
+bool DocLexer::is_operator(const std::string& token, Token* type) {
+	if (auto it = operators.find(token); it != operators.end()) {
 		*type = it->second;
 		return true;
 	}
@@ -176,27 +181,27 @@ bool DocLexer::is_operator(const std::string &token, Token *type) {
 }
 
 int DocLexer::next_char() {
-	int cptr = m_stream.get();
+	const int cptr = _stream.get();
 	switch (cptr) {
 	case '\n':
-		m_first_non_blank_column = 0;
-		m_column = 0;
-		m_line++;
+		_first_non_blank_column = 0;
+		_column = 0;
+		_line++;
 		break;
 	case '\t':
-		if (m_first_non_blank_column == m_column) {
-			m_first_non_blank_column += TAB_STOP - (m_column % TAB_STOP);
+		if (_first_non_blank_column == _column) {
+			_first_non_blank_column += tab_stop - (_column % tab_stop);
 		}
-		m_column += TAB_STOP - (m_column % TAB_STOP);
+		_column += tab_stop - (_column % tab_stop);
 		break;
 	case ' ':
-		if (m_first_non_blank_column == m_column) {
-			m_first_non_blank_column++;
+		if (_first_non_blank_column == _column) {
+			_first_non_blank_column++;
 		}
-		m_column++;
+		_column++;
 		break;
 	default:
-		m_column++;
+		_column++;
 		break;
 	}
 	return cptr;

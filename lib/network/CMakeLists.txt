@@ -57,9 +57,27 @@ add_custom_target(${PROJECT_NAME}
 )
 
 # Install
-mint_install_modules(${${PROJECT_NAME}_LIB} SUBDIR network)
-mint_install_modules(${${PROJECT_NAME}_ENDPOINTS_LIB} SUBDIR network/endpoints)
-mint_install_modules(${${PROJECT_NAME}_FTP_LIB} SUBDIR network/protocols/ftp)
-mint_install_modules(${${PROJECT_NAME}_HTTP_LIB} SUBDIR network/protocols/http)
-mint_install_modules(${${PROJECT_NAME}_JSONRPC_LIB} SUBDIR network/protocols/jsonrpc)
-mint_install_modules(${${PROJECT_NAME}_SERIALIZERS_LIB} SUBDIR network/serializers)
+install(
+	FILES ${${PROJECT_NAME}_LIB}
+	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/network
+)
+install(
+	FILES ${${PROJECT_NAME}_ENDPOINTS_LIB}
+	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/network/endpoints
+)
+install(
+	FILES ${${PROJECT_NAME}_FTP_LIB}
+	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/network/protocols/ftp
+)
+install(
+	FILES ${${PROJECT_NAME}_HTTP_LIB}
+	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/network/protocols/http
+)
+install(
+	FILES ${${PROJECT_NAME}_JSONRPC_LIB}
+	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/network/protocols/jsonrpc
+)
+install(
+	FILES ${${PROJECT_NAME}_SERIALIZERS_LIB}
+	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/network/serializers
+)

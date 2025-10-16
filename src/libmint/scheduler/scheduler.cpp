@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,7 +22,11 @@
  */
 
 #include "mint/scheduler/scheduler.h"
+#include "mint/ast/cursor.h"
+#include "mint/ast/symbol.h"
 #include "mint/memory/class.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/garbagecollector.h"
 #include "mint/memory/memorytool.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
@@ -35,239 +39,257 @@
 #include "mint/debug/debuginterface.h"
 #include "mint/debug/debugtool.h"
 #include "mint/ast/savedstate.h"
-#include "mint/system/assert.h"
 #include "mint/system/error.h"
-#include "mint/system/stdio.h"
 
-#include <cstring>
+#include <algorithm>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <functional>
+#include <future>
+#include <iterator>
 #include <memory>
+#include <mutex>
+#include <print>
+#include <string>
+#include <thread>
+#include <utility>
+#include <vector>
 
 using namespace mint;
 
-Scheduler *Scheduler::g_instance = nullptr;
-static thread_local std::vector<Process *> g_current_process;
-
 namespace {
 
+thread_local struct {
+	Scheduler* scheduler = nullptr;
+	std::vector<std::reference_wrapper<Process>> process;
+} g_current;
+
 bool collect_safe() {
-	lock_processor();
-	const bool collected = GarbageCollector::instance().collect() > 0;
-	unlock_processor();
-	return collected;
+	auto _ = ProcessorLocker();
+	return GarbageCollector::instance().collect() > 0;
 }
 
 }
 
-Scheduler::Scheduler(int argc, char **argv) :
-	m_debug_interface(nullptr),
-	m_ast(new AbstractSyntaxTree),
-	m_running(false),
-	m_status(EXIT_SUCCESS) {
+SchedulerContextSwitcher::SchedulerContextSwitcher(Scheduler* scheduler) :
+    _previous(g_current.scheduler) {
+	g_current.scheduler = scheduler;
+}
 
-	assert_x(g_instance == nullptr, "Scheduler", "there should be only one scheduler object");
-	g_instance = this;
+SchedulerContextSwitcher::~SchedulerContextSwitcher() {
+	g_current.scheduler = _previous;
+}
 
-	if (!parse_arguments(argc, argv)) {
+Scheduler* SchedulerContextSwitcher::current() {
+	return g_current.scheduler;
+}
+
+TestProcess::TestProcess(Scheduler& scheduler, std::unique_ptr<Cursor>&& cursor) :
+    Process(std::move(cursor)),
+    _scheduler(scheduler),
+    _context(&scheduler) {}
+
+TestProcess::~TestProcess() {
+	_scheduler.get().disable_testing(*this);
+}
+
+Scheduler::Scheduler(const std::vector<std::string>& args) {
+	if (!parse_arguments(args)) {
 		::exit(EXIT_SUCCESS);
 	}
 }
 
 Scheduler::~Scheduler() {
 
-	// cleanup modules
-	lock_processor();
-	GarbageCollector::instance().collect();
-	m_ast->cleanup_modules();
-	unlock_processor();
+	auto& garbage_collector = GarbageCollector::instance();
 
-	// leaked destructors are ignored
-	g_instance = nullptr;
+	{
+		// collect global data using this scheduler
+		const SchedulerContextSwitcher _(this);
+
+		// cleanup memory
+		lock_processor();
+		_ast.cleanup_memory();
+		unlock_processor();
+
+		// cleanup threads
+		finalize();
+
+		// cleanup modules
+		lock_processor();
+		garbage_collector.collect();
+		_ast.cleanup_modules();
+		unlock_processor();
+
+		// leaked destructors are ignored
+	}
 
 	// cleanup metadata
 	lock_processor();
-	GarbageCollector::instance().collect();
-	m_ast->cleanup_metadata();
+	garbage_collector.collect();
+	_ast.cleanup_metadata();
 	unlock_processor();
-
-	// destroy abstract syntax tree
-	delete m_ast;
 }
 
-Scheduler *Scheduler::instance() {
-	return g_instance;
+Scheduler* Scheduler::instance() {
+	return SchedulerContextSwitcher::current();
 }
 
-AbstractSyntaxTree *Scheduler::ast() {
-	return m_ast;
+AbstractSyntaxTree& Scheduler::ast() {
+	return _ast;
 }
 
-Process *Scheduler::current_process() {
-	if (g_current_process.empty()) {
+Process* Scheduler::current_process() {
+	if (g_current.process.empty()) [[unlikely]] {
 		return nullptr;
 	}
-	return g_current_process.back();
+	return &g_current.process.back().get();
 }
 
-void Scheduler::set_debug_interface(DebugInterface *debug_interface) {
-	m_debug_interface = debug_interface;
+void Scheduler::set_debug_interface(DebugInterface* debug_interface) {
+	_debug_interface = debug_interface;
 }
 
-void Scheduler::push_waiting_process(Process *process) {
-	m_configured_process.push(process);
+void Scheduler::push_waiting_process(std::unique_ptr<Process>&& process) {
+	_configured_process.emplace(std::move(process));
 }
 
-WeakReference Scheduler::invoke(Reference &function, std::vector<WeakReference> &parameters) {
+WeakReference Scheduler::invoke(const Reference& function, std::vector<WeakReference>& parameters) {
 
-	if (g_current_process.empty()) {
+	if (g_current.process.empty()) {
 		return {};
 	}
 
-	Cursor *cursor = g_current_process.back()->cursor();
-	auto *process = new Process(m_ast->create_cursor(cursor));
+	Cursor& cursor = g_current.process.back().get().cursor();
+	auto process = Process(cursor.make_thread());
 
 	try {
 
-		Cursor *callback_cursor = process->cursor();
+		Cursor& callback_cursor = process.cursor();
 
 		init_call(callback_cursor, function);
-		std::move(parameters.begin(), parameters.end(), std::back_inserter(callback_cursor->stack()));
+		std::ranges::move(parameters, std::back_inserter(callback_cursor.stack()));
 		call_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 		unlock_processor();
 		schedule(process);
 		lock_processor();
 	}
-	catch (MintException &raised) {
-
-		unlock_processor();
+	catch (MintException& raised) {
 		finalize_process(process);
 		lock_processor();
-
-		g_current_process.pop_back();
 		create_exception(raised.take_exception());
 	}
 
-	WeakReference result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
+	WeakReference result = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
 	return result;
 }
 
-WeakReference Scheduler::invoke(Class *type, std::vector<WeakReference> &parameters) {
+WeakReference Scheduler::invoke(Class& type, std::vector<WeakReference>& parameters) {
 
-	if (g_current_process.empty()) {
+	if (g_current.process.empty()) {
 		return {};
 	}
 
-	mint::WeakReference object = mint::WeakReference::create(type->make_instance());
-	object.data<mint::Object>()->construct();
+	auto object = create_object(type);
 
-	if (type->find_operator(Class::NEW_OPERATOR)) {
+	if (type.find_operator(Class::new_operator)) {
 
-		Cursor *cursor = g_current_process.back()->cursor();
-		auto *process = new Process(m_ast->create_cursor(cursor));
+		Cursor& cursor = g_current.process.back().get().cursor();
+		auto process = Process(cursor.make_thread());
 
 		try {
 
-			Cursor *callback_cursor = process->cursor();
+			Cursor& callback_cursor = process.cursor();
 
-			callback_cursor->stack().emplace_back(WeakReference::share(object));
-			init_operator_call(callback_cursor, Class::NEW_OPERATOR);
-			std::move(parameters.begin(), parameters.end(), std::back_inserter(callback_cursor->stack()));
+			callback_cursor.stack().emplace_back(object);
+			init_operator_call(callback_cursor, Class::new_operator);
+			std::ranges::move(parameters, std::back_inserter(callback_cursor.stack()));
 			call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 			unlock_processor();
 			schedule(process);
 			lock_processor();
 		}
-		catch (MintException &raised) {
-
-			unlock_processor();
+		catch (MintException& raised) {
 			finalize_process(process);
 			lock_processor();
-
-			g_current_process.pop_back();
 			create_exception(raised.take_exception());
 		}
 
-		WeakReference result = std::move(cursor->stack().back());
-		cursor->stack().pop_back();
+		WeakReference result = std::move(cursor.stack().back());
+		cursor.stack().pop_back();
 		return result;
 	}
 
 	return object;
 }
 
-WeakReference Scheduler::invoke(Reference &object, const Symbol &method, std::vector<WeakReference> &parameters) {
+WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, std::vector<WeakReference>& parameters) {
 
-	if (g_current_process.empty()) {
+	if (g_current.process.empty()) {
 		return {};
 	}
 
-	Cursor *cursor = g_current_process.back()->cursor();
-	auto *process = new Process(m_ast->create_cursor(cursor));
+	Cursor& cursor = g_current.process.back().get().cursor();
+	auto process = Process(cursor.make_thread());
 
 	try {
 
-		Cursor *callback_cursor = process->cursor();
+		Cursor& callback_cursor = process.cursor();
 
-		callback_cursor->stack().emplace_back(WeakReference::share(object));
+		callback_cursor.stack().emplace_back(object);
 		init_member_call(callback_cursor, method);
-		std::move(parameters.begin(), parameters.end(), std::back_inserter(callback_cursor->stack()));
+		std::ranges::move(parameters, std::back_inserter(callback_cursor.stack()));
 		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 		unlock_processor();
 		schedule(process);
 		lock_processor();
 	}
-	catch (MintException &raised) {
-
-		unlock_processor();
+	catch (MintException& raised) {
 		finalize_process(process);
 		lock_processor();
-
-		g_current_process.pop_back();
 		create_exception(raised.take_exception());
 	}
 
-	WeakReference result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
+	WeakReference result = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
 	return result;
 }
 
-WeakReference Scheduler::invoke(Reference &object, Class::Operator op, std::vector<WeakReference> &parameters) {
+WeakReference Scheduler::invoke(const Reference& object, Class::Operator op, std::vector<WeakReference>& parameters) {
 
-	if (g_current_process.empty()) {
+	if (g_current.process.empty()) {
 		return {};
 	}
 
-	Cursor *cursor = g_current_process.back()->cursor();
-	auto *process = new Process(m_ast->create_cursor(cursor));
+	Cursor& cursor = g_current.process.back().get().cursor();
+	auto process = Process(cursor.make_thread());
 
 	try {
 
-		Cursor *callback_cursor = process->cursor();
+		Cursor& callback_cursor = process.cursor();
 
-		callback_cursor->stack().emplace_back(WeakReference::share(object));
+		callback_cursor.stack().emplace_back(object);
 		init_operator_call(callback_cursor, op);
-		std::move(parameters.begin(), parameters.end(), std::back_inserter(callback_cursor->stack()));
+		std::ranges::move(parameters, std::back_inserter(callback_cursor.stack()));
 		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
 		unlock_processor();
 		schedule(process);
 		lock_processor();
 	}
-	catch (MintException &raised) {
-
-		unlock_processor();
+	catch (MintException& raised) {
 		finalize_process(process);
 		lock_processor();
-
-		g_current_process.pop_back();
 		create_exception(raised.take_exception());
 	}
 
-	WeakReference result = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
+	WeakReference result = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
 	return result;
 }
 
@@ -277,168 +299,171 @@ public:
 		WeakReference result;
 	};
 
-	explicit Future(Cursor *cursor) :
-		Process(cursor) {}
+	explicit Future(std::unique_ptr<Cursor>&& cursor) :
+	    Process(std::move(cursor)) {}
 
-	void set_result_handle(ResultHandle *handle) {
-		m_handle = handle;
+	void set_result_handle(ResultHandle* handle) {
+		_handle = handle;
 	}
 
 	void cleanup() override {
-		auto &stack = cursor()->stack();
-		if (m_handle && !stack.empty()) {
-			m_handle->result = std::move(stack.back());
+		auto& stack = cursor().stack();
+		if (_handle && !stack.empty()) {
+			_handle->result = std::move(stack.back());
 			stack.pop_back();
 		}
 		Process::cleanup();
 	}
 
 private:
-	ResultHandle *m_handle = nullptr;
+	ResultHandle* _handle = nullptr;
 };
 
-std::future<WeakReference> Scheduler::create_async(Cursor *cursor) {
-	auto *process = new Future(cursor);
-	m_thread_pool.start(process);
+std::future<WeakReference> Scheduler::create_async(std::unique_ptr<Cursor>&& cursor) {
+	auto future = std::make_unique<Future>(std::move(cursor));
+	_thread_pool.start(*future);
 	return std::async(
-		[this](Future *process) -> WeakReference {
-			Future::ResultHandle handle;
-			process->set_result_handle(&handle);
-			schedule(process, COLLECT_AT_EXIT);
-			return std::move(handle.result);
-		},
-		process);
+	    [this](std::unique_ptr<Future>&& future) -> WeakReference {
+		    auto process = std::move(future);
+		    Future::ResultHandle handle;
+		    process->set_result_handle(&handle);
+		    schedule(*process);
+		    return std::move(handle.result);
+	    },
+	    std::move(future));
 }
 
-Process::ThreadId Scheduler::create_thread(Cursor *cursor) {
-	auto *process = new Process(cursor);
-	Process::ThreadId thread_id = m_thread_pool.start(process);
-	process->set_thread_handle(new std::thread(&Scheduler::schedule, this, process, COLLECT_AT_EXIT));
+Process::ThreadId Scheduler::create_thread(std::unique_ptr<Cursor>&& cursor) {
+	auto process = std::make_unique<Process>(std::move(cursor));
+	const auto thread_id = _thread_pool.start(*process);
+	process->set_thread_handle(std::make_unique<std::thread>(
+	    [this](std::unique_ptr<Process>&& thread) {
+		    auto process = std::move(thread);
+		    schedule(*process);
+	    },
+	    std::move(process)));
 	return thread_id;
 }
 
-Process *Scheduler::find_thread(Process::ThreadId id) const {
-	return m_thread_pool.find(id);
+Process* Scheduler::find_thread(Process::ThreadId id) const {
+	return _thread_pool.find(id);
 }
 
 void Scheduler::join_thread(Process::ThreadId id) {
-	if (Process *thread = m_thread_pool.find(id)) {
-		m_thread_pool.join(thread);
+	if (Process* thread = _thread_pool.find(id)) {
+		_thread_pool.join(*thread);
 	}
 }
 
-void Scheduler::create_destructor(Object *object, Reference &&member, Class *owner) {
+void Scheduler::create_destructor(Object* object, const Reference& member, Class& owner) {
 
-	auto *destructor = new Destructor(object, std::move(member), owner, current_process());
+	auto destructor = Destructor(object, member, owner, current_process());
 
 	try {
 		unlock_processor();
 		schedule(destructor);
 		lock_processor();
 	}
-	catch (MintException &raised) {
-
-		unlock_processor();
+	catch (MintException& raised) {
 		finalize_process(destructor);
 		lock_processor();
-
-		g_current_process.pop_back();
 		create_exception(raised.take_exception());
 	}
 }
 
-void Scheduler::create_exception(Reference &&reference) {
+void Scheduler::create_exception(Reference&& reference) {
 
-	auto *exception = new Exception(std::move(reference), current_process());
+	auto* thread = current_process();
+	if (!thread) {
+		error("cannot create exception without parent thread");
+	}
+
+	auto exception = Exception(std::move(reference), *thread);
 
 	try {
 		unlock_processor();
 		schedule(exception);
 		lock_processor();
 	}
-	catch (MintException &) {
-
-		unlock_processor();
+	catch (MintException&) {
 		finalize_process(exception);
 		lock_processor();
-
-		g_current_process.pop_back();
 		throw;
 	}
 }
 
-void Scheduler::create_generator(std::unique_ptr<SavedState> state) {
+void Scheduler::create_generator(std::unique_ptr<SavedState>&& state) {
 
-	auto *generator = new Generator(std::move(state), current_process());
+	auto* thread = current_process();
+	if (!thread) {
+		error("cannot create generator without parent thread");
+	}
+
+	auto generator = Generator(std::move(state), *thread);
 
 	try {
 		unlock_processor();
 		schedule(generator);
 		lock_processor();
 	}
-	catch (MintException &) {
-
-		unlock_processor();
+	catch (MintException&) {
 		finalize_process(generator);
 		lock_processor();
-
-		g_current_process.pop_back();
 		throw;
 	}
 }
 
-void Scheduler::add_exit_callback(const std::function<void(int)> &callback) {
-	std::unique_lock<std::mutex> lock(m_exit_callbacks_mutex);
-	m_exit_callbacks.push_back(callback);
+void Scheduler::add_exit_callback(const std::function<void(int)>& callback) {
+	const std::unique_lock _(_exit_callbacks_mutex);
+	_exit_callbacks.push_back(callback);
 }
 
 bool Scheduler::is_running() const {
-	return m_running;
+	return _running;
 }
 
 void Scheduler::exit(int status) {
-	m_status = status;
-	std::unique_lock<std::mutex> lock(m_exit_callbacks_mutex);
-	for (const auto &callback : m_exit_callbacks) {
+	_status = status;
+	const std::unique_lock _(_exit_callbacks_mutex);
+	for (const auto& callback : _exit_callbacks) {
 		callback(status);
 	}
-	m_running = false;
+	_running = false;
 }
 
 int Scheduler::run() {
 
-	if (m_configured_process.empty()) {
+	if (_configured_process.empty()) {
 
-		if (m_debug_interface) {
-			return m_status;
+		if (_debug_interface) {
+			return _status;
 		}
 
-		if (Process *process = Process::from_standard_input(m_ast)) {
-			m_configured_process.push(process);
+		if (auto process = Process::from_standard_input(*this)) {
+			_configured_process.emplace(std::move(process));
 		}
 		else {
-			return m_status;
+			return _status;
 		}
 	}
 
-	while (!m_configured_process.empty()) {
+	while (!_configured_process.empty()) {
 
-		Process *main_thread = m_configured_process.front();
-		m_thread_pool.attach(main_thread);
-		m_configured_process.pop();
-		m_running = true;
+		auto main_thread = std::move(_configured_process.front());
+		_configured_process.pop();
+		_running = true;
 
-		if (DebugInterface *handle = m_debug_interface) {
-			set_exit_callback([handle, cursor = handle->declare_thread(main_thread)] {
+		if (DebugInterface* handle = _debug_interface) {
+			set_exit_callback([handle, &cursor = handle->declare_thread(*main_thread)] {
 				handle->exit(cursor);
 			});
 		}
 		else if (main_thread->is_endless()) {
-			set_exit_callback([cursor = main_thread->cursor()] {
-				cursor->retrieve();
+			set_exit_callback([&cursor = main_thread->cursor()] {
+				cursor.retrieve();
 			});
 			if (!main_thread->resume()) {
-				m_running = false;
+				_running = false;
 			}
 		}
 		else {
@@ -447,80 +472,79 @@ int Scheduler::run() {
 			});
 		}
 
-		if (schedule(main_thread, COLLECT_AT_EXIT)) {
-			m_running = false;
+		if (schedule(*main_thread)) {
+			_running = false;
 		}
 	}
 
 	finalize();
-	return m_status;
+	return _status;
 }
 
-Process *Scheduler::enable_testing() {
+std::unique_ptr<TestProcess> Scheduler::enable_testing() {
 
-	if (m_running) {
-		return nullptr;
+	if (_running) {
+		return {};
 	}
 
-	if (!g_current_process.empty()) {
-		return nullptr;
+	if (!g_current.process.empty()) {
+		return {};
 	}
 
-	auto *thread = new Process(m_ast->create_cursor());
-	g_current_process.emplace_back(thread);
+	auto thread = std::make_unique<TestProcess>(*this, std::make_unique<Cursor>(_ast));
+	g_current.process.emplace_back(*thread);
 	thread->setup();
 	lock_processor();
-	m_running = true;
+	_running = true;
 	return thread;
 }
 
-bool Scheduler::disable_testing(Process *thread) {
+bool Scheduler::disable_testing(TestProcess& process) {
 
-	if (!m_running) {
-		return false;
-	}
-	
-	if (g_current_process.empty()) {
+	if (!_running) {
 		return false;
 	}
 
-	if (thread != g_current_process.back()) {
+	if (g_current.process.empty()) {
+		return false;
+	}
+
+	if (&process != &g_current.process.back().get()) {
 		return false;
 	}
 
 	unlock_processor();
-	finalize_process(thread);
-	g_current_process.pop_back();
+	finalize_process(process);
 
-	if (g_current_process.empty()) {
-		m_running = false;
+	if (g_current.process.empty()) {
+		_running = false;
 		finalize();
 	}
 
 	return true;
 }
 
-bool Scheduler::parse_arguments(int argc, char **argv) {
+bool Scheduler::parse_arguments(const std::vector<std::string>& args) {
 
 	bool reading_args = false;
 
-	for (int argn = 1; argn < argc; argn++) {
+	for (auto it = args.begin(); it != args.end(); ++it) {
 		if (reading_args) {
-			m_configured_process.back()->parse_argument(argv[argn]);
+			_configured_process.back()->parse_argument(*it);
 		}
-		else if (!strcmp(argv[argn], "--version")) {
+		else if (*it == "--version") {
 			print_version();
 			return false;
 		}
-		else if (!strcmp(argv[argn], "--help")) {
+		else if (*it == "--help") {
 			print_help();
 			return false;
 		}
-		else if (!strcmp(argv[argn], "--exec")) {
-			if (++argn < argc) {
-				if (Process *thread = Process::from_buffer(m_ast, argv[argn])) {
+		else if (*it == "--exec") {
+			if (++it != args.end()) {
+				if (auto thread = Process::from_buffer(*this, *it)) {
 					thread->parse_argument("exec");
-					m_configured_process.push(thread);
+					_configured_process.emplace(std::move(thread));
 				}
 				else {
 					error("Argument is not a valid command");
@@ -532,13 +556,14 @@ bool Scheduler::parse_arguments(int argc, char **argv) {
 				return false;
 			}
 		}
-		else if (Process *thread = Process::from_main_file(m_ast, argv[argn])) {
-			thread->parse_argument(argv[argn]);
-			m_configured_process.push(thread);
+		else if (auto thread = Process::from_main_file(*this, *it)) {
+			thread->parse_argument(*it);
+			_configured_process.emplace(std::move(thread));
 			reading_args = true;
 		}
 		else {
-			error("parameter %d ('%s') is not valid", argn, argv[argn]);
+			print_help();
+			error("parameter '{}' is not valid", *it);
 			return false;
 		}
 	}
@@ -547,26 +572,27 @@ bool Scheduler::parse_arguments(int argc, char **argv) {
 }
 
 void Scheduler::print_version() {
-	mint::print(stdout, "mint " MINT_MACRO_TO_STR(MINT_VERSION) "\n");
+	std::println(stdout, "mint " MINT_MACRO_TO_STR(MINT_VERSION));
 }
 
 void Scheduler::print_help() {
-	mint::print(stdout, "Usage : mint [option] [file [args]]\n");
-	mint::print(stdout, "Options :\n");
-	mint::print(stdout, "  --help            : Print this help message and exit\n");
-	mint::print(stdout, "  --version         : Print mint version and exit\n");
-	mint::print(stdout, "  --exec 'command'  : Execute a command line\n");
+	std::println(stdout, "Usage: mint [option] [file [args]]");
+	std::println(stdout, "Options:");
+	std::println(stdout, "  --help            : Print this help message and exit");
+	std::println(stdout, "  --version         : Print mint version and exit");
+	std::println(stdout, "  --exec 'command'  : Execute a command line");
 }
 
-bool Scheduler::schedule(Process *thread, RunOptions options) {
+bool Scheduler::schedule(Process& thread) {
 
-	g_current_process.emplace_back(thread);
-	thread->setup();
+	const SchedulerContextSwitcher _(this);
 
-	if (DebugInterface *handle = m_debug_interface) {
+	initialize_process(thread);
+
+	if (DebugInterface* handle = _debug_interface) {
 
 		while (is_running() || is_destructor(thread)) {
-			if (!thread->debug(handle)) {
+			if (!thread.debug(*handle)) {
 
 				lock_processor();
 				handle->debug(handle->declare_thread(thread));
@@ -574,12 +600,6 @@ bool Scheduler::schedule(Process *thread, RunOptions options) {
 				unlock_processor();
 
 				finalize_process(thread);
-				g_current_process.pop_back();
-
-				if (options & COLLECT_AT_EXIT) {
-					collect_safe();
-				}
-
 				return true;
 			}
 		}
@@ -591,16 +611,9 @@ bool Scheduler::schedule(Process *thread, RunOptions options) {
 	}
 	else {
 		while (is_running() || is_destructor(thread)) {
-			if (!thread->exec()) {
+			if (!thread.exec()) {
 				if (!resume(thread)) {
-
 					finalize_process(thread);
-					g_current_process.pop_back();
-
-					if (options & COLLECT_AT_EXIT) {
-						collect_safe();
-					}
-
 					return true;
 				}
 			}
@@ -612,30 +625,31 @@ bool Scheduler::schedule(Process *thread, RunOptions options) {
 	 */
 
 	finalize_process(thread);
-	g_current_process.pop_back();
-
-	collect_safe();
-
 	return false;
 }
 
-bool Scheduler::resume(Process *thread) const {
-
+bool Scheduler::resume(Process& thread) const {
 	if (is_running()) {
-		return thread->resume();
+		return thread.resume();
 	}
-
 	return false;
 }
 
-void Scheduler::finalize_process(Process *process) {
+void Scheduler::initialize_process(Process& process) {
+	g_current.process.emplace_back(process);
+	process.setup();
+}
 
-	if (!is_destructor(process) && !is_exception(process) && !is_generator(process)) {
-		m_thread_pool.stop(process);
+void Scheduler::finalize_process(Process& process) {
+
+	assert(&process == &g_current.process.back().get());
+
+	if (process.is_thread()) {
+		_thread_pool.stop(process);
 	}
 
-	process->cleanup();
-	delete process;
+	process.cleanup();
+	g_current.process.pop_back();
 }
 
 void Scheduler::finalize() {
@@ -643,16 +657,7 @@ void Scheduler::finalize() {
 	assert(!is_running());
 
 	do {
-		m_thread_pool.stop_all();
-	}
-	while (collect_safe());
-
-	lock_processor();
-	m_ast->cleanup_memory();
-	unlock_processor();
-
-	do {
-		m_thread_pool.stop_all();
+		_thread_pool.stop_all();
 	}
 	while (collect_safe());
 }

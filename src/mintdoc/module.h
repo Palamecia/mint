@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -34,16 +34,16 @@
 
 struct Module {
 	enum Type : std::uint8_t {
-		SCRIPT,
-		GROUP
+		script,
+		group
 	};
 
 	Type type;
 	std::string name;
 	std::unique_ptr<DocNode> doc;
 	std::map<std::string, std::string> links;
-	std::map<std::string, Definition *> definitions;
-	std::map<Definition::Type, std::map<std::string, Definition *>> elements;
+	std::map<std::string, std::shared_ptr<Definition>> definitions;
+	std::map<Definition::Type, std::map<std::string, std::shared_ptr<Definition>>> elements;
 };
 
 #endif // MINTDOC_MODULE_H

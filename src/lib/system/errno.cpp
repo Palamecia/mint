@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,458 +21,469 @@
  * IN THE SOFTWARE.
  */
 
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
 #include <cerrno>
+#include <cstring>
+#include <errno.h>
 
-using namespace mint;
+#ifdef MINT_OS_UNIX
+#include <asm-generic/errno-base.h>
+#include <asm-generic/errno.h>
+#endif
 
-MINT_FUNCTION(mint_errno_setup, 1, cursor) {
+namespace {
 
-	FunctionHelper helper(cursor, 1);
-	const Reference &Errno = helper.pop_parameter();
+mint::WeakReference mint_errno_setup(mint::Cursor& /*cursor*/, const mint::Reference& errno_enum) {
 
 #define BIND_ERRNO_VALUE(_enum, _errno) \
-	_enum.data<Object>()->metadata->globals()[#_errno]->value.data<Number>()->value = _errno
+	_enum.data<mint::Object>().metadata.find_global(#_errno)->value.data<mint::Number>().value = _errno
 #define BIND_ERRNO_DISABLE(_enum, _errno) \
-	_enum.data<Object>()->metadata->globals()[#_errno]->value.move_data(WeakReference::create<None>())
+	_enum.data<mint::Object>().metadata.find_global(#_errno)->value.move_data(mint::create_none())
 
-	BIND_ERRNO_VALUE(Errno, EPERM);
-	BIND_ERRNO_VALUE(Errno, ENOENT);
-	BIND_ERRNO_VALUE(Errno, ESRCH);
-	BIND_ERRNO_VALUE(Errno, EINTR);
-	BIND_ERRNO_VALUE(Errno, EIO);
-	BIND_ERRNO_VALUE(Errno, ENXIO);
-	BIND_ERRNO_VALUE(Errno, E2BIG);
-	BIND_ERRNO_VALUE(Errno, ENOEXEC);
-	BIND_ERRNO_VALUE(Errno, EBADF);
-	BIND_ERRNO_VALUE(Errno, ECHILD);
-	BIND_ERRNO_VALUE(Errno, EAGAIN);
-	BIND_ERRNO_VALUE(Errno, ENOMEM);
-	BIND_ERRNO_VALUE(Errno, EACCES);
-	BIND_ERRNO_VALUE(Errno, EFAULT);
+	BIND_ERRNO_VALUE(errno_enum, EPERM);
+	BIND_ERRNO_VALUE(errno_enum, ENOENT);
+	BIND_ERRNO_VALUE(errno_enum, ESRCH);
+	BIND_ERRNO_VALUE(errno_enum, EINTR);
+	BIND_ERRNO_VALUE(errno_enum, EIO);
+	BIND_ERRNO_VALUE(errno_enum, ENXIO);
+	BIND_ERRNO_VALUE(errno_enum, E2BIG);
+	BIND_ERRNO_VALUE(errno_enum, ENOEXEC);
+	BIND_ERRNO_VALUE(errno_enum, EBADF);
+	BIND_ERRNO_VALUE(errno_enum, ECHILD);
+	BIND_ERRNO_VALUE(errno_enum, EAGAIN);
+	BIND_ERRNO_VALUE(errno_enum, ENOMEM);
+	BIND_ERRNO_VALUE(errno_enum, EACCES);
+	BIND_ERRNO_VALUE(errno_enum, EFAULT);
 #ifdef ENOTBLK
-	BIND_ERRNO_VALUE(Errno, ENOTBLK);
+	BIND_ERRNO_VALUE(errno_enum, ENOTBLK);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOTBLK);
+	BIND_ERRNO_DISABLE(errno_enum, ENOTBLK);
 #endif
-	BIND_ERRNO_VALUE(Errno, EBUSY);
-	BIND_ERRNO_VALUE(Errno, EEXIST);
-	BIND_ERRNO_VALUE(Errno, EXDEV);
-	BIND_ERRNO_VALUE(Errno, ENODEV);
-	BIND_ERRNO_VALUE(Errno, ENOTDIR);
-	BIND_ERRNO_VALUE(Errno, EISDIR);
-	BIND_ERRNO_VALUE(Errno, EINVAL);
-	BIND_ERRNO_VALUE(Errno, ENFILE);
-	BIND_ERRNO_VALUE(Errno, EMFILE);
-	BIND_ERRNO_VALUE(Errno, ENOTTY);
-	BIND_ERRNO_VALUE(Errno, ETXTBSY);
-	BIND_ERRNO_VALUE(Errno, EFBIG);
-	BIND_ERRNO_VALUE(Errno, ENOSPC);
-	BIND_ERRNO_VALUE(Errno, ESPIPE);
-	BIND_ERRNO_VALUE(Errno, EROFS);
-	BIND_ERRNO_VALUE(Errno, EMLINK);
-	BIND_ERRNO_VALUE(Errno, EPIPE);
-	BIND_ERRNO_VALUE(Errno, EDOM);
-	BIND_ERRNO_VALUE(Errno, ERANGE);
-	BIND_ERRNO_VALUE(Errno, EDEADLK);
-	BIND_ERRNO_VALUE(Errno, ENAMETOOLONG);
-	BIND_ERRNO_VALUE(Errno, ENOLCK);
-	BIND_ERRNO_VALUE(Errno, ENOSYS);
-	BIND_ERRNO_VALUE(Errno, ENOTEMPTY);
-	BIND_ERRNO_VALUE(Errno, ELOOP);
-	BIND_ERRNO_VALUE(Errno, EWOULDBLOCK);
-	BIND_ERRNO_VALUE(Errno, ENOMSG);
-	BIND_ERRNO_VALUE(Errno, EIDRM);
+	BIND_ERRNO_VALUE(errno_enum, EBUSY);
+	BIND_ERRNO_VALUE(errno_enum, EEXIST);
+	BIND_ERRNO_VALUE(errno_enum, EXDEV);
+	BIND_ERRNO_VALUE(errno_enum, ENODEV);
+	BIND_ERRNO_VALUE(errno_enum, ENOTDIR);
+	BIND_ERRNO_VALUE(errno_enum, EISDIR);
+	BIND_ERRNO_VALUE(errno_enum, EINVAL);
+	BIND_ERRNO_VALUE(errno_enum, ENFILE);
+	BIND_ERRNO_VALUE(errno_enum, EMFILE);
+	BIND_ERRNO_VALUE(errno_enum, ENOTTY);
+	BIND_ERRNO_VALUE(errno_enum, ETXTBSY);
+	BIND_ERRNO_VALUE(errno_enum, EFBIG);
+	BIND_ERRNO_VALUE(errno_enum, ENOSPC);
+	BIND_ERRNO_VALUE(errno_enum, ESPIPE);
+	BIND_ERRNO_VALUE(errno_enum, EROFS);
+	BIND_ERRNO_VALUE(errno_enum, EMLINK);
+	BIND_ERRNO_VALUE(errno_enum, EPIPE);
+	BIND_ERRNO_VALUE(errno_enum, EDOM);
+	BIND_ERRNO_VALUE(errno_enum, ERANGE);
+	BIND_ERRNO_VALUE(errno_enum, EDEADLK);
+	BIND_ERRNO_VALUE(errno_enum, ENAMETOOLONG);
+	BIND_ERRNO_VALUE(errno_enum, ENOLCK);
+	BIND_ERRNO_VALUE(errno_enum, ENOSYS);
+	BIND_ERRNO_VALUE(errno_enum, ENOTEMPTY);
+	BIND_ERRNO_VALUE(errno_enum, ELOOP);
+	BIND_ERRNO_VALUE(errno_enum, EWOULDBLOCK);
+	BIND_ERRNO_VALUE(errno_enum, ENOMSG);
+	BIND_ERRNO_VALUE(errno_enum, EIDRM);
 #ifdef ECHRNG
-	BIND_ERRNO_VALUE(Errno, ECHRNG);
+	BIND_ERRNO_VALUE(errno_enum, ECHRNG);
 #else
-	BIND_ERRNO_DISABLE(Errno, ECHRNG);
+	BIND_ERRNO_DISABLE(errno_enum, ECHRNG);
 #endif
 #ifdef EL2NSYNC
-	BIND_ERRNO_VALUE(Errno, EL2NSYNC);
+	BIND_ERRNO_VALUE(errno_enum, EL2NSYNC);
 #else
-	BIND_ERRNO_DISABLE(Errno, EL2NSYNC);
+	BIND_ERRNO_DISABLE(errno_enum, EL2NSYNC);
 #endif
 #ifdef EL3HLT
-	BIND_ERRNO_VALUE(Errno, EL3HLT);
+	BIND_ERRNO_VALUE(errno_enum, EL3HLT);
 #else
-	BIND_ERRNO_DISABLE(Errno, EL3HLT);
+	BIND_ERRNO_DISABLE(errno_enum, EL3HLT);
 #endif
 #ifdef EL3RST
-	BIND_ERRNO_VALUE(Errno, EL3RST);
+	BIND_ERRNO_VALUE(errno_enum, EL3RST);
 #else
-	BIND_ERRNO_DISABLE(Errno, EL3RST);
+	BIND_ERRNO_DISABLE(errno_enum, EL3RST);
 #endif
 #ifdef ELNRNG
-	BIND_ERRNO_VALUE(Errno, ELNRNG);
+	BIND_ERRNO_VALUE(errno_enum, ELNRNG);
 #else
-	BIND_ERRNO_DISABLE(Errno, ELNRNG);
+	BIND_ERRNO_DISABLE(errno_enum, ELNRNG);
 #endif
 #ifdef EUNATCH
-	BIND_ERRNO_VALUE(Errno, EUNATCH);
+	BIND_ERRNO_VALUE(errno_enum, EUNATCH);
 #else
-	BIND_ERRNO_DISABLE(Errno, EUNATCH);
+	BIND_ERRNO_DISABLE(errno_enum, EUNATCH);
 #endif
 #ifdef ENOCSI
-	BIND_ERRNO_VALUE(Errno, ENOCSI);
+	BIND_ERRNO_VALUE(errno_enum, ENOCSI);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOCSI);
+	BIND_ERRNO_DISABLE(errno_enum, ENOCSI);
 #endif
 #ifdef EL2HLT
-	BIND_ERRNO_VALUE(Errno, EL2HLT);
+	BIND_ERRNO_VALUE(errno_enum, EL2HLT);
 #else
-	BIND_ERRNO_DISABLE(Errno, EL2HLT);
+	BIND_ERRNO_DISABLE(errno_enum, EL2HLT);
 #endif
 #ifdef EBADE
-	BIND_ERRNO_VALUE(Errno, EBADE);
+	BIND_ERRNO_VALUE(errno_enum, EBADE);
 #else
-	BIND_ERRNO_DISABLE(Errno, EBADE);
+	BIND_ERRNO_DISABLE(errno_enum, EBADE);
 #endif
 #ifdef EBADR
-	BIND_ERRNO_VALUE(Errno, EBADR);
+	BIND_ERRNO_VALUE(errno_enum, EBADR);
 #else
-	BIND_ERRNO_DISABLE(Errno, EBADR);
+	BIND_ERRNO_DISABLE(errno_enum, EBADR);
 #endif
 #ifdef EXFULL
-	BIND_ERRNO_VALUE(Errno, EXFULL);
+	BIND_ERRNO_VALUE(errno_enum, EXFULL);
 #else
-	BIND_ERRNO_DISABLE(Errno, EXFULL);
+	BIND_ERRNO_DISABLE(errno_enum, EXFULL);
 #endif
 #ifdef ENOANO
-	BIND_ERRNO_VALUE(Errno, ENOANO);
+	BIND_ERRNO_VALUE(errno_enum, ENOANO);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOANO);
+	BIND_ERRNO_DISABLE(errno_enum, ENOANO);
 #endif
 #ifdef EBADRQC
-	BIND_ERRNO_VALUE(Errno, EBADRQC);
+	BIND_ERRNO_VALUE(errno_enum, EBADRQC);
 #else
-	BIND_ERRNO_DISABLE(Errno, EBADRQC);
+	BIND_ERRNO_DISABLE(errno_enum, EBADRQC);
 #endif
 #ifdef EBADSLT
-	BIND_ERRNO_VALUE(Errno, EBADSLT);
+	BIND_ERRNO_VALUE(errno_enum, EBADSLT);
 #else
-	BIND_ERRNO_DISABLE(Errno, EBADSLT);
+	BIND_ERRNO_DISABLE(errno_enum, EBADSLT);
 #endif
-	BIND_ERRNO_VALUE(Errno, EDEADLOCK);
+	BIND_ERRNO_VALUE(errno_enum, EDEADLOCK);
 #ifdef EBFONT
-	BIND_ERRNO_VALUE(Errno, EBFONT);
+	BIND_ERRNO_VALUE(errno_enum, EBFONT);
 #else
-	BIND_ERRNO_DISABLE(Errno, EBFONT);
+	BIND_ERRNO_DISABLE(errno_enum, EBFONT);
 #endif
-	BIND_ERRNO_VALUE(Errno, ENOSTR);
-	BIND_ERRNO_VALUE(Errno, ENODATA);
-	BIND_ERRNO_VALUE(Errno, ETIME);
-	BIND_ERRNO_VALUE(Errno, ENOSR);
+	BIND_ERRNO_VALUE(errno_enum, ENOSTR);
+	BIND_ERRNO_VALUE(errno_enum, ENODATA);
+	BIND_ERRNO_VALUE(errno_enum, ETIME);
+	BIND_ERRNO_VALUE(errno_enum, ENOSR);
 #ifdef ENONET
-	BIND_ERRNO_VALUE(Errno, ENONET);
+	BIND_ERRNO_VALUE(errno_enum, ENONET);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENONET);
+	BIND_ERRNO_DISABLE(errno_enum, ENONET);
 #endif
 #ifdef ENOPKG
-	BIND_ERRNO_VALUE(Errno, ENOPKG);
+	BIND_ERRNO_VALUE(errno_enum, ENOPKG);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOPKG);
+	BIND_ERRNO_DISABLE(errno_enum, ENOPKG);
 #endif
 #ifdef EREMOTE
-	BIND_ERRNO_VALUE(Errno, EREMOTE);
+	BIND_ERRNO_VALUE(errno_enum, EREMOTE);
 #else
-	BIND_ERRNO_DISABLE(Errno, EREMOTE);
+	BIND_ERRNO_DISABLE(errno_enum, EREMOTE);
 #endif
-	BIND_ERRNO_VALUE(Errno, ENOLINK);
+	BIND_ERRNO_VALUE(errno_enum, ENOLINK);
 #ifdef EADV
-	BIND_ERRNO_VALUE(Errno, EADV);
+	BIND_ERRNO_VALUE(errno_enum, EADV);
 #else
-	BIND_ERRNO_DISABLE(Errno, EADV);
+	BIND_ERRNO_DISABLE(errno_enum, EADV);
 #endif
 #ifdef ESRMNT
-	BIND_ERRNO_VALUE(Errno, ESRMNT);
+	BIND_ERRNO_VALUE(errno_enum, ESRMNT);
 #else
-	BIND_ERRNO_DISABLE(Errno, ESRMNT);
+	BIND_ERRNO_DISABLE(errno_enum, ESRMNT);
 #endif
 #ifdef ECOMM
-	BIND_ERRNO_VALUE(Errno, ECOMM);
+	BIND_ERRNO_VALUE(errno_enum, ECOMM);
 #else
-	BIND_ERRNO_DISABLE(Errno, ECOMM);
+	BIND_ERRNO_DISABLE(errno_enum, ECOMM);
 #endif
-	BIND_ERRNO_VALUE(Errno, EPROTO);
+	BIND_ERRNO_VALUE(errno_enum, EPROTO);
 #ifdef EMULTIHOP
-	BIND_ERRNO_VALUE(Errno, EMULTIHOP);
+	BIND_ERRNO_VALUE(errno_enum, EMULTIHOP);
 #else
-	BIND_ERRNO_DISABLE(Errno, EMULTIHOP);
+	BIND_ERRNO_DISABLE(errno_enum, EMULTIHOP);
 #endif
 #ifdef EDOTDOT
-	BIND_ERRNO_VALUE(Errno, EDOTDOT);
+	BIND_ERRNO_VALUE(errno_enum, EDOTDOT);
 #else
-	BIND_ERRNO_DISABLE(Errno, EDOTDOT);
+	BIND_ERRNO_DISABLE(errno_enum, EDOTDOT);
 #endif
-	BIND_ERRNO_VALUE(Errno, EBADMSG);
-	BIND_ERRNO_VALUE(Errno, EOVERFLOW);
+	BIND_ERRNO_VALUE(errno_enum, EBADMSG);
+	BIND_ERRNO_VALUE(errno_enum, EOVERFLOW);
 #ifdef ENOTUNIQ
-	BIND_ERRNO_VALUE(Errno, ENOTUNIQ);
+	BIND_ERRNO_VALUE(errno_enum, ENOTUNIQ);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOTUNIQ);
+	BIND_ERRNO_DISABLE(errno_enum, ENOTUNIQ);
 #endif
 #ifdef EBADFD
-	BIND_ERRNO_VALUE(Errno, EBADFD);
+	BIND_ERRNO_VALUE(errno_enum, EBADFD);
 #else
-	BIND_ERRNO_DISABLE(Errno, EBADFD);
+	BIND_ERRNO_DISABLE(errno_enum, EBADFD);
 #endif
 #ifdef EREMCHG
-	BIND_ERRNO_VALUE(Errno, EREMCHG);
+	BIND_ERRNO_VALUE(errno_enum, EREMCHG);
 #else
-	BIND_ERRNO_DISABLE(Errno, EREMCHG);
+	BIND_ERRNO_DISABLE(errno_enum, EREMCHG);
 #endif
 #ifdef ELIBACC
-	BIND_ERRNO_VALUE(Errno, ELIBACC);
+	BIND_ERRNO_VALUE(errno_enum, ELIBACC);
 #else
-	BIND_ERRNO_DISABLE(Errno, ELIBACC);
+	BIND_ERRNO_DISABLE(errno_enum, ELIBACC);
 #endif
 #ifdef ELIBBAD
-	BIND_ERRNO_VALUE(Errno, ELIBBAD);
+	BIND_ERRNO_VALUE(errno_enum, ELIBBAD);
 #else
-	BIND_ERRNO_DISABLE(Errno, ELIBBAD);
+	BIND_ERRNO_DISABLE(errno_enum, ELIBBAD);
 #endif
 #ifdef ELIBSCN
-	BIND_ERRNO_VALUE(Errno, ELIBSCN);
+	BIND_ERRNO_VALUE(errno_enum, ELIBSCN);
 #else
-	BIND_ERRNO_DISABLE(Errno, ELIBSCN);
+	BIND_ERRNO_DISABLE(errno_enum, ELIBSCN);
 #endif
 #ifdef ELIBMAX
-	BIND_ERRNO_VALUE(Errno, ELIBMAX);
+	BIND_ERRNO_VALUE(errno_enum, ELIBMAX);
 #else
-	BIND_ERRNO_DISABLE(Errno, ELIBMAX);
+	BIND_ERRNO_DISABLE(errno_enum, ELIBMAX);
 #endif
 #ifdef ELIBEXEC
-	BIND_ERRNO_VALUE(Errno, ELIBEXEC);
+	BIND_ERRNO_VALUE(errno_enum, ELIBEXEC);
 #else
-	BIND_ERRNO_DISABLE(Errno, ELIBEXEC);
+	BIND_ERRNO_DISABLE(errno_enum, ELIBEXEC);
 #endif
-	BIND_ERRNO_VALUE(Errno, EILSEQ);
+	BIND_ERRNO_VALUE(errno_enum, EILSEQ);
 #ifdef ERESTART
-	BIND_ERRNO_VALUE(Errno, ERESTART);
+	BIND_ERRNO_VALUE(errno_enum, ERESTART);
 #else
-	BIND_ERRNO_DISABLE(Errno, ERESTART);
+	BIND_ERRNO_DISABLE(errno_enum, ERESTART);
 #endif
 #ifdef ESTRPIPE
-	BIND_ERRNO_VALUE(Errno, ESTRPIPE);
+	BIND_ERRNO_VALUE(errno_enum, ESTRPIPE);
 #else
-	BIND_ERRNO_DISABLE(Errno, ESTRPIPE);
+	BIND_ERRNO_DISABLE(errno_enum, ESTRPIPE);
 #endif
 #ifdef EUSERS
-	BIND_ERRNO_VALUE(Errno, EUSERS);
+	BIND_ERRNO_VALUE(errno_enum, EUSERS);
 #else
-	BIND_ERRNO_DISABLE(Errno, EUSERS);
+	BIND_ERRNO_DISABLE(errno_enum, EUSERS);
 #endif
-	BIND_ERRNO_VALUE(Errno, ENOTSOCK);
-	BIND_ERRNO_VALUE(Errno, EDESTADDRREQ);
-	BIND_ERRNO_VALUE(Errno, EMSGSIZE);
-	BIND_ERRNO_VALUE(Errno, EPROTOTYPE);
-	BIND_ERRNO_VALUE(Errno, ENOPROTOOPT);
-	BIND_ERRNO_VALUE(Errno, EPROTONOSUPPORT);
+	BIND_ERRNO_VALUE(errno_enum, ENOTSOCK);
+	BIND_ERRNO_VALUE(errno_enum, EDESTADDRREQ);
+	BIND_ERRNO_VALUE(errno_enum, EMSGSIZE);
+	BIND_ERRNO_VALUE(errno_enum, EPROTOTYPE);
+	BIND_ERRNO_VALUE(errno_enum, ENOPROTOOPT);
+	BIND_ERRNO_VALUE(errno_enum, EPROTONOSUPPORT);
 #ifdef ESOCKTNOSUPPORT
-	BIND_ERRNO_VALUE(Errno, ESOCKTNOSUPPORT);
+	BIND_ERRNO_VALUE(errno_enum, ESOCKTNOSUPPORT);
 #else
-	BIND_ERRNO_DISABLE(Errno, ESOCKTNOSUPPORT);
+	BIND_ERRNO_DISABLE(errno_enum, ESOCKTNOSUPPORT);
 #endif
-	BIND_ERRNO_VALUE(Errno, EOPNOTSUPP);
+	BIND_ERRNO_VALUE(errno_enum, EOPNOTSUPP);
 #ifdef EPFNOSUPPORT
-	BIND_ERRNO_VALUE(Errno, EPFNOSUPPORT);
+	BIND_ERRNO_VALUE(errno_enum, EPFNOSUPPORT);
 #else
-	BIND_ERRNO_DISABLE(Errno, EPFNOSUPPORT);
+	BIND_ERRNO_DISABLE(errno_enum, EPFNOSUPPORT);
 #endif
-	BIND_ERRNO_VALUE(Errno, EAFNOSUPPORT);
-	BIND_ERRNO_VALUE(Errno, EADDRINUSE);
-	BIND_ERRNO_VALUE(Errno, EADDRNOTAVAIL);
-	BIND_ERRNO_VALUE(Errno, ENETDOWN);
-	BIND_ERRNO_VALUE(Errno, ENETUNREACH);
-	BIND_ERRNO_VALUE(Errno, ENETRESET);
-	BIND_ERRNO_VALUE(Errno, ECONNABORTED);
-	BIND_ERRNO_VALUE(Errno, ECONNRESET);
-	BIND_ERRNO_VALUE(Errno, ENOBUFS);
-	BIND_ERRNO_VALUE(Errno, EISCONN);
-	BIND_ERRNO_VALUE(Errno, ENOTCONN);
+	BIND_ERRNO_VALUE(errno_enum, EAFNOSUPPORT);
+	BIND_ERRNO_VALUE(errno_enum, EADDRINUSE);
+	BIND_ERRNO_VALUE(errno_enum, EADDRNOTAVAIL);
+	BIND_ERRNO_VALUE(errno_enum, ENETDOWN);
+	BIND_ERRNO_VALUE(errno_enum, ENETUNREACH);
+	BIND_ERRNO_VALUE(errno_enum, ENETRESET);
+	BIND_ERRNO_VALUE(errno_enum, ECONNABORTED);
+	BIND_ERRNO_VALUE(errno_enum, ECONNRESET);
+	BIND_ERRNO_VALUE(errno_enum, ENOBUFS);
+	BIND_ERRNO_VALUE(errno_enum, EISCONN);
+	BIND_ERRNO_VALUE(errno_enum, ENOTCONN);
 #ifdef ESHUTDOWN
-	BIND_ERRNO_VALUE(Errno, ESHUTDOWN);
+	BIND_ERRNO_VALUE(errno_enum, ESHUTDOWN);
 #else
-	BIND_ERRNO_DISABLE(Errno, ESHUTDOWN);
+	BIND_ERRNO_DISABLE(errno_enum, ESHUTDOWN);
 #endif
 #ifdef ETOOMANYREFS
-	BIND_ERRNO_VALUE(Errno, ETOOMANYREFS);
+	BIND_ERRNO_VALUE(errno_enum, ETOOMANYREFS);
 #else
-	BIND_ERRNO_DISABLE(Errno, ETOOMANYREFS);
+	BIND_ERRNO_DISABLE(errno_enum, ETOOMANYREFS);
 #endif
-	BIND_ERRNO_VALUE(Errno, ETIMEDOUT);
-	BIND_ERRNO_VALUE(Errno, ECONNREFUSED);
+	BIND_ERRNO_VALUE(errno_enum, ETIMEDOUT);
+	BIND_ERRNO_VALUE(errno_enum, ECONNREFUSED);
 #ifdef EHOSTDOWN
-	BIND_ERRNO_VALUE(Errno, EHOSTDOWN);
+	BIND_ERRNO_VALUE(errno_enum, EHOSTDOWN);
 #else
-	BIND_ERRNO_DISABLE(Errno, EHOSTDOWN);
+	BIND_ERRNO_DISABLE(errno_enum, EHOSTDOWN);
 #endif
-	BIND_ERRNO_VALUE(Errno, EHOSTUNREACH);
-	BIND_ERRNO_VALUE(Errno, EALREADY);
-	BIND_ERRNO_VALUE(Errno, EINPROGRESS);
+	BIND_ERRNO_VALUE(errno_enum, EHOSTUNREACH);
+	BIND_ERRNO_VALUE(errno_enum, EALREADY);
+	BIND_ERRNO_VALUE(errno_enum, EINPROGRESS);
 #ifdef ESTALE
-	BIND_ERRNO_VALUE(Errno, ESTALE);
+	BIND_ERRNO_VALUE(errno_enum, ESTALE);
 #else
-	BIND_ERRNO_DISABLE(Errno, ESTALE);
+	BIND_ERRNO_DISABLE(errno_enum, ESTALE);
 #endif
 #ifdef EUCLEAN
-	BIND_ERRNO_VALUE(Errno, EUCLEAN);
+	BIND_ERRNO_VALUE(errno_enum, EUCLEAN);
 #else
-	BIND_ERRNO_DISABLE(Errno, EUCLEAN);
+	BIND_ERRNO_DISABLE(errno_enum, EUCLEAN);
 #endif
 #ifdef ENOTNAM
-	BIND_ERRNO_VALUE(Errno, ENOTNAM);
+	BIND_ERRNO_VALUE(errno_enum, ENOTNAM);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOTNAM);
+	BIND_ERRNO_DISABLE(errno_enum, ENOTNAM);
 #endif
 #ifdef ENAVAIL
-	BIND_ERRNO_VALUE(Errno, ENAVAIL);
+	BIND_ERRNO_VALUE(errno_enum, ENAVAIL);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENAVAIL);
+	BIND_ERRNO_DISABLE(errno_enum, ENAVAIL);
 #endif
 #ifdef EISNAM
-	BIND_ERRNO_VALUE(Errno, EISNAM);
+	BIND_ERRNO_VALUE(errno_enum, EISNAM);
 #else
-	BIND_ERRNO_DISABLE(Errno, EISNAM);
+	BIND_ERRNO_DISABLE(errno_enum, EISNAM);
 #endif
 #ifdef EREMOTEIO
-	BIND_ERRNO_VALUE(Errno, EREMOTEIO);
+	BIND_ERRNO_VALUE(errno_enum, EREMOTEIO);
 #else
-	BIND_ERRNO_DISABLE(Errno, EREMOTEIO);
+	BIND_ERRNO_DISABLE(errno_enum, EREMOTEIO);
 #endif
 #ifdef EDQUOT
-	BIND_ERRNO_VALUE(Errno, EDQUOT);
+	BIND_ERRNO_VALUE(errno_enum, EDQUOT);
 #else
-	BIND_ERRNO_DISABLE(Errno, EDQUOT);
+	BIND_ERRNO_DISABLE(errno_enum, EDQUOT);
 #endif
 #ifdef ENOMEDIUM
-	BIND_ERRNO_VALUE(Errno, ENOMEDIUM);
+	BIND_ERRNO_VALUE(errno_enum, ENOMEDIUM);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOMEDIUM);
+	BIND_ERRNO_DISABLE(errno_enum, ENOMEDIUM);
 #endif
 #ifdef EMEDIUMTYPE
-	BIND_ERRNO_VALUE(Errno, EMEDIUMTYPE);
+	BIND_ERRNO_VALUE(errno_enum, EMEDIUMTYPE);
 #else
-	BIND_ERRNO_DISABLE(Errno, EMEDIUMTYPE);
+	BIND_ERRNO_DISABLE(errno_enum, EMEDIUMTYPE);
 #endif
-	BIND_ERRNO_VALUE(Errno, ECANCELED);
+	BIND_ERRNO_VALUE(errno_enum, ECANCELED);
 #ifdef ENOKEY
-	BIND_ERRNO_VALUE(Errno, ENOKEY);
+	BIND_ERRNO_VALUE(errno_enum, ENOKEY);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOKEY);
+	BIND_ERRNO_DISABLE(errno_enum, ENOKEY);
 #endif
 #ifdef EKEYEXPIRED
-	BIND_ERRNO_VALUE(Errno, EKEYEXPIRED);
+	BIND_ERRNO_VALUE(errno_enum, EKEYEXPIRED);
 #else
-	BIND_ERRNO_DISABLE(Errno, EKEYEXPIRED);
+	BIND_ERRNO_DISABLE(errno_enum, EKEYEXPIRED);
 #endif
 #ifdef EKEYREVOKED
-	BIND_ERRNO_VALUE(Errno, EKEYREVOKED);
+	BIND_ERRNO_VALUE(errno_enum, EKEYREVOKED);
 #else
-	BIND_ERRNO_DISABLE(Errno, EKEYREVOKED);
+	BIND_ERRNO_DISABLE(errno_enum, EKEYREVOKED);
 #endif
 #ifdef EKEYREJECTED
-	BIND_ERRNO_VALUE(Errno, EKEYREJECTED);
+	BIND_ERRNO_VALUE(errno_enum, EKEYREJECTED);
 #else
-	BIND_ERRNO_DISABLE(Errno, EKEYREJECTED);
+	BIND_ERRNO_DISABLE(errno_enum, EKEYREJECTED);
 #endif
-	BIND_ERRNO_VALUE(Errno, EOWNERDEAD);
-	BIND_ERRNO_VALUE(Errno, ENOTRECOVERABLE);
+	BIND_ERRNO_VALUE(errno_enum, EOWNERDEAD);
+	BIND_ERRNO_VALUE(errno_enum, ENOTRECOVERABLE);
 #ifdef ERFKILL
-	BIND_ERRNO_VALUE(Errno, ERFKILL);
+	BIND_ERRNO_VALUE(errno_enum, ERFKILL);
 #else
-	BIND_ERRNO_DISABLE(Errno, ERFKILL);
+	BIND_ERRNO_DISABLE(errno_enum, ERFKILL);
 #endif
 #ifdef EHWPOISON
-	BIND_ERRNO_VALUE(Errno, EHWPOISON);
+	BIND_ERRNO_VALUE(errno_enum, EHWPOISON);
 #else
-	BIND_ERRNO_DISABLE(Errno, EHWPOISON);
+	BIND_ERRNO_DISABLE(errno_enum, EHWPOISON);
 #endif
 #ifdef ERESTARTSYS
-	BIND_ERRNO_VALUE(Errno, ERESTARTSYS);
+	BIND_ERRNO_VALUE(errno_enum, ERESTARTSYS);
 #else
-	BIND_ERRNO_DISABLE(Errno, ERESTARTSYS);
+	BIND_ERRNO_DISABLE(errno_enum, ERESTARTSYS);
 #endif
 #ifdef ERESTARTNOINTR
-	BIND_ERRNO_VALUE(Errno, ERESTARTNOINTR);
+	BIND_ERRNO_VALUE(errno_enum, ERESTARTNOINTR);
 #else
-	BIND_ERRNO_DISABLE(Errno, ERESTARTNOINTR);
+	BIND_ERRNO_DISABLE(errno_enum, ERESTARTNOINTR);
 #endif
 #ifdef ERESTARTNOHAND
-	BIND_ERRNO_VALUE(Errno, ERESTARTNOHAND);
+	BIND_ERRNO_VALUE(errno_enum, ERESTARTNOHAND);
 #else
-	BIND_ERRNO_DISABLE(Errno, ERESTARTNOHAND);
+	BIND_ERRNO_DISABLE(errno_enum, ERESTARTNOHAND);
 #endif
 #ifdef ENOIOCTLCMD
-	BIND_ERRNO_VALUE(Errno, ENOIOCTLCMD);
+	BIND_ERRNO_VALUE(errno_enum, ENOIOCTLCMD);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOIOCTLCMD);
+	BIND_ERRNO_DISABLE(errno_enum, ENOIOCTLCMD);
 #endif
 #ifdef ERESTART_RESTARTBLOCK
-	BIND_ERRNO_VALUE(Errno, ERESTART_RESTARTBLOCK);
+	BIND_ERRNO_VALUE(errno_enum, ERESTART_RESTARTBLOCK);
 #else
-	BIND_ERRNO_DISABLE(Errno, ERESTART_RESTARTBLOCK);
+	BIND_ERRNO_DISABLE(errno_enum, ERESTART_RESTARTBLOCK);
 #endif
 #ifdef EBADHANDLE
-	BIND_ERRNO_VALUE(Errno, EBADHANDLE);
+	BIND_ERRNO_VALUE(errno_enum, EBADHANDLE);
 #else
-	BIND_ERRNO_DISABLE(Errno, EBADHANDLE);
+	BIND_ERRNO_DISABLE(errno_enum, EBADHANDLE);
 #endif
 #ifdef ENOTSYNC
-	BIND_ERRNO_VALUE(Errno, ENOTSYNC);
+	BIND_ERRNO_VALUE(errno_enum, ENOTSYNC);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOTSYNC);
+	BIND_ERRNO_DISABLE(errno_enum, ENOTSYNC);
 #endif
 #ifdef EBADCOOKIE
-	BIND_ERRNO_VALUE(Errno, EBADCOOKIE);
+	BIND_ERRNO_VALUE(errno_enum, EBADCOOKIE);
 #else
-	BIND_ERRNO_DISABLE(Errno, EBADCOOKIE);
+	BIND_ERRNO_DISABLE(errno_enum, EBADCOOKIE);
 #endif
 #ifdef ENOTSUPP
-	BIND_ERRNO_VALUE(Errno, ENOTSUPP);
+	BIND_ERRNO_VALUE(errno_enum, ENOTSUPP);
 #else
-	BIND_ERRNO_DISABLE(Errno, ENOTSUPP);
+	BIND_ERRNO_DISABLE(errno_enum, ENOTSUPP);
 #endif
 #ifdef ETOOSMALL
-	BIND_ERRNO_VALUE(Errno, ETOOSMALL);
+	BIND_ERRNO_VALUE(errno_enum, ETOOSMALL);
 #else
-	BIND_ERRNO_DISABLE(Errno, ETOOSMALL);
+	BIND_ERRNO_DISABLE(errno_enum, ETOOSMALL);
 #endif
 #ifdef ESERVERFAULT
-	BIND_ERRNO_VALUE(Errno, ESERVERFAULT);
+	BIND_ERRNO_VALUE(errno_enum, ESERVERFAULT);
 #else
-	BIND_ERRNO_DISABLE(Errno, ESERVERFAULT);
+	BIND_ERRNO_DISABLE(errno_enum, ESERVERFAULT);
 #endif
 #ifdef EBADTYPE
-	BIND_ERRNO_VALUE(Errno, EBADTYPE);
+	BIND_ERRNO_VALUE(errno_enum, EBADTYPE);
 #else
-	BIND_ERRNO_DISABLE(Errno, EBADTYPE);
+	BIND_ERRNO_DISABLE(errno_enum, EBADTYPE);
 #endif
 #ifdef EJUKEBOX
-	BIND_ERRNO_VALUE(Errno, EJUKEBOX);
+	BIND_ERRNO_VALUE(errno_enum, EJUKEBOX);
 #else
-	BIND_ERRNO_DISABLE(Errno, EJUKEBOX);
+	BIND_ERRNO_DISABLE(errno_enum, EJUKEBOX);
 #endif
 #ifdef EIOCBQUEUED
-	BIND_ERRNO_VALUE(Errno, EIOCBQUEUED);
+	BIND_ERRNO_VALUE(errno_enum, EIOCBQUEUED);
 #else
-	BIND_ERRNO_DISABLE(Errno, EIOCBQUEUED);
+	BIND_ERRNO_DISABLE(errno_enum, EIOCBQUEUED);
 #endif
 #ifdef EIOCBRETRY
-	BIND_ERRNO_VALUE(Errno, EIOCBRETRY);
+	BIND_ERRNO_VALUE(errno_enum, EIOCBRETRY);
 #else
-	BIND_ERRNO_DISABLE(Errno, EIOCBRETRY);
+	BIND_ERRNO_DISABLE(errno_enum, EIOCBRETRY);
 #endif
+
+	return {};
 }
 
-MINT_FUNCTION(mint_errno_get, 0, cursor) {
-	FunctionHelper(cursor, 0).return_value(create_number(errno));
+mint::WeakReference mint_errno_strerror(mint::Cursor& cursor, const mint::Reference& error) {
+	return mint::create_string(cursor.ast(), strerror(mint::to_integer<int>(cursor, error)));
 }
 
-MINT_FUNCTION(mint_errno_strerror, 1, cursor) {
-	FunctionHelper helper(cursor, 1);
-	Reference &error = helper.pop_parameter();
-	helper.return_value(create_string(strerror(to_integer(cursor, error))));
+}
+
+MINT_EXPORT_FUNCTION(mint_errno_setup, 1)
+MINT_EXPORT_FUNCTION(mint_errno_strerror, 1)
+
+MINT_RAW_FUNCTION(mint_errno_get, 0, cursor) {
+	cursor.stack().emplace_back(mint::create_number(errno));
 }

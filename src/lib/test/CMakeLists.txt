@@ -1,22 +1,31 @@
 project(mint-test)
 
-set(${PROJECT_NAME}_SOURCES
+add_library(mint-test MODULE)
+
+target_sources(
+	mint-test
+PRIVATE
 	case.cpp
 	suite.cpp
 )
 
-add_library(${PROJECT_NAME}
-	MODULE
-	${${PROJECT_NAME}_SOURCES}
-)
-
 set_target_properties(
-	${PROJECT_NAME}
+	mint-test
 	PROPERTIES
 	PREFIX lib
+	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
 )
 
-target_link_libraries(${PROJECT_NAME} mint_library)
+target_link_libraries(
+	mint-test
+PRIVATE
+	libmint
+)
 
 # Install
-mint_install_library(${PROJECT_NAME} SUBDIR mint)
+install(
+	TARGETS mint-test
+	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+)

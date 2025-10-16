@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,32 +21,30 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_OUTPUT_H
-#define MINT_OUTPUT_H
+#ifndef MINT_SCHEDULER_OUTPUT_H
+#define MINT_SCHEDULER_OUTPUT_H
 
+#include "mint/ast/classregister.h"
 #include "mint/ast/printer.h"
+#include "mint/config.h"
+#include <functional>
 
 namespace mint {
 
 class MINT_EXPORT Output : public Printer {
+	std::reference_wrapper<AbstractSyntaxTree> _ast;
 public:
-	Output(Output &&) = delete;
-	Output(const Output &) = delete;
+	Output(const Output&) = delete;
+	Output(Output&&) = delete;
+	Output(AbstractSyntaxTree& ast);
 	~Output();
 
-	Output &operator=(Output &&) = delete;
-	Output &operator=(const Output &) = delete;
+	Output& operator=(const Output&) = delete;
+	Output& operator=(Output&&) = delete;
 
-	static Output &instance();
-
-	void print(Reference &reference) override;
-
-	[[nodiscard]] bool global() const override;
-
-private:
-	Output() = default;
+	void print(const Reference& reference) override;
 };
 
 }
 
-#endif // MINT_OUTPUT_H
+#endif // MINT_SCHEDULER_OUTPUT_H

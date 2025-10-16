@@ -1,135 +1,138 @@
 #include <gtest/gtest.h>
-#include <mint/memory/builtin/string.h>
+#include "mint/memory/builtin/string.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/symbol.h"
+#include "mint/memory/builtin/array.h"
 #include "mint/memory/class.h"
+#include "mint/memory/data.h"
 #include "mint/memory/functiontool.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
 
-using namespace mint;
-
 TEST(string, subscript) {
 
-	Scheduler scheduler(0, nullptr);
-	Process *thread = scheduler.enable_testing();
-	WeakReference string = create_string("tëst");
+	mint::Scheduler scheduler({});
+	auto thread = scheduler.enable_testing();
+	const auto string = mint::create_string(scheduler.ast(), "tëst");
 
-	WeakReference result = scheduler.invoke(string, Class::SUBSCRIPT_OPERATOR, create_number(2));
-	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
-	ASSERT_EQ(Class::STRING, result.data<Object>()->metadata->metatype());
-	EXPECT_EQ("s", result.data<String>()->str);
+	mint::WeakReference result = scheduler.invoke(string, mint::Class::subscript_operator,
+	    mint::create_signed_number(2));
+	ASSERT_EQ(mint::Data::object_format, result.data().format());
+	ASSERT_EQ(mint::Class::string, result.data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("s", result.data<mint::String>().str);
 
-	result = scheduler.invoke(string, Class::SUBSCRIPT_OPERATOR, create_iterator(create_number(1), create_number(2)));
-	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
-	ASSERT_EQ(Class::STRING, result.data<Object>()->metadata->metatype());
-	EXPECT_EQ("ës", result.data<String>()->str);
-
-	scheduler.disable_testing(thread);
+	result = scheduler.invoke(string, mint::Class::subscript_operator,
+	    create_iterator_from(scheduler.ast(), mint::create_signed_number(1), mint::create_signed_number(2)));
+	ASSERT_EQ(mint::Data::object_format, result.data().format());
+	ASSERT_EQ(mint::Class::string, result.data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("ës", result.data<mint::String>().str);
 }
 
 TEST(string, contains) {
 
-	Scheduler scheduler(0, nullptr);
-	Process *thread = scheduler.enable_testing();
-	WeakReference string = create_string("test");
-	
-	WeakReference result = scheduler.invoke(string, Symbol("contains"), create_string("es"));
-	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_EQ(true, result.data<Boolean>()->value);
+	mint::Scheduler scheduler({});
+	auto thread = scheduler.enable_testing();
+	const auto string = mint::create_string(scheduler.ast(), "test");
 
-	result = scheduler.invoke(string, Symbol("contains"), create_string("se"));
-	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_EQ(false, result.data<Boolean>()->value);
+	mint::WeakReference result = scheduler.invoke(string, mint::Symbol("contains"),
+	    mint::create_string(scheduler.ast(), "es"));
+	ASSERT_EQ(mint::Data::boolean_format, result.data().format());
+	EXPECT_EQ(true, result.data<mint::Boolean>().value);
 
-	scheduler.disable_testing(thread);
+	result = scheduler.invoke(string, mint::Symbol("contains"), mint::create_string(scheduler.ast(), "se"));
+	ASSERT_EQ(mint::Data::boolean_format, result.data().format());
+	EXPECT_EQ(false, result.data<mint::Boolean>().value);
 }
 
 TEST(string, starts_with) {
 
-	Scheduler scheduler(0, nullptr);
-	Process *thread = scheduler.enable_testing();
-	WeakReference string = create_string("test");
+	mint::Scheduler scheduler({});
+	auto thread = scheduler.enable_testing();
+	const auto string = mint::create_string(scheduler.ast(), "test");
 
-	WeakReference result = scheduler.invoke(string, Symbol("startsWith"), create_string("te"));
-	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_EQ(true, result.data<Boolean>()->value);
+	mint::WeakReference result = scheduler.invoke(string, mint::Symbol("startsWith"),
+	    mint::create_string(scheduler.ast(), "te"));
+	ASSERT_EQ(mint::Data::boolean_format, result.data().format());
+	EXPECT_EQ(true, result.data<mint::Boolean>().value);
 
-	result = scheduler.invoke(string, Symbol("startsWith"), create_string("et"));
-	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_EQ(false, result.data<Boolean>()->value);
-
-	scheduler.disable_testing(thread);
+	result = scheduler.invoke(string, mint::Symbol("startsWith"), mint::create_string(scheduler.ast(), "et"));
+	ASSERT_EQ(mint::Data::boolean_format, result.data().format());
+	EXPECT_EQ(false, result.data<mint::Boolean>().value);
 }
 
 TEST(string, ends_with) {
 
-	Scheduler scheduler(0, nullptr);
-	Process *thread = scheduler.enable_testing();
-	WeakReference string = create_string("test");
+	mint::Scheduler scheduler({});
+	auto thread = scheduler.enable_testing();
+	const auto string = mint::create_string(scheduler.ast(), "test");
 
-	WeakReference result = scheduler.invoke(string, Symbol("endsWith"), create_string("st"));
-	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_EQ(true, result.data<Boolean>()->value);
+	mint::WeakReference result = scheduler.invoke(string, mint::Symbol("endsWith"),
+	    mint::create_string(scheduler.ast(), "st"));
+	ASSERT_EQ(mint::Data::boolean_format, result.data().format());
+	EXPECT_EQ(true, result.data<mint::Boolean>().value);
 
+	result = scheduler.invoke(string, mint::Symbol("endsWith"), mint::create_string(scheduler.ast(), "ts"));
+	ASSERT_EQ(mint::Data::boolean_format, result.data().format());
+	EXPECT_EQ(false, result.data<mint::Boolean>().value);
 
-	result = scheduler.invoke(string, Symbol("endsWith"), create_string("ts"));
-	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_EQ(false, result.data<Boolean>()->value);
-
-	result = scheduler.invoke(string, Symbol("endsWith"), create_string("test+"));
-	ASSERT_EQ(Data::FMT_BOOLEAN, result.data()->format);
-	EXPECT_EQ(false, result.data<Boolean>()->value);
-
-	scheduler.disable_testing(thread);
+	result = scheduler.invoke(string, mint::Symbol("endsWith"), mint::create_string(scheduler.ast(), "test+"));
+	ASSERT_EQ(mint::Data::boolean_format, result.data().format());
+	EXPECT_EQ(false, result.data<mint::Boolean>().value);
 }
 
 TEST(string, split) {
 
-	Scheduler scheduler(0, nullptr);
-	Process *thread = scheduler.enable_testing();
+	mint::Scheduler scheduler({});
+	auto thread = scheduler.enable_testing();
 
-	WeakReference string = create_string("a, b, c");
-	WeakReference result = scheduler.invoke(string, Symbol("split"), create_string(", "));
+	mint::WeakReference string = mint::create_string(scheduler.ast(), "a, b, c");
+	mint::WeakReference result = scheduler.invoke(string, mint::Symbol("split"),
+	    mint::create_string(scheduler.ast(), ", "));
 
-	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
-	ASSERT_EQ(Class::ARRAY, result.data<Object>()->metadata->metatype());
-	ASSERT_EQ(3u, result.data<Array>()->values.size());
+	ASSERT_EQ(mint::Data::object_format, result.data().format());
+	ASSERT_EQ(mint::Class::array, result.data<mint::Object>().metadata.metatype());
+	ASSERT_EQ(3uz, result.data<mint::Array>().values.size());
 
-	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 0).data()->format);
-	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 0).data<Object>()->metadata->metatype());
-	EXPECT_EQ("a", array_get_item(result.data<Array>(), 0).data<String>()->str);
+	ASSERT_EQ(mint::Data::object_format, array_get_item(result.data<mint::Array>(), 0).data().format());
+	ASSERT_EQ(mint::Class::string,
+	    array_get_item(result.data<mint::Array>(), 0).data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("a", array_get_item(result.data<mint::Array>(), 0).data<mint::String>().str);
 
-	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 1).data()->format);
-	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 1).data<Object>()->metadata->metatype());
-	EXPECT_EQ("b", array_get_item(result.data<Array>(), 1).data<String>()->str);
+	ASSERT_EQ(mint::Data::object_format, mint::array_get_item(result.data<mint::Array>(), 1).data().format());
+	ASSERT_EQ(mint::Class::string,
+	    array_get_item(result.data<mint::Array>(), 1).data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("b", array_get_item(result.data<mint::Array>(), 1).data<mint::String>().str);
 
-	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 2).data()->format);
-	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 2).data<Object>()->metadata->metatype());
-	EXPECT_EQ("c", array_get_item(result.data<Array>(), 2).data<String>()->str);
+	ASSERT_EQ(mint::Data::object_format, array_get_item(result.data<mint::Array>(), 2).data().format());
+	ASSERT_EQ(mint::Class::string,
+	    array_get_item(result.data<mint::Array>(), 2).data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("c", array_get_item(result.data<mint::Array>(), 2).data<mint::String>().str);
 
-	string = create_string("tëst");
-	result = scheduler.invoke(string, Symbol("split"), create_string(""));
+	string = mint::create_string(scheduler.ast(), "tëst");
+	result = scheduler.invoke(string, mint::Symbol("split"), mint::create_string(scheduler.ast(), ""));
 
-	ASSERT_EQ(Data::FMT_OBJECT, result.data()->format);
-	ASSERT_EQ(Class::ARRAY, result.data<Object>()->metadata->metatype());
-	ASSERT_EQ(4u, result.data<Array>()->values.size());
+	ASSERT_EQ(mint::Data::object_format, result.data().format());
+	ASSERT_EQ(mint::Class::array, result.data<mint::Object>().metadata.metatype());
+	ASSERT_EQ(4uz, result.data<mint::Array>().values.size());
 
-	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 0).data()->format);
-	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 0).data<Object>()->metadata->metatype());
-	EXPECT_EQ("t", array_get_item(result.data<Array>(), 0).data<String>()->str);
+	ASSERT_EQ(mint::Data::object_format, array_get_item(result.data<mint::Array>(), 0).data().format());
+	ASSERT_EQ(mint::Class::string,
+	    array_get_item(result.data<mint::Array>(), 0).data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("t", array_get_item(result.data<mint::Array>(), 0).data<mint::String>().str);
 
-	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 1).data()->format);
-	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 1).data<Object>()->metadata->metatype());
-	EXPECT_EQ("ë", array_get_item(result.data<Array>(), 1).data<String>()->str);
+	ASSERT_EQ(mint::Data::object_format, array_get_item(result.data<mint::Array>(), 1).data().format());
+	ASSERT_EQ(mint::Class::string,
+	    array_get_item(result.data<mint::Array>(), 1).data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("ë", array_get_item(result.data<mint::Array>(), 1).data<mint::String>().str);
 
-	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 2).data()->format);
-	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 2).data<Object>()->metadata->metatype());
-	EXPECT_EQ("s", array_get_item(result.data<Array>(), 2).data<String>()->str);
+	ASSERT_EQ(mint::Data::object_format, array_get_item(result.data<mint::Array>(), 2).data().format());
+	ASSERT_EQ(mint::Class::string,
+	    array_get_item(result.data<mint::Array>(), 2).data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("s", array_get_item(result.data<mint::Array>(), 2).data<mint::String>().str);
 
-	ASSERT_EQ(Data::FMT_OBJECT, array_get_item(result.data<Array>(), 3).data()->format);
-	ASSERT_EQ(Class::STRING, array_get_item(result.data<Array>(), 3).data<Object>()->metadata->metatype());
-	EXPECT_EQ("t", array_get_item(result.data<Array>(), 3).data<String>()->str);
-
-	scheduler.disable_testing(thread);
+	ASSERT_EQ(mint::Data::object_format, array_get_item(result.data<mint::Array>(), 3).data().format());
+	ASSERT_EQ(mint::Class::string,
+	    array_get_item(result.data<mint::Array>(), 3).data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("t", array_get_item(result.data<mint::Array>(), 3).data<mint::String>().str);
 }

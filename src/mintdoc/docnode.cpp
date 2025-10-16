@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -25,34 +25,35 @@
 #include "definition.h"
 #include "docparser.h"
 
+#include <memory>
 #include <sstream>
 #include <string>
 
-std::unique_ptr<DocNode> parse_doc(std::stringstream &stream) {
+std::unique_ptr<DocNode> parse_doc(std::stringstream& stream) {
 	DocParser parser;
 	return parser.parse(stream);
 }
 
-std::unique_ptr<DocNode> parse_doc(const std::string &doc) {
+std::unique_ptr<DocNode> parse_doc(const std::string& doc) {
 	std::stringstream stream(doc);
 	return parse_doc(stream);
 }
 
-std::string symbol_link_target(const DocNodeSymbolLink *node, const Definition *context) {
+std::string symbol_link_target(const DocNodeSymbolLink& node, const Definition* context) {
 
 	if (!context) {
-		return node->symbol;
+		return node.symbol;
 	}
 
 	switch (context->type) {
-	case Definition::PACKAGE_DEFINITION:
-	case Definition::ENUM_DEFINITION:
-	case Definition::CLASS_DEFINITION:
-		return context->name + "." + node->symbol;
-	case Definition::CONSTANT_DEFINITION:
-	case Definition::FUNCTION_DEFINITION:
-		return context->context() + "." + node->symbol;
+	case Definition::package_definition:
+	case Definition::enum_definition:
+	case Definition::class_definition:
+		return context->name + "." + node.symbol;
+	case Definition::constant_definition:
+	case Definition::function_definition:
+		return context->context() + "." + node.symbol;
 	}
 
-	return node->symbol;
+	return node.symbol;
 }

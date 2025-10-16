@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,14 +21,18 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef CONTEXT_H
-#define CONTEXT_H
+#ifndef LIBMINT_COMPILER_CONTEXT_H
+#define LIBMINT_COMPILER_CONTEXT_H
 
-#include "mint/ast/symbolmapping.hpp"
 #include "branch.h"
+#include "mint/ast/symbol.h"
+#include "mint/compiler/buildtool.h"
+#include "mint/memory/reference.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 #include <stack>
 #include <list>
@@ -40,35 +44,33 @@ class ClassDescription;
 
 struct Block;
 
-static constexpr const size_t INVALID_OFFSET = static_cast<size_t>(-1);
-
 struct Context {
-	enum ResultTarget : std::uint8_t {
-		SEND_TO_PRINTER,
-		SEND_TO_GENERATOR_EXPRESSION
+	enum class ResultTarget : std::uint8_t {
+		send_to_printer,
+		send_to_generator_expression
 	};
 
 	std::stack<ResultTarget> result_targets;
-	std::stack<ClassDescription *> classes;
-	std::list<Block *> blocks;
-	std::unique_ptr<std::vector<Symbol *>> condition_scoped_symbols;
-	std::unique_ptr<std::vector<Symbol *>> range_loop_scoped_symbols;
+	std::stack<std::unique_ptr<ClassDescription>> classes;
+	std::list<std::unique_ptr<Block>> blocks;
+	std::unique_ptr<std::vector<const Symbol*>> condition_scoped_symbols;
+	std::unique_ptr<std::vector<const Symbol*>> range_loop_scoped_symbols;
 };
 
 struct Parameter {
 	Reference::Flags flags;
-	Symbol *symbol;
+	const Symbol* symbol;
 };
 
 struct Definition : public Context {
 	std::vector<Branch::BackwardNodeIndex> exit_points;
-	SymbolMapping<int> fast_symbol_indexes;
-	size_t fast_symbol_count = 0;
+	std::unordered_map<Symbol, std::size_t> fast_symbol_indexes;
+	std::size_t fast_symbol_count = 0;
 	std::stack<Parameter> parameters;
-	size_t begin_offset = INVALID_OFFSET;
-	size_t retrieve_point_count = 0;
-	Reference *function = nullptr;
-	Branch *capture = nullptr;
+	std::size_t begin_offset = invalid_offset;
+	std::size_t retrieve_point_count = 0;
+	Reference* function = nullptr;
+	std::unique_ptr<Branch> capture;
 	bool capture_all = false;
 	bool with_fast = true;
 	bool variadic = false;
@@ -76,10 +78,10 @@ struct Definition : public Context {
 	bool returned = false;
 };
 
-int find_fast_symbol_index(const Definition *def, const Symbol *symbol);
-int create_fast_symbol_index(Definition *def, const Symbol *symbol);
-int fast_symbol_index(Definition *def, const Symbol *symbol);
+std::size_t find_fast_symbol_index(const Definition& def, const Symbol& symbol);
+std::size_t create_fast_symbol_index(Definition& def, const Symbol& symbol);
+std::size_t fast_symbol_index(Definition& def, const Symbol& symbol);
 
 }
 
-#endif // CONTEXT_H
+#endif // LIBMINT_COMPILER_CONTEXT_H

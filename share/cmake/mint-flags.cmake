@@ -3,12 +3,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # C++ flags
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 if (MSVC)
 	add_definitions("-DNOMINMAX")
 	add_definitions("-D_CRT_SECURE_NO_DEPRECATE")
 	add_definitions("-D_CRT_NONSTDC_NO_DEPRECATE")
 	add_definitions("/W3")
+
+	if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+		add_definitions("/Zc:preprocessor")
+	endif()
 
 	if (MSVC_VERSION GREATER_EQUAL 1930)
 		option(CXX_SANITIZE_ADDRESS "Enable address sanitizer" off)
@@ -36,7 +40,7 @@ else()
 
 	option(CXX_SANITIZE_THREAD "Enable thread sanitizer" off)
 	if (CXX_SANITIZE_THREAD)
-	        add_definitions("-fsanitize=thread -ltsan")
+		add_definitions("-fsanitize=thread -ltsan")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
 	endif()
 endif()

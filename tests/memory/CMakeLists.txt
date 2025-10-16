@@ -4,7 +4,7 @@ add_executable(test-memory)
 
 target_sources(
 	test-memory
-	PRIVATE
+PRIVATE
 	builtin/array.cpp
 	builtin/hash.cpp
 	builtin/iterator.cpp
@@ -25,9 +25,10 @@ target_sources(
 
 target_link_libraries(
 	test-memory
-	GTest::Main
-	GTest::GTest
-	mint_library
+PRIVATE
+	libmint
+	GTest::gtest
+	GTest::gtest_main
 )
 
 gtest_discover_tests(test-memory)

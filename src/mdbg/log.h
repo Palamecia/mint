@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,29 +21,27 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef THREADCONTEXT_HPP
-#define THREADCONTEXT_HPP
+#ifndef MDBG_LOG_H
+#define MDBG_LOG_H
 
-#include "mint/scheduler/process.h"
+#include <cstdio>
+#include <filesystem>
+#include <gsl/gsl>
 
-namespace mint {
+class Logger {
+	gsl::owner<FILE*> _file;
+public:
+	Logger(const std::filesystem::path& path);
+	Logger(const Logger&) = delete;
+	Logger(Logger&&) = delete;
+	~Logger();
 
-struct ThreadContext {
-	enum State: std::uint8_t {
-		DEBUGGER_RUN,
-		DEBUGGER_PAUSE,
-		DEBUGGER_NEXT,
-		DEBUGGER_ENTER,
-		DEBUGGER_RETURN
-	};
+	Logger& operator=(const Logger&) = delete;
+	Logger& operator=(Logger&&) = delete;
 
-	State state;
-	size_t line_number;
-	size_t call_depth;
+	static Logger& default_logger();
 
-	Process::ThreadId thread_id;
+	operator FILE*();
 };
 
-}
-
-#endif // THREADCONTEXT_HPP
+#endif // MDBG_LOG_H

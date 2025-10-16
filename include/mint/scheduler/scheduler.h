@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,112 +21,141 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_SCHEDULER_H
-#define MINT_SCHEDULER_H
+#ifndef MINT_SCHEDULER_SCHEDULER_H
+#define MINT_SCHEDULER_SCHEDULER_H
 
 #include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/savedstate.h"
+#include "mint/ast/symbol.h"
+#include "mint/config.h"
 #include "mint/memory/class.h"
+#include "mint/memory/reference.h"
 #include "mint/scheduler/threadpool.h"
-#include "process.h"
+#include "mint/scheduler/process.h"
 
-#include <cstdint>
+#include <cstdlib>
+#include <functional>
 #include <future>
 #include <atomic>
+#include <memory>
+#include <mutex>
 #include <queue>
+#include <string>
+#include <vector>
 
 namespace mint {
 
 class DebugInterface;
-struct Object;
+class Object;
+class Scheduler;
+
+class MINT_EXPORT SchedulerContextSwitcher {
+	Scheduler* _previous = nullptr;
+public:
+	SchedulerContextSwitcher(const SchedulerContextSwitcher&) = default;
+	SchedulerContextSwitcher(SchedulerContextSwitcher&&) = delete;
+	SchedulerContextSwitcher(Scheduler* scheduler);
+	~SchedulerContextSwitcher();
+
+	static Scheduler* current();
+
+	SchedulerContextSwitcher& operator=(const SchedulerContextSwitcher&) = default;
+	SchedulerContextSwitcher& operator=(SchedulerContextSwitcher&&) = delete;
+};
+
+class MINT_EXPORT TestProcess : public Process {
+	std::reference_wrapper<Scheduler> _scheduler;
+	SchedulerContextSwitcher _context;
+public:
+	TestProcess(Scheduler& scheduler, std::unique_ptr<Cursor>&& cursor);
+	TestProcess(const TestProcess&) = delete;
+	TestProcess(TestProcess&&) = delete;
+	~TestProcess();
+
+	TestProcess& operator=(const TestProcess&) = delete;
+	TestProcess& operator=(TestProcess&&) = delete;
+};
 
 class MINT_EXPORT Scheduler {
 public:
-	Scheduler(int argc, char **argv);
-	Scheduler(Scheduler &&) = delete;
-	Scheduler(const Scheduler &) = delete;
+	Scheduler(const std::vector<std::string>& args);
+	Scheduler(Scheduler&&) = delete;
+	Scheduler(const Scheduler&) = delete;
 	~Scheduler();
 
-	Scheduler &operator=(Scheduler &&) = delete;
-	Scheduler &operator=(const Scheduler &) = delete;
+	Scheduler& operator=(Scheduler&&) = delete;
+	Scheduler& operator=(const Scheduler&) = delete;
 
-	static Scheduler *instance();
+	static Scheduler* instance();
 
-	AbstractSyntaxTree *ast();
-	Process *current_process();
+	AbstractSyntaxTree& ast();
+	static Process* current_process();
 
-	void set_debug_interface(DebugInterface *debug_interface);
-	void push_waiting_process(Process *process);
-
-	template<class... Args>
-	WeakReference invoke(Reference &function, Args... args);
-	WeakReference invoke(Reference &function, std::vector<WeakReference> &parameters);
+	void set_debug_interface(DebugInterface* debug_interface);
+	void push_waiting_process(std::unique_ptr<Process>&& process);
 
 	template<class... Args>
-	WeakReference invoke(Class *type, Args... args);
-	WeakReference invoke(Class *type, std::vector<WeakReference> &parameters);
+	WeakReference invoke(const Reference& function, Args... args);
+	WeakReference invoke(const Reference& function, std::vector<WeakReference>& parameters);
 
 	template<class... Args>
-	WeakReference invoke(Reference &object, const Symbol &method, Args... args);
-	WeakReference invoke(Reference &object, const Symbol &method, std::vector<WeakReference> &parameters);
+	WeakReference invoke(Class& type, Args... args);
+	WeakReference invoke(Class& type, std::vector<WeakReference>& parameters);
 
 	template<class... Args>
-	WeakReference invoke(Reference &object, Class::Operator op, Args... args);
-	WeakReference invoke(Reference &object, Class::Operator op, std::vector<WeakReference> &parameters);
+	WeakReference invoke(const Reference& object, const Symbol& method, Args... args);
+	WeakReference invoke(const Reference& object, const Symbol& method, std::vector<WeakReference>& parameters);
 
-	std::future<WeakReference> create_async(Cursor *cursor);
-	Process::ThreadId create_thread(Cursor *cursor);
-	Process *find_thread(Process::ThreadId id) const;
+	template<class... Args>
+	WeakReference invoke(const Reference& object, Class::Operator op, Args... args);
+	WeakReference invoke(const Reference& object, Class::Operator op, std::vector<WeakReference>& parameters);
+
+	std::future<WeakReference> create_async(std::unique_ptr<Cursor>&& cursor);
+	Process::ThreadId create_thread(std::unique_ptr<Cursor>&& cursor);
+	Process* find_thread(Process::ThreadId id) const;
 	void join_thread(Process::ThreadId id);
 
-	void create_destructor(Object *object, Reference &&member, Class *owner);
-	void create_exception(Reference &&reference);
-	void create_generator(std::unique_ptr<SavedState> state);
+	void create_destructor(Object* object, const Reference& member, Class& owner);
+	void create_exception(Reference&& reference);
+	void create_generator(std::unique_ptr<SavedState>&& state);
 
-	void add_exit_callback(const std::function<void(int)> &callback);
+	void add_exit_callback(const std::function<void(int)>& callback);
 
 	bool is_running() const;
 	void exit(int status);
 	int run();
 
-	Process *enable_testing();
-	bool disable_testing(Process *thread);
+	std::unique_ptr<TestProcess> enable_testing();
+	bool disable_testing(TestProcess& process);
 
 protected:
-	bool parse_arguments(int argc, char **argv);
-	void print_version();
-	void print_help();
+	bool parse_arguments(const std::vector<std::string>& args);
+	static void print_version();
+	static void print_help();
 
-	enum RunOption : std::uint8_t {
-		NO_RUN_OPTION = 0x00,
-		COLLECT_AT_EXIT = 0x01
-	};
+	bool schedule(Process& thread);
+	bool resume(Process& thread) const;
 
-	using RunOptions = std::underlying_type_t<RunOption>;
-
-	bool schedule(Process *thread, RunOptions options = NO_RUN_OPTION);
-	bool resume(Process *thread) const;
-
-	void finalize_process(Process *process);
+	static void initialize_process(Process& process);
+	void finalize_process(Process& process);
 	void finalize();
 
 private:
-	static Scheduler *g_instance;
+	std::queue<std::unique_ptr<Process>> _configured_process;
+	DebugInterface* _debug_interface = nullptr;
 
-	std::queue<Process *> m_configured_process;
-	DebugInterface *m_debug_interface;
+	AbstractSyntaxTree _ast;
+	ThreadPool _thread_pool;
 
-	AbstractSyntaxTree *m_ast;
-	ThreadPool m_thread_pool;
+	std::vector<std::function<void(int)>> _exit_callbacks;
+	std::mutex _exit_callbacks_mutex;
 
-	std::vector<std::function<void(int)>> m_exit_callbacks;
-	std::mutex m_exit_callbacks_mutex;
-
-	std::atomic_bool m_running;
-	std::atomic_int m_status;
+	std::atomic_bool _running {false};
+	std::atomic_int _status = EXIT_SUCCESS;
 };
 
 template<class... Args>
-WeakReference Scheduler::invoke(Reference &function, Args... args) {
+WeakReference Scheduler::invoke(const Reference& function, Args... args) {
 	std::vector<WeakReference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);
@@ -134,7 +163,7 @@ WeakReference Scheduler::invoke(Reference &function, Args... args) {
 }
 
 template<class... Args>
-WeakReference Scheduler::invoke(Class *type, Args... args) {
+WeakReference Scheduler::invoke(Class& type, Args... args) {
 	std::vector<WeakReference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);
@@ -142,7 +171,7 @@ WeakReference Scheduler::invoke(Class *type, Args... args) {
 }
 
 template<class... Args>
-WeakReference Scheduler::invoke(Reference &object, const Symbol &method, Args... args) {
+WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, Args... args) {
 	std::vector<WeakReference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);
@@ -150,7 +179,7 @@ WeakReference Scheduler::invoke(Reference &object, const Symbol &method, Args...
 }
 
 template<class... Args>
-WeakReference Scheduler::invoke(Reference &object, Class::Operator op, Args... args) {
+WeakReference Scheduler::invoke(const Reference& object, Class::Operator op, Args... args) {
 	std::vector<WeakReference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);
@@ -159,4 +188,4 @@ WeakReference Scheduler::invoke(Reference &object, Class::Operator op, Args... a
 
 }
 
-#endif // MINT_SCHEDULER_H
+#endif // MINT_SCHEDULER_SCHEDULER_H

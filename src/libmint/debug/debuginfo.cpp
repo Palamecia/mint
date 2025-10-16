@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,41 +23,43 @@
 
 #include "mint/debug/debuginfo.h"
 #include "mint/ast/module.h"
+#include <cstddef>
+#include <set>
 
 using namespace mint;
 
-size_t DebugInfo::line_number(size_t offset) {
+std::size_t DebugInfo::line_number(std::size_t offset) {
 
-	if (m_lines.empty()) {
+	if (_lines.empty()) {
 		return 1;
 	}
 
-	auto line = m_lines.upper_bound(offset);
+	auto line = _lines.upper_bound(offset);
 
-	if (line != m_lines.begin()) {
+	if (line != _lines.begin()) {
 		--line;
 	}
 
 	return line->second;
 }
 
-void DebugInfo::new_line(size_t offset, size_t line_number) {
-	auto [it, inserted] = m_lines.emplace(offset, line_number);
+void DebugInfo::new_line(std::size_t offset, std::size_t line_number) {
+	auto [it, inserted] = _lines.emplace(offset, line_number);
 	if (!inserted) {
 		it->second = line_number;
 	}
 }
 
-void DebugInfo::new_line(const Module *module, size_t line_number) {
-	auto [it, inserted] = m_lines.emplace(module->next_node_offset(), line_number);
+void DebugInfo::new_line(const Module* module, std::size_t line_number) {
+	auto [it, inserted] = _lines.emplace(module->next_node_offset(), line_number);
 	if (!inserted) {
 		it->second = line_number;
 	}
 }
 
-size_t DebugInfo::to_executable_line_number(size_t line_number) {
-	std::set<size_t> executable_line_numbers;
-	for (auto [_, executable_line_number] : m_lines) {
+std::size_t DebugInfo::to_executable_line_number(std::size_t line_number) {
+	std::set<std::size_t> executable_line_numbers;
+	for (auto [_, executable_line_number] : _lines) {
 		if (executable_line_number == line_number) {
 			return executable_line_number;
 		}

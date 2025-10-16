@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,15 +22,24 @@
  */
 
 #include <cstddef>
+#include <iterator>
+#include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
 #include "mint/memory/builtin/iterator.h"
-#include "memory/reference.h"
+#include "mint/memory/class.h"
+#include "mint/memory/data.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/garbagecollector.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/reference.h"
 #include "mint/memory/algorithm.hpp"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
 #include "mint/system/error.h"
+#include "mint/scheduler/scheduler.h"
 
 #include "iterator_items.h"
 #include "iterator_range.h"
@@ -38,59 +47,55 @@
 
 using namespace mint;
 
-IteratorClass *IteratorClass::instance() {
-	return GlobalData::instance()->builtin<IteratorClass>(Class::ITERATOR);
+IteratorClass& IteratorClass::instance(AbstractSyntaxTree& ast) {
+	return ast.global_data().builtin<IteratorClass>(Class::iterator);
 }
 
-Iterator::Iterator() :
-	Object(IteratorClass::instance()),
-	ctx(new mint::internal::ItemsIteratorData) {}
+Iterator::Iterator(AbstractSyntaxTree& ast) :
+    Object(IteratorClass::instance(ast)),
+    ctx(std::make_unique<mint::internal::ItemsIteratorData>()) {}
 
-Iterator::Iterator(size_t capacity) :
-	Object(IteratorClass::instance()),
-	ctx(new mint::internal::ItemsIteratorData(capacity)) {}
+Iterator::Iterator(AbstractSyntaxTree& ast, std::size_t capacity) :
+    Object(IteratorClass::instance(ast)),
+    ctx(std::make_unique<mint::internal::ItemsIteratorData>(capacity)) {}
 
-Iterator::Iterator(Reference &ref) :
-	Object(IteratorClass::instance()),
-	ctx(new mint::internal::ItemsIteratorData(ref)) {}
+Iterator::Iterator(AbstractSyntaxTree& ast, const Reference& ref) :
+    Object(IteratorClass::instance(ast)),
+    ctx(std::make_unique<mint::internal::ItemsIteratorData>(ast, ref)) {}
 
-Iterator::Iterator(Reference &&ref) :
-	Object(IteratorClass::instance()),
-	ctx(new mint::internal::ItemsIteratorData(std::move(ref))) {}
+Iterator::Iterator(AbstractSyntaxTree& ast, Reference&& ref) :
+    Object(IteratorClass::instance(ast)),
+    ctx(std::make_unique<mint::internal::ItemsIteratorData>(ast, std::move(ref))) {}
 
-Iterator::Iterator(mint::internal::IteratorData *data) :
-	Object(IteratorClass::instance()),
-	ctx(data) {}
+Iterator::Iterator(AbstractSyntaxTree& ast, std::unique_ptr<mint::internal::IteratorData>&& data) :
+    Object(IteratorClass::instance(ast)),
+    ctx(std::move(data)) {}
 
-Iterator::Iterator(const Iterator &other) :
-	Object(IteratorClass::instance()),
-	ctx(other.ctx) {}
+Iterator::Iterator(const Iterator& other) :
+    Object(other.metadata),
+    ctx(other.ctx) {}
 
-Iterator::Iterator(Iterator &&other) noexcept :
-	Object(IteratorClass::instance()),
-	ctx(std::move(other.ctx)) {}
+Iterator::Iterator(Iterator&& other) noexcept :
+    Object(other.metadata),
+    ctx(std::move(other.ctx)) {}
 
-Iterator &Iterator::operator=(const Iterator &other) {
+Iterator::Iterator(FromGenerator /*from_generator*/, AbstractSyntaxTree& ast, std::size_t stack_size) :
+    Iterator(ast, std::make_unique<mint::internal::GeneratorData>(stack_size)) {}
+
+Iterator::Iterator(FromInclusiveRange /*from_inclusive_range*/, AbstractSyntaxTree& ast, double begin, double end) :
+    Iterator(ast, std::make_unique<mint::internal::RangeIteratorData>(begin, begin <= end ? end + 1 : end - 1)) {}
+
+Iterator::Iterator(FromExclusiveRange /*from_exclusive_range*/, AbstractSyntaxTree& ast, double begin, double end) :
+    Iterator(ast, std::make_unique<mint::internal::RangeIteratorData>(begin, end)) {}
+
+Iterator& Iterator::operator=(const Iterator& other) {
 	ctx = other.ctx;
 	return *this;
 }
 
-Iterator &Iterator::operator=(Iterator &&other) noexcept {
+Iterator& Iterator::operator=(Iterator&& other) noexcept {
 	ctx = std::move(other.ctx);
 	return *this;
-}
-
-Iterator *Iterator::from_generator(size_t stack_size) {
-	return GarbageCollector::instance().alloc<Iterator>(new mint::internal::GeneratorData(stack_size));
-}
-
-Iterator *Iterator::from_inclusive_range(double begin, double end) {
-	return GarbageCollector::instance().alloc<Iterator>(
-		new mint::internal::RangeIteratorData(begin, begin <= end ? end + 1 : end - 1));
-}
-
-Iterator *Iterator::from_exclusive_range(double begin, double end) {
-	return GarbageCollector::instance().alloc<Iterator>(new mint::internal::RangeIteratorData(begin, end));
 }
 
 void Iterator::mark() {
@@ -100,22 +105,21 @@ void Iterator::mark() {
 	}
 }
 
-IteratorClass::IteratorClass() :
-	Class("iterator", Class::ITERATOR) {
+IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
+    Class(ast.global_data(), "iterator", Class::iterator) {
 
-	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
+	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+		const auto base = get_stack_base(cursor);
 
-	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [](Cursor *cursor) {
-		const size_t base = get_stack_base(cursor);
+		const auto& other = load_from_stack(cursor, base);
+		const auto& self = load_from_stack(cursor, base - 1);
+		auto it = self.data<Iterator>().ctx.begin();
+		const auto end = self.data<Iterator>().ctx.end();
 
-		Reference &other = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
-		Iterator::Context::iterator it = self.data<Iterator>()->ctx.begin();
-		const Iterator::Context::iterator end = self.data<Iterator>()->ctx.end();
-
-		for_each_if(other, [&it, &end](const Reference &item) -> bool {
+		for_each_if(cursor.ast(), other, [&it, &end](const Reference& item) -> bool {
 			if (it != end) {
-				if (UNLIKELY((it->flags() & Reference::CONST_ADDRESS) && (it->data()->format != Data::FMT_NONE))) {
+				if ((it->flags() & Reference::const_address) && (it->data().format() != Data::none_format))
+				    [[unlikely]] {
 					error("invalid modification of constant reference");
 				}
 
@@ -127,39 +131,39 @@ IteratorClass::IteratorClass() :
 			return false;
 		});
 
-		cursor->stack().pop_back();
+		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member("next", ast->create_builtin_method(this, 1, [](Cursor *cursor) {
-		WeakReference self = std::move(cursor->stack().back());
+	create_builtin_member("next", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+		const auto self = std::move(cursor.stack().back());
 
-		if (!self.data<Iterator>()->ctx.empty()) {
-			cursor->stack().back() = std::move(self.data<Iterator>()->ctx.value());
+		if (!self.data<Iterator>().ctx.empty()) {
+			cursor.stack().back() = WeakReference(create_from, self.data<Iterator>().ctx.get());
 			// The next call can interrupt the current context,
 			// so the value must be pushed first
-			self.data<Iterator>()->ctx.next();
+			self.data<Iterator>().ctx.next();
 		}
 		else {
-			cursor->stack().back() = WeakReference::create<None>();
+			cursor.stack().back() = create_none();
 		}
 	}));
 
-	create_builtin_member("value", ast->create_builtin_method(this, 1, [](Cursor *cursor) {
-		if (std::optional<WeakReference> &&result = iterator_get(cursor->stack().back().data<Iterator>())) {
-			cursor->stack().back() = std::move(*result);
+	create_builtin_member("value", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+		if (std::optional<WeakReference>&& result = iterator_get(cursor.stack().back().data<Iterator>())) {
+			cursor.stack().back() = std::move(*result);
 		}
 		else {
-			cursor->stack().back() = WeakReference::create<None>();
+			cursor.stack().back() = create_none();
 		}
 	}));
 
-	create_builtin_member("isEmpty", ast->create_builtin_method(this, 1, [](Cursor *cursor) {
-		cursor->stack().back() = WeakReference::create<Boolean>(cursor->stack().back().data<Iterator>()->ctx.empty());
+	create_builtin_member("isEmpty", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+		cursor.stack().back() = create_boolean(cursor.stack().back().data<Iterator>().ctx.empty());
 	}));
 
-	create_builtin_member("each", ast->create_builtin_method(this, 2, R"""(
-		def (const self, const func) {
-			for item in self {
+	create_builtin_member("each", ast.create_builtin_method(*this, 2, R"""(
+		def (self, const func) {
+			for let item in self {
 				func(item)
 			}
 		})"""));
@@ -167,131 +171,287 @@ IteratorClass::IteratorClass() :
 	/// \todo register operator overloads
 }
 
-Iterator::Context::iterator::iterator(Context *context) :
-	m_context(context) {}
+Iterator::View::const_iterator::const_iterator(mint::internal::IteratorViewData* data) :
+    _data(data) {}
 
-bool Iterator::Context::iterator::operator==(const iterator &other) const {
-	return m_context == other.m_context;
+bool Iterator::View::const_iterator::operator==(const const_iterator& other) const {
+	return _data == other._data;
 }
 
-bool Iterator::Context::iterator::operator!=(const iterator &other) const {
-	return m_context != other.m_context;
+bool Iterator::View::const_iterator::operator!=(const const_iterator& other) const {
+	return _data != other._data;
 }
 
-Iterator::Context::value_type &Iterator::Context::iterator::operator*() const {
-	return m_context->value();
+bool mint::operator==(const Iterator::View::const_iterator& self, const Iterator::View::sentinel& /*other*/) {
+	return self._data->empty();
 }
 
-Iterator::Context::value_type *Iterator::Context::iterator::operator->() const {
-	return &m_context->value();
+bool mint::operator==(const Iterator::View::sentinel& /*self*/, const Iterator::View::const_iterator& other) {
+	return other._data->empty();
+}
+
+bool mint::operator!=(const Iterator::View::const_iterator& self, const Iterator::View::sentinel& /*other*/) {
+	return !self._data->empty();
+}
+
+bool mint::operator!=(const Iterator::View::sentinel& /*self*/, const Iterator::View::const_iterator& other) {
+	return !other._data->empty();
+}
+
+Iterator::View::reference Iterator::View::const_iterator::operator*() const {
+	return _data->get();
+}
+
+Iterator::View::pointer Iterator::View::const_iterator::operator->() const {
+	return &_data->get();
+}
+
+Iterator::View::const_iterator Iterator::View::const_iterator::operator++(int) {
+	_data->next();
+	return Iterator::View::const_iterator {_data};
+}
+
+Iterator::View::const_iterator& Iterator::View::const_iterator::operator++() {
+	_data->next();
+	return *this;
+}
+
+Iterator::View::const_iterator Iterator::View::const_iterator::operator--(int) {
+	_data->prev();
+	return Iterator::View::const_iterator {_data};
+}
+
+Iterator::View::const_iterator& Iterator::View::const_iterator::operator--() {
+	_data->prev();
+	return *this;
+}
+
+Iterator::View::iterator::iterator(mint::internal::IteratorViewData* data) :
+    _data(data) {}
+
+bool Iterator::View::iterator::operator==(const iterator& other) const {
+	return _data == other._data;
+}
+
+bool Iterator::View::iterator::operator!=(const iterator& other) const {
+	return _data != other._data;
+}
+
+bool mint::operator==(const Iterator::View::iterator& self, const Iterator::View::sentinel& /*other*/) {
+	return self._data->empty();
+}
+
+bool mint::operator==(const Iterator::View::sentinel& /*self*/, const Iterator::View::iterator& other) {
+	return other._data->empty();
+}
+
+bool mint::operator!=(const Iterator::View::iterator& self, const Iterator::View::sentinel& /*other*/) {
+	return !self._data->empty();
+}
+
+bool mint::operator!=(const Iterator::View::sentinel& /*self*/, const Iterator::View::iterator& other) {
+	return !other._data->empty();
+}
+
+Iterator::View::reference Iterator::View::iterator::operator*() const {
+	return _data->get();
+}
+
+Iterator::View::pointer Iterator::View::iterator::operator->() const {
+	return &_data->get();
+}
+
+Iterator::View::iterator Iterator::View::iterator::operator++(int) {
+	_data->next();
+	return Iterator::View::iterator {_data};
+}
+
+Iterator::View::iterator& Iterator::View::iterator::operator++() {
+	_data->next();
+	return *this;
+}
+
+Iterator::View::iterator Iterator::View::iterator::operator--(int) {
+	_data->prev();
+	return Iterator::View::iterator {_data};
+}
+
+Iterator::View::iterator& Iterator::View::iterator::operator--() {
+	_data->prev();
+	return *this;
+}
+
+Iterator::View::View(std::unique_ptr<mint::internal::IteratorViewData>&& data) :
+    _data(std::move(data)) {}
+
+Iterator::View::View(View&& other) noexcept = default;
+
+Iterator::View::~View() {}
+
+Iterator::View& Iterator::View::operator=(View&& other) noexcept = default;
+
+Iterator::View::reference Iterator::View::front() {
+	return _data->front();
+}
+
+Iterator::View::reference Iterator::View::back() {
+	return _data->back();
+}
+
+Iterator::Context::iterator::iterator(mint::internal::IteratorData* data) :
+    _data(data) {}
+
+bool Iterator::Context::iterator::operator==(const iterator& other) const {
+	return _data == other._data;
+}
+
+bool Iterator::Context::iterator::operator!=(const iterator& other) const {
+	return _data != other._data;
+}
+
+bool mint::operator==(const Iterator::Context::iterator& self, const Iterator::Context::sentinel& /*other*/) {
+	return self._data->empty();
+}
+
+bool mint::operator==(const Iterator::Context::sentinel& /*self*/, const Iterator::Context::iterator& other) {
+	return other._data->empty();
+}
+
+bool mint::operator!=(const Iterator::Context::iterator& self, const Iterator::Context::sentinel& /*other*/) {
+	return !self._data->empty();
+}
+
+bool mint::operator!=(const Iterator::Context::sentinel& /*self*/, const Iterator::Context::iterator& other) {
+	return !other._data->empty();
+}
+
+Iterator::Context::reference Iterator::Context::iterator::operator*() const {
+	return _data->get();
+}
+
+Iterator::Context::pointer Iterator::Context::iterator::operator->() const {
+	return &_data->get();
 }
 
 Iterator::Context::iterator Iterator::Context::iterator::operator++(int) {
-	m_context->next();
-	if (m_context->empty()) {
-		m_context = nullptr;
-	}
-	return Iterator::Context::iterator {m_context};
+	_data->next();
+	return Iterator::Context::iterator {_data};
 }
 
-Iterator::Context::iterator &Iterator::Context::iterator::operator++() {
-	m_context->next();
-	if (m_context->empty()) {
-		m_context = nullptr;
-	}
+Iterator::Context::iterator& Iterator::Context::iterator::operator++() {
+	_data->next();
 	return *this;
 }
 
-Iterator::Context::Context(mint::internal::IteratorData *data) :
-	m_data(data) {}
+Iterator::Context::Context(std::unique_ptr<mint::internal::IteratorData>&& data) :
+    _data(std::move(data)) {}
 
-Iterator::Context::Context(const Context &other) :
-	m_data(other.m_data->copy()) {}
+Iterator::Context::Context(const Context& other) :
+    _data(other._data->copy()) {}
 
-Iterator::Context::Context(Context &&other) noexcept :
-	m_data(std::move(other.m_data)) {}
+Iterator::Context::Context(Context&& other) noexcept :
+    _data(std::move(other._data)) {}
 
 Iterator::Context::~Context() {}
 
-Iterator::Context &Iterator::Context::operator=(Context &&other) noexcept {
-	m_data = std::move(other.m_data);
+Iterator::Context& Iterator::Context::operator=(Context&& other) noexcept {
+	_data = std::move(other._data);
 	return *this;
 }
 
-Iterator::Context &Iterator::Context::operator=(const Context &other) {
-	m_data.reset(other.m_data->copy());
+Iterator::Context& Iterator::Context::operator=(const Context& other) {
+	if (this == &other) [[unlikely]] {
+		return *this;
+	}
+	_data = other._data->copy();
 	return *this;
+}
+
+Iterator::Context::iterator Iterator::Context::cbegin() const {
+	return Iterator::Context::iterator {_data.get()};
+}
+
+Iterator::Context::iterator Iterator::Context::begin() const {
+	return Iterator::Context::iterator {_data.get()};
 }
 
 Iterator::Context::iterator Iterator::Context::begin() {
-	return Iterator::Context::iterator {m_data->empty() ? nullptr : this};
+	return Iterator::Context::iterator {_data.get()};
 }
 
-Iterator::Context::iterator Iterator::Context::end() {
-	return Iterator::Context::iterator {nullptr};
+Iterator::Context::sentinel Iterator::Context::cend() const {
+	return Iterator::Context::sentinel {};
+}
+
+Iterator::Context::sentinel Iterator::Context::end() const {
+	return Iterator::Context::sentinel {};
+}
+
+Iterator::Context::sentinel Iterator::Context::end() {
+	return Iterator::Context::sentinel {};
+}
+
+Iterator::View Iterator::Context::view() const {
+	return Iterator::View {_data->view()};
 }
 
 void Iterator::Context::mark() {
-	m_data->mark();
+	_data->mark();
 }
 
 Iterator::Context::Type Iterator::Context::get_type() const {
-	return m_data->get_type();
+	return _data->get_type();
 }
 
-Iterator::Context::value_type &Iterator::Context::value() {
-	return m_data->value();
+Iterator::Context::reference Iterator::Context::get() {
+	return _data->get();
 }
 
-Iterator::Context::value_type &Iterator::Context::last() {
-	return m_data->last();
-}
-
-size_t Iterator::Context::size() const {
-	return m_data->size();
+std::size_t Iterator::Context::size() const {
+	return _data->size();
 }
 
 bool Iterator::Context::empty() const {
-	return m_data->empty();
+	return _data->empty();
 }
 
-size_t Iterator::Context::capacity() const {
-	return m_data->capacity();
+std::size_t Iterator::Context::capacity() const {
+	return _data->capacity();
 }
 
-void Iterator::Context::reserve(size_t capacity) {
-	m_data->reserve(capacity);
+void Iterator::Context::reserve(std::size_t capacity) {
+	_data->reserve(capacity);
 }
 
-void Iterator::Context::yield(value_type &&value) {
-	m_data->yield(std::move(value));
+void Iterator::Context::yield(value_type&& value) {
+	_data->yield(std::move(value));
 }
 
 void Iterator::Context::next() {
-	m_data->next();
+	_data->next();
 }
 
 void Iterator::Context::finalize() {
-	m_data->finalize();
+	_data->finalize();
 }
 
 void Iterator::Context::clear() {
-	m_data->clear();
+	_data->clear();
 }
 
-void mint::iterator_new(Cursor *cursor, size_t length) {
+void mint::iterator_new(Cursor& cursor, std::size_t length) {
 
-	auto &stack = cursor->stack();
+	auto& stack = cursor.stack();
 
-	Cursor::Call call = std::move(cursor->waiting_calls().top());
-	cursor->waiting_calls().pop();
+	Cursor::Call call = std::move(cursor.waiting_calls().top());
+	cursor.waiting_calls().pop();
 
-	auto *self = call.function().data<Iterator>();
-	self->ctx.reserve(length + call.extra_argument_count());
-	self->construct();
+	auto& self = call.function().data<Iterator>();
+	self.ctx.reserve(length + call.extra_argument_count());
+	self.construct();
 
-	const auto from = std::prev(stack.end(), static_cast<std::vector<WeakReference>::difference_type>(
-												 length + call.extra_argument_count()));
+	const auto from = std::prev(stack.end(),
+	    static_cast<std::vector<WeakReference>::difference_type>(length + call.extra_argument_count()));
 	const auto to = stack.end();
 	for (auto it = from; it != to; ++it) {
 		iterator_yield(self, std::move(*it));
@@ -301,46 +461,24 @@ void mint::iterator_new(Cursor *cursor, size_t length) {
 	stack.emplace_back(std::move(call.function()));
 }
 
-Iterator *mint::iterator_init(Reference &ref) {
-
-	if (ref.data()->format == Data::FMT_OBJECT && ref.data<Object>()->metadata->metatype() == Class::ITERATOR) {
-		return ref.data<Iterator>();
-	}
-
-	auto *iterator = new Iterator(ref);
-	iterator->construct();
-	return iterator;
+void mint::iterator_yield(Iterator& iterator, Reference&& item) {
+	iterator.ctx.yield(std::move(item));
 }
 
-Iterator *mint::iterator_init(Reference &&ref) {
-	
-	if (ref.data()->format == Data::FMT_OBJECT && ref.data<Object>()->metadata->metatype() == Class::ITERATOR) {
-		return ref.data<Iterator>();
-	}
+std::optional<WeakReference> mint::iterator_get(Iterator& iterator) {
 
-	auto *iterator = new Iterator(std::move(ref));
-	iterator->construct();
-	return iterator;
-}
-
-void mint::iterator_yield(Iterator *iterator, Reference &&item) {
-	iterator->ctx.yield(std::move(item));
-}
-
-std::optional<WeakReference> mint::iterator_get(Iterator *iterator) {
-
-	if (!iterator->ctx.empty()) {
-		return {WeakReference::share(iterator->ctx.value())};
+	if (!iterator.ctx.empty()) {
+		return iterator.ctx.get();
 	}
 
 	return std::nullopt;
 }
 
-std::optional<WeakReference> mint::iterator_next(Iterator *iterator) {
+std::optional<WeakReference> mint::iterator_next(Iterator& iterator) {
 
-	if (!iterator->ctx.empty()) {
-		std::optional<WeakReference> item(WeakReference::share(iterator->ctx.value()));
-		iterator->ctx.next();
+	if (!iterator.ctx.empty()) {
+		std::optional<WeakReference> item(iterator.ctx.get());
+		iterator.ctx.next();
 		return item;
 	}
 

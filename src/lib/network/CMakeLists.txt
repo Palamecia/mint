@@ -2,7 +2,11 @@ project(mint-network)
 
 set(MODULE_NAME network)
 
-set(${PROJECT_NAME}_SOURCES
+add_library(mint-network MODULE)
+
+target_SOURCES(
+	mint-network
+PRIVATE
 	ip.cpp
 	scheduler.cpp
 	scheduler.h
@@ -12,22 +16,31 @@ set(${PROJECT_NAME}_SOURCES
 	udpip.cpp
 )
 
-add_library(${PROJECT_NAME}
-	MODULE
-	${${PROJECT_NAME}_SOURCES}
-)
-
 set_target_properties(
-	${PROJECT_NAME}
+	mint-network
 	PROPERTIES
 	PREFIX lib
+	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
 )
 
-target_link_libraries(${PROJECT_NAME} mint_library)
+target_link_libraries(
+	mint-network
+PRIVATE
+	libmint
+)
 
 if (WIN32)
-    target_link_libraries(${PROJECT_NAME} ws2_32)
+    target_link_libraries(
+		mint-network
+	PRIVATE
+		ws2_32
+	)
 endif()
 
 # Install
-mint_install_library(${PROJECT_NAME} SUBDIR mint)
+install(
+	TARGETS mint-network
+	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+)

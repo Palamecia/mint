@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -26,10 +26,10 @@
 
 using namespace mint;
 
-SavedState::SavedState(Cursor *cursor, Cursor::Context *context) :
-	cursor(cursor),
-	context(context) {}
+SavedState::SavedState(Cursor& cursor, Cursor::Context* context) :
+    cursor(cursor),
+    context(context) {}
 
 SavedState::~SavedState() {
-	cursor->destroy(this);
+	cursor.get().destroy(this);
 }

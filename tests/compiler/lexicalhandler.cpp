@@ -1,6 +1,7 @@
 #include <cstddef>
+#include <cstdio>
 #include <gtest/gtest.h>
-#include <mint/compiler/lexicalhandler.h>
+#include "mint/compiler/lexicalhandler.h"
 
 #include <utility>
 #include <string>
@@ -8,51 +9,51 @@
 
 class SymbolCaptureHandler : public mint::LexicalHandler {
 public:
-	SymbolCaptureHandler(std::vector<std::pair<std::vector<std::string>, std::string>> *capture) :
-		m_capture(capture) {}
+	SymbolCaptureHandler(std::vector<std::pair<std::vector<std::string>, std::string>>* capture) :
+	    _capture(capture) {}
 
-	bool on_module_path_token(const std::vector<std::string> &context, const std::string &token,
-							  [[maybe_unused]] std::string::size_type offset) override {
-		m_capture->emplace_back(context, token);
+	bool on_module_path_token(const std::vector<std::string>& context, const std::string& token,
+	    [[maybe_unused]] std::string::size_type offset) override {
+		_capture->emplace_back(context, token);
 		return true;
 	}
 
-	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token,
-						 [[maybe_unused]]std::string::size_type offset) override {
-		m_capture->emplace_back(context, token);
+	bool on_symbol_token(const std::vector<std::string>& context, const std::string& token,
+	    [[maybe_unused]] std::string::size_type offset) override {
+		_capture->emplace_back(context, token);
 		return true;
 	}
 
 private:
-	std::vector<std::pair<std::vector<std::string>, std::string>> *m_capture;
+	std::vector<std::pair<std::vector<std::string>, std::string>>* _capture;
 };
 
 class LexicalHandlerStream : public mint::AbstractLexicalHandlerStream {
 public:
 	explicit LexicalHandlerStream(std::string buffer) :
-		m_buffer(std::move(buffer)) {}
+	    _buffer(std::move(buffer)) {}
 
 	[[nodiscard]] bool at_end() const override {
-		return !m_good;
+		return !_good;
 	}
 
 	[[nodiscard]] bool is_valid() const override {
-		return m_good;
+		return _good;
 	}
 
 protected:
 	int get() override {
-		if (m_pos < m_buffer.size()) {
-			return m_buffer[m_pos++];
+		if (_pos < _buffer.size()) {
+			return _buffer[_pos++];
 		}
-		m_good = false;
+		_good = false;
 		return EOF;
 	}
 
 private:
-	std::string m_buffer;
-	bool m_good = true;
-	size_t m_pos = 0;
+	std::string _buffer;
+	bool _good = true;
+	std::size_t _pos = 0;
 };
 
 TEST(lexicalhandler, module_path_symbols) {

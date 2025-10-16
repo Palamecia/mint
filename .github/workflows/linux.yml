@@ -6,26 +6,25 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    
+
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: |
-        sudo DEBIAN_FRONTEND=noninteractive apt-get -y install bison libgtest-dev libicu-dev libmagic-dev
-        cd /usr/src/gtest/
-        sudo cmake -DBUILD_SHARED_LIBS=ON
-        sudo make
-        sudo cp lib/*.so /usr/lib
+        sudo DEBIAN_FRONTEND=noninteractive apt -y install bison autoconf-archive libmagic-dev
+        git clone https://github.com/microsoft/vcpkg.git
+        pushd vcpkg
+        ./bootstrap-vcpkg.sh
+        popd
     - name: configure
       run: |
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=Release ..
+        export VCPKG_ROOT=./vcpkg
+        export PATH=$VCPKG_ROOT:$PATH
+        cmake --preset=vcpkg -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
     - name: make
       run: |
-        make
-        sudo make install
-      working-directory: ./build
+        cmake --build build --target all
+        sudo cmake --build build --target install
     - name: run tests
       run: ctest
       working-directory: ./build

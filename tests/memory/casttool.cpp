@@ -1,96 +1,96 @@
 #include <gtest/gtest.h>
-#include <mint/memory/casttool.h>
+#include "mint/memory/casttool.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/builtin/iterator.h"
-#include "mint/ast/abstractsyntaxtree.h"
-
-using namespace mint;
+#include "mint/scheduler/scheduler.h"
 
 TEST(casttool, to_number) {
 
-	AbstractSyntaxTree ast;
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
 
-	EXPECT_EQ(7357, to_number(nullptr, create_number(7357)));
+	EXPECT_EQ(7357, mint::to_number(process->cursor(), mint::create_number(7357)));
 
-	EXPECT_EQ(1, to_number(nullptr, create_boolean(true)));
-	EXPECT_EQ(0, to_number(nullptr, create_boolean(false)));
+	EXPECT_EQ(1, mint::to_number(process->cursor(), mint::create_boolean(true)));
+	EXPECT_EQ(0, mint::to_number(process->cursor(), mint::create_boolean(false)));
 
-	EXPECT_EQ(7357, to_number(nullptr, create_string("7357")));
-	EXPECT_EQ(0x7E57, to_number(nullptr, create_string("0x7E57")));
-	EXPECT_EQ(07357, to_number(nullptr, create_string("0o7357")));
-	EXPECT_EQ(0b1010, to_number(nullptr, create_string("0b1010")));
-	EXPECT_EQ(0, to_number(nullptr, create_string("test")));
+	EXPECT_EQ(7357, mint::to_number(process->cursor(), mint::create_string(scheduler.ast(), "7357")));
+	EXPECT_EQ(0x7E57, mint::to_number(process->cursor(), mint::create_string(scheduler.ast(), "0x7E57")));
+	EXPECT_EQ(07357, mint::to_number(process->cursor(), mint::create_string(scheduler.ast(), "0o7357")));
+	EXPECT_EQ(0b1010, mint::to_number(process->cursor(), mint::create_string(scheduler.ast(), "0b1010")));
+	EXPECT_EQ(0, mint::to_number(process->cursor(), mint::create_string(scheduler.ast(), "test")));
 
-	WeakReference it = WeakReference::create<Iterator>();
-	iterator_yield(it.data<Iterator>(), create_number(7357));
-	iterator_yield(it.data<Iterator>(), create_number(7356));
-	it.data<Iterator>()->construct();
+	const auto it = mint::create_iterator_from(scheduler.ast(), mint::create_number(7357), mint::create_number(7356));
 
-	EXPECT_EQ(7357, to_number(nullptr, it));
-	EXPECT_EQ(7357, to_number(nullptr, *iterator_next(it.data<Iterator>())));
-	EXPECT_EQ(7356, to_number(nullptr, it));
+	EXPECT_EQ(7357, to_number(process->cursor(), it));
+	EXPECT_EQ(7357, to_number(process->cursor(), *iterator_next(it.data<mint::Iterator>())));
+	EXPECT_EQ(7356, to_number(process->cursor(), it));
 }
 
 TEST(casttool, to_boolean) {
 
-	AbstractSyntaxTree ast;
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
 
-	EXPECT_EQ(true, to_boolean(create_number(7357)));
-	EXPECT_EQ(false, to_boolean(create_number(0)));
+	EXPECT_EQ(true, to_boolean(mint::create_number(7357)));
+	EXPECT_EQ(false, to_boolean(mint::create_number(0)));
 
-	EXPECT_EQ(true, to_boolean(create_boolean(true)));
-	EXPECT_EQ(false, to_boolean(create_boolean(false)));
+	EXPECT_EQ(true, to_boolean(mint::create_boolean(true)));
+	EXPECT_EQ(false, to_boolean(mint::create_boolean(false)));
 
-	WeakReference it(Reference::DEFAULT);
-	it = WeakReference::create<Iterator>();
-	iterator_yield(it.data<Iterator>(), WeakReference::create<None>());
-	EXPECT_EQ(true, to_boolean(it));
-	it = WeakReference::create<Iterator>();
-	EXPECT_EQ(false, to_boolean(it));
+	EXPECT_EQ(true, to_boolean(mint::create_iterator_from(scheduler.ast(), mint::create_none())));
+	EXPECT_EQ(false, to_boolean(mint::create_iterator_from(scheduler.ast())));
 }
 
 TEST(casttool, to_char) {
 
-	AbstractSyntaxTree ast;
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
 
-	EXPECT_EQ("", to_char(WeakReference::create<None>()));
-	EXPECT_EQ("", to_char(WeakReference::create<Null>()));
+	EXPECT_EQ("", to_char(mint::create_none()));
+	EXPECT_EQ("", to_char(mint::create_null()));
 
-	EXPECT_EQ("\x37", to_char(create_number(0x37)));
+	EXPECT_EQ("\x37", to_char(mint::create_number(0x37)));
 
-	EXPECT_EQ("n", to_char(create_boolean(false)));
-	EXPECT_EQ("y", to_char(create_boolean(true)));
+	EXPECT_EQ("n", to_char(mint::create_boolean(false)));
+	EXPECT_EQ("y", to_char(mint::create_boolean(true)));
 
-	EXPECT_EQ("t", to_char(create_string("test")));
+	EXPECT_EQ("t", to_char(mint::create_string(scheduler.ast(), "test")));
 }
 
 TEST(casttool, to_string) {
 
-	AbstractSyntaxTree ast;
+	mint::Scheduler scheduler({});
+	auto process = scheduler.enable_testing();
 
-	EXPECT_EQ("", to_string(WeakReference::create<None>()));
-	EXPECT_EQ("(null)", to_string(WeakReference::create<Null>()));
-	EXPECT_EQ("(function)", to_string(WeakReference::create<Function>()));
+	EXPECT_EQ("", to_string(mint::create_none()));
+	EXPECT_EQ("(null)", to_string(mint::create_null()));
+	EXPECT_EQ("(function)", to_string(mint::create_function()));
 
-	EXPECT_EQ("7357", to_string(create_number(7357)));
-	EXPECT_EQ("73.57", to_string(create_number(73.57)));
+	EXPECT_EQ("7357", to_string(mint::create_number(7357)));
+	EXPECT_EQ("73.57", to_string(mint::create_number(73.57)));
 
-	EXPECT_EQ("false", to_string(create_boolean(false)));
-	EXPECT_EQ("true", to_string(create_boolean(true)));
+	EXPECT_EQ("false", to_string(mint::create_boolean(false)));
+	EXPECT_EQ("true", to_string(mint::create_boolean(true)));
 
-	EXPECT_EQ("test", to_string(create_string("test")));
+	EXPECT_EQ("test", to_string(mint::create_string(scheduler.ast(), "test")));
 
-	EXPECT_EQ("[test1, test2]", to_string(create_array({create_string("test1"), create_string("test2")})));
+	EXPECT_EQ("[test1, test2]",
+	    to_string(mint::create_array(scheduler.ast(), {
+	                                                      mint::create_string(scheduler.ast(), "test1"),
+	                                                      mint::create_string(scheduler.ast(), "test2"),
+	                                                  })));
 
-	EXPECT_EQ("{key1 : value1}", to_string(create_hash({{create_string("key1"), create_string("value1")}})));
+	EXPECT_EQ("{key1 : value1}",
+	    to_string(mint::create_hash(scheduler.ast(),
+	        {
+	            {mint::create_string(scheduler.ast(), "key1"), mint::create_string(scheduler.ast(), "value1")},
+	        })));
 
-	WeakReference it = WeakReference::create<Iterator>();
-	iterator_yield(it.data<Iterator>(), create_string("test1"));
-	iterator_yield(it.data<Iterator>(), create_string("test2"));
-	it.data<Iterator>()->construct();
-
+	const auto it = mint::create_iterator_from(scheduler.ast(), mint::create_string(scheduler.ast(), "test1"),
+	    mint::create_string(scheduler.ast(), "test2"));
 	EXPECT_EQ("test1", to_string(it));
-	EXPECT_EQ("test1", to_string(*iterator_next(it.data<Iterator>())));
+	EXPECT_EQ("test1", to_string(*iterator_next(it.data<mint::Iterator>())));
 	EXPECT_EQ("test2", to_string(it));
 }
 

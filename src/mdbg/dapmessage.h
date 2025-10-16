@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,31 +24,35 @@
 #ifndef MDBG_DAPMESSAGE_H
 #define MDBG_DAPMESSAGE_H
 
-#include "json.hpp"
+#include "json.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <functional>
+#include <limits>
+#include <optional>
 #include <string>
 #include <memory>
 
 class DapMessage {
 public:
 	enum Type : std::uint8_t {
-		REQUEST,
-		RESPONSE,
-		EVENT
+		request,
+		response,
+		event
 	};
 
-	static const std::string CONTENT_LENGTH;
+	static const std::string content_length;
 
 	DapMessage() = default;
-	DapMessage(const DapMessage &) = delete;
-	DapMessage(DapMessage &&) = delete;
+	DapMessage(const DapMessage&) = default;
+	DapMessage(DapMessage&&) = default;
 	virtual ~DapMessage() = default;
 
-	DapMessage &operator=(const DapMessage &) = delete;
-	DapMessage &operator=(DapMessage &&) = delete;
+	DapMessage& operator=(const DapMessage&) = default;
+	DapMessage& operator=(DapMessage&&) = default;
 
-	[[nodiscard]] static std::unique_ptr<DapMessage> decode(const std::string &data);
+	[[nodiscard]] static std::unique_ptr<DapMessage> decode(const std::string& data);
 	[[nodiscard]] virtual std::string encode() const = 0;
 
 	[[nodiscard]] virtual Type get_type() const = 0;
@@ -60,7 +64,7 @@ protected:
 
 class DapRequestMessage : public DapMessage {
 public:
-	DapRequestMessage(const JsonObject *json);
+	DapRequestMessage(const JsonObject& json);
 
 	[[nodiscard]] std::string encode() const override;
 
@@ -68,24 +72,25 @@ public:
 	[[nodiscard]] int get_seq() const override;
 
 	[[nodiscard]] std::string get_command() const;
-	[[nodiscard]] const JsonObject *get_arguments() const;
+	[[nodiscard]] JsonObject get_arguments() const;
+	[[nodiscard]] bool has_arguments() const;
 
 private:
-	int m_seq;
-	std::string m_command;
-	std::unique_ptr<JsonObject> m_arguments;
+	int _seq;
+	std::string _command;
+	std::optional<const JsonObject> _arguments;
 };
 
 enum ErrorDestination : std::uint8_t {
-	USER = 1,
-	TELEMETRY = 2
+	user = 1,
+	telemetry = 2
 };
 
 class DapResponseMessage : public DapMessage {
 public:
-	DapResponseMessage(const JsonObject *json);
-	DapResponseMessage(const DapRequestMessage *request, JsonObject *body);
-	DapResponseMessage(const DapRequestMessage *request, std::string message, JsonObject *error);
+	DapResponseMessage(const JsonObject& json);
+	DapResponseMessage(const DapRequestMessage& request, std::optional<JsonObject> body);
+	DapResponseMessage(const DapRequestMessage& request, std::string message, std::optional<JsonObject> error);
 
 	[[nodiscard]] std::string encode() const override;
 
@@ -93,19 +98,19 @@ public:
 	[[nodiscard]] int get_seq() const override;
 
 private:
-	int m_seq;
-	int m_request_seq;
-	bool m_success;
-	std::string m_command;
-	std::string m_message;
-	std::unique_ptr<JsonObject> m_body;
-	std::unique_ptr<JsonObject> m_error;
+	int _seq;
+	int _request_seq;
+	bool _success;
+	std::string _command;
+	std::string _message;
+	std::optional<const JsonObject> _body;
+	std::optional<const JsonObject> _error;
 };
 
 class DapEventMessage : public DapMessage {
 public:
-	DapEventMessage(const JsonObject *json);
-	DapEventMessage(std::string event, JsonObject *body);
+	DapEventMessage(const JsonObject& json);
+	DapEventMessage(std::string event, std::optional<JsonObject> body);
 
 	[[nodiscard]] std::string encode() const override;
 
@@ -115,50 +120,65 @@ public:
 	[[nodiscard]] std::string get_event() const;
 
 private:
-	int m_seq;
-	std::string m_event;
-	std::unique_ptr<JsonObject> m_body;
+	int _seq;
+	std::string _event;
+	std::optional<const JsonObject> _body;
 };
+
+template<class Visitor>
+void visit(Visitor&& visitor, const DapMessage& message) {
+	switch (message.get_type()) {
+	case DapMessage::request:
+		std::invoke(std::forward<Visitor>(visitor), static_cast<const DapRequestMessage&>(message));
+		break;
+	case DapMessage::response:
+		std::invoke(std::forward<Visitor>(visitor), static_cast<const DapResponseMessage&>(message));
+		break;
+	case DapMessage::event:
+		std::invoke(std::forward<Visitor>(visitor), static_cast<const DapEventMessage&>(message));
+		break;
+	}
+}
 
 class DapMessageReader {
 public:
 	DapMessageReader() = default;
-	DapMessageReader(const DapMessageReader &) = delete;
-	DapMessageReader(DapMessageReader &&) = delete;
+	DapMessageReader(const DapMessageReader&) = delete;
+	DapMessageReader(DapMessageReader&&) = delete;
 	virtual ~DapMessageReader() = default;
 
-	DapMessageReader &operator=(const DapMessageReader &) = delete;
-	DapMessageReader &operator=(DapMessageReader &&) = delete;
+	DapMessageReader& operator=(const DapMessageReader&) = delete;
+	DapMessageReader& operator=(DapMessageReader&&) = delete;
 
 	[[nodiscard]] std::unique_ptr<DapMessage> next_message();
 
 protected:
-	static constexpr const size_t INVALID_LENGTH = static_cast<size_t>(-1);
+	static constexpr const std::size_t invalid_length = std::numeric_limits<std::size_t>::max();
 
-	virtual size_t read(std::string &data) = 0;
+	virtual std::size_t read(std::string& data) = 0;
 
 private:
-	size_t next_message_length(std::string::size_type &begin) const;
+	std::size_t next_message_length(std::string::size_type& begin) const;
 
-	std::string m_stream;
+	std::string _stream;
 };
 
 class DapMessageWriter {
 public:
 	DapMessageWriter() = default;
-	DapMessageWriter(const DapMessageWriter &) = delete;
-	DapMessageWriter(DapMessageWriter &&) = delete;
+	DapMessageWriter(const DapMessageWriter&) = delete;
+	DapMessageWriter(DapMessageWriter&&) = delete;
 	virtual ~DapMessageWriter() = default;
 
-	DapMessageWriter &operator=(const DapMessageWriter &) = delete;
-	DapMessageWriter &operator=(DapMessageWriter &&) = delete;
+	DapMessageWriter& operator=(const DapMessageWriter&) = delete;
+	DapMessageWriter& operator=(DapMessageWriter&&) = delete;
 
 	void append_message(std::unique_ptr<DapMessage> message);
 
 protected:
-	static constexpr const size_t INVALID_LENGTH = static_cast<size_t>(-1);
+	static constexpr const std::size_t invalid_length = std::numeric_limits<std::size_t>::max();
 
-	virtual size_t write(const std::string &data) = 0;
+	virtual std::size_t write(const std::string& data) = 0;
 };
 
 #endif // MDBG_DAPMESSAGE_H

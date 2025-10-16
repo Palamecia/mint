@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,220 +23,205 @@
 
 #include "debugprinter.h"
 
-#include <mint/memory/builtin/iterator.h>
-#include <mint/memory/builtin/library.h>
-#include <mint/memory/builtin/string.h>
-#include <mint/memory/builtin/regex.h>
-#include <mint/memory/globaldata.h>
-#include <mint/memory/memorytool.h>
-#include <mint/memory/casttool.h>
-#include <mint/ast/abstractsyntaxtree.h>
-#include <mint/system/string.h>
-#include <mint/system/terminal.h>
-#include <mint/system/plugin.h>
+#include "mint/ast/module.h"
+#include "mint/debug/debuginfo.h"
+#include "mint/memory/algorithm.hpp"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/class.h"
+#include "mint/memory/data.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/builtin/library.h"
+#include "mint/memory/builtin/string.h"
+#include "mint/memory/builtin/regex.h"
+#include "mint/memory/globaldata.h"
+#include "mint/memory/memorytool.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/system/assert.h"
+#include "mint/system/string.h"
+#include "mint/system/terminal.h"
+#include "mint/system/plugin.h"
+#include "mint/scheduler/scheduler.h"
 
+#include <bit>
+#include <cstdint>
 #include <cstdio>
-#include <cstdarg>
-
-using namespace mint;
+#include <format>
+#include <ranges>
+#include <string>
 
 DebugPrinter::~DebugPrinter() {}
 
-void DebugPrinter::print(Reference &reference) {
-	switch (reference.data()->format) {
-	case Data::FMT_NONE:
-		Terminal::print(stdout, "none\n");
-		break;
-
-	case Data::FMT_NULL:
-		Terminal::print(stdout, "null\n");
-		break;
-
-	case Data::FMT_NUMBER:
-		Terminal::printf(stdout, "%g\n", reference.data<Number>()->value);
-		break;
-
-	case Data::FMT_BOOLEAN:
-		Terminal::printf(stdout, "%s\n", reference.data<Boolean>()->value ? "true" : "false");
-		break;
-
-	case Data::FMT_OBJECT:
-		switch (reference.data<Object>()->metadata->metatype()) {
-		case Class::OBJECT:
-			if (auto *object = reference.data<Object>()) {
-
-				std::string type = object->metadata->full_name();
-				Terminal::printf(stdout, "(%s) {\n", type.c_str());
-
-				if (mint::is_object(object)) {
-					for (const auto &member : object->metadata->members()) {
-						std::string member_str = member.first.str();
-						std::string type = type_name(member.second->value);
-						std::string value = reference_value(Class::MemberInfo::get(member.second, object));
-						Terminal::printf(stdout, "\t%s : (%s) %s\n", member_str.c_str(), type.c_str(), value.c_str());
-					}
-				}
-				else {
-					for (const auto &member : object->metadata->members()) {
-						std::string member_str = member.first.str();
-						std::string type = type_name(member.second->value);
-						std::string value = reference_value(member.second->value);
-						Terminal::printf(stdout, "\t%s : (%s) %s\n", member_str.c_str(), type.c_str(), value.c_str());
-					}
-				}
-
-				Terminal::printf(stdout, "}\n");
-			}
-			break;
-
-		case Class::STRING:
-			Terminal::printf(stdout, "\"%s\"\n", reference.data<String>()->str.c_str());
-			break;
-
-		case Class::REGEX:
-			Terminal::printf(stdout, "%s\n", reference.data<Regex>()->initializer.c_str());
-			break;
-
-		case Class::ARRAY:
-			{
-				std::string value = array_value(reference.data<Array>());
-				Terminal::printf(stdout, "%s\n", value.c_str());
-			}
-			break;
-
-		case Class::HASH:
-			{
-				std::string value = hash_value(reference.data<Hash>());
-				Terminal::printf(stdout, "%s\n", value.c_str());
-			}
-			break;
-
-		case Class::ITERATOR:
-			{
-				std::string value = iterator_value(reference.data<Iterator>());
-				Terminal::printf(stdout, "%s\n", value.c_str());
-			}
-			break;
-
-		case Class::LIBRARY:
-		case Class::LIBOBJECT:
-			{
-				std::string value = reference_value(reference);
-				Terminal::printf(stdout, "%s\n", value.c_str());
-			}
-			break;
-		}
-		break;
-
-	case Data::FMT_PACKAGE:
-		{
-			std::string value = reference.data<Package>()->data->full_name();
-			Terminal::printf(stdout, "package: %s\n", value.c_str());
-		}
-		break;
-
-	case Data::FMT_FUNCTION:
-		{
-			std::string value = function_value(reference.data<Function>());
-			Terminal::printf(stdout, "%s\n", value.c_str());
-		}
-		break;
-	}
+void DebugPrinter::print(const mint::Reference& reference) {
+	mint::visit<void>( //
+	    mint::Overloaded {
+	        [](mint::None&) {
+		        mint::Terminal::println(stdout, "none");
+	        },
+	        [](mint::Null&) {
+		        mint::Terminal::println(stdout, "null");
+	        },
+	        [](mint::Number& number) {
+		        mint::Terminal::println(stdout, mint::to_string(number.value));
+	        },
+	        [](mint::Boolean& boolean) {
+		        mint::Terminal::println(stdout, boolean.value ? "true" : "false");
+	        },
+	        [](mint::Object& object) {
+		        const auto type = object.metadata.full_name();
+		        mint::Terminal::println(stdout, std::format("({}) {{", type));
+		        if (mint::is_object(object)) {
+			        for (auto member : object.metadata.members()) {
+				        mint::Terminal::println(stdout,
+				            std::format("\t{} : ({}) {}", member.first.str(), type_name(member.second.get().value),
+				                reference_value(mint::Class::MemberInfo::get(member.second, object))));
+			        }
+		        }
+		        else {
+			        for (auto member : object.metadata.members()) {
+				        mint::Terminal::println(stdout,
+				            std::format("\t{} : ({}) {}", member.first.str(), type_name(member.second.get().value),
+				                reference_value(member.second.get().value)));
+			        }
+		        }
+		        mint::Terminal::println(stdout, "}");
+	        },
+	        [](mint::String& string) {
+		        mint::Terminal::println(stdout, std::format("\"{}\"", string.str));
+	        },
+	        [](mint::Regex& regex) {
+		        mint::Terminal::println(stdout, regex.initializer);
+	        },
+	        [](mint::Array& array) {
+		        mint::Terminal::println(stdout, array_value(array));
+	        },
+	        [](mint::Hash& hash) {
+		        mint::Terminal::println(stdout, hash_value(hash));
+	        },
+	        [](mint::Iterator& iterator) {
+		        mint::Terminal::println(stdout, iterator_value(iterator));
+	        },
+	        [](mint::Library& library) {
+		        mint::Terminal::println(stdout, library_value(library));
+	        },
+	        [](mint::Data& libobject) {
+		        mint::Terminal::println(stdout, object_value(libobject));
+	        },
+	        [](mint::Package& package) {
+		        mint::Terminal::println(stdout, std::format("package: {}", package.data.full_name()));
+	        },
+	        [](mint::Function& function) {
+		        mint::Terminal::println(stdout, function_value(function));
+	        },
+	    },
+	    reference);
 }
 
-std::string reference_value(const Reference &reference) {
+std::string reference_value(const mint::Reference& reference) {
+	return mint::visit<std::string>( //
+	    mint::Overloaded {
+	        [](mint::None&) -> std::string {
+		        return "none";
+	        },
+	        [](mint::Null&) -> std::string {
+		        return "null";
+	        },
+	        [](mint::Number& number) -> std::string {
+		        return mint::to_string(number.value);
+	        },
+	        [](mint::Boolean& boolean) -> std::string {
+		        return boolean.value ? "true" : "false";
+	        },
+	        [](mint::String& string) -> std::string {
+		        return std::format("\"{}\"", string.str);
+	        },
 
-	char address[2 * sizeof(void *) + 3];
+	        [](mint::Regex& regex) -> std::string {
+		        return regex.initializer;
+	        },
 
-	switch (reference.data()->format) {
-	case Data::FMT_NONE:
-		return "none";
+	        [](mint::Array& array) -> std::string {
+		        return array_value(array);
+	        },
 
-	case Data::FMT_NULL:
-		return "null";
+	        [](mint::Hash& hash) -> std::string {
+		        return hash_value(hash);
+	        },
 
-	case Data::FMT_NUMBER:
-	case Data::FMT_BOOLEAN:
-		return to_string(reference);
+	        [](mint::Iterator& iterator) -> std::string {
+		        return iterator_value(iterator);
+	        },
 
-	case Data::FMT_OBJECT:
-		switch (reference.data<Object>()->metadata->metatype()) {
-		case Class::STRING:
-			return "\"" + reference.data<String>()->str + "\"";
+	        [](mint::Library& library) -> std::string {
+		        return library_value(library);
+	        },
 
-		case Class::REGEX:
-			return reference.data<Regex>()->initializer;
-
-		case Class::ARRAY:
-			return array_value(reference.data<Array>());
-
-		case Class::HASH:
-			return hash_value(reference.data<Hash>());
-
-		case Class::ITERATOR:
-			return iterator_value(reference.data<Iterator>());
-
-		case Class::LIBRARY:
-			return reference.data<Library>()->plugin->get_path().generic_string();
-
-		case Class::OBJECT:
-		case Class::LIBOBJECT:
-			sprintf(address, "0x%p", static_cast<void *>(reference.data()));
-			return address;
-		}
-		break;
-
-	case Data::FMT_PACKAGE:
-		return reference.data<Package>()->data->full_name();
-
-	case Data::FMT_FUNCTION:
-		return function_value(reference.data<Function>());
-	}
-
-	return "unknown";
+	        [](mint::Object& object) -> std::string {
+		        return object_value(object);
+	        },
+	        [](mint::Data& object) -> std::string {
+		        if (mint::is_instance_of(mint::WeakReference(mint::Reference::default_flags, object),
+		                mint::Class::libobject)) {
+			        return object_value(object);
+		        }
+		        return "unknown";
+	        },
+	        [](mint::Package& package) -> std::string {
+		        return package.data.full_name();
+	        },
+	        [](mint::Function& function) -> std::string {
+		        return function_value(function);
+	        },
+	    },
+	    reference);
 }
 
-std::string iterator_value(Iterator *iterator) {
-	return "("
-		   + mint::join(iterator->ctx, ", ",
-						[](auto it) {
-							return reference_value(*it);
-						})
-		   + ")";
+std::string iterator_value(mint::Iterator& iterator) {
+	return std::format("({})", std::views::transform(iterator.ctx,
+	                               [](auto& item) {
+		                               return reference_value(item);
+	                               })
+	                               | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 }
 
-std::string array_value(Array *array) {
-	return "["
-		   + mint::join(array->values, ", ",
-						[](auto it) {
-							return reference_value(array_get_item(it));
-						})
-		   + "]";
+std::string array_value(mint::Array& array) {
+	return std::format("[{}]", std::views::transform(array.values,
+	                               [](auto& item) {
+		                               return reference_value(mint::array_get_item(item));
+	                               })
+	                               | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 }
 
-std::string hash_value(Hash *hash) {
-	return "{"
-		   + mint::join(hash->values, ", ",
-						[](auto it) {
-							return reference_value(hash_get_key(it)) + " : " + reference_value(hash_get_value(it));
-						})
-		   + "}";
+std::string hash_value(mint::Hash& hash) {
+	return std::format("{{{}}}", std::views::transform(hash.values,
+	                                 [](auto& item) {
+		                                 return reference_value(mint::hash_get_key(item)) + " : "
+		                                        + reference_value(mint::hash_get_value(item));
+	                                 })
+	                                 | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 }
 
-std::string function_value(Function *function) {
-	return "function: " + mint::join(function->mapping, ", ", [ast = AbstractSyntaxTree::instance()](auto it) {
-			   Module *module = ast->get_module(it->second.handle->module);
-			   DebugInfo *infos = ast->get_debug_info(it->second.handle->module);
-			   return std::to_string(it->first) + "@" + ast->get_module_name(module) + "(line "
-					  + std::to_string(infos->line_number(it->second.handle->offset)) + ")";
-		   });
+std::string library_value(mint::Library& library) {
+	return library.plugin->get_path().generic_string();
 }
 
-void print_debug_trace(const char *format, ...) {
-	va_list va_args;
-	mint::print(stdout, "\t");
-	va_start(va_args, format);
-	mint::vprintf(stdout, format, va_args);
-	va_end(va_args);
-	mint::print(stdout, "\n");
+std::string object_value(mint::Data& object) {
+	return std::format("0x{:X}", std::bit_cast<std::uintptr_t>(&object));
+}
+
+std::string function_value(mint::Function& function) {
+	auto* scheduler = mint::Scheduler::instance();
+	assert_x(scheduler, __func__, "execution should be done using a scheduler");
+	return std::format("function: {}", std::views::transform(function.mapping,
+	                                       [&ast = scheduler->ast()](auto& item) {
+		                                       mint::Module& module = item.second.handle().module;
+		                                       mint::DebugInfo* infos = ast.find_debug_info(module);
+		                                       return std::format("{}@{}(line {})", std::to_string(item.first),
+		                                           ast.get_module_name(module),
+		                                           infos->line_number(item.second.handle().offset));
+	                                       })
+	                                       | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 }

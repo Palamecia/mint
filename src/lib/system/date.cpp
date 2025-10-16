@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,114 +21,117 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/casttool.h>
-#include <mint/system/errno.h>
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
+#include "mint/system/errno.h"
 #include <cstdint>
 #include <chrono>
-#include <array>
-#include <cmath>
+#include <cstdlib>
+#include <format>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <tuple>
 
-#ifdef OS_UNIX
-#include <sys/time.h>
-#include "unix/tzfile.h"
-static constexpr const char *UTC_NAME = "Etc/GMT";
+#ifdef MINT_OS_WINDOWS
+#include <utility>
+#include <Windows.h>
+#include <__msvc_chrono.hpp>
+#include <minwinbase.h>
+#include <minwindef.h>
+#include <sysinfoapi.h>
 #else
-#include "win32/wintz.h"
-static constexpr const char *UTC_NAME = "UTC";
+#include <bits/chrono.h>
+#include <bits/types/struct_timeval.h>
+#include <ctime>
+#include <sys/time.h>
+#include <sys/types.h>
 #endif
 
-using namespace mint;
-
-#define IS_LEAP(y) (((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
+using namespace std::chrono_literals;
 
 namespace {
 
-static constexpr const int MONTH_PER_YEAR = 12;
-
-static constexpr const int MON_LENGTHS[2][MONTH_PER_YEAR] = {
-	{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-	{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-};
-
-int week_number_to_year_day(int year, int week) {
-	return (week * 7) - int(365.25 * year) % 7;
+template<class Duration>
+Duration to_duration(const std::string& str, Duration min, Duration max) {
+	const auto duration = Duration(std::stoi(str));
+	if (duration < min || duration > max) {
+		throw std::runtime_error("date format is not valid");
+	}
+	return duration;
 }
 
-bool year_day_to_month_day(int year, int yday, int *mon, int *mday) {
+std::tuple<std::chrono::month, std::chrono::day> week_number_to_month_and_day(std::chrono::year year, int week_number,
+    std::chrono::weekday day) {
+	const auto date = std::chrono::year_month_day(std::chrono::sys_days(year / 1 / std::chrono::Thursday[1])
+	                                              - (std::chrono::Thursday - std::chrono::Monday)
+	                                              + std::chrono::weeks(week_number - 1) + (day - std::chrono::Monday));
+	if (!date.ok()) {
+		throw std::runtime_error("date format is not valid");
+	}
+	return {date.month(), date.day()};
+}
 
-	for (int i = 0; i < MONTH_PER_YEAR; ++i) {
-		if (yday < MON_LENGTHS[IS_LEAP(year)][i]) {
-			*mon = i;
-			*mday = yday + 1;
-			return true;
-		}
-		else {
-			yday -= MON_LENGTHS[IS_LEAP(year)][i];
-		}
+std::tuple<std::chrono::month, std::chrono::day> year_day_to_month_and_day(std::chrono::year year, int year_day) {
+	const auto date = std::chrono::year_month_day(
+	    std::chrono::sys_days(year / std::chrono::January / 1) + std::chrono::days(year_day - 1));
+	if (!date.ok()) {
+		throw std::runtime_error("date format is not valid");
+	}
+	return {date.month(), date.day()};
+}
+
+std::string offset_to_timezone(const std::chrono::minutes& offset,
+    std::chrono::sys_time<std::chrono::milliseconds>& time_point) {
+
+	const auto hours_offset = std::chrono::floor<std::chrono::hours>(offset);
+	const auto minutes_offset = std::chrono::minutes(offset - hours_offset);
+
+	if (minutes_offset == std::chrono::minutes {0}) {
+		const auto name = std::format("Etc/GMT{}{}", offset < std::chrono::minutes(0) ? '-' : '+',
+		    std::abs(hours_offset.count()));
+		time_point -= offset;
+		return name;
 	}
 
-	return false;
+	time_point -= offset;
+	return std::format("{}{}:{}", offset < std::chrono::minutes(0) ? '-' : '+', hours_offset.count(),
+	    minutes_offset.count());
 }
 
-std::string offset_to_timezone(int offset) {
-#ifdef OS_UNIX
-	std::array<char, 14> buffer {};
-	sprintf(buffer.data(), "Etc/GMT%c%02d:%02d", offset < 0 ? '-' : '+', abs(offset) / 60, abs(offset) % 60);
-#else
-	std::array<char, 10> buffer {};
-	sprintf(buffer.data(), "UTC%c%02d:%02d", offset < 0 ? '-' : '+', abs(offset) / 60, abs(offset) % 60);
-#endif
-	return buffer.data();
-}
-
-struct TimeZoneDeleter {
-	void operator()(TimeZone *tz) {
-		mint::timezone_free(tz);
-	}
-};
-
-std::chrono::milliseconds parse_iso_date(const std::string &date, std::string *tz, bool *ok) {
+std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_iso_date(std::string_view str) {
 
 	enum State : std::uint8_t {
-		READ_START,
-		READ_YEAR_FRACTION,
-		READ_MONTH_DAY,
-		READ_WEEK,
-		READ_WEEK_DAY,
-		READ_TIME,
-		READ_MINUTES,
-		READ_SECONDS,
-		READ_SECONDS_FRACTION,
-		READ_POSITIVE_OFFSET,
-		READ_POSITIVE_OFFSET_MINUTES,
-		READ_NEGATIVE_OFFSET,
-		READ_NEGATIVE_OFFSET_MINUTES,
-		READ_END
+		read_start,
+		read_year_fraction,
+		read_month_day,
+		read_week,
+		read_week_day,
+		read_time,
+		read_minutes,
+		read_seconds,
+		read_seconds_fraction,
+		read_positive_offset,
+		read_positive_offset_minutes,
+		read_negative_offset,
+		read_negative_offset_minutes,
+		read_end
 	};
 
-	if (ok) {
-		*ok = false;
-	}
+	std::chrono::year year {1970};
+	std::chrono::month month {std::chrono::January};
+	std::chrono::day day {1};
+	int week_number = -1;
+	std::chrono::milliseconds time {0};
+	std::chrono::minutes offset {0};
 
-	std::unique_ptr<TimeZone, TimeZoneDeleter> utc(mint::timezone_find(UTC_NAME));
-
-	if (utc == nullptr) {
-		return {};
-	}
-
-	time_t now = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch())
-					 .count();
-	struct tm tm = mint::timezone_localtime(utc.get(), now);
-	State state = READ_START;
+	State state = read_start;
 	std::string token;
-	int milliseconds = 0;
-	int offset = 0;
 
-	tm.tm_sec = tm.tm_min = tm.tm_hour = tm.tm_isdst = 0;
-
-	for (const char *c = date.c_str(); *c; ++c) {
-		switch (*c) {
+	for (const auto ch : str) {
+		switch (ch) {
 		case '0':
 		case '1':
 		case '2':
@@ -139,738 +142,712 @@ std::chrono::milliseconds parse_iso_date(const std::string &date, std::string *t
 		case '7':
 		case '8':
 		case '9':
-			token += *c;
+			token += ch;
 			break;
 		case ':':
 			switch (state) {
-			case READ_START:
-			case READ_TIME:
+			case read_start:
+			case read_time:
 				switch (token.length()) {
 				case 2:
-					tm.tm_hour = stoi(token);
+					time += to_duration(token, 0h, 23h);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_MINUTES;
+				state = read_minutes;
 				token.clear();
 				break;
-			case READ_MINUTES:
+			case read_minutes:
 				switch (token.length()) {
 				case 2:
-					tm.tm_min = stoi(token);
+					time += to_duration(token, 0min, 59min);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_SECONDS;
+				state = read_seconds;
 				token.clear();
 				break;
-			case READ_NEGATIVE_OFFSET:
+			case read_negative_offset:
 				switch (token.length()) {
 				case 2:
-					offset -= stoi(token) * 60;
+					offset -= to_duration(token, 0h, 23h);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_NEGATIVE_OFFSET_MINUTES;
+				state = read_negative_offset_minutes;
 				token.clear();
 				break;
-			case READ_POSITIVE_OFFSET:
+			case read_positive_offset:
 				switch (token.length()) {
 				case 2:
-					offset += stoi(token) * 60;
+					offset += to_duration(token, 0h, 23h);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_POSITIVE_OFFSET_MINUTES;
+				state = read_positive_offset_minutes;
 				token.clear();
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
 		case '-':
 			switch (state) {
-			case READ_START:
+			case read_start:
 				switch (token.length()) {
 				case 4:
-					tm.tm_year = stoi(token) - TM_YEAR_BASE;
+					year = std::chrono::year(std::stoi(token));
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_YEAR_FRACTION;
+				state = read_year_fraction;
 				token.clear();
 				break;
-			case READ_YEAR_FRACTION:
+			case read_year_fraction:
 				switch (token.length()) {
 				case 2:
-					tm.tm_mon = stoi(token) - 1;
+					month = std::chrono::month(std::stoi(token));
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_MONTH_DAY;
+				state = read_month_day;
 				token.clear();
 				break;
-			case READ_WEEK:
+			case read_week:
 				switch (token.length()) {
 				case 2:
-					tm.tm_yday = week_number_to_year_day(tm.tm_year, stoi(token));
+					week_number = std::stoi(token);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_WEEK_DAY;
+				state = read_week_day;
 				token.clear();
 				break;
-			case READ_TIME:
+			case read_time:
 				switch (token.length()) {
 				case 2:
-					tm.tm_hour = stoi(token);
+					time += to_duration(token, 0h, 23h);
 					break;
 				case 4:
-					tm.tm_hour = stoi(token.substr(0, 2));
-					tm.tm_min = stoi(token.substr(2, 2));
+					time += to_duration(token.substr(0, 2), 0h, 23h);
+					time += to_duration(token.substr(2, 2), 0min, 59min);
 					break;
 				case 6:
-					tm.tm_hour = stoi(token.substr(0, 2));
-					tm.tm_min = stoi(token.substr(2, 2));
-					tm.tm_sec = stoi(token.substr(4, 2));
+					time += to_duration(token.substr(0, 2), 0h, 23h);
+					time += to_duration(token.substr(2, 2), 0min, 59min);
+					time += to_duration(token.substr(4, 2), 0s, 59s);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_NEGATIVE_OFFSET;
+				state = read_negative_offset;
 				token.clear();
 				break;
-			case READ_MINUTES:
+			case read_minutes:
 				switch (token.length()) {
 				case 2:
-					tm.tm_min = stoi(token);
+					time += to_duration(token, 0min, 59min);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_NEGATIVE_OFFSET;
+				state = read_negative_offset;
 				token.clear();
 				break;
-			case READ_SECONDS:
+			case read_seconds:
 				switch (token.length()) {
 				case 2:
-					tm.tm_sec = stoi(token);
+					time += to_duration(token, 0s, 59s);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_NEGATIVE_OFFSET;
+				state = read_negative_offset;
 				token.clear();
 				break;
-			case READ_SECONDS_FRACTION:
+			case read_seconds_fraction:
 				while (token.length() < 3) {
 					token += "0";
 				}
-				milliseconds = stoi(token.substr(0, 3));
-				state = READ_NEGATIVE_OFFSET;
+				time += to_duration(token.substr(0, 3), 0ms, 999ms);
+				state = read_negative_offset;
 				token.clear();
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
 		case '+':
 			switch (state) {
-			case READ_TIME:
+			case read_time:
 				switch (token.length()) {
 				case 2:
-					tm.tm_hour = stoi(token);
+					time += to_duration(token, 0h, 23h);
 					break;
 				case 4:
-					tm.tm_hour = stoi(token.substr(0, 2));
-					tm.tm_min = stoi(token.substr(2, 2));
+					time += to_duration(token.substr(0, 2), 0h, 23h);
+					time += to_duration(token.substr(2, 2), 0min, 59min);
 					break;
 				case 6:
-					tm.tm_hour = stoi(token.substr(0, 2));
-					tm.tm_min = stoi(token.substr(2, 2));
-					tm.tm_sec = stoi(token.substr(4, 2));
+					time += to_duration(token.substr(0, 2), 0h, 23h);
+					time += to_duration(token.substr(2, 2), 0min, 59min);
+					time += to_duration(token.substr(4, 2), 0s, 59s);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_POSITIVE_OFFSET;
+				state = read_positive_offset;
 				token.clear();
 				break;
-			case READ_MINUTES:
+			case read_minutes:
 				switch (token.length()) {
 				case 2:
-					tm.tm_min = stoi(token);
+					time += to_duration(token, 0min, 59min);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_POSITIVE_OFFSET;
+				state = read_positive_offset;
 				token.clear();
 				break;
-			case READ_SECONDS:
+			case read_seconds:
 				switch (token.length()) {
 				case 2:
-					tm.tm_sec = stoi(token);
+					time += to_duration(token, 0s, 59s);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_POSITIVE_OFFSET;
+				state = read_positive_offset;
 				token.clear();
 				break;
-			case READ_SECONDS_FRACTION:
+			case read_seconds_fraction:
 				while (token.length() < 3) {
 					token += "0";
 				}
-				milliseconds = stoi(token.substr(0, 3));
-				state = READ_POSITIVE_OFFSET;
+				time += to_duration(token.substr(0, 3), 0ms, 999ms);
+				state = read_positive_offset;
 				token.clear();
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
 		case 'T':
 			switch (state) {
-			case READ_START:
+			case read_start:
 				switch (token.length()) {
 				case 0:
+					{
+						const auto date = std::chrono::year_month_day(
+						    std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now()));
+						year = date.year();
+						month = date.month();
+						day = date.day();
+					}
 					break;
 				case 4:
-					tm.tm_year = stoi(token) - TM_YEAR_BASE;
+					year = std::chrono::year(std::stoi(token));
 					break;
 				case 6:
-					tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
-					tm.tm_mon = stoi(token.substr(4, 2)) - 1;
+					year = std::chrono::year(std::stoi(token.substr(0, 4)));
+					month = std::chrono::month(std::stoi(token.substr(4, 2)));
 					break;
 				case 7:
-					tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
-					tm.tm_yday = stoi(token.substr(4, 3));
+					year = std::chrono::year(std::stoi(token.substr(0, 4)));
+					std::tie(month, day) = year_day_to_month_and_day(year, std::stoi(token.substr(4, 3)));
 					break;
 				case 8:
-					tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
-					tm.tm_mon = stoi(token.substr(4, 2)) - 1;
-					tm.tm_mday = stoi(token.substr(6, 2));
+					year = std::chrono::year(std::stoi(token.substr(0, 4)));
+					month = std::chrono::month(std::stoi(token.substr(4, 2)));
+					day = std::chrono::day(std::stoi(token.substr(6, 2)));
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_TIME;
+				state = read_time;
 				token.clear();
 				break;
-			case READ_YEAR_FRACTION:
+			case read_year_fraction:
 				switch (token.length()) {
 				case 2:
-					tm.tm_mon = stoi(token) - 1;
+					month = std::chrono::month(std::stoi(token));
 					break;
 				case 3:
-					tm.tm_yday = stoi(token);
+					std::tie(month, day) = year_day_to_month_and_day(year, std::stoi(token));
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_TIME;
+				state = read_time;
 				token.clear();
 				break;
-			case READ_MONTH_DAY:
+			case read_month_day:
 				switch (token.length()) {
 				case 2:
-					tm.tm_mday = stoi(token);
+					day = std::chrono::day(std::stoi(token));
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_TIME;
+				state = read_time;
 				token.clear();
 				break;
-			case READ_WEEK:
+			case read_week:
 				switch (token.length()) {
 				case 3:
-					tm.tm_yday = week_number_to_year_day(tm.tm_year, stoi(token.substr(0, 2)));
-					tm.tm_wday = stoi(token.substr(2, 1));
-					year_day_to_month_day(tm.tm_year, tm.tm_yday + tm.tm_wday - 1, &tm.tm_mon, &tm.tm_mday);
+					std::tie(month, day) = week_number_to_month_and_day(year, std::stoi(token.substr(0, 2)),
+					    std::chrono::weekday(std::stoi(token.substr(2, 1))));
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_TIME;
+				state = read_time;
 				token.clear();
 				break;
-			case READ_WEEK_DAY:
+			case read_week_day:
 				switch (token.length()) {
 				case 1:
-					tm.tm_wday = stoi(token);
-					year_day_to_month_day(tm.tm_year, tm.tm_yday + tm.tm_wday - 1, &tm.tm_mon, &tm.tm_mday);
+					std::tie(month, day) = week_number_to_month_and_day(year, week_number,
+					    std::chrono::weekday(std::stoi(token)));
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_TIME;
+				state = read_time;
 				token.clear();
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
 		case 'W':
 			switch (state) {
-			case READ_START:
+			case read_start:
 				switch (token.length()) {
 				case 4:
-					tm.tm_year = stoi(token) - TM_YEAR_BASE;
+					year = std::chrono::year(std::stoi(token));
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
 				break;
-			case READ_YEAR_FRACTION:
+			case read_year_fraction:
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
-			state = READ_WEEK;
+			state = read_week;
 			token.clear();
 			break;
 		case 'Z':
 			switch (state) {
-			case READ_TIME:
+			case read_time:
 				switch (token.length()) {
 				case 2:
-					tm.tm_hour = stoi(token);
+					time += to_duration(token, 0h, 23h);
 					break;
 				case 4:
-					tm.tm_hour = stoi(token.substr(0, 2));
-					tm.tm_min = stoi(token.substr(2, 2));
+					time += to_duration(token.substr(0, 2), 0h, 23h);
+					time += to_duration(token.substr(2, 2), 0min, 59min);
 					break;
 				case 6:
-					tm.tm_hour = stoi(token.substr(0, 2));
-					tm.tm_min = stoi(token.substr(2, 2));
-					tm.tm_sec = stoi(token.substr(4, 2));
+					time += to_duration(token.substr(0, 2), 0h, 23h);
+					time += to_duration(token.substr(2, 2), 0min, 59min);
+					time += to_duration(token.substr(4, 2), 0s, 59s);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_END;
+				state = read_end;
 				token.clear();
 				break;
-			case READ_MINUTES:
+			case read_minutes:
 				switch (token.length()) {
 				case 2:
-					tm.tm_min = stoi(token);
+					time += to_duration(token, 0min, 59min);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_END;
+				state = read_end;
 				token.clear();
 				break;
-			case READ_SECONDS:
+			case read_seconds:
 				switch (token.length()) {
 				case 2:
-					tm.tm_sec = stoi(token);
+					time += to_duration(token, 0s, 59s);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
-				state = READ_END;
+				state = read_end;
 				token.clear();
 				break;
-			case READ_SECONDS_FRACTION:
+			case read_seconds_fraction:
 				while (token.length() < 3) {
 					token += "0";
 				}
-				milliseconds = stoi(token.substr(0, 3));
-				state = READ_END;
+				time += to_duration(token.substr(0, 3), 0ms, 999ms);
+				state = read_end;
 				token.clear();
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
 		case '.':
 		case ',':
 			switch (state) {
-			case READ_TIME:
+			case read_time:
 				switch (token.length()) {
 				case 2:
-					tm.tm_hour = stoi(token);
+					time += to_duration(token, 0h, 23h);
 					break;
 				case 4:
-					tm.tm_hour = stoi(token.substr(0, 2));
-					tm.tm_min = stoi(token.substr(2, 2));
+					time += to_duration(token.substr(0, 2), 0h, 23h);
+					time += to_duration(token.substr(2, 2), 0min, 59min);
 					break;
 				case 6:
-					tm.tm_hour = stoi(token.substr(0, 2));
-					tm.tm_min = stoi(token.substr(2, 2));
-					tm.tm_sec = stoi(token.substr(4, 2));
+					time += to_duration(token.substr(0, 2), 0h, 23h);
+					time += to_duration(token.substr(2, 2), 0min, 59min);
+					time += to_duration(token.substr(4, 2), 0s, 59s);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
 				break;
-			case READ_SECONDS:
+			case read_seconds:
 				switch (token.length()) {
 				case 2:
-					tm.tm_sec = stoi(token);
+					time += to_duration(token, 0s, 59s);
 					break;
 				default:
-					return {};
+					throw std::runtime_error("date format is not valid");
 				}
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
-			state = READ_SECONDS_FRACTION;
+			state = read_seconds_fraction;
 			token.clear();
 			break;
 		default:
-			return {};
+			throw std::runtime_error("date format is not valid");
 		}
 	}
 
 	if (!token.empty()) {
 		switch (state) {
-		case READ_START:
+		case read_start:
 			switch (token.length()) {
 			case 4:
-				tm.tm_year = stoi(token) - TM_YEAR_BASE;
-				tm.tm_mon = 0;
-				tm.tm_mday = 1;
+				year = std::chrono::year(std::stoi(token));
 				break;
 			case 6:
-				tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
-				tm.tm_mon = stoi(token.substr(4, 2)) - 1;
-				tm.tm_mday = 1;
+				year = std::chrono::year(std::stoi(token.substr(0, 4)));
+				month = std::chrono::month(std::stoi(token.substr(4, 2)));
 				break;
 			case 7:
-				tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
-				tm.tm_yday = stoi(token.substr(4, 3));
+				year = std::chrono::year(std::stoi(token.substr(0, 4)));
+				std::tie(month, day) = year_day_to_month_and_day(year, std::stoi(token.substr(4, 3)));
 				break;
 			case 8:
-				tm.tm_year = stoi(token.substr(0, 4)) - TM_YEAR_BASE;
-				tm.tm_mon = stoi(token.substr(4, 2)) - 1;
-				tm.tm_mday = stoi(token.substr(6, 2));
+				year = std::chrono::year(std::stoi(token.substr(0, 4)));
+				month = std::chrono::month(std::stoi(token.substr(4, 2)));
+				day = std::chrono::day(std::stoi(token.substr(6, 2)));
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_YEAR_FRACTION:
+		case read_year_fraction:
 			switch (token.length()) {
 			case 2:
-				tm.tm_mon = stoi(token) - 1;
-				tm.tm_mday = 1;
+				month = std::chrono::month(std::stoi(token));
 				break;
 			case 3:
-				tm.tm_yday = stoi(token);
+				std::tie(month, day) = year_day_to_month_and_day(year, std::stoi(token));
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_MONTH_DAY:
+		case read_month_day:
 			switch (token.length()) {
 			case 2:
-				tm.tm_mday = stoi(token);
+				day = std::chrono::day(std::stoi(token));
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_WEEK:
+		case read_week:
 			switch (token.length()) {
 			case 3:
-				tm.tm_yday = week_number_to_year_day(tm.tm_year, stoi(token.substr(0, 2)));
-				tm.tm_wday = stoi(token.substr(2, 1));
-				year_day_to_month_day(tm.tm_year, tm.tm_yday + tm.tm_wday - 1, &tm.tm_mon, &tm.tm_mday);
+				std::tie(month, day) = week_number_to_month_and_day(year, std::stoi(token.substr(0, 2)),
+				    std::chrono::weekday(std::stoi(token.substr(2, 1))));
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_WEEK_DAY:
+		case read_week_day:
 			switch (token.length()) {
 			case 1:
-				tm.tm_wday = stoi(token);
-				year_day_to_month_day(tm.tm_year, tm.tm_yday + tm.tm_wday - 1, &tm.tm_mon, &tm.tm_mday);
+				std::tie(month, day) = week_number_to_month_and_day(year, week_number,
+				    std::chrono::weekday(std::stoi(token)));
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_TIME:
+		case read_time:
 			switch (token.length()) {
 			case 2:
-				tm.tm_hour = stoi(token);
+				time += to_duration(token, 0h, 23h);
 				break;
 			case 4:
-				tm.tm_hour = stoi(token.substr(0, 2));
-				tm.tm_min = stoi(token.substr(2, 2));
+				time += to_duration(token.substr(0, 2), 0h, 23h);
+				time += to_duration(token.substr(2, 2), 0min, 59min);
 				break;
 			case 6:
-				tm.tm_hour = stoi(token.substr(0, 2));
-				tm.tm_min = stoi(token.substr(2, 2));
-				tm.tm_sec = stoi(token.substr(4, 2));
+				time += to_duration(token.substr(0, 2), 0h, 23h);
+				time += to_duration(token.substr(2, 2), 0min, 59min);
+				time += to_duration(token.substr(4, 2), 0s, 59s);
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_MINUTES:
+		case read_minutes:
 			switch (token.length()) {
 			case 2:
-				tm.tm_min = stoi(token);
+				time += to_duration(token, 0min, 59min);
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_SECONDS:
+		case read_seconds:
 			switch (token.length()) {
 			case 2:
-				tm.tm_sec = stoi(token);
+				time += to_duration(token, 0s, 59s);
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_SECONDS_FRACTION:
+		case read_seconds_fraction:
 			while (token.length() < 3) {
 				token += "0";
 			}
-			milliseconds = stoi(token.substr(0, 3));
+			time += to_duration(token.substr(0, 3), 0ms, 999ms);
 			break;
-		case READ_NEGATIVE_OFFSET:
+		case read_negative_offset:
 			switch (token.length()) {
 			case 4:
-				offset -= stoi(token.substr(0, 2)) * 60;
-				offset -= stoi(token.substr(2, 2));
+				offset -= to_duration(token.substr(0, 2), 0h, 23h);
+				offset -= to_duration(token.substr(2, 2), 0min, 59min);
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_NEGATIVE_OFFSET_MINUTES:
+		case read_negative_offset_minutes:
 			switch (token.length()) {
 			case 2:
-				offset -= stoi(token);
+				offset -= to_duration(token, 0min, 59min);
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_POSITIVE_OFFSET:
+		case read_positive_offset:
 			switch (token.length()) {
 			case 4:
-				offset += stoi(token.substr(0, 2)) * 60;
-				offset += stoi(token.substr(2, 2));
+				offset += to_duration(token.substr(0, 2), 0h, 23h);
+				offset += to_duration(token.substr(2, 2), 0min, 59min);
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case READ_POSITIVE_OFFSET_MINUTES:
+		case read_positive_offset_minutes:
 			switch (token.length()) {
 			case 2:
-				offset += stoi(token);
+				offset += to_duration(token, 0min, 59min);
 				break;
 			default:
-				return {};
+				throw std::runtime_error("date format is not valid");
 			}
 			break;
 		default:
-			return {};
+			throw std::runtime_error("date format is not valid");
 		}
 	}
 
-	bool valid = false;
-	time_t timestamp = mint::timezone_mktime(utc.get(), tm, &valid);
-
-	if (valid) {
-		if (ok) {
-			*ok = true;
-		}
-		if (tz) {
-			if (offset) {
-				*tz = offset_to_timezone(offset);
-			}
-			else {
-				*tz = UTC_NAME;
-			}
-		}
-		timestamp -= offset * 60;
-		return std::chrono::milliseconds(timestamp * 1000 + milliseconds);
+	const auto date = std::chrono::year_month_day(year, month, day);
+	if (!date.ok()) {
+		throw std::runtime_error("date format is not valid");
 	}
+
+	auto time_point = std::chrono::sys_days(date) + time;
+	const auto time_zone = (offset != std::chrono::minutes(0)) ? offset_to_timezone(offset, time_point)
+	                                                           : std::string("UTC");
+
+	return {time_zone, time_point};
+}
+
+mint::WeakReference mint_date_current_timepoint(mint::Cursor& cursor) {
+	return mint::create_c_object(cursor.ast(),
+	    new std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
+	        std::chrono::system_clock::now().time_since_epoch())));
+}
+
+mint::WeakReference mint_date_set_current(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
+
+	const auto time_point = std::chrono::sys_time(
+	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
+
+#ifdef MINT_OS_WINDOWS
+
+	const auto date = std::chrono::year_month_day(std::chrono::floor<std::chrono::days>(time_point));
+	if (!date.ok()) {
+		return mint::create_number(EINVAL);
+	}
+
+	const auto weekday = std::chrono::weekday(std::chrono::floor<std::chrono::days>(time_point));
+	if (!weekday.ok()) {
+		return {};
+	}
+
+	const auto time = std::chrono::hh_mm_ss<std::chrono::milliseconds>(time_point.time_since_epoch());
+
+	const auto system_time = SYSTEMTIME {
+	    .wYear = static_cast<WORD>(static_cast<int>(date.year())),
+	    .wMonth = static_cast<WORD>(static_cast<unsigned>(date.month())),
+	    .wDayOfWeek = static_cast<WORD>(weekday.c_encoding()),
+	    .wDay = static_cast<WORD>(static_cast<unsigned>(date.day())),
+	    .wHour = static_cast<WORD>(time.hours().count()),
+	    .wMinute = static_cast<WORD>(time.minutes().count()),
+	    .wSecond = static_cast<WORD>(time.seconds().count()),
+	    .wMilliseconds = static_cast<WORD>(time.subseconds().count()),
+	};
+
+	if (!SetSystemTime(&system_time)) {
+		return mint::create_number(mint::errno_from_error_code(mint::last_error_code()));
+	}
+#else
+	timeval tv {
+	    .tv_sec = static_cast<time_t>(
+	        std::chrono::duration_cast<std::chrono::seconds>(time_point.time_since_epoch()).count()),
+	    .tv_usec = static_cast<suseconds_t>((time_point.time_since_epoch().count() % 1000) * 1000),
+	};
+
+	if (settimeofday(&tv, nullptr)) {
+		return mint::create_number(errno);
+	}
+#endif
 
 	return {};
 }
 
+mint::WeakReference mint_date_delete(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
+	delete duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr;
+	return {};
 }
 
-MINT_FUNCTION(mint_date_current_timepoint, 0, cursor) {
-	FunctionHelper helper(cursor, 0);
-	helper.return_value(create_object(new std::chrono::milliseconds(
-		std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()))));
+mint::WeakReference mint_date_set_seconds(mint::Cursor& cursor, const mint::Reference& duration,
+    mint::Reference& value) {
+	*duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr =
+	    std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
+	        std::chrono::seconds(to_integer<std::chrono::seconds::rep>(cursor, value))));
+	return {};
 }
 
-MINT_FUNCTION(mint_date_set_current, 1, cursor) {
+mint::WeakReference mint_date_timepoint_to_seconds(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
+	return mint::create_signed_number(std::chrono::duration_cast<std::chrono::seconds>(
+	    duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr->time_since_epoch())
+	        .count());
+}
 
-	FunctionHelper helper(cursor, 1);
-	const Reference &milliseconds = helper.pop_parameter();
+mint::WeakReference mint_date_seconds_to_timepoint(mint::Cursor& cursor, const mint::Reference& value) {
+	return mint::create_c_object(cursor.ast(),
+	    new std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
+	        std::chrono::seconds(to_integer<std::chrono::seconds::rep>(cursor, value)))));
+}
 
-#ifdef OS_WINDOWS
-	bool ok = false;
-	SYSTEMTIME systemTime;
-	std::unique_ptr<TimeZone, TimeZoneDeleter> utc(mint::timezone_find(UTC_NAME));
-	tm &&time = mint::timezone_localtime(utc.get(),
-										 std::chrono::duration_cast<std::chrono::seconds>(
-											 *milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl)
-											 .count(),
-										 &ok);
+mint::WeakReference mint_date_set_milliseconds(mint::Cursor& cursor, const mint::Reference& duration,
+    mint::Reference& value) {
+	*duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr =
+	    std::chrono::sys_time<std::chrono::milliseconds>(
+	        std::chrono::milliseconds(to_integer<std::chrono::milliseconds::rep>(cursor, value)));
+	return {};
+}
 
-	systemTime.wYear = static_cast<WORD>(time.tm_year + TM_YEAR_BASE);
-	systemTime.wMonth = static_cast<WORD>(time.tm_mon + 1);
-	systemTime.wDayOfWeek = static_cast<WORD>(time.tm_wday);
-	systemTime.wDay = static_cast<WORD>(time.tm_mday);
-	systemTime.wHour = static_cast<WORD>(time.tm_hour);
-	systemTime.wMinute = static_cast<WORD>(time.tm_min);
-	systemTime.wSecond = static_cast<WORD>(time.tm_sec);
-	systemTime.wMilliseconds = static_cast<WORD>(
-		milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl->count() % 1000);
+mint::WeakReference mint_date_timepoint_to_milliseconds(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
+	return mint::create_signed_number(duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>()
+	        .ptr->time_since_epoch()
+	        .count());
+}
 
-	if (!ok) {
-		helper.return_value(create_number(EINVAL));
+mint::WeakReference mint_date_milliseconds_to_timepoint(mint::Cursor& cursor, const mint::Reference& value) {
+	return mint::create_c_object(cursor.ast(),
+	    new std::chrono::sys_time<std::chrono::milliseconds>(
+	        std::chrono::milliseconds(to_integer<std::chrono::milliseconds::rep>(cursor, value))));
+}
+
+mint::WeakReference mint_date_equals(mint::Cursor& /*cursor*/, const mint::Reference& self,
+    const mint::Reference& other) {
+	return mint::create_boolean(
+	    (*self.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr)
+	    == (*other.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr));
+}
+
+mint::WeakReference mint_parse_iso_date(mint::Cursor& cursor, const mint::Reference& date) {
+	try {
+		const auto [timezone, timepoint] = parse_iso_date(mint::to_string(date));
+		return mint::create_iterator_from(cursor.ast(),
+		    mint::create_c_object(cursor.ast(), new std::chrono::sys_time<std::chrono::milliseconds>(timepoint)),
+		    mint::create_string(cursor.ast(), timezone));
 	}
-	else if (!SetSystemTime(&systemTime)) {
-		helper.return_value(create_number(mint::errno_from_error_code(mint::last_error_code())));
-	}
-#else
-	timeval tv;
-
-	tv.tv_sec = static_cast<time_t>(std::chrono::duration_cast<std::chrono::seconds>(
-										*milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl)
-										.count());
-	tv.tv_usec = static_cast<suseconds_t>(
-		(milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl->count() % 1000) * 1000);
-
-	if (settimeofday(&tv, nullptr)) {
-		helper.return_value(create_number(errno));
-	}
-#endif
-	else {
-		helper.return_value(WeakReference::create<None>());
-	}
-}
-
-MINT_FUNCTION(mint_date_delete, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &milliseconds = helper.pop_parameter();
-
-	delete milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl;
-}
-
-MINT_FUNCTION(mint_date_set_seconds, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &value = helper.pop_parameter();
-	Reference &milliseconds = helper.pop_parameter();
-
-	(*milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl) = std::chrono::seconds(to_integer(cursor, value));
-}
-
-MINT_FUNCTION(mint_date_timepoint_to_seconds, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &milliseconds = helper.pop_parameter();
-
-	helper.return_value(
-		create_number(static_cast<double>(std::chrono::duration_cast<std::chrono::seconds>(
-											  *milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl)
-											  .count())));
-}
-
-MINT_FUNCTION(mint_date_seconds_to_timepoint, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &number = helper.pop_parameter();
-
-	helper.return_value(create_object(new std::chrono::milliseconds(
-		std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(to_integer(cursor, number))))));
-}
-
-MINT_FUNCTION(mint_date_set_milliseconds, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &value = helper.pop_parameter();
-	Reference &milliseconds = helper.pop_parameter();
-
-	(*milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl) = std::chrono::milliseconds(
-		to_integer(cursor, value));
-}
-
-MINT_FUNCTION(mint_date_timepoint_to_milliseconds, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &milliseconds = helper.pop_parameter();
-
-	helper.return_value(
-		create_number(static_cast<double>(milliseconds.data<LibObject<std::chrono::milliseconds>>()->impl->count())));
-}
-
-MINT_FUNCTION(mint_date_milliseconds_to_timepoint, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &number = helper.pop_parameter();
-
-	helper.return_value(create_object(new std::chrono::milliseconds(to_integer(cursor, number))));
-}
-
-MINT_FUNCTION(mint_date_equals, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	const Reference &other = helper.pop_parameter();
-	const Reference &self = helper.pop_parameter();
-
-	helper.return_value(create_boolean((*self.data<LibObject<std::chrono::milliseconds>>()->impl)
-									   == (*other.data<LibObject<std::chrono::milliseconds>>()->impl)));
-}
-
-MINT_FUNCTION(mint_parse_iso_date, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	std::string date = to_string(helper.pop_parameter());
-	std::string time_zone;
-	bool ok = false;
-
-	std::chrono::milliseconds timepoint = parse_iso_date(date, &time_zone, &ok);
-
-	if (ok) {
-		helper.return_value(
-			create_iterator(create_object(new std::chrono::milliseconds(timepoint)), create_string(time_zone)));
+	catch (const std::runtime_error&) {
+		return {};
 	}
 }
 
-MINT_FUNCTION(mint_date_is_leap, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &year = helper.pop_parameter();
-
-	helper.return_value(create_boolean(IS_LEAP(to_integer(cursor, year))));
+mint::WeakReference mint_date_is_leap(mint::Cursor& cursor, const mint::Reference& year) {
+	return mint::create_boolean(std::chrono::year(mint::to_integer<int>(cursor, year)).is_leap());
 }
 
-MINT_FUNCTION(mint_date_days_in_month, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &month = helper.pop_parameter();
-	Reference &year = helper.pop_parameter();
-
-	helper.return_value(create_number(MON_LENGTHS[IS_LEAP(to_integer(cursor, year))][to_integer(cursor, month)]));
+mint::WeakReference mint_date_days_in_month(mint::Cursor& cursor, const mint::Reference& year,
+    const mint::Reference& month) {
+	return mint::create_unsigned_number(
+	    static_cast<unsigned>(std::chrono::year_month_day_last(std::chrono::year(mint::to_integer<int>(cursor, year)),
+	        std::chrono::month_day_last(std::chrono::month(mint::to_integer<unsigned>(cursor, month))))
+	            .day()));
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_date_current_timepoint, 0);
+MINT_EXPORT_FUNCTION(mint_date_set_current, 1);
+MINT_EXPORT_FUNCTION(mint_date_delete, 1);
+MINT_EXPORT_FUNCTION(mint_date_set_seconds, 2);
+MINT_EXPORT_FUNCTION(mint_date_timepoint_to_seconds, 1);
+MINT_EXPORT_FUNCTION(mint_date_seconds_to_timepoint, 1);
+MINT_EXPORT_FUNCTION(mint_date_set_milliseconds, 2);
+MINT_EXPORT_FUNCTION(mint_date_timepoint_to_milliseconds, 1);
+MINT_EXPORT_FUNCTION(mint_date_milliseconds_to_timepoint, 1);
+MINT_EXPORT_FUNCTION(mint_date_equals, 2);
+MINT_EXPORT_FUNCTION(mint_parse_iso_date, 1);
+MINT_EXPORT_FUNCTION(mint_date_is_leap, 1);
+MINT_EXPORT_FUNCTION(mint_date_days_in_month, 2);

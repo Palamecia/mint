@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,14 +22,31 @@
  */
 
 #include "mint/ast/cursor.h"
+#include "mint/ast/module.h"
+#include "mint/ast/printer.h"
 #include "mint/ast/savedstate.h"
 #include "mint/ast/abstractsyntaxtree.h"
+#include "mint/debug/debuginfo.h"
+#include "mint/debug/lineinfo.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/garbagecollector.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/symboltable.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/scheduler/exception.h"
 #include "mint/memory/globaldata.h"
 #include "mint/memory/builtin/iterator.h"
+#include "mint/system/assert.h"
+#include "mint/system/poolallocator.hpp"
 #include "threadentrypoint.h"
+#include <algorithm>
 #include <cassert>
+#include <cstddef>
+#include <iterator>
+#include <memory>
+#include <ranges>
+#include <string>
+#include <utility>
 #include <vector>
 
 using namespace mint;
@@ -38,192 +55,216 @@ PoolAllocator<Cursor::Context> Cursor::g_pool;
 
 namespace {
 
-void dump_module(LineInfoList &dumped_infos, AbstractSyntaxTree *ast, const Module *module, size_t offset) {
+void dump_module(LineInfoList& dumped_infos, AbstractSyntaxTree& ast, const Module& module, std::size_t offset) {
 
-	if (module != ThreadEntryPoint::instance()) {
+	if (&module != &ThreadEntryPoint::instance()) {
 
-		Module::Id id = ast->get_module_id(module);
-		std::string module_name = ast->get_module_name(module);
+		const Module::Id module_id = ast.get_module_id(module);
+		const std::string module_name = ast.get_module_name(module);
 
-		if (DebugInfo *infos = ast->get_debug_info(id)) {
-			dumped_infos.emplace_back(id, module_name, infos->line_number(offset));
+		if (DebugInfo* infos = ast.find_debug_info(module_id)) {
+			dumped_infos.emplace_back(module_id, module_name, infos->line_number(offset));
 		}
 		else {
-			dumped_infos.emplace_back(id, module_name);
+			dumped_infos.emplace_back(module_id, module_name);
 		}
 	}
 }
 
-void close_printer(Printer *printer) {
-	if (!printer->global()) {
-		delete printer;
-	}
-}
-
-size_t last_executed_offset(size_t next_offset) {
+std::size_t last_executed_offset(std::size_t next_offset) {
 	return next_offset ? next_offset - 1 : 0;
 }
 
 }
 
-Cursor::Call::Call(Call &&other) noexcept :
-	m_function(std::move(other.function())),
-	m_metadata(other.m_metadata),
-	m_extra_args(other.m_extra_args),
-	m_flags(other.m_flags) {}
+Cursor::Call::Call(const Reference& function, Class* metadata) :
+    _function(function),
+    _metadata(metadata) {}
 
-Cursor::Call::Call(Reference &&function) :
-	m_function(std::move(function)) {}
+Cursor::Call::Call(const Reference& function, Class& metadata) :
+    _function(function),
+    _metadata(&metadata) {}
 
-Cursor::Call &Cursor::Call::operator=(Call &&other) noexcept {
-	m_function = std::move(other.m_function);
-	m_metadata = other.m_metadata;
-	m_extra_args = other.m_extra_args;
-	m_flags = other.m_flags;
-	return *this;
-}
+Cursor::Call::Call(Reference&& function, Class* metadata) :
+    _function(std::move(function)),
+    _metadata(metadata) {}
+
+Cursor::Call::Call(Reference&& function, Class& metadata) :
+    _function(std::move(function)),
+    _metadata(&metadata) {}
 
 Cursor::Call::Flags Cursor::Call::get_flags() const {
-	return m_flags;
+	return _flags;
 }
 
 void Cursor::Call::set_flags(Flags flags) {
-	m_flags = flags;
+	_flags = flags;
 }
 
-Class *Cursor::Call::get_metadata() const {
-	return m_metadata;
+Class* Cursor::Call::get_metadata() const {
+	return _metadata;
 }
 
-void Cursor::Call::set_metadata(Class *metadata) {
-	m_metadata = metadata;
+void Cursor::Call::set_metadata(Class* metadata) {
+	_metadata = metadata;
+}
+
+void mint::Cursor::Call::set_metadata(Class& metadata) {
+	_metadata = &metadata;
 }
 
 int Cursor::Call::extra_argument_count() const {
-	return m_extra_args;
+	return _extra_args;
 }
 
-void Cursor::Call::add_extra_argument(size_t count) {
-	m_extra_args += static_cast<int>(count);
+void Cursor::Call::add_extra_argument(std::size_t count) {
+	_extra_args += static_cast<int>(count);
 }
 
-Reference &Cursor::Call::function() {
-	return m_function;
+Reference& Cursor::Call::function() {
+	return _function;
 }
 
-Cursor::Cursor(AbstractSyntaxTree *ast, Module *module, Cursor *parent) :
-	m_ast(ast),
-	m_parent(parent),
-	m_child(nullptr),
-	m_stack(parent ? parent->m_stack : GarbageCollector::instance().create_stack()),
-	m_current_context(g_pool.allocate()) {
-	new (m_current_context) Context(module);
-	m_current_context->symbols = new SymbolTable;
+Cursor::WaitingCallStack::WaitingCallStack() {
+	register_root();
+}
 
-	if (m_parent) {
-		assert(m_parent->m_child == nullptr);
-		m_parent->m_child = this;
+Cursor::WaitingCallStack::~WaitingCallStack() {
+	unregister_root();
+}
+
+void Cursor::WaitingCallStack::mark() {
+	for (auto& call : _calls) {
+		call.function().data().mark();
 	}
 }
+
+Cursor::Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent) :
+    _ast(ast),
+    _parent(parent),
+    _child(nullptr),
+    _stack(parent ? parent->_stack : GarbageCollector::instance().create_stack()),
+    _current_context(g_pool.allocate()) {
+	std::construct_at(_current_context, module);
+	_current_context->symbols = std::make_unique<SymbolTable>(_ast.get().global_data());
+
+	if (_parent) {
+		assert(_parent->_child == nullptr);
+		_parent->_child = this;
+	}
+}
+
+Cursor::Cursor(AbstractSyntaxTree& ast, Cursor* parent) :
+    Cursor(ast, ThreadEntryPoint::instance(), parent) {}
 
 Cursor::~Cursor() {
 
-	if (m_parent) {
-		assert(m_parent->m_child == this);
-		m_parent->m_child = nullptr;
+	if (_parent) {
+		assert(_parent->_child == this);
+		_parent->_child = nullptr;
 	}
 	else {
-		GarbageCollector::instance().remove_stack(m_stack);
+		GarbageCollector::instance().remove_stack(_stack);
 	}
 
-	while (!m_call_stack.empty()) {
+	while (!_call_stack.empty()) {
 		exit_call();
 	}
 
-	m_current_context->~Context();
-	g_pool.deallocate(m_current_context);
-
-	m_ast->remove_cursor(this);
+	std::destroy_at(_current_context);
+	g_pool.deallocate(_current_context);
 }
 
-AbstractSyntaxTree *Cursor::ast() const {
-	return m_ast;
+std::unique_ptr<Cursor> Cursor::make_thread() {
+	return std::make_unique<Cursor>(_ast, this);
 }
 
-Cursor *Cursor::parent() const {
-	return m_parent;
-}
+bool Cursor::is_thread() const {
 
-void Cursor::jmp(size_t pos) {
-	m_current_context->iptr = pos;
-}
-
-void Cursor::call(Module::Handle *handle, int signature, Class *metadata) {
-
-	m_call_stack.emplace_back(m_current_context);
-
-	new (m_current_context = g_pool.allocate()) Context(m_ast->get_module(handle->module));
-	m_current_context->iptr = handle->offset;
-
-	if (handle->symbols) {
-		m_current_context->symbols = new SymbolTable(metadata);
-		m_current_context->symbols->open_package(handle->package);
-		m_current_context->symbols->reserve_fast(handle->fast_count);
+	if (_parent != nullptr) {
+		return false;
 	}
 
-	if (handle->generator) {
-		const size_t stack_base = m_stack->size() - static_cast<size_t>(signature >= 0 ? signature : (~signature) + 1);
-		m_current_context->generator = new WeakReference(Reference::DEFAULT, Iterator::from_generator(stack_base + 1));
-		m_stack->emplace(std::next(m_stack->begin(),
-								   static_cast<std::vector<WeakReference>::difference_type>(stack_base)),
-						 std::forward<Reference>(*m_current_context->generator));
-		m_current_context->generator->data<Iterator>()->construct();
+	if (_call_stack.empty()) {
+		return &_current_context->module.get() == &ThreadEntryPoint::instance();
+	}
+
+	return &_call_stack.front()->module.get() == &ThreadEntryPoint::instance();
+}
+
+void Cursor::jmp(std::size_t pos) {
+	_current_context->iptr = pos;
+}
+
+void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) {
+
+	_call_stack.emplace_back(_current_context);
+
+	_current_context = g_pool.allocate();
+	std::construct_at(_current_context, handle.module);
+	_current_context->iptr = handle.offset;
+
+	if (handle.symbols) {
+		_current_context->symbols = std::make_unique<SymbolTable>(_ast.get().global_data(), metadata);
+		_current_context->symbols->reserve_fast(handle.fast_count);
+		_current_context->symbols->open_package(handle.package);
+	}
+
+	if (handle.generator) {
+		const std::size_t stack_base = _stack->size()
+		                               - static_cast<std::size_t>(signature >= 0 ? signature : (~signature) + 1);
+		_current_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
+		    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
+		_stack->emplace(std::next(_stack->begin(), static_cast<std::vector<WeakReference>::difference_type>(stack_base)),
+		    *_current_context->generator);
+		_current_context->generator->data<Iterator>().construct();
 	}
 }
 
-void Cursor::call(Module *module, size_t pos, PackageData *package, Class *metadata) {
+void Cursor::call(const Module& module, std::size_t pos, PackageData& package, Class* metadata) {
 
-	m_call_stack.emplace_back(m_current_context);
+	_call_stack.emplace_back(_current_context);
 
-	new (m_current_context = g_pool.allocate()) Context(module);
-	m_current_context->symbols = new SymbolTable(metadata);
-	m_current_context->symbols->open_package(package);
-	m_current_context->iptr = pos;
+	_current_context = g_pool.allocate();
+	std::construct_at(_current_context, module);
+	_current_context->symbols = std::make_unique<SymbolTable>(_ast.get().global_data(), metadata);
+	_current_context->symbols->open_package(package);
+	_current_context->iptr = pos;
 }
 
 void Cursor::exit_call() {
-	m_current_context->~Context();
-	g_pool.deallocate(m_current_context);
-	m_current_context = m_call_stack.back();
-	m_call_stack.pop_back();
+	std::destroy_at(_current_context);
+	g_pool.deallocate(_current_context);
+	_current_context = _call_stack.back();
+	_call_stack.pop_back();
 }
 
 bool Cursor::call_in_progress() const {
 
-	if (m_current_context->module != ThreadEntryPoint::instance()) {
-		return !m_call_stack.empty();
+	if (&_current_context->module.get() != &ThreadEntryPoint::instance()) {
+		return !_call_stack.empty();
 	}
 
 	return false;
 }
 
 bool Cursor::is_in_builtin() const {
-	return m_current_context->symbols == nullptr;
+	return _current_context->symbols == nullptr;
 }
 
 bool Cursor::is_in_generator() const {
-	return m_current_context->generator != nullptr;
+	return _current_context->generator != nullptr;
 }
 
 std::unique_ptr<SavedState> Cursor::interrupt() {
 
-	std::unique_ptr<SavedState> state(new SavedState(this, m_current_context));
-	m_current_context = m_call_stack.back();
-	m_call_stack.pop_back();
+	auto state = std::make_unique<SavedState>(*this, _current_context);
+	_current_context = _call_stack.back();
+	_call_stack.pop_back();
 
-	while (!m_retrieve_points.empty() && m_retrieve_points.top().call_stack_size > m_call_stack.size()) {
-		state->retrieve_points.push(m_retrieve_points.top());
-		m_retrieve_points.pop();
+	while (!_retrieve_points.empty() && _retrieve_points.top().call_stack_size > _call_stack.size()) {
+		state->retrieve_points.push(_retrieve_points.top());
+		_retrieve_points.pop();
 	}
 
 	return state;
@@ -231,66 +272,65 @@ std::unique_ptr<SavedState> Cursor::interrupt() {
 
 void Cursor::restore(std::unique_ptr<SavedState> state) {
 
-	m_call_stack.push_back(m_current_context);
-	m_current_context = state->context;
+	_call_stack.push_back(_current_context);
+	_current_context = state->context;
 
 	while (!state->retrieve_points.empty()) {
-		m_retrieve_points.push(state->retrieve_points.top());
+		_retrieve_points.push(state->retrieve_points.top());
 		state->retrieve_points.pop();
 	}
 
 	state->context = nullptr;
 }
 
-void Cursor::destroy(SavedState *state) {
-	assert(state->cursor == this);
+void Cursor::destroy(SavedState* state) {
+	assert(&state->cursor.get() == this);
 	if (state->context) {
-		state->context->~Context();
+		std::destroy_at(state->context);
 		g_pool.deallocate(state->context);
 	}
 }
 
 void Cursor::begin_generator_expression() {
-	m_current_context->generator_expression.emplace_back(WeakReference::create<Iterator>());
-	m_current_context->generator_expression.back().data<Iterator>()->construct();
+	_current_context->generator_expression.emplace_back(create_iterator(_ast));
+	_current_context->generator_expression.back().data<Iterator>().construct();
 }
 
 void Cursor::end_generator_expression() {
-	m_stack->emplace_back(WeakReference::share(m_current_context->generator_expression.back()));
-	m_current_context->generator_expression.pop_back();
+	_stack->emplace_back(_current_context->generator_expression.back());
+	_current_context->generator_expression.pop_back();
 }
 
-void Cursor::yield_expression(const Reference &ref) {
-	iterator_yield(m_current_context->generator_expression.back().data<Iterator>(), WeakReference::copy(ref));
+void Cursor::yield_expression(const Reference& ref) {
+	iterator_yield(_current_context->generator_expression.back().data<Iterator>(), WeakReference(create_from, ref));
 }
 
-void Cursor::open_printer(Printer *printer) {
-	m_current_context->printers.emplace_back(printer);
+void Cursor::open_printer(std::unique_ptr<Printer>&& printer) {
+	_current_context->printers.emplace_back(std::move(printer));
 }
 
 void Cursor::close_printer() {
-	::close_printer(m_current_context->printers.back());
-	m_current_context->printers.pop_back();
+	_current_context->printers.pop_back();
 }
 
-Printer *Cursor::printer() {
-	if (m_current_context->printers.empty()) {
+Printer* Cursor::printer() {
+	if (_current_context->printers.empty()) {
 		return nullptr;
 	}
-	return m_current_context->printers.back();
+	return _current_context->printers.back().get();
 }
 
-bool Cursor::load_module(const std::string &module) {
+bool Cursor::load_module(const std::string& module) {
 
-	Module::Info info = m_ast->load_module(module);
+	const auto info = _ast.get().load_module(module);
 
-	if (UNLIKELY(info.id == Module::INVALID_ID)) {
+	if (info.id == Module::invalid_id) [[unlikely]] {
 		return false;
 	}
 
-	if (info.state == Module::NOT_LOADED) {
-		call(info.module, 0, &m_ast->global_data());
-		m_ast->set_module_state(info.id, Module::READY);
+	if (info.state == Module::State::not_loaded) {
+		call(*info.module, 0, _ast.get().global_data());
+		_ast.get().set_module_state(info.id, Module::State::ready);
 	}
 
 	return true;
@@ -306,115 +346,104 @@ bool Cursor::exit_module() {
 	return false;
 }
 
-void Cursor::set_retrieve_point(size_t offset) {
-	m_retrieve_points.push(RetrievePoint {
-		/*.stack_size = */ m_stack->size(),
-		/*.call_stack_size = */ m_call_stack.size(),
-		/*.waiting_calls_count = */ m_waiting_calls.size(),
-		/*.retrieve_offset = */ offset,
+void Cursor::set_retrieve_point(std::size_t offset) {
+	_retrieve_points.push({
+	    .stack_size = _stack->size(),
+	    .call_stack_size = _call_stack.size(),
+	    .waiting_calls_count = _waiting_calls.size(),
+	    .retrieve_offset = offset,
 	});
 }
 
 void Cursor::unset_retrieve_point() {
-	m_retrieve_points.pop();
+	_retrieve_points.pop();
 }
 
-void Cursor::raise(WeakReference exception) {
+void Cursor::raise(WeakReference&& exception) {
 
-	if (!m_retrieve_points.empty()) {
+	if (!_retrieve_points.empty()) {
 
-		const RetrievePoint &state = m_retrieve_points.top();
+		const RetrievePoint& state = _retrieve_points.top();
 
-		while (state.waiting_calls_count < m_waiting_calls.size()) {
-			m_waiting_calls.pop();
+		while (state.waiting_calls_count < _waiting_calls.size()) {
+			_waiting_calls.pop();
 		}
 
-		while (state.call_stack_size < m_call_stack.size()) {
+		while (state.call_stack_size < _call_stack.size()) {
 			exit_call();
 		}
 
-		m_stack->resize(state.stack_size);
-		m_stack->emplace_back(std::forward<Reference>(exception));
+		_stack->resize(state.stack_size);
+		_stack->emplace_back(std::move(exception));
 		jmp(state.retrieve_offset);
 
 		unset_retrieve_point();
 	}
-	else if (m_parent) {
-		throw MintException(m_parent, std::forward<Reference>(exception));
+	else if (_parent) {
+		throw MintException(*_parent, std::move(exception));
 	}
 	else {
-		Scheduler::instance()->create_exception(std::forward<Reference>(exception));
+		auto* scheduler = Scheduler::instance();
+		assert_x(scheduler, __func__, "execution should be done using a scheduler");
+		scheduler->create_exception(std::move(exception));
 	}
 }
 
-LineInfoList Cursor::dump() {
+LineInfoList Cursor::dump() const {
 
 	LineInfoList dumped_infos;
-	dump_module(dumped_infos, m_ast, m_current_context->module, last_executed_offset(m_current_context->iptr));
+	dump_module(dumped_infos, _ast, _current_context->module, last_executed_offset(_current_context->iptr));
 
-	for (auto context = m_call_stack.rbegin(); context != m_call_stack.rend(); ++context) {
-		dump_module(dumped_infos, m_ast, (*context)->module, last_executed_offset((*context)->iptr));
+	for (const auto* context : std::views::reverse(_call_stack)) {
+		dump_module(dumped_infos, _ast, context->module, last_executed_offset(context->iptr));
 	}
 
-	if (m_child) {
-		const LineInfoList &child_infos = m_child->dump();
-		std::copy(child_infos.begin(), child_infos.end(), std::back_inserter(dumped_infos));
+	if (_child) {
+		std::ranges::copy(_child->dump(), std::back_inserter(dumped_infos));
 	}
 
 	return dumped_infos;
 }
 
-size_t Cursor::offset() const {
-	return m_current_context->iptr;
+std::size_t Cursor::offset() const {
+	return _current_context->iptr;
 }
 
 void Cursor::resume() {
-	jmp(m_current_context->module->next_node_offset());
-	m_stack->clear();
+	jmp(_current_context->module.get().next_node_offset());
+	_stack->clear();
 }
 
 void Cursor::retrieve() {
 
-	while (!m_waiting_calls.empty()) {
-		m_waiting_calls.pop();
+	while (!_waiting_calls.empty()) {
+		_waiting_calls.pop();
 	}
 
-	while (!m_call_stack.empty()) {
+	while (!_call_stack.empty()) {
 		exit_call();
 	}
 
-	while (!m_stack->empty()) {
-		m_stack->pop_back();
+	while (!_stack->empty()) {
+		_stack->pop_back();
 	}
 
-	jmp(m_current_context->module->end());
+	jmp(_current_context->module.get().end());
 }
 
 void Cursor::cleanup() {
 
-	if (m_parent == nullptr) {
+	if (_parent == nullptr) {
 
-		while (!m_call_stack.empty()) {
+		while (!_call_stack.empty()) {
 			exit_call();
 		}
 
-		for (Printer *printer : m_current_context->printers) {
-			::close_printer(printer);
-		}
-
-		m_current_context->printers.clear();
-		m_current_context->symbols->clear();
-		m_stack->clear();
+		_current_context->printers.clear();
+		_current_context->symbols->clear();
+		_stack->clear();
 	}
 }
 
-Cursor::Context::Context(Module *module) :
-	module(module) {}
-
-Cursor::Context::~Context() {
-	for (Printer *printer : printers) {
-		::close_printer(printer);
-	}
-	delete generator;
-	delete symbols;
-}
+Cursor::Context::Context(const Module& module) :
+    module(module) {}

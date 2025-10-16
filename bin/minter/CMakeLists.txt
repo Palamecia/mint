@@ -29,6 +29,15 @@ add_custom_target(
 )
 
 # Install
-mint_install_scripts(${${PROJECT_NAME}_LIBRARIES} SUBDIR minter/minter)
-mint_install_scripts(${${PROJECT_NAME}_PLUGINS} SUBDIR minter/plugins)
-mint_install_scripts(${${PROJECT_NAME}_SOURCES} SUBDIR minter)
+install(
+	PROGRAMS ${${PROJECT_NAME}_LIBRARIES}
+	COMPONENT runtime DESTINATION ${MINT_SCRIPTS_INSTALL_DIR}/minter/minter
+)
+install(
+	PROGRAMS ${${PROJECT_NAME}_PLUGINS}
+	COMPONENT runtime DESTINATION ${MINT_SCRIPTS_INSTALL_DIR}/minter/plugins
+)
+install(
+	PROGRAMS ${${PROJECT_NAME}_SOURCES}
+	COMPONENT runtime DESTINATION ${MINT_SCRIPTS_INSTALL_DIR}/minter
+)

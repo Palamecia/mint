@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,110 +22,125 @@
  */
 
 #include "mint/memory/reference.h"
+#include "mint/memory/data.h"
+#include "mint/memory/garbagecollector.h"
+#include <cassert>
+#include <memory>
+#include <utility>
 
 using namespace mint;
 
-LocalPool<Reference::Info> Reference::g_pool;
-GarbageCollector &Reference::g_garbage_collector = GarbageCollector::instance();
-
-Reference::Reference(Flags flags, Data *data) :
-	m_info(g_pool.alloc()) {
-	m_info->flags = flags;
-	g_garbage_collector.use(m_info->data = data ? data : g_garbage_collector.alloc<None>());
-	m_info->refcount = 1;
-	assert(m_info->data);
+Reference::Info::Info(Flags flags, Data* data) :
+    _flags(flags),
+    _data(data) {
+	assert(_data);
+	static GarbageCollector& g_garbage_collector = GarbageCollector::instance();
+	g_garbage_collector.use(_data);
 }
 
-Reference::Reference(Reference &&other) noexcept :
-	m_info(other.m_info) {
-	++m_info->refcount;
-	assert(m_info->data);
+Reference::Info::~Info() {
+	static GarbageCollector& g_garbage_collector = GarbageCollector::instance();
+	g_garbage_collector.release(_data);
 }
 
-Reference::Reference(Info *infos) noexcept :
-	m_info(infos) {
-	++m_info->refcount;
-	assert(m_info->data);
+void Reference::Info::set_data(Data* data) {
+
+	static GarbageCollector& g_garbage_collector = GarbageCollector::instance();
+
+	assert(data != nullptr);
+
+	std::swap(_data, data);
+	g_garbage_collector.use(_data);
+	g_garbage_collector.release(data);
 }
 
-Reference::~Reference() {
-	assert(m_info);
-	if (!--m_info->refcount) {
-		assert(m_info->data);
-		g_garbage_collector.release(m_info->data);
-		g_pool.free(m_info);
-	}
+Reference::Reference(Flags flags, Data* data) :
+    _info(std::make_shared<Info>(flags, data)) {}
+
+void Reference::copy_data(const Reference& other) {
+	_info->set_data(Info::copy(other.data()));
 }
 
-Reference &Reference::operator=(Reference &&other) noexcept {
-	std::swap(m_info, other.m_info);
-	assert(m_info->data);
-	return *this;
+void Reference::move_data(const Reference& other) {
+	_info->set_data(&other.data());
 }
 
-void Reference::copy_data(const Reference &other) {
-	set_data(g_garbage_collector.copy(other.data()));
+std::shared_ptr<Reference::Info> Reference::info() const {
+	return _info;
 }
 
-void Reference::move_data(const Reference &other) {
-	set_data(other.data());
-}
+WeakReference::WeakReference() :
+    Reference(default_flags, Info::alloc<None>()) {}
 
-void Reference::set_data(Data *data) {
+WeakReference::WeakReference(Flags flags) :
+    Reference(flags, Info::alloc<None>()) {}
 
-	assert(data);
+WeakReference::WeakReference(Flags flags, Data& data) :
+    Reference(flags, &data) {}
 
-	Data *previous = m_info->data;
-	g_garbage_collector.use(m_info->data = data);
-	g_garbage_collector.release(previous);
-}
+WeakReference::WeakReference(const Reference& other) :
+    Reference(other) {}
 
-Reference::Info *Reference::info() {
-	return m_info;
-}
-
-WeakReference::WeakReference(Flags flags, Data *data) :
-	Reference(flags, data) {}
-
-WeakReference::WeakReference(WeakReference &&other) noexcept :
-	Reference(std::forward<WeakReference>(other)) {}
-
-WeakReference::WeakReference(Reference &&other) noexcept :
-	Reference(std::move(other)) {}
-
-WeakReference::WeakReference(Info *infos) :
-	Reference(infos) {}
+WeakReference::WeakReference(Reference&& other) noexcept :
+    Reference(std::move(other)) {}
 
 WeakReference::~WeakReference() {}
 
-WeakReference &WeakReference::operator=(WeakReference &&other) noexcept {
-	Reference::operator=(std::forward<WeakReference>(other));
-	return *this;
+StrongReference::StrongReference() :
+    Reference(default_flags, Info::alloc<None>()) {
+	register_root();
 }
 
-StrongReference::StrongReference(Flags flags, Data *data) :
-	Reference(flags, data) {}
+StrongReference::StrongReference(Flags flags) :
+    Reference(flags, Info::alloc<None>()) {
+	register_root();
+}
 
-StrongReference::StrongReference(StrongReference &&other) noexcept :
-	Reference(std::forward<StrongReference>(other)) {}
+StrongReference::StrongReference(Flags flags, Data& data) :
+    Reference(flags, &data) {
+	register_root();
+}
 
-StrongReference::StrongReference(WeakReference &&other) noexcept :
-	Reference(std::move(other)) {}
+StrongReference::StrongReference(const StrongReference& other) :
+    Reference(other) {
+	register_root();
+}
 
-StrongReference::StrongReference(Reference &&other) noexcept :
-	Reference(std::move(other)) {}
+StrongReference::StrongReference(const WeakReference& other) :
+    Reference(other) {
+	register_root();
+}
 
-StrongReference::StrongReference(Info *infos) :
-	Reference(infos) {}
+StrongReference::StrongReference(const Reference& other) :
+    Reference(other) {
+	register_root();
+}
 
-StrongReference::~StrongReference() {}
+StrongReference::StrongReference(StrongReference&& other) noexcept :
+    Reference(std::move(other)) {
+	register_root();
+}
 
-StrongReference &StrongReference::operator=(StrongReference &&other) noexcept {
+StrongReference::StrongReference(WeakReference&& other) noexcept :
+    Reference(std::move(other)) {
+	register_root();
+}
+
+StrongReference::StrongReference(Reference&& other) noexcept :
+    Reference(std::move(other)) {
+	register_root();
+}
+
+StrongReference::~StrongReference() {
+	unregister_root();
+}
+
+StrongReference& StrongReference::operator=(WeakReference&& other) noexcept {
 	Reference::operator=(std::move(other));
 	return *this;
 }
 
-StrongReference &StrongReference::operator=(WeakReference &&other) noexcept {
-	Reference::operator=(std::move(other));
+StrongReference& StrongReference::operator=(const WeakReference& other) {
+	Reference::operator=(other);
 	return *this;
 }

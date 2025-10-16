@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -33,51 +33,51 @@
 
 class DocLexer {
 public:
-	enum Token : std::int8_t {
-		SHARP_TOKEN,
-		ASTERISK_TOKEN,
-		DBL_ASTERISK_TOKEN,
-		TPL_ASTERISK_TOKEN,
-		UNDERSCORE_TOKEN,
-		DBL_UNDERSCORE_TOKEN,
-		TPL_UNDERSCORE_TOKEN,
-		TILDE_TOKEN,
-		DBL_TILDE_TOKEN,
-		BACKQUOTE_TOKEN,
-		DBL_BACKQUOTE_TOKEN,
-		TPL_BACKQUOTE_TOKEN,
-		PIPE_TOKEN,
-		HYPHEN_TOKEN,
-		DBL_HYPHEN_TOKEN,
-		TPL_HYPHEN_TOKEN,
-		OPEN_PARENTHESIS_TOKEN,
-		CLOSE_PARENTHESIS_TOKEN,
-		OPEN_BRACKET_TOKEN,
-		DBL_OPEN_BRACKET_TOKEN,
-		CLOSE_BRACKET_TOKEN,
-		DBL_CLOSE_BRACKET_TOKEN,
-		CLOSE_BRACKET_OPEN_PARENTHESIS_TOKEN,
-		OPEN_BRACE_TOKEN,
-		CLOSE_BRACE_TOKEN,
-		LEFT_ANGLED_TOKEN,
-		RIGHT_ANGLED_TOKEN,
-		NUMBER_TOKEN,
-		NUMBER_PERIOD_TOKEN,
-		WORD_TOKEN,
-		BLANK_TOKEN,
-		LINE_BREAK_TOKEN,
-		FILE_END_TOKEN
+	enum class Token : std::int8_t {
+		sharp,
+		asterisk,
+		dbl_asterisk,
+		tpl_asterisk,
+		underscore,
+		dbl_underscore,
+		tpl_underscore,
+		tilde,
+		dbl_tilde,
+		backquote,
+		dbl_backquote,
+		tpl_backquote,
+		pipe,
+		hyphen,
+		dbl_hyphen,
+		tpl_hyphen,
+		open_parenthesis,
+		close_parenthesis,
+		open_bracket,
+		dbl_open_bracket,
+		close_bracket,
+		dbl_close_bracket,
+		close_bracket_open_parenthesis,
+		open_brace,
+		close_brace,
+		left_angled,
+		right_angled,
+		number,
+		number_period,
+		word,
+		blank,
+		line_break,
+		file_end,
 	};
 
-	static constexpr const std::size_t TAB_STOP = 4;
+	static constexpr const std::size_t tab_stop = 4;
 
-	explicit DocLexer(std::stringstream &stream);
-	DocLexer(const DocLexer &) = delete;
-	DocLexer(DocLexer &&) = delete;
+	explicit DocLexer(std::stringstream& stream);
+	DocLexer(const DocLexer&) = delete;
+	DocLexer(DocLexer&&) = delete;
 	~DocLexer() = default;
-	
-	DocLexer &operator=(const DocLexer &) = delete;
-	DocLexer &operator=(DocLexer &&) = delete;
+
+	DocLexer& operator=(const DocLexer&) = delete;
+	DocLexer& operator=(DocLexer&&) = delete;
 
 	bool skip_to_column(std::size_t column);
 	std::tuple<Token, std::string> next_token();
@@ -91,24 +91,24 @@ public:
 
 	static bool is_digit(int c);
 	static bool is_white_space(int c);
-	static bool is_operator(const std::string &token);
-	static bool is_operator(const std::string &token, Token *type);
+	static bool is_operator(const std::string& token);
+	static bool is_operator(const std::string& token, Token* type);
 
 protected:
 	int next_char();
 
 private:
-	static constexpr const Token UNKNOWN_TOKEN = static_cast<Token>(-1);
-	static const std::unordered_map<std::string, Token> OPERATORS;
-	
-	std::stringstream &m_stream;
-	int m_cptr;
+	static constexpr const Token unknown_token = static_cast<Token>(-1);
+	static const std::unordered_map<std::string, Token> operators;
 
-	std::string m_token;
-	std::size_t m_line = 1;
-	std::size_t m_column = 1;
-	std::size_t m_token_column = 0;
-	std::size_t m_first_non_blank_column = 1;
+	std::stringstream& _stream;
+	int _cptr;
+
+	std::string _token;
+	std::size_t _line = 1;
+	std::size_t _column = 1;
+	std::size_t _token_column = 0;
+	std::size_t _first_non_blank_column = 1;
 };
 
 #endif // MINTDOC_DOCLEXER_H

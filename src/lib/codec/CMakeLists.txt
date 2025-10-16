@@ -4,32 +4,43 @@ set(MODULE_NAME codec)
 
 find_package(Iconv REQUIRED)
 
-include_directories(${Iconv_INCLUDE_DIRS})
+add_library(mint-codec MODULE)
 
-set(${PROJECT_NAME}_SOURCES
+target_sources(
+	mint-codec
+PRIVATE
 	iconv.cpp
 	mimetypes.cpp
 )
 
-add_library(${PROJECT_NAME}
-	MODULE
-	${${PROJECT_NAME}_SOURCES}
-)
-
 set_target_properties(
-	${PROJECT_NAME}
+	mint-codec
 	PROPERTIES
 	PREFIX lib
+	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
 )
 
 if (UNIX)
-	target_link_libraries(${PROJECT_NAME} mint_library magic)
+	target_link_libraries(
+		mint-codec
+	PRIVATE
+		libmint
+		magic
+	)
 else()
-	target_link_libraries(${PROJECT_NAME} mint_library urlmon ${Iconv_LIBRARIES})
-	get_filename_component(Iconv_LIBRARIES_DIR "${Iconv_LIBRARIES}" DIRECTORY)
-	get_filename_component(Iconv_DLL "${Iconv_LIBRARIES_DIR}/../bin/iconv.dll" ABSOLUTE)
-	install(PROGRAMS "${Iconv_DLL}" COMPONENT runtime DESTINATION ${MINT_RUNTIME_INSTALL_DIR})
+	target_link_libraries(
+		mint-codec
+	PRIVATE
+		libmint
+		urlmon
+		Iconv::Iconv
+	)
 endif()
 
 # Install
-mint_install_library(${PROJECT_NAME} SUBDIR mint)
+install(
+	TARGETS mint-codec
+	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+)

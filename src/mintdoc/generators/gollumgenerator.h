@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -25,59 +25,63 @@
 #define MINTDOC_GENERATORS_GOLLUMGENERATOR_H
 
 #include "abstractgenerator.h"
+#include "definition.h"
 #include "docnode.h"
+#include "module.h"
+#include "page.h"
 #include <cstddef>
 #include <cstdint>
-#include <memory>
+#include <cstdio>
+#include <filesystem>
+#include <functional>
 #include <string>
-#include <type_traits>
+#include <vector>
 
 class GollumGenerator : public AbstractGenerator {
 public:
+	static constexpr std::size_t default_brief_length = 80;
+
 	GollumGenerator() = default;
 
-	void setup_links(const Dictionary *dictionary, Module *module) override;
+	void setup_links(const Dictionary& dictionary, Module& module) override;
 
-	void generate_module_list(const Dictionary *dictionary, const std::filesystem::path &path,
-							  const std::vector<Module *> &modules) override;
-	void generate_module(const Dictionary *dictionary, const std::filesystem::path &path, Module *module) override;
+	void generate_module_list(const Dictionary& dictionary, const std::filesystem::path& path,
+	    const std::vector<std::reference_wrapper<const Module>>& modules) override;
+	void generate_module(const Dictionary& dictionary, const std::filesystem::path& path, const Module& module) override;
 
-	void generate_package_list(const Dictionary *dictionary, const std::filesystem::path &path,
-							   const std::vector<Package *> &packages) override;
-	void generate_package(const Dictionary *dictionary, const std::filesystem::path &path, Package *package) override;
+	void generate_package_list(const Dictionary& dictionary, const std::filesystem::path& path,
+	    const std::vector<std::reference_wrapper<const Package>>& packages) override;
+	void generate_package(const Dictionary& dictionary, const std::filesystem::path& path,
+	    const Package& package) override;
 
-	void generate_page_list(const Dictionary *dictionary, const std::filesystem::path &path,
-							const std::vector<Page *> &pages) override;
-	void generate_page(const Dictionary *dictionary, const std::filesystem::path &path, Page *page) override;
+	void generate_page_list(const Dictionary& dictionary, const std::filesystem::path& path,
+	    const std::vector<std::reference_wrapper<const Page>>& pages) override;
+	void generate_page(const Dictionary& dictionary, const std::filesystem::path& path, const Page& page) override;
 
 private:
-	static std::string external_link(const std::string &label, const std::string &target, const std::string &section);
-	static std::string external_link(const std::string &label, const std::string &target);
-	static std::string external_link(const std::string &target);
-	static std::string internal_link(const std::string &label, const std::string &section);
-	static std::string brief(const Dictionary *dictionary, const std::unique_ptr<DocNode> &node,
-							 const Definition *context = nullptr, size_t max_length = 80);
-	static std::string doc_from_mintdoc(const Dictionary *dictionary, const std::unique_ptr<DocNode> &node,
-										const Definition *context = nullptr);
-	static std::string definition_brief(const Dictionary *dictionary, const Definition *definition);
+	static std::string external_link(const std::string& label, const std::string& target, const std::string& section);
+	static std::string external_link(const std::string& label, const std::string& target);
+	static std::string external_link(const std::string& target);
+	static std::string internal_link(const std::string& label, const std::string& section);
+	static std::string brief(const Dictionary& dictionary, const DocNode& node, const Definition* context = nullptr,
+	    std::size_t max_length = default_brief_length);
+	static std::string doc_from_mintdoc(const Dictionary& dictionary, const DocNode& node,
+	    const Definition* context = nullptr);
+	static std::string definition_brief(const Dictionary& dictionary, const Definition& definition);
 
-	enum FormatOption : std::uint8_t {
-		NO_OPTIONS = 0x00,
-		WITHOUT_LINEBREAK = 0x01,
-		WITHOUT_LINKS = 0x02,
-		WITHOUT_UNFENCED_CODE = 0x04
-	};
+	using FormatOptions = std::uint8_t;
+	static constexpr FormatOptions no_options = 0x00;
+	static constexpr FormatOptions without_linebreak = 0x01;
+	static constexpr FormatOptions without_links = 0x02;
+	static constexpr FormatOptions without_unfenced_code = 0x04;
 
-	using FormatOptions = std::underlying_type_t<FormatOption>;
+	static bool mintdoc_to_string(const Dictionary& dictionary, const Definition* context, const DocNode& node,
+	    const std::string& prefix, std::string& documentation, std::size_t& max_length,
+	    FormatOptions options = no_options);
 
-	static bool mintdoc_to_string(const Dictionary *dictionary, const Definition *context,
-								  const std::unique_ptr<DocNode> &node, const std::string &prefix,
-								  std::string &documentation, std::size_t &max_length,
-								  FormatOptions options = NO_OPTIONS);
-
-	void generate_module(const Dictionary *dictionary, FILE *file, const Module *module);
-	void generate_module_group(const Dictionary *dictionary, FILE *file, Module *module);
-	void generate_package(const Dictionary *dictionary, FILE *file, const Package *package);
+	static void generate_script_module(FILE* file, const Dictionary& dictionary, const Module& module);
+	static void generate_group_module(FILE* file, const Dictionary& dictionary, const Module& module);
+	static void generate_package(FILE* file, const Dictionary& dictionary, const Package& package);
 };
 
 #endif // MINTDOC_GENERATORS_GOLLUMGENERATOR_H

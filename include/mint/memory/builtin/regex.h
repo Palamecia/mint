@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,35 +21,37 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_BUILTIN_REGEX_H
-#define MINT_BUILTIN_REGEX_H
+#ifndef MINT_MEMORY_BUILTIN_REGEX_H
+#define MINT_MEMORY_BUILTIN_REGEX_H
 
+#include "mint/config.h"
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
 
 #include <regex>
+#include <string>
 
 namespace mint {
 
-class MINT_EXPORT RegexClass : public Class {
-	friend class GlobalData;
-public:
-	static RegexClass *instance();
+class AbstractSyntaxTree;
+class GarbageCollector;
 
-private:
-	RegexClass();
+class MINT_EXPORT RegexClass : public Class {
+public:
+	RegexClass(AbstractSyntaxTree& ast);
+	static RegexClass& instance(AbstractSyntaxTree& ast);
 };
 
-struct MINT_EXPORT Regex : public Object {
+class MINT_EXPORT Regex : public Object {
 	friend class GarbageCollector;
 public:
-	Regex();
-	Regex(Regex &&other) noexcept;
-	Regex(const Regex &other);
+	explicit Regex(AbstractSyntaxTree& ast);
+	Regex(Regex&& other) noexcept;
+	Regex(const Regex& other);
 	~Regex() override = default;
 
-	Regex &operator=(Regex &&other) noexcept;
-	Regex &operator=(const Regex &other);
+	Regex& operator=(Regex&& other) noexcept;
+	Regex& operator=(const Regex& other);
 
 	std::string initializer;
 	std::regex expr;
@@ -57,6 +59,7 @@ public:
 private:
 	static LocalPool<Regex> g_pool;
 };
+
 }
 
-#endif // MINT_BUILTIN_REGEX_H
+#endif // MINT_MEMORY_BUILTIN_REGEX_H

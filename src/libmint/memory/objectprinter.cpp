@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,41 +22,43 @@
  */
 
 #include "mint/memory/objectprinter.h"
-#include "mint/memory/operatortool.h"
-#include "mint/memory/memorytool.h"
-#include "mint/memory/globaldata.h"
-#include "mint/memory/reference.h"
-#include "mint/memory/object.h"
-#include "mint/system/error.h"
-#include "mint/ast/module.h"
+#include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
+#include "mint/ast/module.h"
+#include "mint/ast/node.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
+#include "mint/memory/operatortool.h"
+#include "mint/memory/reference.h"
+#include "mint/system/error.h"
 
 using namespace mint;
 
 class ResultHandler : public Module {
 public:
 	ResultHandler() {
-		push_nodes({Node::UNLOAD_REFERENCE, Node::EXIT_MODULE});
+		push_nodes({Node::Command::unload_reference, Node::Command::exit_module});
 	}
 
-	static ResultHandler &instance() {
+	static ResultHandler& instance() {
 		static ResultHandler g_instance;
 		return g_instance;
 	}
 };
 
-ObjectPrinter::ObjectPrinter(Cursor *cursor, Reference::Flags flags, Object *object) :
-	m_object(flags, object),
-	m_cursor(cursor) {}
+ObjectPrinter::ObjectPrinter(Cursor& cursor, Reference::Flags flags, Object& object) :
+    _object(flags, object),
+    _cursor(cursor) {}
 
-void ObjectPrinter::print(Reference &reference) {
+void ObjectPrinter::print(const Reference& reference) {
 
-	m_cursor->stack().emplace_back(WeakReference::share(m_object));
-	m_cursor->stack().emplace_back(WeakReference::share(reference));
-	m_cursor->call(&ResultHandler::instance(), 0, GlobalData::instance());
+	_cursor.get().stack().emplace_back(_object);
+	_cursor.get().stack().emplace_back(reference);
+	_cursor.get().call(ResultHandler::instance(), 0uz, _cursor.get().ast().global_data());
 
-	if (UNLIKELY(!call_overload(m_cursor, builtin_symbols::WRITE_METHOD, 1))) {
-		m_cursor->exit_module();
-		error("class '%s' doesn't overload 'write'(1)", type_name(m_object).c_str());
+	if (!call_overload(_cursor.get(), builtin_symbols::write_method, 1)) [[unlikely]] {
+		_cursor.get().exit_module();
+		error("class '{}' doesn't overload 'write'(1)", type_name(_object));
 	}
 }

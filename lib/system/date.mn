@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -189,7 +189,7 @@ package System {
 		 */
 		@const def setCurrent(date) {
 			var date = System.Date(date)
-			if var errno = System.Date.g_lib.call('mint_date_set_current', date.to_std_chrono_milliseconds()) {
+			if var errno = System.Date.g_lib.call('mint_date_set_current', date.to_std_chrono_time_point()) {
 				raise Exception.SystemError(errno, date)
 			}
 		}
@@ -847,9 +847,10 @@ package System {
 		}
 
 		/**
-		 * Returns the pointer to the internal `std::chrono::milliseconds` instance.
+		 * Returns the pointer to the internal `std::chrono::sys_time<std::chrono::milliseconds>`
+		 * instance.
 		 */
-		~ const def to_std_chrono_milliseconds(const self) {
+		~ const def to_std_chrono_time_point(const self) {
 			return self.timepoint
 		}
 

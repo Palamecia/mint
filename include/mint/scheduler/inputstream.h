@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,27 +21,23 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_INPUTSTREAM_H
-#define MINT_INPUTSTREAM_H
+#ifndef MINT_SCHEDULER_INPUTSTREAM_H
+#define MINT_SCHEDULER_INPUTSTREAM_H
 
+#include "mint/config.h"
 #include "mint/system/datastream.h"
 #include "mint/system/terminal.h"
 
+#include <cstddef>
 #include <filesystem>
 #include <cstdint>
+#include <string>
 
 namespace mint {
 
 class MINT_EXPORT InputStream : public DataStream {
 public:
-	InputStream(InputStream &&) = delete;
-	InputStream(const InputStream &) = default;
-	~InputStream();
-
-	InputStream &operator=(InputStream &&) = delete;
-	InputStream &operator=(const InputStream &) = default;
-
-	static InputStream &instance();
+	static InputStream& instance();
 
 	[[nodiscard]] bool at_end() const override;
 
@@ -63,28 +59,28 @@ protected:
 	int next_buffered_char() override;
 
 private:
-	enum Status : std::uint8_t {
-		READY,
-		COULD_START_COMMENT,
-		SINGLE_LINE_COMMENT,
-		MULTI_LINE_COMMENT,
-		COULD_END_COMMENT,
-		SINGLE_QUOTE_STRING,
-		SINGLE_QUOTE_STRING_ESCAPE_NEXT,
-		DOUBLE_QUOTE_STRING,
-		DOUBLE_QUOTE_STRING_ESCAPE_NEXT,
-		BREAKING,
-		OVER
+	enum class Status : std::uint8_t {
+		ready,
+		could_start_comment,
+		single_line_comment,
+		multi_line_comment,
+		could_end_comment,
+		single_quote_string,
+		single_quote_string_escape_next,
+		double_quote_string,
+		double_quote_string_escape_next,
+		breaking,
+		over
 	};
 
-	std::string m_buffer;
-	char *m_cptr = nullptr;
-	size_t m_level = 0;
-	Status m_status = READY;
-	bool m_must_fetch_more = true;
-	Terminal m_terminal;
+	std::string _buffer;
+	char* _cptr = nullptr;
+	std::size_t _level = 0;
+	Status _status = Status::ready;
+	bool _must_fetch_more = true;
+	Terminal _terminal;
 };
 
 }
 
-#endif // MINT_INPUTSTREAM_H
+#endif // MINT_SCHEDULER_INPUTSTREAM_H

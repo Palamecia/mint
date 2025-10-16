@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,9 +24,11 @@
 #ifndef CASE_TABLE_H
 #define CASE_TABLE_H
 
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
-#include <map>
+#include <unordered_map>
 
 namespace mint {
 
@@ -35,16 +37,16 @@ class BuildContext;
 
 struct CaseTable {
 	struct Label {
-		Label(Branch *parent);
+		Label(Branch& parent);
 
 		std::unique_ptr<Branch> condition;
-		size_t offset;
+		std::size_t offset;
 	};
 
-	std::map<std::string, Label *> labels;
-	size_t *default_label = nullptr;
-	Label *current_label = nullptr;
-	size_t origin = 0;
+	std::unordered_map<std::string, Label> labels;
+	std::optional<std::size_t> default_label;
+	std::optional<Label> current_label;
+	std::size_t origin = 0;
 };
 
 }

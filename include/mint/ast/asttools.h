@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,16 +21,19 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_ASTTOOLS_H
-#define MINT_ASTTOOLS_H
+#ifndef MINT_AST_ASTTOOLS_H
+#define MINT_AST_ASTTOOLS_H
 
 #include "mint/ast/cursor.h"
+#include "mint/config.h"
+#include <memory>
+#include <string>
 
 namespace mint {
 
-MINT_EXPORT void load_module(Cursor *cursor, const std::string &module);
-MINT_EXPORT Cursor *load_module(const std::string &module, AbstractSyntaxTree *ast);
+MINT_EXPORT void load_module(Cursor& cursor, const std::string& module);
+MINT_EXPORT std::unique_ptr<Cursor> load_module(const std::string& module, AbstractSyntaxTree& ast);
 
 }
 
-#endif // MINT_ASTTOOLS_H
+#endif // MINT_AST_ASTTOOLS_H

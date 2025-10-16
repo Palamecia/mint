@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,13 +24,16 @@
 #ifndef MINT_NETWORK_SOCKET_H
 #define MINT_NETWORK_SOCKET_H
 
-#include <mint/config.h>
-#include <mint/ast/symbol.h>
+#include "mint/ast/symbol.h"
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
+#include "mint/config.h"
 #include <WinSock2.h>
 #else
+#include <bits/types/struct_timeval.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET -1
 #endif
@@ -41,46 +44,46 @@ namespace mint {
 
 namespace symbols {
 
-static const Symbol Network("Network");
-static const Symbol EndPoint("EndPoint");
-static const Symbol IOStatus("IOStatus");
-static const Symbol IOSuccess("IOSuccess");
-static const Symbol IOWouldBlock("IOWouldBlock");
-static const Symbol IOClosed("IOClosed");
-static const Symbol IOError("IOError");
+static const Symbol network("Network");
+static const Symbol end_point("EndPoint");
+static const Symbol io_status("IOStatus");
+static const Symbol io_success("IOSuccess");
+static const Symbol io_would_block("IOWouldBlock");
+static const Symbol io_closed("IOClosed");
+static const Symbol io_error("IOError");
 
 }
 
-enum sockopt_bool : int {
-	SOCKOPT_FALSE = 0,
-	SOCKOPT_TRUE = 1
+enum sockopt_bool : int { // NOLINT
+	sockopt_false = 0,
+	sockopt_true = 1
 };
 
-bool get_socket_option(SOCKET socket, int option, int *value);
+bool get_socket_option(SOCKET socket, int option, int* value);
 bool set_socket_option(SOCKET socket, int option, int value);
-bool get_socket_option(SOCKET socket, int option, sockopt_bool *value);
+bool get_socket_option(SOCKET socket, int option, sockopt_bool* value);
 bool set_socket_option(SOCKET socket, int option, sockopt_bool value);
-bool get_socket_option(SOCKET socket, int option, linger *value);
-bool set_socket_option(SOCKET socket, int option, const linger *value);
-bool get_socket_option(SOCKET socket, int option, timeval *value);
-bool set_socket_option(SOCKET socket, int option, const timeval *value);
+bool get_socket_option(SOCKET socket, int option, linger* value);
+bool set_socket_option(SOCKET socket, int option, const linger* value);
+bool get_socket_option(SOCKET socket, int option, timeval* value);
+bool set_socket_option(SOCKET socket, int option, const timeval* value);
 
-bool get_socket_option(SOCKET socket, int level, int option, int *value);
+bool get_socket_option(SOCKET socket, int level, int option, int* value);
 bool set_socket_option(SOCKET socket, int level, int option, int value);
-bool get_socket_option(SOCKET socket, int level, int option, u_char *value);
+bool get_socket_option(SOCKET socket, int level, int option, u_char* value);
 bool set_socket_option(SOCKET socket, int level, int option, u_char value);
-bool get_socket_option(SOCKET socket, int level, int option, sockopt_bool *value);
+bool get_socket_option(SOCKET socket, int level, int option, sockopt_bool* value);
 bool set_socket_option(SOCKET socket, int level, int option, sockopt_bool value);
-bool get_socket_option(SOCKET socket, int level, int option, void *value, socklen_t len);
-bool set_socket_option(SOCKET socket, int level, int option, const void *value, socklen_t len);
+bool get_socket_option(SOCKET socket, int level, int option, void* value, socklen_t len);
+bool set_socket_option(SOCKET socket, int level, int option, const void* value, socklen_t len);
 
 template<typename opt_t>
-bool get_socket_option(SOCKET socket, int level, int option, opt_t *value) {
+bool get_socket_option(SOCKET socket, int level, int option, opt_t* value) {
 	return get_socket_option(socket, level, option, value, sizeof(opt_t));
 }
 
 template<typename opt_t>
-bool set_socket_option(SOCKET socket, int level, int option, const opt_t *value) {
+bool set_socket_option(SOCKET socket, int level, int option, const opt_t* value) {
 	return set_socket_option(socket, level, option, value, sizeof(opt_t));
 }
 

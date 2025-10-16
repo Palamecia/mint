@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,15 +23,16 @@
 
 #include "mint/memory/functiontool.h"
 #include "mint/memory/builtin/hash.h"
+#include "mint/memory/reference.h"
 
-using namespace mint;
+namespace {
 
-MINT_FUNCTION(mint_operator_hash_key_compare, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	WeakReference right = std::move(helper.pop_parameter());
-	WeakReference left = std::move(helper.pop_parameter());
-
-	static constexpr Hash::compare_to COMPARATOR;
-	helper.return_value(create_boolean(COMPARATOR(left, right)));
+mint::WeakReference mint_operator_hash_key_compare(mint::Cursor& /*cursor*/, const mint::Reference& left,
+    const mint::Reference& right) {
+	static constexpr mint::Hash::compare_to comparator;
+	return mint::create_boolean(comparator(left, right));
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_operator_hash_key_compare, 2);

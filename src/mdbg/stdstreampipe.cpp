@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,98 +22,113 @@
  */
 
 #include "stdstreampipe.h"
-#include "assert.h"
+#include "mint/system/terminal.h"
+#include <cassert>
+#include <array>
+#include <cstdio>
+#include <string>
 
-using namespace mint;
-
-#ifdef OS_UNIX
+#ifdef MINT_OS_WINDOWS
+#include <windows.h>
+#include <errhandlingapi.h>
+#include <fileapi.h>
+#include <handleapi.h>
+#include <minwindef.h>
+#include <namedpipeapi.h>
+#include <processenv.h>
+#include <winbase.h>
+#include <winerror.h>
+#include <winnt.h>
+#else
 #include <poll.h>
+#include <sys/poll.h>
 #include <unistd.h>
 #endif
 
-StdStreamPipe::StdStreamPipe(StdStreamFileNo number) {
-#ifdef OS_WINDOWS
+StdStreamPipe::StdStreamPipe(mint::StdStreamFileNo number) :
+#ifdef MINT_OS_WINDOWS
+    _handles({INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE}) {
+
 	const std::wstring pipe_name = L"\\\\.\\pipe\\mdbg-std-" + std::to_wstring(number);
 
-	m_handles[READ_INDEX] = INVALID_HANDLE_VALUE;
-	m_handles[WRITE_INDEX] = INVALID_HANDLE_VALUE;
+	HANDLE read_handle = CreateNamedPipeW(pipe_name.c_str(), PIPE_ACCESS_DUPLEX,
+	    PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, BUFSIZ, BUFSIZ, NMPWAIT_USE_DEFAULT_WAIT, nullptr);
+	HANDLE write_handle = CreateFile(pipe_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0,
+	    nullptr);
 
-	HANDLE hRead = CreateNamedPipeW(pipe_name.c_str(), PIPE_ACCESS_DUPLEX,
-									PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, BUFSIZ, BUFSIZ,
-									NMPWAIT_USE_DEFAULT_WAIT, NULL);
-	HANDLE hWrite = CreateFile(pipe_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-
-	if (hRead != INVALID_HANDLE_VALUE && hWrite != INVALID_HANDLE_VALUE) {
-		BOOL bConnected = ConnectNamedPipe(hRead, NULL);
-		DWORD dwError = GetLastError();
-		if (bConnected || dwError == ERROR_IO_PENDING || dwError == ERROR_PIPE_CONNECTED) {
+	if (read_handle != INVALID_HANDLE_VALUE && write_handle != INVALID_HANDLE_VALUE) {
+		const BOOL connected = ConnectNamedPipe(read_handle, nullptr);
+		const DWORD error = GetLastError();
+		if (connected || error == ERROR_IO_PENDING || error == ERROR_PIPE_CONNECTED) {
 			switch (number) {
-			case STDIN_FILE_NO:
-				if (SetStdHandle(STD_INPUT_HANDLE, hWrite)) {
-					m_handles[READ_INDEX] = hRead;
-					m_handles[WRITE_INDEX] = hWrite;
+			case mint::stdin_file_no:
+				if (SetStdHandle(STD_INPUT_HANDLE, write_handle)) {
+					_handles[read_index] = read_handle;
+					_handles[write_index] = write_handle;
 				}
 				break;
-			case STDOUT_FILE_NO:
-				if (SetStdHandle(STD_OUTPUT_HANDLE, hWrite)) {
-					m_handles[READ_INDEX] = hRead;
-					m_handles[WRITE_INDEX] = hWrite;
+			case mint::stdout_file_no:
+				if (SetStdHandle(STD_OUTPUT_HANDLE, write_handle)) {
+					_handles[read_index] = read_handle;
+					_handles[write_index] = write_handle;
 				}
 				break;
-			case STDERR_FILE_NO:
-				if (SetStdHandle(STD_ERROR_HANDLE, hWrite)) {
-					m_handles[READ_INDEX] = hRead;
-					m_handles[WRITE_INDEX] = hWrite;
+			case mint::stderr_file_no:
+				if (SetStdHandle(STD_ERROR_HANDLE, write_handle)) {
+					_handles[read_index] = read_handle;
+					_handles[write_index] = write_handle;
 				}
 				break;
 			}
 		}
 	}
 #else
-	if (pipe(m_handles.data())) {
-		dup2(number, m_handles[WRITE_INDEX]);
+    _handles({-1, -1}) {
+	if (pipe(_handles.data())) {
+		dup2(number, _handles[write_index]);
 	}
 #endif
 }
 
 StdStreamPipe::~StdStreamPipe() {
-#ifdef OS_WINDOWS
-	CloseHandle(m_handles[WRITE_INDEX]);
-	CloseHandle(m_handles[READ_INDEX]);
+#ifdef MINT_OS_WINDOWS
+	CloseHandle(_handles[write_index]);
+	CloseHandle(_handles[read_index]);
 #else
-	close(m_handles[WRITE_INDEX]);
-	close(m_handles[READ_INDEX]);
+	close(_handles[write_index]);
+	close(_handles[read_index]);
 #endif
 }
 
 bool StdStreamPipe::can_read() const {
-#ifdef OS_WINDOWS
-	DWORD dwCount = 0;
+#ifdef MINT_OS_WINDOWS
+	DWORD count = 0;
 
-	if (PeekNamedPipe(m_handles[READ_INDEX], NULL, 0, NULL, &dwCount, NULL)) {
-		return dwCount > 0;
+	if (PeekNamedPipe(_handles[read_index], nullptr, 0, nullptr, &count, nullptr)) {
+		return count > 0;
 	}
 	return false;
 #else
-	pollfd rfds;
-	rfds.fd = m_handles[READ_INDEX];
-	rfds.events = POLLIN;
+	pollfd rfds {
+	    .fd = _handles[read_index],
+	    .events = POLLIN,
+	};
 
 	return ::poll(&rfds, 1, 0) == 1;
 #endif
 }
 
 std::string StdStreamPipe::read() {
-	char buf[BUFSIZ];
-#ifdef OS_WINDOWS
-	DWORD dwCount = 0;
 
-	if (ReadFile(m_handles[READ_INDEX], buf, BUFSIZ, &dwCount, NULL)) {
-		return buf;
+	auto buf = std::array<char, BUFSIZ>();
+
+#ifdef MINT_OS_WINDOWS
+	if (DWORD count = 0; ReadFile(_handles[read_index], buf.data(), static_cast<DWORD>(buf.size()), &count, nullptr)) {
+		return buf.data();
 	}
 #else
-	if (::read(m_handles[READ_INDEX], buf, BUFSIZ)) {
-		return buf;
+	if (::read(_handles[read_index], buf.data(), buf.size())) {
+		return buf.data();
 	}
 #endif
 

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,14 +21,20 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_CURSORDEBUGGER_H
-#define MINT_CURSORDEBUGGER_H
+#ifndef MINT_DEBUG_CURSORDEBUGGER_H
+#define MINT_DEBUG_CURSORDEBUGGER_H
 
-#include "mint/scheduler/process.h"
 #include "mint/ast/module.h"
 #include "mint/ast/node.h"
+#include "mint/config.h"
+#include "mint/debug/lineinfo.h"
+#include "mint/debug/threadcontext.h"
+#include "mint/memory/symboltable.h"
+#include "mint/scheduler/process.h"
 
+#include <cstddef>
 #include <filesystem>
+#include <functional>
 #include <string>
 
 namespace mint {
@@ -38,34 +44,35 @@ struct ThreadContext;
 
 class MINT_EXPORT CursorDebugger {
 public:
-	CursorDebugger(Cursor *cursor, ThreadContext *context);
+	CursorDebugger(Cursor& cursor, ThreadContext context);
 
-	[[nodiscard]] const ThreadContext *get_thread_context() const;
-	ThreadContext *get_thread_context();
+	[[nodiscard]] const ThreadContext& get_thread_context() const;
+	ThreadContext& get_thread_context();
 	[[nodiscard]] Process::ThreadId get_thread_id() const;
 
-	void update_cursor(Cursor *cursor);
+	void update_cursor(Cursor& cursor);
 	bool close_cursor();
 
 	[[nodiscard]] Node::Command command() const;
-	[[nodiscard]] Cursor *cursor() const;
+	[[nodiscard]] const Cursor& cursor() const;
+	[[nodiscard]] Cursor& cursor();
 
-	[[nodiscard]] const SymbolTable *symbols(size_t stack_frame = 0) const;
-	[[nodiscard]] LineInfo line_info(size_t stack_frame = 0) const;
+	[[nodiscard]] const SymbolTable* symbols(std::size_t stack_frame = 0) const;
+	[[nodiscard]] LineInfo line_info(std::size_t stack_frame = 0) const;
 
 	[[nodiscard]] std::string module_name() const;
 	[[nodiscard]] Module::Id module_id() const;
-	[[nodiscard]] size_t line_number() const;
-	[[nodiscard]] size_t call_depth() const;
+	[[nodiscard]] std::size_t line_number() const;
+	[[nodiscard]] std::size_t call_depth() const;
 
 	[[nodiscard]] std::filesystem::path system_path() const;
 	[[nodiscard]] std::filesystem::path system_file_name() const;
 
 private:
-	Cursor *m_cursor;
-	ThreadContext *m_context;
+	std::reference_wrapper<Cursor> _cursor;
+	ThreadContext _context;
 };
 
 }
 
-#endif // MINT_CURSORDEBUGGER_H
+#endif // MINT_DEBUG_CURSORDEBUGGER_H

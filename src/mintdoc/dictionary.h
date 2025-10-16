@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,56 +24,54 @@
 #ifndef MINTDOC_DICTIONARY_H
 #define MINTDOC_DICTIONARY_H
 
+#include "definition.h"
+#include "generators/abstractgenerator.h"
 #include "module.h"
 #include "page.h"
 
 #include <filesystem>
+#include <functional>
+#include <map>
+#include <memory>
+#include <string>
 #include <vector>
 #include <stack>
-
-class AbstractGenerator;
 
 class Dictionary {
 public:
 	Dictionary();
-	Dictionary(const Dictionary &) = delete;
-	Dictionary(Dictionary &&) = delete;
-	~Dictionary();
 
-	Dictionary &operator=(const Dictionary &) = delete;
-	Dictionary &operator=(Dictionary &&) = delete;
-
-	void open_module(const std::string &name);
-	void open_module_group(const std::string &name);
+	void open_module(const std::string& name);
+	void open_module_group(const std::string& name);
 	void close_module();
 
-	void set_module_doc(const std::string &doc);
-	void set_package_doc(const std::string &doc);
-	void set_page_doc(const std::string &name, const std::string &doc);
+	void set_module_doc(const std::string& doc);
+	void set_package_doc(const std::string& doc);
+	void set_page_doc(const std::string& name, const std::string& doc);
 
-	void insert_definition(Definition *definition);
+	[[nodiscard]] std::shared_ptr<Package> get_or_create_package(const std::string& name) const;
+	[[nodiscard]] std::shared_ptr<Function> get_or_create_function(const std::string& name) const;
+	void insert_definition(const std::shared_ptr<Definition>& definition);
 
-	[[nodiscard]] Package *get_or_create_package(const std::string &name) const;
-	[[nodiscard]] Function *get_or_create_function(const std::string &name) const;
+	void generate(const std::filesystem::path& path);
 
-	void generate(const std::filesystem::path &path);
+	[[nodiscard]] Module* find_definition_module(const std::string& symbol) const;
+	[[nodiscard]] std::vector<std::reference_wrapper<const Module>> child_modules(const Module& module) const;
 
-	[[nodiscard]] Module *find_definition_module(const std::string &symbol) const;
-	[[nodiscard]] std::vector<Module *> child_modules(const Module *module) const;
-
-	[[nodiscard]] std::vector<Definition *> package_definitions(const Package *package) const;
-	[[nodiscard]] std::vector<Definition *> enum_definitions(const Enum *instance) const;
-	[[nodiscard]] std::vector<Definition *> class_definitions(const Class *instance) const;
+	[[nodiscard]] std::vector<std::reference_wrapper<const Definition>> package_definitions(
+	    const Package& package) const;
+	[[nodiscard]] std::vector<std::reference_wrapper<const Definition>> enum_definitions(const Enum& instance) const;
+	[[nodiscard]] std::vector<std::reference_wrapper<const Definition>> class_definitions(const Class& instance) const;
 
 private:
-	std::map<std::string, Module *> m_definitions;
-	std::map<std::string, Package *> m_packages;
-	std::vector<Module *> m_modules;
-	std::vector<Page *> m_pages;
-	std::stack<Module *> m_path;
-	Module *m_module = nullptr;
+	std::map<std::string, Module*> _definitions;
+	std::map<std::string, std::shared_ptr<Package>> _packages;
+	std::vector<std::unique_ptr<Module>> _modules;
+	std::vector<std::unique_ptr<Page>> _pages;
+	std::stack<Module*> _path;
+	Module* _module = nullptr;
 
-	AbstractGenerator *m_generator;
+	std::unique_ptr<AbstractGenerator> _generator;
 };
 
 #endif // MINTDOC_DICTIONARY_H

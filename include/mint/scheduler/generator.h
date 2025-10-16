@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,32 +21,35 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_GENERATOR_H
-#define MINT_GENERATOR_H
+#ifndef MINT_SCHEDULER_GENERATOR_H
+#define MINT_SCHEDULER_GENERATOR_H
 
+#include "mint/ast/cursor.h"
+#include "mint/config.h"
 #include "mint/scheduler/process.h"
+#include <memory>
 
 namespace mint {
 
 class MINT_EXPORT Generator : public Process {
 public:
-	Generator(std::unique_ptr<SavedState> state, const Process *process);
-	Generator(Generator &&) = delete;
-	Generator(const Generator &) = delete;
+	Generator(std::unique_ptr<SavedState>&& state, const Process& process);
+	Generator(Generator&&) = delete;
+	Generator(const Generator&) = delete;
 	~Generator() override;
 
-	Generator &operator=(Generator &&) = delete;
-	Generator &operator=(const Generator &) = delete;
+	Generator& operator=(Generator&&) = delete;
+	Generator& operator=(const Generator&) = delete;
 
 	void setup() override;
 	void cleanup() override;
 
 private:
-	std::unique_ptr<SavedState> m_state;
+	std::unique_ptr<SavedState> _state;
 };
 
-MINT_EXPORT bool is_generator(Process *process);
+MINT_EXPORT bool is_generator(Process& process);
 
 }
 
-#endif // MINT_GENERATOR_H
+#endif // MINT_SCHEDULER_GENERATOR_H

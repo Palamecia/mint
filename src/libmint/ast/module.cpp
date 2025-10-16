@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,72 +22,101 @@
  */
 
 #include "mint/ast/module.h"
+#include "mint/ast/node.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/data.h"
+#include "mint/memory/reference.h"
 
-#include <memory>
 #include <algorithm>
+#include <initializer_list>
+#include <memory>
 #include <cstring>
+#include <ranges>
+#include <string>
+#include <vector>
 
 using namespace mint;
 
-Module::~Module() {
-	std::for_each(m_symbols.begin(), m_symbols.end(), [](const auto &ptr) {
-		delete ptr.second;
-	});
-	std::for_each(m_constants.begin(), m_constants.end(), std::default_delete<Reference>());
-	std::for_each(m_handles.begin(), m_handles.end(), std::default_delete<Handle>());
+Module::Module() {
+	register_root();
 }
 
-Module::Handle *Module::find_handle(Id module, size_t offset) const {
-	auto it = std::find_if(m_handles.rbegin(), m_handles.rend(), [&](const auto handle) {
-		return (handle->module == module) && (handle->offset == offset);
-	});
-	if (it != m_handles.rend()) {
-		return *it;
+Module::~Module() {
+	unregister_root();
+}
+
+Module::Handle* Module::find_handle(std::size_t offset) const {
+	auto handles = std::ranges::reverse_view(_handles);
+	auto it = std::ranges::find(handles, offset, &Handle::offset);
+	if (it != handles.end()) {
+		return it->get();
 	}
 	return nullptr;
 }
 
-Module::Handle *Module::make_handle(PackageData *package, Id module, size_t offset) {
-	auto *handle = new Handle {module, offset, package, 0, false, true};
-	m_handles.push_back(handle);
-	return handle;
-}
-
-Module::Handle *Module::make_builtin_handle(PackageData *package, Id module, size_t offset) {
-	auto *handle = new Handle {module, offset, package, 0, false, false};
-	m_handles.push_back(handle);
-	return handle;
-}
-
-Reference *Module::make_constant(Data *data) {
-	Reference *constant = new StrongReference(Reference::CONST_ADDRESS | Reference::CONST_VALUE, data);
-	m_constants.push_back(constant);
-	return constant;
-}
-
-Symbol *Module::make_symbol(const char *name) {
-
-	auto it = m_symbols.find(name);
-
-	if (it == m_symbols.end()) {
-		it = m_symbols.emplace(name, new Symbol(name)).first;
+Module::Handle& Module::get_handle(PackageData& package, std::size_t offset) {
+	auto handles = std::ranges::reverse_view(_handles);
+	auto it = std::ranges::find(handles, offset, &Handle::offset);
+	if (it != handles.end()) {
+		return **it;
 	}
-
-	return it->second;
+	return make_handle(package, offset);
 }
 
-void Module::push_node(const Node &node) {
-	m_tree.emplace_back(node);
+Module::Handle& Module::make_handle(PackageData& package, std::size_t offset) {
+	return *_handles.emplace_back(std::make_unique<Handle>(Handle {
+	    .module = *this,
+	    .offset = offset,
+	    .package = package,
+	    .fast_count = 0,
+	    .generator = false,
+	    .symbols = true,
+	}));
 }
 
-void Module::push_nodes(const std::vector<Node> &nodes) {
-	m_tree.insert(m_tree.end(), nodes.begin(), nodes.end());
+Module::Handle& Module::make_builtin_handle(PackageData& package, std::size_t offset) {
+	return *_handles.emplace_back(std::make_unique<Handle>(Handle {
+	    .module = *this,
+	    .offset = offset,
+	    .package = package,
+	    .fast_count = 0,
+	    .generator = false,
+	    .symbols = false,
+	}));
 }
 
-void Module::push_nodes(const std::initializer_list<Node> &nodes) {
-	m_tree.insert(m_tree.end(), nodes.begin(), nodes.end());
+Reference* Module::make_constant(Data& data) {
+	return _constants
+	    .emplace_back(std::make_unique<WeakReference>(Reference::const_address | Reference::const_value, data))
+	    .get();
 }
 
-void Module::replace_node(size_t offset, const Node &node) {
-	m_tree[offset] = node;
+Symbol* Module::make_symbol(const std::string& name) {
+	auto it = _symbols.find(name);
+	if (it == _symbols.end()) {
+		it = _symbols.emplace(name, std::make_unique<Symbol>(name)).first;
+	}
+	return it->second.get();
+}
+
+void Module::mark() {
+	for (const auto& constant : _constants) {
+		constant->data().mark();
+	}
+}
+
+void Module::push_node(const Node& node) {
+	_tree.emplace_back(node);
+}
+
+void Module::push_nodes(const std::vector<Node>& nodes) {
+	_tree.insert(_tree.end(), nodes.begin(), nodes.end());
+}
+
+void Module::push_nodes(const std::initializer_list<Node>& nodes) {
+	_tree.insert(_tree.end(), nodes.begin(), nodes.end());
+}
+
+void Module::replace_node(std::size_t offset, const Node& node) {
+	_tree[offset] = node;
 }

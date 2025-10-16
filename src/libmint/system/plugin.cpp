@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,11 +23,20 @@
 
 #include "mint/system/plugin.h"
 #include "mint/system/filesystem.h"
+#include "mint/system/errno.h"
 
 #include <filesystem>
+#include <format>
 #include <map>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <system_error>
 
-#ifdef OS_UNIX
+#ifdef MINT_OS_WINDOWS
+#include <Windows.h>
+#include <libloaderapi.h>
+#else
 #include <dlfcn.h>
 #endif
 
@@ -36,62 +45,65 @@ using namespace mint;
 namespace {
 
 struct PluginHandle {
-	explicit PluginHandle(const std::filesystem::path &path) :
-#ifdef OS_WINDOWS
-		handle(LoadLibraryW(path.generic_wstring().c_str())) {
+	explicit PluginHandle(const std::filesystem::path& path) :
+#ifdef MINT_OS_WINDOWS
+	    handle(LoadLibraryW(path.generic_wstring().c_str())) {
 #else
-		handle(dlopen(path.generic_string().c_str(), RTLD_LAZY)) {
+	    handle(dlopen(path.generic_string().c_str(), RTLD_LAZY)) {
 #endif
+		if (!handle) {
+			throw std::system_error(last_error_code());
+		}
 	}
 
-	PluginHandle(const PluginHandle &) = default;
-	PluginHandle(PluginHandle &&) = delete;
+	PluginHandle(const PluginHandle&) = default;
+	PluginHandle(PluginHandle&&) = delete;
 
 	~PluginHandle() {
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 		FreeLibrary(handle);
 #else
 		dlclose(handle);
 #endif
 	}
 
-	PluginHandle &operator=(const PluginHandle &) = default;
-	PluginHandle &operator=(PluginHandle &&) = delete;
+	PluginHandle& operator=(const PluginHandle&) = default;
+	PluginHandle& operator=(PluginHandle&&) = delete;
 
 	Plugin::handle_type handle;
 };
 
-Plugin::handle_type load_plugin(const std::filesystem::path &path) {
+Plugin::handle_type load_plugin(const std::filesystem::path& path) {
 
 	static std::map<std::filesystem::path, std::unique_ptr<PluginHandle>> g_plugin_cache;
 	auto i = g_plugin_cache.find(path);
 
 	if (i == g_plugin_cache.end()) {
-		i = g_plugin_cache.emplace(path, new PluginHandle(path)).first;
+		i = g_plugin_cache.emplace(path, std::make_unique<PluginHandle>(path)).first;
 	}
 
 	return i->second->handle;
 }
+
 }
 
-Plugin::Plugin(const std::filesystem::path &path) :
-	m_path(path),
-	m_handle(load_plugin(path)) {}
+Plugin::Plugin(const std::filesystem::path& path) :
+    _path(path),
+    _handle(load_plugin(path)) {}
 
 Plugin::~Plugin() {}
 
-Plugin *Plugin::load(const std::string &plugin) {
+std::unique_ptr<Plugin> Plugin::load(const std::string& plugin) {
 
-	std::filesystem::path path = FileSystem::instance().get_plugin_path(plugin);
-
+	const auto path = FileSystem::instance().get_plugin_path(plugin);
 	if (path.empty()) {
-		return nullptr;
+		throw std::runtime_error(std::format("plugin '{}' not found", plugin));
 	}
 
-	return new Plugin(path);
+	return std::make_unique<Plugin>(path);
 }
 
-std::string Plugin::function_name(const std::string &name, int signature) {
+std::string Plugin::function_name(const std::string& name, int signature) {
 
 	if (signature < 0) {
 		return name + "_v" + std::to_string(~signature);
@@ -100,7 +112,7 @@ std::string Plugin::function_name(const std::string &name, int signature) {
 	return name + "_" + std::to_string(signature);
 }
 
-bool Plugin::call(const std::string &function, int signature, Cursor *cursor) {
+bool Plugin::call(const std::string& function, int signature, Cursor& cursor) {
 
 	if (function_type fcn_handle = get_function(function_name(function, signature))) {
 		fcn_handle(cursor);
@@ -118,13 +130,13 @@ bool Plugin::call(const std::string &function, int signature, Cursor *cursor) {
 }
 
 std::filesystem::path Plugin::get_path() const {
-	return m_path;
+	return _path;
 }
 
-Plugin::function_type Plugin::get_function(const std::string &name) {
-#ifdef OS_WINDOWS
-	return (function_type)GetProcAddress(m_handle, name.c_str());
+Plugin::function_type Plugin::get_function(const std::string& name) {
+#ifdef MINT_OS_WINDOWS
+	return (function_type)GetProcAddress(_handle, name.c_str());
 #else
-	return (function_type)dlsym(m_handle, name.c_str());
+	return (function_type)dlsym(_handle, name.c_str());
 #endif
 }

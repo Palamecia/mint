@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,188 +22,182 @@
  */
 
 #include "branch.h"
+#include "mint/ast/node.h"
 #include "mint/compiler/buildtool.h"
 #include "mint/ast/module.h"
+#include <cstddef>
+#include <functional>
+#include <optional>
+#include <utility>
+#include <vector>
 
-#if defined(BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
-#include "mint/system/terminal.h"
-#include "mint/debug/debugtool.h"
+#if defined(MINT_BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
+#include "mint/debug/debugtool.h"
+#include "mint/system/stdio.h"
+#include <format>
 #include <iostream>
 #endif
 
 using namespace mint;
 
-Branch::~Branch() {
-	assert(m_jump_backward.empty());
-	assert(m_jump_forward.empty());
-}
-
-void Branch::set_pending_new_line(size_t line_number) {
-	m_pending_new_line = [this, line_number] {
+void Branch::set_pending_new_line(std::size_t line_number) {
+	_pending_new_line = [this, line_number] {
 		on_new_line(line_number);
 	};
 }
 
 void Branch::commit_line() {
-	if (m_pending_new_line) {
-		std::invoke(m_pending_new_line.value());
-		m_pending_new_line = std::nullopt;
+	if (_pending_new_line) {
+		std::invoke(_pending_new_line.value());
+		_pending_new_line = std::nullopt;
 	}
 }
 
 void Branch::start_jump_forward() {
-	m_jump_forward.emplace_back(ForwardNodeIndex({next_node_offset()}));
-	m_labels.insert(next_node_offset());
+	_jump_forward.emplace_back(ForwardNodeIndex({next_node_offset()}));
+	_labels.insert(next_node_offset());
 	push_node(0);
 }
 
 void Branch::shift_jump_forward() {
-	const size_t end = m_jump_forward.size();
-	std::swap(m_jump_forward[end - 1], m_jump_forward[end - 2]);
+	const std::size_t end = _jump_forward.size();
+	std::swap(_jump_forward[end - 1], _jump_forward[end - 2]);
 }
 
 void Branch::resolve_jump_forward() {
 
-	for (size_t offset : m_jump_forward.back()) {
+	for (const std::size_t offset : _jump_forward.back()) {
 		replace_node(offset, static_cast<int>(next_node_offset()));
 	}
 
-	m_jump_forward.pop_back();
+	_jump_forward.pop_back();
 }
 
 void Branch::start_jump_backward() {
-	m_jump_backward.emplace_back(next_node_offset());
+	_jump_backward.emplace_back(next_node_offset());
 }
 
 void Branch::resolve_jump_backward() {
-	m_labels.insert(next_node_offset());
-	push_node(static_cast<int>(m_jump_backward.back()));
-	m_jump_backward.pop_back();
+	_labels.insert(next_node_offset());
+	push_node(static_cast<int>(_jump_backward.back()));
+	_jump_backward.pop_back();
 }
 
 void Branch::shift_jump_backward() {
-	const size_t end = m_jump_backward.size();
-	std::swap(m_jump_backward[end - 1], m_jump_backward[end - 2]);
+	const std::size_t end = _jump_backward.size();
+	std::swap(_jump_backward[end - 1], _jump_backward[end - 2]);
 }
 
-size_t Branch::resolve_labels_offset(Branch *parent) {
+std::size_t Branch::resolve_labels_offset(Branch& parent) {
 
-	const size_t offset = parent->next_node_offset();
+	const std::size_t offset = parent.next_node_offset();
 
-	for (size_t label : m_labels) {
+	for (const std::size_t label : _labels) {
 		node_at(label).parameter += static_cast<int>(offset);
-		parent->insert_label(offset + label);
+		parent.insert_label(offset + label);
 	}
 
-	m_labels.clear();
+	_labels.clear();
 	return offset;
 }
 
-void Branch::insert_label(size_t offset) {
-	m_labels.insert(offset);
+void Branch::insert_label(std::size_t offset) {
+	_labels.insert(offset);
 }
 
-MainBranch::MainBranch(BuildContext *context) :
-#ifdef BUILD_TYPE_DEBUG
-	m_offset(context->data.module->next_node_offset()),
+MainBranch::MainBranch(AbstractSyntaxTree& ast, const Module::Info& data) :
+#ifdef MINT_BUILD_TYPE_DEBUG
+    _offset(data.module->next_node_offset()),
 #endif
-	m_context(context) {
+    _ast(ast),
+    _data(data) {
 }
 
-void MainBranch::push_node(const Node &node) {
-	m_context->data.module->push_node(node);
+void MainBranch::push_node(const Node& node) {
+	_data.module->push_node(node);
 }
 
-void MainBranch::push_nodes(const std::vector<Node> &nodes) {
-	m_context->data.module->push_nodes(nodes);
+void MainBranch::push_nodes(const std::vector<Node>& nodes) {
+	_data.module->push_nodes(nodes);
 }
 
-void MainBranch::replace_node(size_t offset, const Node &node) {
-	m_context->data.module->at(offset) = node;
+void MainBranch::replace_node(std::size_t offset, const Node& node) {
+	_data.module->node_at(offset) = node;
 }
 
-size_t MainBranch::next_node_offset() const {
-	return m_context->data.module->next_node_offset();
+std::size_t MainBranch::next_node_offset() const {
+	return _data.module->next_node_offset();
 }
 
-Node &MainBranch::node_at(size_t offset) {
-	return m_context->data.module->at(offset);
+Node& MainBranch::node_at(std::size_t offset) {
+	return _data.module->node_at(offset);
 }
 
-void MainBranch::on_new_line(size_t offset, size_t line_number) {
-	m_context->data.debug_info->new_line(offset, line_number);
+void MainBranch::on_new_line(std::size_t offset, std::size_t line_number) {
+	_data.debug_info->new_line(offset, line_number);
 }
 
-void MainBranch::on_new_line(size_t line_number) {
-	m_context->data.debug_info->new_line(m_context->data.module, line_number);
+void MainBranch::on_new_line(std::size_t line_number) {
+	_data.debug_info->new_line(_data.module, line_number);
 }
 
 void MainBranch::build() {
-
-#if defined(BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
-	if (m_context->data.id != Module::INVALID_ID) {
-		AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
-		Cursor *cursor = ast->create_cursor(m_context->data.id);
-		std::string module_name = ast->get_module_name(m_context->data.module);
-		mint::printf(stdout, "## MODULE: %zu (%s)\n", m_context->data.id, module_name.c_str());
-		cursor->jmp(m_offset);
-
-		for (size_t offset = cursor->offset(); offset < m_context->data.module->next_node_offset();
-			 offset = cursor->offset()) {
-			mint::printf(stdout, "LINE %zu ", m_context->data.debug_info->line_number(offset));
-			switch (Node::Command command = cursor->next().command) {
-			case Node::EXIT_MODULE:
-				dump_command(offset, command, cursor, std::cout);
-				cursor->jmp(m_context->data.module->next_node_offset());
-				break;
-			default:
-				dump_command(offset, command, cursor, std::cout);
+#if defined(MINT_BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
+	if (_data.id != Module::invalid_id) {
+		auto& module = *_data.module;
+		auto cursor = Cursor(_ast, module);
+		mint::print(stdout, std::format("## MODULE: {} ({})\n", _data.id, _ast.get().get_module_name(module)));
+		cursor.jmp(_offset);
+		for (std::size_t offset = cursor.offset(); offset < module.next_node_offset(); offset = cursor.offset()) {
+			mint::print(stdout, std::format("LINE {} ", _data.debug_info->line_number(offset)));
+			if (dump_command(cursor, std::cout) == Node::exit_module) {
+				cursor.jmp(module.next_node_offset());
 			}
 		}
 	}
 #endif
 }
 
-SubBranch::SubBranch(Branch *parent) :
-	m_parent(parent) {
-	m_tree.reserve(500);
+SubBranch::SubBranch(Branch& parent) :
+    _parent(parent) {
+	_tree.reserve(tree_base_capacity);
 }
 
-void SubBranch::push_node(const Node &node) {
-	m_tree.emplace_back(node);
+void SubBranch::push_node(const Node& node) {
+	_tree.emplace_back(node);
 }
 
-void SubBranch::push_nodes(const std::vector<Node> &nodes) {
-	m_tree.insert(m_tree.end(), nodes.begin(), nodes.end());
+void SubBranch::push_nodes(const std::vector<Node>& nodes) {
+	_tree.insert(_tree.end(), nodes.begin(), nodes.end());
 }
 
-void SubBranch::replace_node(size_t offset, const Node &node) {
-	m_tree[offset] = node;
+void SubBranch::replace_node(std::size_t offset, const Node& node) {
+	_tree[offset] = node;
 }
 
-size_t SubBranch::next_node_offset() const {
-	return m_tree.size();
+std::size_t SubBranch::next_node_offset() const {
+	return _tree.size();
 }
 
-Node &SubBranch::node_at(size_t offset) {
-	return m_tree[offset];
+Node& SubBranch::node_at(std::size_t offset) {
+	return _tree[offset];
 }
 
-void SubBranch::on_new_line(size_t offset, size_t line_number) {
-	m_lines.emplace_back(offset, line_number);
+void SubBranch::on_new_line(std::size_t offset, std::size_t line_number) {
+	_lines.emplace_back(offset, line_number);
 }
 
-void SubBranch::on_new_line(size_t line_number) {
-	m_lines.emplace_back(m_tree.size(), line_number);
+void SubBranch::on_new_line(std::size_t line_number) {
+	_lines.emplace_back(_tree.size(), line_number);
 }
 
 void SubBranch::build() {
-	size_t offset = resolve_labels_offset(m_parent);
-	for (const auto &line : m_lines) {
-		m_parent->on_new_line(offset + line.first, line.second);
+	const std::size_t offset = resolve_labels_offset(_parent.get());
+	for (const auto& line : _lines) {
+		_parent.get().on_new_line(offset + line.first, line.second);
 	}
-	m_parent->push_nodes(m_tree);
-	m_tree.clear();
+	_parent.get().push_nodes(_tree);
+	_tree.clear();
 }

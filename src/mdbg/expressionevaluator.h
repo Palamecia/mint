@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,63 +24,72 @@
 #ifndef EXPRESSIONEVALUATOR_H
 #define EXPRESSIONEVALUATOR_H
 
-#include <mint/compiler/lexicalhandler.h>
-#include <mint/ast/cursor.h>
+#include "mint/compiler/compiler.h"
+#include "mint/compiler/lexicalhandler.h"
+#include "mint/ast/cursor.h"
+#include "mint/compiler/token.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/symboltable.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
 
 class ExpressionEvaluator : public mint::LexicalHandler {
 public:
-	ExpressionEvaluator(mint::AbstractSyntaxTree *ast);
-	ExpressionEvaluator(const ExpressionEvaluator &) = delete;
-	ExpressionEvaluator(ExpressionEvaluator &&) = delete;
+	ExpressionEvaluator(mint::AbstractSyntaxTree& ast);
+	ExpressionEvaluator(const ExpressionEvaluator&) = delete;
+	ExpressionEvaluator(ExpressionEvaluator&&) = delete;
 	~ExpressionEvaluator();
 
-	ExpressionEvaluator &operator=(const ExpressionEvaluator &) = delete;
-	ExpressionEvaluator &operator=(ExpressionEvaluator &&) = delete;
+	ExpressionEvaluator& operator=(const ExpressionEvaluator&) = delete;
+	ExpressionEvaluator& operator=(ExpressionEvaluator&&) = delete;
 
-	void setup_locals(const mint::SymbolTable &symbols);
+	void setup_locals(const mint::SymbolTable& symbols);
 
-	mint::Reference &get_result();
+	mint::Reference& get_result();
 
 protected:
-	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;
+	bool on_token(mint::Token type, const std::string& token, std::string::size_type offset) override;
 
 private:
-	enum State : std::uint8_t {
-		READ_OPERAND,
-		READ_OPERATOR,
-		READ_MEMBER
+	enum class State : std::uint8_t {
+		read_operand,
+		read_operator,
+		read_member
 	};
 
-	enum Associativity : std::uint8_t {
-		LEFT_TO_RIGHT,
-		RIGHT_TO_LEFT
+	enum class Associativity : std::uint8_t {
+		left_to_right,
+		right_to_left
 	};
 
 	struct Priority {
-		int level;
-		std::vector<void (*)(mint::Cursor *)> unary_operations;
-		std::vector<void (*)(mint::Cursor *)> binary_operations;
+		std::size_t level;
+		std::vector<void (*)(mint::Cursor&)> unary_operations;
+		std::vector<void (*)(mint::Cursor&)> binary_operations;
 	};
 
 	struct EvaluatorState {
-		State state = READ_OPERAND;
+		State state = State::read_operand;
 		std::vector<Priority> priority;
 	};
 
-	static Associativity associativity(int level);
+	static Associativity associativity(std::size_t level);
 
-	void on_unary_operator(int level, void (*operation)(mint::Cursor *));
-	void on_binary_operator(int level, void (*operation)(mint::Cursor *));
+	void on_unary_operator(std::size_t level, void (*operation)(mint::Cursor&));
+	void on_binary_operator(std::size_t level, void (*operation)(mint::Cursor&));
 
 	[[nodiscard]] State get_state() const;
 	void push_state(State state);
 	void set_state(State state);
 	void pop_state();
 
-	std::unique_ptr<mint::Cursor> m_cursor;
-	std::vector<EvaluatorState> m_state = {EvaluatorState {}};
+	mint::Compiler _compiler;
+	std::unique_ptr<mint::Cursor> _cursor;
+	std::vector<EvaluatorState> _state = {EvaluatorState {}};
 };
 
 #endif // EXPRESSIONEVALUATOR_H

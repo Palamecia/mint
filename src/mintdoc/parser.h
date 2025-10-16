@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,10 +24,15 @@
 #ifndef MINTDOC_PARSER_H
 #define MINTDOC_PARSER_H
 
-#include <mint/compiler/lexicalhandler.h>
-#include <mint/memory/reference.h>
+#include "mint/compiler/lexicalhandler.h"
+#include "mint/compiler/token.h"
+#include "mint/memory/reference.h"
+#include <cstddef>
 #include <filesystem>
 #include <cstdint>
+#include <functional>
+#include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -38,45 +43,62 @@ class Dictionary;
 class Parser : protected mint::LexicalHandler {
 public:
 	Parser(std::filesystem::path path);
-	Parser(const Parser &) = delete;
-	Parser(Parser &&) = delete;
-	~Parser();
 
-	Parser &operator=(const Parser &) = delete;
-	Parser &operator=(Parser &&) = delete;
-
-	void parse(Dictionary *dictionary);
+	void parse(Dictionary& dictionary);
 
 protected:
-	bool on_token(mint::token::Type type, const std::string &token, std::string::size_type offset) override;
+	bool on_token(mint::Token type, const std::string& token, std::string::size_type offset) override;
 
-	bool on_new_line(size_t line_number, std::string::size_type offset) override;
+	bool on_new_line(std::size_t line_number, std::string::size_type offset) override;
 	bool on_comment_begin(std::string::size_type offset) override;
 
-	void parse_error(const char *message, size_t column, size_t begin_line = 0, size_t end_line = 0);
+	void parse_error(const std::string& message, std::size_t column, std::size_t begin_line = 0,
+	    std::size_t end_line = 0);
 
 private:
-	enum State : std::uint8_t {
-		EXPECT_START,
-		EXPECT_VALUE,
-		EXPECT_VALUE_SUBEXPRESSION,
-		EXPECT_PARENTHESIS_OPERATOR,
-		EXPECT_BRACKET_OPERATOR,
-		EXPECT_CAPTURE,
-		EXPECT_SIGNATURE,
-		EXPECT_SIGNATURE_BEGIN,
-		EXPECT_SIGNATURE_SUBEXPRESSION,
-		EXPECT_PACKAGE,
-		EXPECT_CLASS,
-		EXPECT_ENUM,
-		EXPECT_FUNCTION,
-		EXPECT_BASE
+	enum class State : std::uint8_t {
+		expect_start,
+		expect_value,
+		expect_value_subexpression,
+		expect_parenthesis_operator,
+		expect_bracket_operator,
+		expect_capture,
+		expect_signature,
+		expect_signature_begin,
+		expect_signature_subexpression,
+		expect_package,
+		expect_class,
+		expect_enum,
+		expect_function,
+		expect_base
+	};
+
+	struct ScriptContext {
+		std::string name;
+		std::shared_ptr<Definition> definition;
+		int depth;
 	};
 
 	struct Context {
-		std::string name;
-		Definition *definition;
-		int block;
+		std::size_t line_number = 1;
+		std::string::size_type line_offset = 0;
+
+		std::string comment;
+		std::size_t comment_line_number = 0;
+		std::size_t comment_column_number = 0;
+
+		std::vector<State> states;
+		State state = State::expect_start;
+
+		mint::Reference::Flags modifiers = mint::Reference::default_flags;
+		std::vector<std::unique_ptr<ScriptContext>> contexts;
+		std::unique_ptr<ScriptContext> context;
+
+		std::reference_wrapper<Dictionary> dictionary;
+		std::shared_ptr<Function::Signature> signature;
+		std::shared_ptr<Definition> definition;
+		std::intmax_t next_enum_constant = 0;
+		std::string base;
 	};
 
 	[[nodiscard]] State get_state() const;
@@ -84,11 +106,11 @@ private:
 	void push_state(State state);
 	void pop_state();
 
-	[[nodiscard]] Context *current_context() const;
-	[[nodiscard]] std::string definition_name(const std::string &token) const;
-	void push_context(const std::string &name, Definition *definition);
-	void bind_definition_to_context(Definition *definition);
-	void bind_definition_to_context(Context *context, Definition *definition);
+	[[nodiscard]] ScriptContext* current_context() const;
+	[[nodiscard]] std::string definition_name(const std::string& token) const;
+	void push_context(const std::string& name, const std::shared_ptr<Definition>& definition);
+	void bind_definition_to_context(Definition& definition);
+	static void bind_definition_to_context(ScriptContext& context, Definition& definition);
 
 	void open_block();
 	void close_block();
@@ -97,32 +119,14 @@ private:
 	void add_modifiers(mint::Reference::Flags flags);
 	[[nodiscard]] mint::Reference::Flags retrieve_modifiers();
 
-	[[nodiscard]] std::string cleanup_doc(const std::string &comment, size_t line, size_t column);
-	[[nodiscard]] std::string cleanup_single_line_doc(std::stringstream &stream, size_t line, size_t column);
-	[[nodiscard]] std::string cleanup_multi_line_doc(std::stringstream &stream, size_t line, size_t column);
-	void cleanup_script(std::stringstream &stream, std::string &documentation, size_t line, size_t column,
-						size_t &current_line);
+	[[nodiscard]] std::string cleanup_doc(const std::string& comment, std::size_t line, std::size_t column);
+	[[nodiscard]] std::string cleanup_single_line_doc(std::stringstream& stream, std::size_t line, std::size_t column);
+	[[nodiscard]] std::string cleanup_multi_line_doc(std::stringstream& stream, std::size_t line, std::size_t column);
+	void cleanup_script(std::stringstream& stream, std::string& documentation, std::size_t line, std::size_t column,
+	    std::size_t& current_line);
 
-	std::filesystem::path m_path;
-	size_t m_line_number = 1;
-	std::string::size_type m_line_offset = 0;
-
-	std::string m_comment;
-	size_t m_comment_line_number = 0;
-	size_t m_comment_column_number = 0;
-
-	std::vector<State> m_states;
-	State m_state = EXPECT_START;
-
-	mint::Reference::Flags m_modifiers = mint::Reference::DEFAULT;
-	std::vector<Context *> m_contexts;
-	Context *m_context = nullptr;
-
-	Dictionary *m_dictionary = nullptr;
-	Function::Signature *m_signature = nullptr;
-	Definition *m_definition = nullptr;
-	intmax_t m_next_enum_constant = 0;
-	std::string m_base;
+	std::filesystem::path _path;
+	std::unique_ptr<Context> _context;
 };
 
 #endif // MINTDOC_PARSER_H

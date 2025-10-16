@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,35 +23,34 @@
 
 #include "evalresultprinter.h"
 
-#include <mint/memory/builtin/iterator.h>
-#include <mint/memory/functiontool.h>
+#include "mint/memory/reference.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/functiontool.h"
+#include <utility>
 
-using namespace mint;
+EvalResultPrinter::EvalResultPrinter(mint::AbstractSyntaxTree& ast) :
+    _ast(ast) {}
 
-void EvalResultPrinter::print(Reference &reference) {
-	m_results.emplace_back(WeakReference::share(reference));
+void EvalResultPrinter::print(const mint::Reference& reference) {
+	_results.emplace_back(mint::create_from, reference);
 }
 
-bool EvalResultPrinter::global() const {
-	return true;
-}
-
-WeakReference EvalResultPrinter::result() {
-	switch (m_results.size()) {
+mint::WeakReference EvalResultPrinter::result() {
+	switch (_results.size()) {
 	case 0:
-		return WeakReference::create<None>();
+		return mint::create_none();
 
 	case 1:
-		return std::move(m_results.front());
+		return std::move(_results.front());
 
 	default:
 		break;
 	}
 
-	WeakReference reference = create_iterator();
+	mint::WeakReference reference = mint::create_iterator(_ast);
 
-	for (Reference &item : m_results) {
-		iterator_yield(reference.data<Iterator>(), std::move(item));
+	for (mint::Reference& item : _results) {
+		mint::iterator_yield(reference.data<mint::Iterator>(), std::move(item));
 	}
 
 	return reference;

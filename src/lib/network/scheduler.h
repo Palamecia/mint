@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,33 +24,37 @@
 #ifndef MINT_NETWORK_SCHEDULER_H
 #define MINT_NETWORK_SCHEDULER_H
 
-#include <mint/config.h>
+#include "mint/config.h"
 #include <unordered_map>
 #include <cstdint>
 #include <vector>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include <WinSock2.h>
+#include <winnt.h>
+using native_handle_t = HANDLE;
 using handle_t = WSAEVENT;
 using socklen_t = int;
 #else
-#ifdef OS_UNIX
+#ifdef MINT_OS_UNIX
 #include <poll.h>
+#include <sys/poll.h>
 #endif
 #ifndef INVALID_SOCKET
 #define INVALID_SOCKET -1
 #endif
+using native_handle_t = pollfd;
 using handle_t = int;
 using SOCKET = int;
 #endif
 
 struct PollFd {
 	enum Event : std::uint8_t {
-		READ_EVENT = 0x01,
-		WRITE_EVENT = 0x02,
-		ACCEPT_EVENT = 0x04,
-		ERROR_EVENT = 0x08,
-		CLOSE_EVENT = 0x10
+		read_event = 0x01,
+		write_event = 0x02,
+		accept_event = 0x04,
+		error_event = 0x08,
+		close_event = 0x10
 	};
 
 	SOCKET fd;
@@ -64,12 +68,12 @@ public:
 	class Error {
 	public:
 		Error(bool status);
-		Error(const Error &other) noexcept = default;
-		Error(Error &&) = delete;
+		Error(const Error& other) noexcept = default;
+		Error(Error&&) = delete;
 		~Error() = default;
 
-		Error &operator=(const Error &other) noexcept = default;
-		Error &operator=(Error &&) = delete;
+		Error& operator=(const Error& other) noexcept = default;
+		Error& operator=(Error&&) = delete;
 
 		operator bool() const;
 		[[nodiscard]] int get_errno() const;
@@ -77,17 +81,17 @@ public:
 	private:
 		Error(bool status, int errno_value);
 
-		bool m_status;
-		int m_errno;
+		bool _status;
+		int _errno;
 	};
 
-	Scheduler(const Scheduler &) = delete;
-	Scheduler(Scheduler &&) = delete;
+	Scheduler(const Scheduler&) = delete;
+	Scheduler(Scheduler&&) = delete;
 
-	Scheduler &operator=(const Scheduler &) = delete;
-	Scheduler &operator=(Scheduler &&) = delete;
+	Scheduler& operator=(const Scheduler&) = delete;
+	Scheduler& operator=(Scheduler&&) = delete;
 
-	static Scheduler &instance();
+	static Scheduler& instance();
 
 	[[nodiscard]] SOCKET open_socket(int domain, int type, int protocol);
 	void accept_socket(SOCKET fd);
@@ -102,11 +106,14 @@ public:
 	[[nodiscard]] bool is_socket_blocked(SOCKET fd) const;
 	void set_socket_blocked(SOCKET fd, bool blocked);
 
-	bool poll(std::vector<PollFd> &fdset, int timeout);
+	bool poll(std::vector<PollFd>& fdset, int timeout);
 
 private:
 	Scheduler();
 	~Scheduler();
+
+	[[nodiscard]] native_handle_t to_native_handle(const PollFd& desc) const;
+	bool revents_from_native_handle(PollFd& desc, const native_handle_t& handle);
 
 	struct SocketInfo {
 		bool blocked: 1;
@@ -114,7 +121,11 @@ private:
 		bool listening: 1;
 	};
 
-	std::unordered_map<SOCKET, SocketInfo> m_sockets;
+	std::unordered_map<SOCKET, SocketInfo> _sockets;
+
+#ifdef MINT_OS_WINDOWS
+	WSADATA _wsa_data;
+#endif
 };
 
 int errno_from_io_last_error();

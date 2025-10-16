@@ -1,25 +1,29 @@
-project(mint_executable)
+project(mint)
 
-# Target mint_executable
-add_executable(${PROJECT_NAME})
+# Target mint
+add_executable(mint)
 
 target_sources(
-	${PROJECT_NAME}
-	PRIVATE
+	mint
+PRIVATE
 	main.cpp
 )
 
 set_target_properties(
-	${PROJECT_NAME}
+	mint
 	PROPERTIES
 	OUTPUT_NAME mint
 	INSTALL_RPATH "$ORIGIN/../lib:$ORIGIN/../lib64"
 )
 
 target_link_libraries(
-	${PROJECT_NAME}
-	mint_library
+	mint
+PRIVATE
+	libmint
 )
 
 # Install
-mint_install_executable(${PROJECT_NAME})
+install(
+	TARGETS mint
+	RUNTIME COMPONENT runtime DESTINATION ${MINT_RUNTIME_INSTALL_DIR}
+)

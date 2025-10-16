@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,161 +22,161 @@
  */
 
 #include "mint/scheduler/process.h"
-#include "mint/scheduler/processor.h"
-#include "mint/scheduler/exception.h"
-#include "mint/memory/builtin/iterator.h"
-#include "mint/memory/functiontool.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/cursor.h"
+#include "mint/ast/module.h"
 #include "mint/compiler/compiler.h"
 #include "mint/debug/debuginterface.h"
 #include "mint/debug/debugtool.h"
-#include "mint/system/filesystem.h"
-#include "mint/system/mintsystemerror.hpp"
-#include "mint/system/filestream.h"
-#include "mint/system/bufferstream.h"
-#include "mint/system/terminal.h"
-#include "mint/system/error.h"
-#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/debug/lineinfo.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/reference.h"
+#include "mint/scheduler/exception.h"
 #include "mint/scheduler/inputstream.h"
 #include "mint/scheduler/output.h"
+#include "mint/scheduler/processor.h"
+#include "mint/scheduler/scheduler.h"
+#include "mint/system/bufferstream.h"
+#include "mint/system/error.h"
+#include "mint/system/filestream.h"
+#include "mint/system/filesystem.h"
+#include "mint/system/mintruntimeerror.hpp"
+#include "mint/system/terminal.h"
 
 #include "bracematcher.h"
 #include "completer.h"
 #include "highlighter.h"
 
+#include <cstdio>
+#include <filesystem>
+#include <memory>
+#include <optional>
+#include <print>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <thread>
+#include <utility>
+#include <vector>
 
 using namespace mint;
 
-Process::Process(Cursor *cursor) :
-	m_cursor(cursor),
-	m_endless(false),
-	m_thread_id(0),
-	m_error_handler(0) {}
+Process::Process(std::unique_ptr<Cursor>&& cursor) :
+    _cursor(std::move(cursor)) {}
 
-Process::~Process() {
-	lock_processor();
-	delete m_cursor;
-	unlock_processor();
-}
-
-Process *Process::from_main_file(AbstractSyntaxTree *ast, const std::filesystem::path &file) {
+std::unique_ptr<Process> Process::from_main_file(Scheduler& scheduler, const std::filesystem::path& file) {
 
 	try {
 
 		const std::filesystem::path module_file_path = is_module_file(file)
-														   ? file
-														   : FileSystem::instance().get_script_path(file);
+		                                                   ? file
+		                                                   : FileSystem::instance().get_script_path(file);
 
-		Compiler compiler;
-		FileStream stream(module_file_path);
+		auto& ast = scheduler.ast();
+		auto compiler = Compiler(ast);
+		auto stream = FileStream(module_file_path);
 
 		if (stream.is_valid()) {
-
-			Module::Info info = ast->create_main_module(Module::READY);
-			if (compiler.build(&stream, info)) {
+			if (const auto info = ast.create_main_module(Module::State::ready); compiler.build(stream, info)) {
 				FileSystem::instance().set_main_module_path(module_file_path);
-				return new Process(ast->create_cursor(info.id));
+				return std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.module));
 			}
 		}
 	}
-	catch (const MintSystemError &) {
+	catch (const MintRuntimeError&) {
 		return nullptr;
 	}
 
 	return nullptr;
 }
 
-Process *Process::from_file(AbstractSyntaxTree *ast, const std::filesystem::path &file) {
+std::unique_ptr<Process> Process::from_file(Scheduler& scheduler, const std::filesystem::path& file) {
 
 	try {
 
-		Compiler compiler;
-		FileStream stream(file);
+		auto& ast = scheduler.ast();
+		auto compiler = Compiler(ast);
+		auto stream = FileStream(file);
 
 		if (stream.is_valid()) {
-
-			Module::Info info = ast->create_module_from_file_path(file, Module::READY);
-			if (compiler.build(&stream, info)) {
-				return new Process(ast->create_cursor(info.id));
+			if (const auto info = ast.create_module_from_file_path(file, Module::State::ready);
+			    compiler.build(stream, info)) {
+				return std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.module));
 			}
 		}
 	}
-	catch (const MintSystemError &) {
+	catch (const MintRuntimeError&) {
 		return nullptr;
 	}
 
 	return nullptr;
 }
 
-Process *Process::from_buffer(AbstractSyntaxTree *ast, const std::string &buffer) {
+std::unique_ptr<Process> Process::from_buffer(Scheduler& scheduler, const std::string& buffer) {
 
 	try {
-		Compiler compiler;
-		BufferStream stream(buffer);
+		auto& ast = scheduler.ast();
+		auto compiler = Compiler(ast);
+		auto stream = BufferStream(buffer);
 
 		if (stream.is_valid()) {
-
-			Module::Info info = ast->create_module(Module::READY);
-			if (compiler.build(&stream, info)) {
-				return new Process(ast->create_cursor(info.id));
+			if (const auto info = ast.create_module(Module::State::ready); compiler.build(stream, info)) {
+				return std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.module));
 			}
 		}
 	}
-	catch (const MintSystemError &) {
+	catch (const MintRuntimeError&) {
 		return nullptr;
 	}
 
 	return nullptr;
 }
 
-Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
+std::unique_ptr<Process> Process::from_standard_input(Scheduler& scheduler) {
 
 	if (InputStream::instance().is_valid()) {
 
-		Module::Info info = ast->create_main_module(Module::READY);
-		auto *process = new Process(ast->create_cursor(info.id));
-		process->cursor()->open_printer(&Output::instance());
+		AbstractSyntaxTree& ast = scheduler.ast();
+		const auto info = ast.create_main_module(Module::State::ready);
+		auto process = std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.module));
+		process->cursor().open_printer(std::make_unique<Output>(ast));
 		process->set_endless(true);
 
-		InputStream::instance().set_highlighter(
-			[](std::string_view input, std::string_view::size_type offset) -> std::string {
-				std::string output;
-				Highlighter highlighter(output, offset);
-				std::stringstream stream(std::string {input});
-				if (highlighter.parse(stream)) {
-					return output;
-				}
-				return std::string {input};
-			});
+		InputStream::instance().set_highlighter([&ast](std::string_view input, std::string_view::size_type offset) {
+			auto highlighter = Highlighter(ast, offset);
+			auto stream = std::stringstream(std::string {input});
+			if (highlighter.parse(stream)) {
+				return highlighter.output();
+			}
+			return std::string {input};
+		});
 
 		InputStream::instance().set_completion_generator(
-			[cursor = process->cursor()](std::string_view input, std::string_view::size_type offset,
-										 std::vector<Completion> &completions) -> bool {
-				if (offset == 0) {
-					return false;
-				}
-				for (auto i = offset; i != 0 && input[i - 1] != '\n'; --i) {
-					if (input[i - 1] != ' ') {
-						Completer completer(completions, offset, cursor);
-						std::stringstream stream(std::string {input});
-						completer.parse(stream);
-						return true;
-					}
-				}
-				return false;
-			});
+		    [&cursor = process->cursor()](std::string_view input,
+		        std::string_view::size_type offset) -> std::optional<std::vector<Completion>> {
+			    if (offset == 0) {
+				    return std::nullopt;
+			    }
+			    for (auto i = offset; i != 0 && input[i - 1] != '\n'; --i) {
+				    if (input[i - 1] != ' ') {
+					    auto completer = Completer(offset, cursor);
+					    auto stream = std::stringstream(std::string {input});
+					    completer.parse(stream);
+					    return completer.completions();
+				    }
+			    }
+			    return std::nullopt;
+		    });
 
 		InputStream::instance().set_brace_matcher(
-			[](std::string_view input,
-			   std::string_view::size_type offset) -> std::pair<std::string_view::size_type, bool> {
-				std::pair<std::string_view::size_type, bool> match;
-				BraceMatcher matcher(match, offset);
-				std::stringstream stream(std::string {input});
-				matcher.parse(stream);
-				return match;
-			});
+		    [](std::string_view input,
+		        std::string_view::size_type offset) -> std::pair<std::string_view::size_type, bool> {
+			    auto matcher = BraceMatcher(offset);
+			    auto stream = std::stringstream(std::string {input});
+			    matcher.parse(stream);
+			    return matcher.match();
+		    });
 
 		return process;
 	}
@@ -184,83 +184,82 @@ Process *Process::from_standard_input(AbstractSyntaxTree *ast) {
 	return nullptr;
 }
 
-void Process::parse_argument(const std::string &arg) {
-
-	auto args = m_cursor->symbols().find("va_args");
-	if (args == m_cursor->symbols().end()) {
-
-		auto *va_args = GarbageCollector::instance().alloc<Iterator>();
-		va_args->construct();
-		args = m_cursor->symbols().emplace("va_args", WeakReference(Reference::DEFAULT, va_args)).first;
+void Process::parse_argument(const std::string& arg) {
+	auto args = _cursor->symbols().find("va_args");
+	if (args == _cursor->symbols().end()) {
+		auto va_args = make_weak_reference<Iterator>(Reference::default_flags, _cursor->ast());
+		va_args.data<Iterator>().construct();
+		args = _cursor->symbols().emplace("va_args", std::move(va_args)).first;
 	}
-
-	iterator_yield(args->second.data<Iterator>(), create_string(arg));
+	iterator_yield(args->second.data<Iterator>(), create_string(_cursor->ast(), arg));
 }
 
 void Process::setup() {
-	if (!m_cursor->parent()) {
-		m_error_handler = add_error_callback([this] {
+	if (!_cursor->parent()) {
+		_error_handler = add_error_callback([this](const std::string&) {
 			dump();
 		});
 	}
 }
 
 void Process::cleanup() {
-	if (m_error_handler) {
-		remove_error_callback(m_error_handler);
+	if (_error_handler) {
+		remove_error_callback(_error_handler);
 	}
-	lock_processor();
-	m_cursor->cleanup();
-	unlock_processor();
+
+	auto _ = ProcessorLocker();
+	_cursor->cleanup();
 }
 
 bool Process::exec() {
+
+	auto _ = ProcessorLocker();
+
 	try {
-		return run_steps(m_cursor);
+		return run_steps(*_cursor);
 	}
-	catch (MintException &raised) {
-		if (m_cursor == raised.cursor()) {
-			m_cursor->raise(raised.take_exception());
-			unlock_processor();
+	catch (MintException& raised) {
+		if (_cursor.get() == &raised.cursor()) {
+			_cursor->raise(raised.take_exception());
 			return true;
 		}
 		throw;
 	}
-	catch (const MintSystemError &) {
-		unlock_processor();
+	catch (const MintRuntimeError&) {
 		return false;
 	}
 }
 
-bool Process::debug(DebugInterface *debug_interface) {
+bool Process::debug(DebugInterface& debug_interface) {
+
+	auto _ = ProcessorLocker();
+
 	try {
-		return debug_steps(debug_interface->declare_thread(this), debug_interface);
+		return debug_steps(debug_interface.declare_thread(*this), debug_interface);
 	}
-	catch (MintException &raised) {
-		if (m_cursor == raised.cursor()) {
-			m_cursor->raise(raised.take_exception());
-			unlock_processor();
+	catch (MintException& raised) {
+		if (_cursor.get() == &raised.cursor()) {
+			_cursor->raise(raised.take_exception());
 			return true;
 		}
 		throw;
 	}
-	catch (const MintSystemError &) {
-		unlock_processor();
+	catch (const MintRuntimeError&) {
 		return false;
 	}
 }
 
 bool Process::resume() {
 
-	while (m_endless) {
+	while (_endless) {
 		try {
-			Compiler compiler;
+			auto compiler = Compiler(_cursor->ast());
 			compiler.set_printing(true);
-			m_cursor->resume();
+			_cursor->resume();
 			InputStream::instance().next();
-			return compiler.build(&InputStream::instance(), m_cursor->ast()->main());
+			return compiler.build(InputStream::instance(), _cursor->ast().main());
 		}
-		catch (const MintSystemError &) {
+		catch (const MintRuntimeError&) {
 			continue;
 		}
 	}
@@ -269,39 +268,45 @@ bool Process::resume() {
 }
 
 Process::ThreadId Process::get_thread_id() const {
-	return m_thread_id;
+	return _thread_id;
 }
 
 void Process::set_thread_id(ThreadId id) {
-	m_thread_id = id;
+	_thread_id = id;
 }
 
-std::thread *Process::get_thread_handle() const {
-	return m_thread_handle;
+std::thread* Process::get_thread_handle() const {
+	return _thread_handle.get();
 }
 
-void Process::set_thread_handle(std::thread *handle) {
-	m_thread_handle = handle;
+std::unique_ptr<std::thread> Process::release_thread_handle() {
+	return std::move(_thread_handle);
+}
+
+void Process::set_thread_handle(std::unique_ptr<std::thread>&& handle) {
+	_thread_handle = std::move(handle);
 }
 
 bool Process::is_endless() const {
-	return m_endless;
+	return _endless;
 }
 
-Cursor *Process::cursor() const {
-	return m_cursor;
+bool Process::is_thread() const {
+	return _thread_id != 0 && _cursor->is_thread();
+}
+
+Cursor& Process::cursor() const {
+	return *_cursor;
 }
 
 void Process::set_endless(bool endless) {
-	m_endless = endless;
+	_endless = endless;
 }
 
 void Process::dump() {
-	mint::printf(stderr, "Traceback thread %d : \n", m_thread_id);
-	for (const LineInfo &call : m_cursor->dump()) {
-		std::string call_str = call.to_string();
-		std::string line_str = get_module_line(call.module_name(), call.line_number());
-		mint::printf(stderr, "  %s\n", call_str.c_str());
-		mint::printf(stderr, "  %s\n", line_str.c_str());
+	std::println(stderr, "Traceback thread {}:", _thread_id);
+	for (const LineInfo& call : _cursor->dump()) {
+		std::println(stderr, "  {}", call.to_string());
+		std::println(stderr, "  {}", get_module_line(call.module_name(), call.line_number()));
 	}
 }

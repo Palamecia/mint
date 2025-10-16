@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,13 +22,12 @@
  */
 
 #include "definition.h"
-
-#include <algorithm>
-#include <memory>
+#include <string>
+#include <utility>
 
 namespace {
 
-std::string::size_type find_symbol_separator(const std::string &name) {
+std::string::size_type find_symbol_separator(const std::string& name) {
 	if (auto pos = name.rfind('.'); pos != std::string::npos) {
 		while (pos && name[pos - 1] == '.') {
 			--pos;
@@ -43,9 +42,9 @@ std::string::size_type find_symbol_separator(const std::string &name) {
 }
 
 Definition::Definition(Type type, std::string name) :
-	type(type),
-	flags(0),
-	name(std::move(name)) {}
+    type(type),
+    flags(0),
+    name(std::move(name)) {}
 
 Definition::~Definition() {}
 
@@ -57,21 +56,17 @@ std::string Definition::symbol() const {
 	return name.substr(find_symbol_separator(name) + 1);
 }
 
-Package::Package(const std::string &name) :
-	Definition(PACKAGE_DEFINITION, name) {}
+Package::Package(const std::string& name) :
+    Definition(package_definition, name) {}
 
-Enum::Enum(const std::string &name) :
-	Definition(ENUM_DEFINITION, name) {}
+Enum::Enum(const std::string& name) :
+    Definition(enum_definition, name) {}
 
-Class::Class(const std::string &name) :
-	Definition(CLASS_DEFINITION, name) {}
+Class::Class(const std::string& name) :
+    Definition(class_definition, name) {}
 
-Constant::Constant(const std::string &name) :
-	Definition(CONSTANT_DEFINITION, name) {}
+Constant::Constant(const std::string& name) :
+    Definition(constant_definition, name) {}
 
-Function::Function(const std::string &name) :
-	Definition(FUNCTION_DEFINITION, name) {}
-
-Function::~Function() {
-	std::for_each(signatures.begin(), signatures.end(), std::default_delete<Signature>());
-}
+Function::Function(const std::string& name) :
+    Definition(function_definition, name) {}

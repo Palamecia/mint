@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,9 +23,18 @@
 
 #include "mint/compiler/lexicalhandler.h"
 #include "mint/compiler/lexer.h"
+#include "mint/compiler/token.h"
 
+#include <cctype>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
 #include <filesystem>
 #include <algorithm>
+#include <istream>
+#include <string>
+#include <tuple>
+#include <vector>
 
 using namespace mint;
 
@@ -34,48 +43,48 @@ using namespace mint;
 
 #define IS_COMMENT(_token) \
 	(((_token).find("/*", pos) != std::string::npos) || ((_token).find("//", pos) != std::string::npos) \
-	 || ((_token).find("#!", pos) != std::string::npos))
+	    || ((_token).find("#!", pos) != std::string::npos))
 
-enum State : std::uint8_t {
-	EXPECT_START,
-	EXPECT_COMMENT,
-	EXPECT_MODULE,
-	EXPECT_DEFINITION,
-	EXPECT_VALUE,
-	EXPECT_OPERATOR
+enum class State : std::uint8_t {
+	expect_start,
+	expect_comment,
+	expect_module,
+	expect_definition,
+	expect_value,
+	expect_operator
 };
 
 std::filesystem::path AbstractLexicalHandlerStream::path() const {
 	return {};
 }
 
-std::string::size_type AbstractLexicalHandlerStream::find(const std::string &substr,
-														  std::string::size_type offset) const noexcept {
-	return substr.empty() ? m_script.length() : m_script.find(substr, offset);
+std::string::size_type AbstractLexicalHandlerStream::find(const std::string& substr,
+    std::string::size_type offset) const noexcept {
+	return substr.empty() ? _script.length() : _script.find(substr, offset);
 }
 
 std::string::size_type AbstractLexicalHandlerStream::find(const std::string::value_type ch,
-														  std::string::size_type offset) const noexcept {
-	return m_script.find(ch, offset);
+    std::string::size_type offset) const noexcept {
+	return _script.find(ch, offset);
 }
 
 std::string AbstractLexicalHandlerStream::substr(std::string::size_type offset,
-												 std::string::size_type count) const noexcept {
-	return m_script.substr(offset, count);
+    std::string::size_type count) const noexcept {
+	return _script.substr(offset, count);
 }
 
 char AbstractLexicalHandlerStream::operator[](std::string::size_type offset) const {
-	return m_script[offset];
+	return _script[offset];
 }
 
-size_t AbstractLexicalHandlerStream::pos() const {
-	return m_script.size();
+std::size_t AbstractLexicalHandlerStream::pos() const {
+	return _script.size();
 }
 
 int AbstractLexicalHandlerStream::read_char() {
 	int c = get();
 	if (c != EOF) {
-		m_script += static_cast<char>(c);
+		_script += static_cast<char>(c);
 	}
 	return c;
 }
@@ -83,7 +92,7 @@ int AbstractLexicalHandlerStream::read_char() {
 int AbstractLexicalHandlerStream::next_buffered_char() {
 	int c = get();
 	if (c != EOF) {
-		m_script += static_cast<char>(c);
+		_script += static_cast<char>(c);
 	}
 	return c;
 }
@@ -92,36 +101,36 @@ namespace {
 
 class LexicalHandlerStream : public AbstractLexicalHandlerStream {
 public:
-	LexicalHandlerStream(const LexicalHandlerStream &) = delete;
-	LexicalHandlerStream(LexicalHandlerStream &&) = delete;
+	LexicalHandlerStream(const LexicalHandlerStream&) = delete;
+	LexicalHandlerStream(LexicalHandlerStream&&) = delete;
 
-	LexicalHandlerStream(std::istream &stream) :
-		m_stream(stream) {}
+	LexicalHandlerStream(std::istream& stream) :
+	    _stream(stream) {}
 
 	~LexicalHandlerStream() {}
 
-	LexicalHandlerStream &operator=(const LexicalHandlerStream &) = delete;
-	LexicalHandlerStream &operator=(LexicalHandlerStream &&) = delete;
+	LexicalHandlerStream& operator=(const LexicalHandlerStream&) = delete;
+	LexicalHandlerStream& operator=(LexicalHandlerStream&&) = delete;
 
 	[[nodiscard]] bool at_end() const override {
-		return m_stream.eof();
+		return _stream.eof();
 	}
 
 	[[nodiscard]] bool is_valid() const override {
-		return m_stream.good();
+		return _stream.good();
 	}
 
 protected:
 	int get() override {
-		return m_stream.get();
+		return _stream.get();
 	}
 
 private:
-	std::istream &m_stream;
+	std::istream& _stream;
 };
 
-std::tuple<std::string::size_type, std::string> find_next_comment(AbstractLexicalHandlerStream &stream,
-																  std::string::size_type offset) {
+std::tuple<std::string::size_type, std::string> find_next_comment(AbstractLexicalHandlerStream& stream,
+    std::string::size_type offset) {
 	auto pos = std::min({stream.find("/*", offset), stream.find("//", offset), stream.find("#!", offset)});
 	if (pos != std::string::npos) {
 		return {pos, stream.substr(pos, 2)};
@@ -131,28 +140,28 @@ std::tuple<std::string::size_type, std::string> find_next_comment(AbstractLexica
 
 }
 
-bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
+bool LexicalHandler::parse(AbstractLexicalHandlerStream& stream) {
 
-	std::vector<State> state = {EXPECT_START};
+	std::vector<State> state = {State::expect_start};
 	std::vector<std::string> context;
 
 	std::string::size_type comment_offset = 0;
 	std::string comment;
 
-	Lexer lexer(&stream);
-	size_t pos = 0;
+	auto lexer = Lexer(stream);
+	std::size_t pos = 0;
 
 	bool failed_on_new_line = false;
-	stream.set_new_line_callback([&](size_t line_number) {
+	stream.set_new_line_callback([&](std::size_t line_number) {
 		if (failed_on_new_line) {
 			return;
 		}
 		const auto new_line_pos = stream.find("\n", pos);
 		while (pos && pos < new_line_pos) {
 			switch (state.back()) {
-			case EXPECT_COMMENT:
+			case State::expect_comment:
 				if (auto comment_end = stream.find("*/", pos);
-					comment_end != std::string::npos && comment_end < new_line_pos) {
+				    comment_end != std::string::npos && comment_end < new_line_pos) {
 					comment_end += 2;
 					comment += stream.substr(pos, comment_end - pos);
 					if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
@@ -163,7 +172,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 						failed_on_new_line = true;
 						return;
 					}
-					if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
+					if (!on_token(Token::comment_token, comment, comment_offset)) {
 						failed_on_new_line = true;
 						return;
 					}
@@ -181,7 +190,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				break;
 			default:
 				if (auto [comment_pos, comment_token] = find_next_comment(stream, pos);
-					comment_pos != std::string::npos && comment_pos < new_line_pos) {
+				    comment_pos != std::string::npos && comment_pos < new_line_pos) {
 					if (pos != comment_pos) {
 						if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
 							failed_on_new_line = true;
@@ -208,7 +217,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								failed_on_new_line = true;
 								return;
 							}
-							if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
+							if (!on_token(Token::comment_token, comment, comment_offset)) {
 								failed_on_new_line = true;
 								return;
 							}
@@ -227,7 +236,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								failed_on_new_line = true;
 								return;
 							}
-							state.emplace_back(EXPECT_COMMENT);
+							state.emplace_back(State::expect_comment);
 							start = comment_end;
 						}
 						pos = start;
@@ -248,7 +257,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							failed_on_new_line = true;
 							return;
 						}
-						if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
+						if (!on_token(Token::comment_token, comment, comment_offset)) {
 							failed_on_new_line = true;
 							return;
 						}
@@ -278,7 +287,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 	while (!stream.at_end()) {
 
 		std::string token = lexer.next_token();
-		auto token_type = token::from_local_id(Lexer::token_type(token));
+		auto token_type = token_from_local_id(Lexer::token_type(token));
 		auto start = stream.find(token, pos);
 		auto length = token.length();
 
@@ -286,11 +295,11 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 			return false;
 		}
 
-		if (start == std::string::npos && token_type == token::CLOSE_BRACKET_EQUAL_TOKEN) {
-			size_t match_length = 0;
+		if (start == std::string::npos && token_type == Token::close_bracket_equal_token) {
+			std::size_t match_length = 0;
 			auto token_match = [&]() {
 				match_length = 1;
-				for (size_t i = start + 1; i < stream.pos(); ++i) {
+				for (std::size_t i = start + 1; i < stream.pos(); ++i) {
 					++match_length;
 					if (stream[i] == '=') {
 						return true;
@@ -314,9 +323,9 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 		if (start != std::string::npos) {
 			do {
 				switch (state.back()) {
-				case EXPECT_COMMENT:
+				case State::expect_comment:
 					if (auto comment_end = stream.find("*/", pos);
-						comment_end != std::string::npos && comment_end < start) {
+					    comment_end != std::string::npos && comment_end < start) {
 						comment_end += 2;
 						comment += stream.substr(pos, comment_end - pos);
 						if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
@@ -325,7 +334,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 						if (!on_comment_end(comment_end)) {
 							return false;
 						}
-						if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
+						if (!on_token(Token::comment_token, comment, comment_offset)) {
 							failed_on_new_line = true;
 							return false;
 						}
@@ -359,7 +368,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 					break;
 				default:
 					if (auto [comment_pos, comment_token] = find_next_comment(stream, pos);
-						(comment_pos >= pos) && (comment_pos <= start)) {
+					    (comment_pos >= pos) && (comment_pos <= start)) {
 						if (pos != comment_pos) {
 							if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
 								return false;
@@ -381,7 +390,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								if (!on_comment_end(comment_end)) {
 									return false;
 								}
-								if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
+								if (!on_token(Token::comment_token, comment, comment_offset)) {
 									failed_on_new_line = true;
 									return false;
 								}
@@ -396,7 +405,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 								if (!on_comment(stream.substr(pos), comment_pos)) {
 									return false;
 								}
-								state.emplace_back(EXPECT_COMMENT);
+								state.emplace_back(State::expect_comment);
 								pos = stream.pos();
 							}
 						}
@@ -413,7 +422,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							if (!on_comment_end(comment_end)) {
 								return false;
 							}
-							if (!on_token(token::COMMENT_TOKEN, comment, comment_offset)) {
+							if (!on_token(Token::comment_token, comment, comment_offset)) {
 								failed_on_new_line = true;
 								return false;
 							}
@@ -433,10 +442,10 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 			while (pos < start);
 
 			switch (token_type) {
-			case token::LINE_END_TOKEN:
-			case token::FILE_END_TOKEN:
+			case Token::line_end_token:
+			case Token::file_end_token:
 				switch (state.back()) {
-				case EXPECT_MODULE:
+				case State::expect_module:
 					state.pop_back();
 					context.clear();
 					break;
@@ -449,140 +458,140 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				}
 				pos = start + length;
 				continue;
-			case token::ASSERT_TOKEN:
-			case token::BREAK_TOKEN:
-			case token::CASE_TOKEN:
-			case token::CATCH_TOKEN:
-			case token::CLASS_TOKEN:
-			case token::CONST_TOKEN:
-			case token::CONTINUE_TOKEN:
-			case token::DEFAULT_TOKEN:
-			case token::ELIF_TOKEN:
-			case token::ELSE_TOKEN:
-			case token::ENUM_TOKEN:
-			case token::EXIT_TOKEN:
-			case token::FINAL_TOKEN:
-			case token::FOR_TOKEN:
-			case token::IF_TOKEN:
-			case token::IN_TOKEN:
-			case token::LET_TOKEN:
-			case token::LIB_TOKEN:
-			case token::OVERRIDE_TOKEN:
-			case token::PACKAGE_TOKEN:
-			case token::PRINT_TOKEN:
-			case token::RAISE_TOKEN:
-			case token::RETURN_TOKEN:
-			case token::SWITCH_TOKEN:
-			case token::TRY_TOKEN:
-			case token::WHILE_TOKEN:
-			case token::YIELD_TOKEN:
-			case token::VAR_TOKEN:
-			case token::CONSTANT_TOKEN:
-			case token::IS_TOKEN:
-			case token::TYPEOF_TOKEN:
-			case token::MEMBERSOF_TOKEN:
-			case token::DEFINED_TOKEN:
+			case Token::assert_token:
+			case Token::break_token:
+			case Token::case_token:
+			case Token::catch_token:
+			case Token::class_token:
+			case Token::const_token:
+			case Token::continue_token:
+			case Token::default_token:
+			case Token::elif_token:
+			case Token::else_token:
+			case Token::enum_token:
+			case Token::exit_token:
+			case Token::final_token:
+			case Token::for_token:
+			case Token::if_token:
+			case Token::in_token:
+			case Token::let_token:
+			case Token::lib_token:
+			case Token::override_token:
+			case Token::package_token:
+			case Token::print_token:
+			case Token::raise_token:
+			case Token::return_token:
+			case Token::switch_token:
+			case Token::try_token:
+			case Token::while_token:
+			case Token::yield_token:
+			case Token::var_token:
+			case Token::constant_token:
+			case Token::is_token:
+			case Token::typeof_token:
+			case Token::membersof_token:
+			case Token::defined_token:
 				switch (state.back()) {
-				case EXPECT_MODULE:
+				case State::expect_module:
 					if (!on_module_path_token(context, token, start)) {
 						return false;
 					}
 					context.push_back(token);
-					if (!on_token(token::MODULE_PATH_TOKEN, token, start)) {
+					if (!on_token(Token::module_path_token, token, start)) {
 						return false;
 					}
 					break;
 				default:
-					if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE
-						&& !on_symbol_token(context, pos)) {
+					if (!context.empty() && !state.empty() && state.back() == State::expect_value
+					    && !on_symbol_token(context, pos)) {
 						return false;
 					}
 					context.clear();
-					state.back() = EXPECT_START;
+					state.back() = State::expect_start;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 				}
 				break;
 
-			case token::DEF_TOKEN:
+			case Token::def_token:
 				switch (state.back()) {
-				case EXPECT_MODULE:
+				case State::expect_module:
 					if (!on_module_path_token(context, token, start)) {
 						return false;
 					}
 					context.push_back(token);
-					if (!on_token(token::MODULE_PATH_TOKEN, token, start)) {
+					if (!on_token(Token::module_path_token, token, start)) {
 						return false;
 					}
 					break;
 				default:
-					if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE
-						&& !on_symbol_token(context, pos)) {
+					if (!context.empty() && !state.empty() && state.back() == State::expect_value
+					    && !on_symbol_token(context, pos)) {
 						return false;
 					}
 					context.clear();
-					state.back() = EXPECT_DEFINITION;
+					state.back() = State::expect_definition;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 				}
 				break;
 
-			case token::LOAD_TOKEN:
+			case Token::load_token:
 				switch (state.back()) {
-				case EXPECT_MODULE:
+				case State::expect_module:
 					if (!on_module_path_token(context, token, start)) {
 						return false;
 					}
 					context.push_back(token);
-					if (!on_token(token::MODULE_PATH_TOKEN, token, start)) {
+					if (!on_token(Token::module_path_token, token, start)) {
 						return false;
 					}
 					break;
 				default:
-					if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE
-						&& !on_symbol_token(context, pos)) {
+					if (!context.empty() && !state.empty() && state.back() == State::expect_value
+					    && !on_symbol_token(context, pos)) {
 						return false;
 					}
 					context.clear();
-					state.emplace_back(EXPECT_MODULE);
+					state.emplace_back(State::expect_module);
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 				}
 				break;
 
-			case token::NUMBER_TOKEN:
-			case token::STRING_TOKEN:
-				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE
-					&& !on_symbol_token(context, pos)) {
+			case Token::number_token:
+			case Token::string_token:
+				if (!context.empty() && !state.empty() && state.back() == State::expect_value
+				    && !on_symbol_token(context, pos)) {
 					return false;
 				}
 				context.clear();
-				state.back() = EXPECT_OPERATOR;
+				state.back() = State::expect_operator;
 				if (!on_token(token_type, token, start)) {
 					return false;
 				}
 				break;
 
-			case token::SLASH_TOKEN:
-				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE
-					&& !on_symbol_token(context, pos)) {
+			case Token::slash_token:
+				if (!context.empty() && !state.empty() && state.back() == State::expect_value
+				    && !on_symbol_token(context, pos)) {
 					return false;
 				}
 				context.clear();
 				switch (state.back()) {
-				case EXPECT_OPERATOR:
-				case EXPECT_DEFINITION:
-					state.back() = EXPECT_VALUE;
+				case State::expect_operator:
+				case State::expect_definition:
+					state.back() = State::expect_value;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 					break;
 				default:
 					if (const std::string regex = lexer.read_regex();
-						!regex.empty() && stream[start + regex.length() + 1] == '/') {
+					    !regex.empty() && stream[start + regex.length() + 1] == '/') {
 						token += regex + lexer.next_token();
 						length = token.length();
 
@@ -591,8 +600,8 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 							length = token.length();
 						}
 
-						state.back() = EXPECT_OPERATOR;
-						if (!on_token(token::REGEX_TOKEN, token, start)) {
+						state.back() = State::expect_operator;
+						if (!on_token(Token::regex_token, token, start)) {
 							return false;
 						}
 					}
@@ -604,14 +613,14 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				}
 				break;
 
-			case token::SYMBOL_TOKEN:
+			case Token::symbol_token:
 				switch (state.back()) {
-				case EXPECT_MODULE:
+				case State::expect_module:
 					if (!on_module_path_token(context, token, start)) {
 						return false;
 					}
 					context.push_back(token);
-					if (!on_token(token::MODULE_PATH_TOKEN, token, start)) {
+					if (!on_token(Token::module_path_token, token, start)) {
 						return false;
 					}
 					break;
@@ -620,57 +629,57 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 						return false;
 					}
 					context.push_back(token);
-					state.back() = EXPECT_OPERATOR;
+					state.back() = State::expect_operator;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 				}
 				break;
 
-			case token::DOT_TOKEN:
+			case Token::dot_token:
 				switch (state.back()) {
-				case EXPECT_MODULE:
+				case State::expect_module:
 					if (!on_module_path_token(context, token, start)) {
 						return false;
 					}
 					context.push_back(token);
-					if (!on_token(token::MODULE_PATH_TOKEN, token, start)) {
+					if (!on_token(Token::module_path_token, token, start)) {
 						return false;
 					}
 					break;
 				default:
-					state.back() = EXPECT_VALUE;
+					state.back() = State::expect_value;
 					if (!on_token(token_type, token, start)) {
 						return false;
 					}
 				}
 				break;
 
-			case token::CLOSE_BRACE_TOKEN:
-			case token::CLOSE_PARENTHESIS_TOKEN:
-			case token::CLOSE_BRACKET_EQUAL_TOKEN:
-				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE
-					&& !on_symbol_token(context, pos)) {
+			case Token::close_brace_token:
+			case Token::close_parenthesis_token:
+			case Token::close_bracket_equal_token:
+				if (!context.empty() && !state.empty() && state.back() == State::expect_value
+				    && !on_symbol_token(context, pos)) {
 					return false;
 				}
 				context.clear();
-				state.back() = EXPECT_OPERATOR;
+				state.back() = State::expect_operator;
 				if (!on_token(token_type, token, start)) {
 					return false;
 				}
 				break;
 
 			default:
-				if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE
-					&& !on_symbol_token(context, pos)) {
+				if (!context.empty() && !state.empty() && state.back() == State::expect_value
+				    && !on_symbol_token(context, pos)) {
 					return false;
 				}
 				context.clear();
 				if ((IS_OPERATOR_ALIAS(token)) || (Lexer::is_operator(token))) {
-					state.back() = EXPECT_VALUE;
+					state.back() = State::expect_value;
 				}
 				else {
-					state.back() = EXPECT_OPERATOR;
+					state.back() = State::expect_operator;
 				}
 				if (!on_token(token_type, token, start)) {
 					return false;
@@ -686,7 +695,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 				}
 			}
 			else {
-				if (!on_token(token::SYMBOL_TOKEN, token, start)) {
+				if (!on_token(Token::symbol_token, token, start)) {
 					return false;
 				}
 			}
@@ -695,7 +704,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 		pos = start + length;
 	}
 
-	if (!context.empty() && !state.empty() && state.back() == EXPECT_VALUE && !on_symbol_token(context, pos)) {
+	if (!context.empty() && !state.empty() && state.back() == State::expect_value && !on_symbol_token(context, pos)) {
 		return false;
 	}
 
@@ -708,7 +717,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream &stream) {
 	return on_script_end();
 }
 
-bool LexicalHandler::parse(std::istream &script) {
+bool LexicalHandler::parse(std::istream& script) {
 	LexicalHandlerStream stream(script);
 	return parse(stream);
 }
@@ -721,46 +730,40 @@ bool LexicalHandler::on_script_end() {
 	return true;
 }
 
-bool LexicalHandler::on_comment_begin([[maybe_unused]] std::string::size_type offset) {
+bool LexicalHandler::on_comment_begin(std::string::size_type /*offset*/) {
 	return true;
 }
 
-bool LexicalHandler::on_comment_end([[maybe_unused]] std::string::size_type offset) {
+bool LexicalHandler::on_comment_end(std::string::size_type /*offset*/) {
 	return true;
 }
 
-bool LexicalHandler::on_module_path_token([[maybe_unused]] const std::vector<std::string> &context,
-										  [[maybe_unused]] const std::string &token,
-										  [[maybe_unused]] std::string::size_type offset) {
+bool LexicalHandler::on_module_path_token(const std::vector<std::string>& /*context*/, const std::string& /*token*/,
+    std::string::size_type /*offset*/) {
 	return true;
 }
 
-bool LexicalHandler::on_symbol_token([[maybe_unused]] const std::vector<std::string> &context,
-									 [[maybe_unused]] const std::string &token,
-									 [[maybe_unused]] std::string::size_type offset) {
+bool LexicalHandler::on_symbol_token(const std::vector<std::string>& /*context*/, const std::string& /*token*/,
+    std::string::size_type /*offset*/) {
 	return true;
 }
 
-bool LexicalHandler::on_symbol_token([[maybe_unused]] const std::vector<std::string> &context,
-									 [[maybe_unused]] std::string::size_type offset) {
+bool LexicalHandler::on_symbol_token(const std::vector<std::string>& /*context*/, std::string::size_type /*offset*/) {
 	return true;
 }
 
-bool LexicalHandler::on_token([[maybe_unused]] token::Type type, [[maybe_unused]] const std::string &token,
-							  [[maybe_unused]] std::string::size_type offset) {
+bool LexicalHandler::on_token(Token /*type*/, const std::string& /*token*/, std::string::size_type /*offset*/) {
 	return true;
 }
 
-bool LexicalHandler::on_white_space([[maybe_unused]] const std::string &token,
-									[[maybe_unused]] std::string::size_type offset) {
+bool LexicalHandler::on_white_space(const std::string& /*token*/, std::string::size_type /*offset*/) {
 	return true;
 }
 
-bool LexicalHandler::on_comment([[maybe_unused]] const std::string &token,
-								[[maybe_unused]] std::string::size_type offset) {
+bool LexicalHandler::on_comment(const std::string& /*token*/, std::string::size_type /*offset*/) {
 	return true;
 }
 
-bool LexicalHandler::on_new_line([[maybe_unused]] size_t line_number, [[maybe_unused]] std::string::size_type offset) {
+bool LexicalHandler::on_new_line(std::size_t /*line_number*/, std::string::size_type /*offset*/) {
 	return true;
 }

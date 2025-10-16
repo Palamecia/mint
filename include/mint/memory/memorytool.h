@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,87 +21,94 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_MEMORYTOOL_H
-#define MINT_MEMORYTOOL_H
+#ifndef MINT_MEMORY_MEMORYTOOL_H
+#define MINT_MEMORY_MEMORYTOOL_H
 
+#include "mint/config.h"
+#include "mint/memory/data.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/class.h"
 #include "mint/ast/printer.h"
 #include "mint/ast/symbol.h"
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <tuple>
 
 namespace mint {
 
-class SymbolTable;
 class Cursor;
+class GlobalData;
+class SymbolTable;
 
-MINT_EXPORT std::string type_name(const Reference &reference);
-MINT_EXPORT inline bool is_instance_of(const Reference &reference, Data::Format format);
-MINT_EXPORT inline bool is_instance_of(const Reference &reference, Class::Metatype metatype);
-MINT_EXPORT bool is_instance_of(const Reference &reference, const std::string &type_name);
-MINT_EXPORT inline bool is_class(const Reference &reference);
-MINT_EXPORT inline bool is_class(const Object *data);
-MINT_EXPORT inline bool is_object(const Object *data);
+MINT_EXPORT std::string type_name(const Reference& reference);
+MINT_EXPORT inline bool is_instance_of(const Reference& reference, Data::Format format);
+MINT_EXPORT inline bool is_instance_of(const Reference& reference, Class::Metatype metatype);
+MINT_EXPORT bool is_instance_of(const Reference& reference, const std::string& type_name);
+MINT_EXPORT inline bool is_class(const Reference& reference);
+MINT_EXPORT inline bool is_class(const Object& object);
+MINT_EXPORT inline bool is_object(const Object& object);
 
-MINT_EXPORT Printer *create_printer(Cursor *cursor);
-MINT_EXPORT void print(Printer *printer, Reference &reference);
+MINT_EXPORT std::unique_ptr<Printer> create_printer(Cursor& cursor);
 
-MINT_EXPORT void load_extra_arguments(Cursor *cursor);
-MINT_EXPORT void capture_symbol(Cursor *cursor, const Symbol &symbol);
-MINT_EXPORT void capture_as_symbol(Cursor *cursor, const Symbol &symbol);
-MINT_EXPORT void capture_all_symbols(Cursor *cursor);
-MINT_EXPORT void init_call(Cursor *cursor);
-MINT_EXPORT void init_call(Cursor *cursor, Reference &function);
-MINT_EXPORT void init_member_call(Cursor *cursor, const Symbol &member);
-MINT_EXPORT void init_operator_call(Cursor *cursor, Class::Operator op);
-MINT_EXPORT void exit_call(Cursor *cursor);
-MINT_EXPORT void init_exception(Cursor *cursor, const Symbol &symbol);
-MINT_EXPORT void reset_exception(Cursor *cursor, const Symbol &symbol);
-MINT_EXPORT void init_parameter(Cursor *cursor, const Symbol &symbol, Reference::Flags flags, size_t index);
-MINT_EXPORT Function::Mapping::iterator find_function_signature(Cursor *cursor, Function::Mapping &mapping,
-																int signature);
-MINT_EXPORT bool has_signature(Function::Mapping &mapping, int signature);
-MINT_EXPORT bool has_signature(Reference &reference, int signature);
+MINT_EXPORT void load_extra_arguments(Cursor& cursor);
+MINT_EXPORT void capture_symbol(Cursor& cursor, const Symbol& symbol);
+MINT_EXPORT void capture_as_symbol(Cursor& cursor, const Symbol& symbol);
+MINT_EXPORT void capture_all_symbols(Cursor& cursor);
+MINT_EXPORT void init_call(Cursor& cursor);
+MINT_EXPORT void init_call(Cursor& cursor, const Reference& function);
+MINT_EXPORT void init_member_call(Cursor& cursor, const Symbol& member);
+MINT_EXPORT void init_operator_call(Cursor& cursor, Class::Operator op);
+MINT_EXPORT void exit_call(Cursor& cursor);
+MINT_EXPORT void init_exception(Cursor& cursor, const Symbol& symbol);
+MINT_EXPORT void reset_exception(Cursor& cursor, const Symbol& symbol);
+MINT_EXPORT void init_parameter(Cursor& cursor, const Symbol& symbol, Reference::Flags flags, std::size_t index);
+MINT_EXPORT Function::Mapping::const_iterator find_function_signature(Cursor& cursor, Function::Mapping& mapping,
+    int signature);
+MINT_EXPORT bool has_signature(Function::Mapping& mapping, int signature);
+MINT_EXPORT bool has_signature(const Reference& reference, int signature);
 
-MINT_EXPORT void yield(Cursor *cursor, Reference &generator);
+MINT_EXPORT WeakReference get_symbol(Cursor& cursor, const Symbol& symbol);
+MINT_EXPORT WeakReference get_symbol(SymbolTable& symbols, GlobalData& globals, const Symbol& symbol);
+MINT_EXPORT std::tuple<WeakReference, Class*> get_member(Cursor& cursor, const Reference& reference,
+    const Symbol& member);
+MINT_EXPORT std::tuple<WeakReference, Class*> get_operator(Cursor& cursor, const Reference& reference,
+    Class::Operator op);
+MINT_EXPORT void reduce_member(Cursor& cursor, Reference&& member);
+MINT_EXPORT Reference& get_member_ref(Cursor& cursor, const Reference& reference, const Symbol& member);
+MINT_EXPORT Class::MemberInfo* find_member_info(Object& object, const Reference& member);
+MINT_EXPORT bool is_protected_accessible(const Class& owner, const Class* context);
+MINT_EXPORT bool is_protected_accessible(const Cursor& cursor, const Class& owner);
+MINT_EXPORT bool is_private_accessible(const Cursor& cursor, const Class& owner);
+MINT_EXPORT bool is_package_accessible(const Cursor& cursor, const Class& owner);
 
-MINT_EXPORT WeakReference get_symbol(SymbolTable *symbols, const Symbol &symbol);
-MINT_EXPORT WeakReference get_member(Cursor *cursor, const Reference &reference, const Symbol &member,
-									 Class **owner = nullptr);
-MINT_EXPORT WeakReference get_operator(Cursor *cursor, const Reference &reference, Class::Operator op,
-									   Class **owner = nullptr);
-MINT_EXPORT void reduce_member(Cursor *cursor, Reference &&member);
-MINT_EXPORT Class::MemberInfo *find_member_info(Object *object, const Reference &member);
-MINT_EXPORT bool is_protected_accessible(const Class *owner, const Class *context);
-MINT_EXPORT bool is_protected_accessible(const Cursor *cursor, const Class *owner);
-MINT_EXPORT bool is_private_accessible(const Cursor *cursor, const Class *owner);
-MINT_EXPORT bool is_package_accessible(const Cursor *cursor, const Class *owner);
+MINT_EXPORT Symbol var_symbol(Cursor& cursor);
+MINT_EXPORT void declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags flags);
+MINT_EXPORT void declare_symbol(Cursor& cursor, const Symbol& symbol, std::size_t index, Reference::Flags flags);
+MINT_EXPORT void declare_function(Cursor& cursor, const Symbol& symbol, Reference::Flags flags);
+MINT_EXPORT void function_overload_from_stack(Cursor& cursor);
 
-MINT_EXPORT Symbol var_symbol(Cursor *cursor);
-MINT_EXPORT void declare_symbol(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
-MINT_EXPORT void declare_symbol(Cursor *cursor, const Symbol &symbol, size_t index, Reference::Flags flags);
-MINT_EXPORT void declare_function(Cursor *cursor, const Symbol &symbol, Reference::Flags flags);
-MINT_EXPORT void function_overload_from_stack(Cursor *cursor);
-
-bool is_instance_of(const Reference &reference, Data::Format format) {
-	return reference.data()->format == format;
+bool is_instance_of(const Reference& reference, Data::Format format) {
+	return reference.data().format() == format;
 }
 
-bool is_instance_of(const Reference &reference, Class::Metatype metatype) {
-	return reference.data()->format == Data::FMT_OBJECT && reference.data<Object>()->metadata->metatype() == metatype;
+bool is_instance_of(const Reference& reference, Class::Metatype metatype) {
+	return reference.data().format() == Data::object_format && reference.data<Object>().metadata.metatype() == metatype;
 }
 
-bool is_class(const Reference &reference) {
-	return reference.data()->format == Data::FMT_OBJECT && is_class(reference.data<Object>());
+bool is_class(const Reference& reference) {
+	return reference.data().format() == Data::object_format && is_class(reference.data<Object>());
 }
 
-bool is_class(const Object *data) {
-	return data->data == nullptr;
+bool is_class(const Object& object) {
+	return object.data == nullptr;
 }
 
-bool is_object(const Object *data) {
-	return data->data != nullptr;
+bool is_object(const Object& object) {
+	return object.data != nullptr;
 }
 
 }
 
-#endif // MINT_MEMORYTOOL_H
+#endif // MINT_MEMORY_MEMORYTOOL_H

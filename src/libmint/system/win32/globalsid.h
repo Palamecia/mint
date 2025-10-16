@@ -17,12 +17,12 @@ struct GlobalSid {
 
 	GlobalSid();
 	~GlobalSid();
-    
-	GlobalSid(GlobalSid &&) = delete;
-	GlobalSid(const GlobalSid &other) = delete;
-	
-	GlobalSid &operator=(GlobalSid &&) = delete;
-	GlobalSid &operator=(const GlobalSid &other) = delete;
+
+	GlobalSid(GlobalSid&&) = delete;
+	GlobalSid(const GlobalSid& other) = delete;
+
+	GlobalSid& operator=(GlobalSid&&) = delete;
+	GlobalSid& operator=(const GlobalSid& other) = delete;
 };
 
 }

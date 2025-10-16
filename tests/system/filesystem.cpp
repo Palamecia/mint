@@ -1,68 +1,78 @@
+#include <cstdio>
+#include <cstring>
+#include <gsl/pointers>
 #include <gtest/gtest.h>
-#include <mint/system/filesystem.h>
+#include "mint/config.h"
+#include "mint/system/filesystem.h"
 
 #include <filesystem>
 #include <array>
+#include <memory>
+#include <string_view>
 
-using namespace mint;
+#ifdef MINT_OS_WINDOWS
+#include <corecrt_io.h>
+#else
+#include <stdio.h>
+#endif
 
 TEST(filesystem, relative_path) {
-	EXPECT_EQ(FileSystem::normalized("test/foo"), std::filesystem::relative("root/test/foo", "root"));
-	EXPECT_EQ(FileSystem::normalized("../test"), std::filesystem::relative("root/test", "root/foo"));
-	EXPECT_EQ(FileSystem::normalized("."), std::filesystem::relative("root/foo", "root/foo"));
+	EXPECT_EQ(mint::FileSystem::normalized("test/foo"), std::filesystem::relative("root/test/foo", "root"));
+	EXPECT_EQ(mint::FileSystem::normalized("../test"), std::filesystem::relative("root/test", "root/foo"));
+	EXPECT_EQ(mint::FileSystem::normalized("."), std::filesystem::relative("root/foo", "root/foo"));
 }
 
 TEST(filesystem, normalized) {
-	EXPECT_EQ(FileSystem::normalized("test/foo"), FileSystem::normalized("test/./foo"));
-	EXPECT_EQ(FileSystem::normalized("test/foo"), FileSystem::normalized("test/bar/../foo"));
-	EXPECT_EQ(FileSystem::normalized("foo"), FileSystem::normalized("test/../foo"));
-	EXPECT_EQ(FileSystem::normalized("foo/"), FileSystem::normalized("foo/bar/.."));
-	EXPECT_EQ(FileSystem::normalized("./test"), FileSystem::normalized("./test"));
-	EXPECT_EQ(FileSystem::normalized("./test"), FileSystem::normalized("./foo/../test"));
-	EXPECT_EQ(FileSystem::normalized("../test"), FileSystem::normalized("../test"));
-	EXPECT_EQ(FileSystem::normalized("../test"), FileSystem::normalized("../foo/../test"));
-	EXPECT_EQ(FileSystem::normalized("./../test"), FileSystem::normalized("./../test"));
-	EXPECT_EQ(FileSystem::normalized("./../test"), FileSystem::normalized("./../foo/../test"));
-	EXPECT_EQ(FileSystem::normalized("../../test"), FileSystem::normalized("../../test"));
-	EXPECT_EQ(FileSystem::normalized("../../test"), FileSystem::normalized("../../foo/../test"));
+	EXPECT_EQ(mint::FileSystem::normalized("test/foo"), mint::FileSystem::normalized("test/./foo"));
+	EXPECT_EQ(mint::FileSystem::normalized("test/foo"), mint::FileSystem::normalized("test/bar/../foo"));
+	EXPECT_EQ(mint::FileSystem::normalized("foo"), mint::FileSystem::normalized("test/../foo"));
+	EXPECT_EQ(mint::FileSystem::normalized("foo/"), mint::FileSystem::normalized("foo/bar/.."));
+	EXPECT_EQ(mint::FileSystem::normalized("./test"), mint::FileSystem::normalized("./test"));
+	EXPECT_EQ(mint::FileSystem::normalized("./test"), mint::FileSystem::normalized("./foo/../test"));
+	EXPECT_EQ(mint::FileSystem::normalized("../test"), mint::FileSystem::normalized("../test"));
+	EXPECT_EQ(mint::FileSystem::normalized("../test"), mint::FileSystem::normalized("../foo/../test"));
+	EXPECT_EQ(mint::FileSystem::normalized("./../test"), mint::FileSystem::normalized("./../test"));
+	EXPECT_EQ(mint::FileSystem::normalized("./../test"), mint::FileSystem::normalized("./../foo/../test"));
+	EXPECT_EQ(mint::FileSystem::normalized("../../test"), mint::FileSystem::normalized("../../test"));
+	EXPECT_EQ(mint::FileSystem::normalized("../../test"), mint::FileSystem::normalized("../../foo/../test"));
 }
 
 TEST(filesystem, generic_wstring) {
-	EXPECT_EQ(L"êöàç", std::filesystem::path("êöàç").generic_wstring());
+	EXPECT_EQ(L"êöàç", std::filesystem::path(u8"êöàç").generic_wstring());
 }
 
 TEST(filesystem, join) {
-	EXPECT_EQ(FileSystem::root_path().generic_string() + "foo/bar/baz",
-			  (FileSystem::root_path() / "foo" / "bar" / "baz").generic_string());
+	EXPECT_EQ(mint::FileSystem::root_path().generic_string() + "foo/bar/baz",
+	    (mint::FileSystem::root_path() / "foo" / "bar" / "baz").generic_string());
 }
 
 TEST(filesystem, copy) {
 
-	char source_path[FileSystem::PATH_LENGTH];
-	char target_path[FileSystem::PATH_LENGTH];
+	std::array<char, mint::FileSystem::path_length> source_path {};
+	std::array<char, mint::FileSystem::path_length> target_path {};
 
-	tmpnam(source_path);
-	tmpnam(target_path);
+	tmpnam(source_path.data());
+	tmpnam(target_path.data());
 
-	FILE *source = fopen(source_path, "wb");
+	gsl::owner<FILE*> source = std::fopen(source_path.data(), "wb");
 	ASSERT_NE(nullptr, source);
 
-	const char data[] = "test\r\ntest\n\rtest\ntest\rtest";
-	const size_t len = sizeof(data);
-	fwrite(data, sizeof(char), len, source);
+	const std::string_view data = "test\r\ntest\n\rtest\ntest\rtest";
+	fwrite(data.data(), sizeof(char), data.size(), source);
 	fclose(source);
 
-	std::filesystem::copy(source_path, target_path);
-	remove(source_path);
+	std::filesystem::copy(source_path.data(), target_path.data());
+	remove(source_path.data());
 
-	FILE *target = fopen(target_path, "rb");
+	gsl::owner<FILE*> target = std::fopen(target_path.data(), "rb");
 	ASSERT_NE(nullptr, target);
 
-	auto *buffer = static_cast<char *>(malloc(len));
-	fread(buffer, sizeof(char), len, target);
-	fclose(target);
+	std::allocator<char> allocator {};
+	auto* buffer = allocator.allocate(data.size());
+	std::fread(buffer, sizeof(char), data.size(), target);
+	std::fclose(target);
 
-	EXPECT_EQ(0, memcmp(data, buffer, len));
-	remove(target_path);
-	free(buffer);
+	EXPECT_EQ(0, memcmp(data.data(), buffer, data.size()));
+	remove(target_path.data());
+	allocator.deallocate(buffer, data.size());
 }

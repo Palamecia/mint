@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,165 +21,144 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/operatortool.h>
-#include <mint/memory/memorytool.h>
-#include <mint/memory/casttool.h>
-#include <mint/ast/abstractsyntaxtree.h>
-#include <mint/scheduler/scheduler.h>
-#include <mint/scheduler/processor.h>
+#include "mint/ast/symbol.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/reference.h"
+#include "mint/ast/cursor.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/operatortool.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/casttool.h"
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/scheduler/process.h"
+#include "mint/scheduler/scheduler.h"
+#include "mint/scheduler/processor.h"
 #include "mint/system/errno.h"
 
 #include <chrono>
-
-using namespace mint;
+#include <memory>
+#include <system_error>
+#include <thread>
+#include <utility>
 
 namespace {
 
-std::thread *get_thread_handle(Process::ThreadId thread_id) {
-	if (const Scheduler *scheduler = Scheduler::instance()) {
-		if (const Process *thread = scheduler->find_thread(thread_id)) {
-			return thread->get_thread_handle();
-		}
+std::thread* get_thread_handle(const mint::Scheduler& scheduler, mint::Process::ThreadId thread_id) {
+	if (const mint::Process* thread = scheduler.find_thread(thread_id)) {
+		return thread->get_thread_handle();
 	}
 	return nullptr;
 }
 
+mint::WeakReference mint_thread_current_id(mint::Cursor& /*cursor*/) {
+	if (const mint::Process* process = mint::Scheduler::current_process()) {
+		return mint::create_number(process->get_thread_id());
+	}
+	return {};
 }
 
-MINT_FUNCTION(mint_thread_current_id, 0, cursor) {
+mint::WeakReference mint_thread_start_member(mint::FunctionHelper& helper, const mint::Reference& object,
+    const mint::Reference& method, const mint::Reference& args) {
 
-	FunctionHelper helper(cursor, 0);
+	mint::Scheduler& scheduler = helper.scheduler();
+	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
+	const auto signature = static_cast<int>(args.data<mint::Iterator>().ctx.size());
 
-	if (const Process *process = Scheduler::instance()->current_process()) {
-		helper.return_value(create_number(process->get_thread_id()));
+	if (auto* info = find_member_info(object.data<mint::Object>(), method)) {
+		thread_cursor->waiting_calls().emplace(method, info->owner);
 	}
 	else {
-		helper.return_value(WeakReference::create<None>());
+		auto [member, owner] = mint::get_member(*thread_cursor, object, mint::Symbol(to_string(method)));
+		thread_cursor->waiting_calls().emplace(std::move(member), owner);
 	}
+
+	thread_cursor->stack().emplace_back(object);
+	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
+
+	mint::call_member_operator(*thread_cursor, signature);
+	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	try {
+		const auto thread_id = scheduler.create_thread(std::move(thread_cursor));
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(thread_id));
+	}
+	catch (const std::system_error& error) {
+		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+	}
+	return result;
 }
 
-MINT_FUNCTION(mint_thread_start_member, 3, cursor) {
+mint::WeakReference mint_thread_start(mint::FunctionHelper& helper, const mint::Reference& func,
+    const mint::Reference& args) {
 
-	FunctionHelper helper(cursor, 3);
-	Reference &args = helper.pop_parameter();
-	Reference &method = helper.pop_parameter();
-	Reference &object = helper.pop_parameter();
+	mint::Scheduler& scheduler = helper.scheduler();
+	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
+	const auto signature = static_cast<int>(args.data<mint::Iterator>().ctx.size());
 
-	if (Scheduler *scheduler = Scheduler::instance()) {
+	thread_cursor->waiting_calls().emplace(func);
+	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
-		Cursor *thread_cursor = cursor->ast()->create_cursor();
-		const auto signature = static_cast<int>(args.data<Iterator>()->ctx.size());
-
-		if (Class::MemberInfo *info = find_member_info(object.data<Object>(), method)) {
-			thread_cursor->waiting_calls().emplace(std::move(method));
-			thread_cursor->waiting_calls().top().set_metadata(info->owner);
-		}
-		else {
-			Class *owner = nullptr;
-			thread_cursor->waiting_calls().emplace(get_member(thread_cursor, object, Symbol(to_string(method)), &owner));
-			thread_cursor->waiting_calls().top().set_metadata(owner);
-		}
-
-		thread_cursor->stack().emplace_back(std::move(object));
-		thread_cursor->stack().insert(thread_cursor->stack().end(),
-									  std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
-									  std::make_move_iterator(args.data<Iterator>()->ctx.end()));
-
-		call_member_operator(thread_cursor, signature);
-		WeakReference result = create_iterator();
-		try {
-			Process::ThreadId thread_id = scheduler->create_thread(thread_cursor);
-			iterator_yield(result.data<Iterator>(), create_number(thread_id));
-		}
-		catch (const std::system_error &error) {
-			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_yield(result.data<Iterator>(), create_number(error.code().value()));
-		}
-		helper.return_value(std::move(result));
+	mint::call_operator(*thread_cursor, signature);
+	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	try {
+		const auto thread_id = scheduler.create_thread(std::move(thread_cursor));
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(thread_id));
 	}
+	catch (const std::system_error& error) {
+		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+	}
+	return result;
 }
 
-MINT_FUNCTION(mint_thread_start, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &args = helper.pop_parameter();
-	Reference &func = helper.pop_parameter();
-
-	if (Scheduler *scheduler = Scheduler::instance()) {
-
-		Cursor *thread_cursor = cursor->ast()->create_cursor();
-		const auto signature = static_cast<int>(args.data<Iterator>()->ctx.size());
-
-		thread_cursor->waiting_calls().emplace(std::move(func));
-		thread_cursor->stack().insert(thread_cursor->stack().end(),
-									  std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
-									  std::make_move_iterator(args.data<Iterator>()->ctx.end()));
-
-		call_operator(thread_cursor, signature);
-		WeakReference result = create_iterator();
-		try {
-			Process::ThreadId thread_id = scheduler->create_thread(thread_cursor);
-			iterator_yield(result.data<Iterator>(), create_number(thread_id));
-		}
-		catch (const std::system_error &error) {
-			iterator_yield(result.data<Iterator>(), WeakReference::create<None>());
-			iterator_yield(result.data<Iterator>(), create_number(error.code().value()));
-		}
-		helper.return_value(std::move(result));
-	}
+mint::WeakReference mint_thread_is_running(mint::FunctionHelper& helper, const mint::Reference& thread_id) {
+	return mint::create_boolean(
+	    get_thread_handle(helper.scheduler(), mint::to_integer<mint::Process::ThreadId>(helper.cursor(), thread_id))
+	    != nullptr);
 }
 
-MINT_FUNCTION(mint_thread_is_running, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &thread_id = helper.pop_parameter();
-
-	helper.return_value(
-		create_boolean(get_thread_handle(static_cast<Process::ThreadId>(to_integer(cursor, thread_id))) != nullptr));
+mint::WeakReference mint_thread_is_joinable(mint::FunctionHelper& helper, const mint::Reference& thread_id) {
+	if (const auto* handle = get_thread_handle(helper.scheduler(),
+	        mint::to_integer<mint::Process::ThreadId>(helper.cursor(), thread_id))) {
+		return mint::create_boolean(handle->joinable());
+	}
+	return mint::create_boolean(false);
 }
 
-MINT_FUNCTION(mint_thread_is_joinable, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &thread_id = helper.pop_parameter();
-
-	if (std::thread *handle = get_thread_handle(static_cast<Process::ThreadId>(to_integer(cursor, thread_id)))) {
-		helper.return_value(create_boolean(handle->joinable()));
+mint::WeakReference mint_thread_join(mint::FunctionHelper& helper, const mint::Reference& thread_id) {
+	try {
+		mint::Scheduler& scheduler = helper.scheduler();
+		mint::unlock_processor();
+		scheduler.join_thread(to_integer<mint::Process::ThreadId>(helper.cursor(), thread_id));
+		mint::lock_processor();
 	}
-	else {
-		helper.return_value(create_boolean(false));
+	catch (const std::system_error& error) {
+		return mint::create_number(mint::errno_from_error_code(error.code()));
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_thread_join, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &thread_id = helper.pop_parameter();
-
-	if (Scheduler *scheduler = Scheduler::instance()) {
-		try {
-			unlock_processor();
-			scheduler->join_thread(static_cast<Process::ThreadId>(to_integer(cursor, thread_id)));
-			lock_processor();
-		}
-		catch (const std::system_error &error) {
-			helper.return_value(create_number(errno_from_error_code(error.code())));
-		}
-	}
-}
-
-MINT_FUNCTION(mint_thread_wait, 0, cursor) {
-	FunctionHelper helper(cursor, 0);
-	unlock_processor();
+mint::WeakReference mint_thread_wait(mint::Cursor& /*cursor*/) {
+	mint::unlock_processor();
 	std::this_thread::yield();
-	lock_processor();
+	mint::lock_processor();
+	return {};
 }
 
-MINT_FUNCTION(mint_thread_sleep, 1, cursor) {
-	FunctionHelper helper(cursor, 1);
-	Reference &time = helper.pop_parameter();
-	unlock_processor();
-	std::this_thread::sleep_for(std::chrono::milliseconds(to_integer(cursor, time)));
-	lock_processor();
+mint::WeakReference mint_thread_sleep(mint::Cursor& cursor, const mint::Reference& time) {
+	mint::unlock_processor();
+	std::this_thread::sleep_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)));
+	mint::lock_processor();
+	return {};
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_thread_current_id, 0)
+MINT_EXPORT_FUNCTION(mint_thread_start_member, 3)
+MINT_EXPORT_FUNCTION(mint_thread_start, 2)
+MINT_EXPORT_FUNCTION(mint_thread_is_running, 1)
+MINT_EXPORT_FUNCTION(mint_thread_is_joinable, 1)
+MINT_EXPORT_FUNCTION(mint_thread_join, 1)
+MINT_EXPORT_FUNCTION(mint_thread_wait, 0)
+MINT_EXPORT_FUNCTION(mint_thread_sleep, 1)

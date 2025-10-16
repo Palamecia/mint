@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -220,24 +220,4 @@ def [g_lib = lib('libmint-mint')] exec(src, context = none) {
  */
 def [g_lib = lib('libmint-mint')] eval(src, context = none) {
 	return g_lib.call('mint_lang_eval', src, context)
-}
-
-/**
- * Creates a new global variable named `name` if no variable with the same name
- * already exists.
- * 
- * If `value` is given, the variable is initialized with the given value.
- * 
- * If `object` is given, the global variable is added to the object; otherwise
- * the variable is added to the root package. The given object must be a class,
- * an object or a package.
- * 
- * Returns `true` if the variable was successfully created; otherwise returns
- * `false`.
- */
-def [g_lib = lib('libmint-mint')] createGlobal(name, value = none, object = none) {
-	if defined object {
-		return g_lib.call('mint_lang_create_object_global', object, name, value)
-	}
-	return g_lib.call('mint_lang_create_global', name, value)
 }

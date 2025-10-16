@@ -1,0 +1,1052 @@
+{
+  "name": "mint",
+  "scopeName": "source.mn",
+  "fileTypes": [
+    "mn"
+  ],
+  "patterns": [
+    {
+      "include": "#stmt_rule"
+    },
+		{
+			"name": "comment.line.shebang.mn",
+			"match": "\\A(#!).*(?=$)",
+			"captures": {
+				"1": {
+					"name": "punctuation.definition.comment.mn"
+				}
+			}
+		}
+  ],
+  "repository": {
+    "stmt_rule": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "match": "\\b(assert)\\b(?!\\$)",
+          "name": "keyword.mn"
+        },
+        {
+          "match": "\\b(try|catch|raise)\\b(?!\\$)",
+          "name": "keyword.control.trycatch.mn"
+        },
+        {
+          "match": "\\b(break|continue|while)\\b(?!\\$)",
+          "name": "keyword.control.loop.mn"
+        },
+        {
+          "match": "\\b(for)\\b(?!\\$)",
+          "name": "keyword.control.loop.mn"
+        },
+        {
+          "match": "\\b(exit|return|yield)\\b(?!\\$)",
+          "name": "keyword.control.flow.mn"
+        },
+        {
+          "match": "\\b(case|default|switch)\\b(?!\\$)",
+          "name": "keyword.control.switch.mn"
+        },
+        {
+          "match": "\\b(if|elif|else)\\b(?!\\$)",
+          "name": "keyword.control.conditional.mn"
+        },
+        {
+          "match": "\\b(print)\\b(?!\\$)",
+          "name": "keyword.control.print.mn"
+        },
+        {
+          "include": "#declaration"
+        }
+      ]
+    },
+		"declaration": {
+			"name": "meta.declaration.mn",
+			"patterns": [
+        {
+          "include": "#load_rule"
+        },
+        {
+          "include": "#package_rule"
+        },
+        {
+          "include": "#class_rule"
+        },
+				{
+					"include": "#enum_rule"
+				},
+				{
+					"include": "#function_rule"
+				}
+			]
+		},
+    "load_rule": {
+      "patterns": [
+        {
+          "begin": "\\b(load)\\s+",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.load.mn"
+            }
+          },
+          "end": "(?=$)",
+          "patterns": [
+            {
+              "include": "#comment"
+            },
+            {
+              "match": "([^\\s\\.]+)",
+              "name": "keyword.other.unit.mn"
+            },
+            {
+              "match": "(\\.)$",
+              "name": "invalid.mn"
+            },
+            {
+              "match": "(\\.)",
+              "name": "punctuation.mn"
+            },
+            {
+              "match": "(?!\\s)",
+              "name": "invalid.mn"
+            }
+          ]
+        }
+      ]
+    },
+    "package_rule": {
+      "patterns": [
+        {
+			    "name": "meta.package.declaration.mn",
+          "begin": "\\b(package)(?!\\S)\\s+([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*({)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.package.mn"
+            },
+            "2": {
+              "name": "entity.name.type.package.mn"
+            },
+            "3": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "end": "(})",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#comment"
+            },
+            {
+              "include": "#stmt_block_rule"
+            }
+          ]
+        },
+        {
+			    "name": "meta.package.declaration.mn",
+          "match": "\\b(package)\\s+([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.package.mn"
+            },
+            "2": {
+              "name": "entity.name.type.package.mn"
+            }
+          }
+        },
+        {
+          "match": "\\b(package)(?!\\S)",
+          "name": "storage.type.package.mn"
+        }
+      ]
+    },
+    "class_rule": {
+      "patterns": [
+        {
+			    "name": "meta.class.declaration.mn",
+          "begin": "\\b(class)\\s+([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(:)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.class.mn"
+            },
+            "2": {
+              "name": "entity.name.type.class.mn"
+            },
+            "3": {
+              "name": "punctuation.mn"
+            }
+          },
+          "end": "(})",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#comment"
+            },
+            {
+              "include": "#class_heritage_rule"
+            }
+          ]
+        },
+        {
+			    "name": "meta.class.declaration.mn",
+          "begin": "\\b(class)\\s+([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*({)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.class.mn"
+            },
+            "2": {
+              "name": "entity.name.type.class.mn"
+            },
+            "3": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "end": "(})",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#comment"
+            },
+            {
+              "include": "#desc_block_rule"
+            }
+          ]
+        },
+        {
+			    "name": "meta.class.declaration.mn",
+          "match": "\\b(class)\\s+([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.class.mn"
+            },
+            "2": {
+              "name": "entity.name.type.class.mn"
+            }
+          }
+        },
+        {
+          "match": "\\b(class)(?!\\S)",
+          "name": "storage.type.class.mn"
+        }
+      ]
+    },
+    "class_heritage_rule": {
+      "patterns": [
+        {
+          "match": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(\\.)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.package.mn"
+            },
+            "2": {
+              "name": "punctuation.mn"
+            }
+          }
+        },
+        {
+          "match": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(,)",
+          "captures": {
+            "1": {
+              "name": "entity.name.type.class.mn"
+            },
+            "2": {
+              "name": "punctuation.mn"
+            }
+          }
+        },
+        {
+          "begin": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*({)",
+          "beginCaptures": {
+            "1": {
+              "name": "entity.name.type.class.mn"
+            },
+            "2": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#comment"
+            },
+            {
+              "include": "#desc_block_rule"
+            }
+          ],
+          "end": "(})",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            }
+          }
+        }
+      ]
+    },
+    "enum_rule": {
+      "patterns": [
+        {
+			    "name": "meta.enum.declaration.mn",
+          "begin": "\\b(enum)\\s+([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*({)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.enum.mn"
+            },
+            "2": {
+              "name": "entity.name.type.enum.mn"
+            },
+            "3": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "end": "(})",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#comment"
+            },
+            {
+              "begin": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)",
+              "beginCaptures": {
+                "1": {
+                  "name": "variable.other.enummember.mn"
+                }
+              },
+              "end": "(?=$)",
+              "patterns": [
+                {
+                  "include": "#expr_stmt_rule"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "function_rule": {
+      "patterns": [
+        {
+          "match": "\\b(def)(?!\\S)\\s*([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.function.mn"
+            },
+            "2": {
+              "name": "entity.name.function.mn"
+            }
+          }
+        },
+				{
+					"include": "#comment"
+				},
+        {
+          "include": "#expr_rule"
+        }
+      ]
+    },
+    "comment": {
+      "patterns": [
+				{
+					"name": "comment.block.mn",
+					"begin": "/\\*",
+					"beginCaptures": {
+						"0": {
+							"name": "punctuation.definition.comment.mn"
+						}
+					},
+					"end": "\\*/",
+					"endCaptures": {
+						"0": {
+							"name": "punctuation.definition.comment.mn"
+						}
+					}
+				},
+				{
+					"begin": "(^[ \\t]+)?(?=//)",
+					"beginCaptures": {
+						"1": {
+							"name": "punctuation.whitespace.comment.leading.mn"
+						}
+					},
+					"end": "(?=$)",
+					"patterns": [
+						{
+							"name": "comment.line.double-slash.mn",
+							"begin": "//",
+							"beginCaptures": {
+								"0": {
+									"name": "punctuation.definition.comment.mn"
+								}
+							},
+							"end": "(?=$)"
+						}
+					]
+				}
+			]
+    },
+    "desc_block_rule": {
+      "patterns": [
+        {
+          "name": "meta.block.mn",
+          "begin": "({)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#stmt_block_rule"
+            }
+          ],
+          "end": "(?:(})\\s*(elif|else|catch)?)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            },
+            "2": {
+              "name": "keyword.mn"
+            }
+          }
+        },
+        {
+          "include": "#desc_rule"
+        }
+      ]
+    },
+    "desc_rule": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#package_rule"
+        },
+        {
+          "include": "#class_rule"
+        },
+        {
+          "match": "(\\+|-|#|~)",
+          "name": "storage.type.mn"
+        },
+        {
+          "match": "(\\bfinal(?!\\S)|\\boverride(?!\\S))",
+          "name": "storage.type.mn"
+        },
+        {
+          "match": "(\\bvar(?!\\S)|\\bconst(?!\\S)|@|\\$|%)",
+          "name": "storage.type.mn"
+        },
+        {
+          "match": "\\b(def)(?!\\S)\\s*(in(?!\\S)|:=|\\|\\||&&|\\||\\^|&|==|!=|<<|>>|<=|>=|<|>|\\+\\+|--|\\*\\*|/|%|!|~|\\+|-|\\*|\\(\\)|\\[\\]=|\\[\\]|\\.\\.\\.|\\.\\.)",
+          "captures": {
+            "1": {
+              "name": "storage.type.function.mn"
+            },
+            "2": {
+              "name": "entity.name.function.mn"
+            }
+          }
+        },
+        {
+          "match": "\\b(def)(?!\\S)\\s*([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.function.mn"
+            },
+            "2": {
+              "name": "entity.name.function.mn"
+            }
+          }
+        },
+        {
+          "match": "\\b(def)(?!\\S)",
+          "name": "storage.type.function.mn"
+        },
+        {
+          "begin": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)",
+          "beginCaptures": {
+            "1": {
+              "name": "variable.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#expr_stmt_rule"
+            }
+          ],
+          "end": "(^(?=.{0,1})(?:|))",
+          "endCaptures": {
+            "1": {
+              "name": "comment.mn"
+            }
+          }
+        },
+        {
+          "begin": "(\\[)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#desc_rule__1"
+            }
+          ],
+          "end": "(\\])",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            }
+          }
+        },
+        {
+          "begin": "(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#desc_rule__2"
+            }
+          ],
+          "end": "(\\))",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            }
+          }
+        },
+        {
+          "begin": "({)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#stmt_block_rule"
+            }
+          ],
+          "end": "(?:(})\\s*(elif|else|catch)?)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            },
+            "2": {
+              "name": "keyword.mn"
+            }
+          }
+        }
+      ]
+    },
+    "desc_rule__1": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#expr_rule"
+        }
+      ]
+    },
+    "desc_rule__2": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#expr_rule"
+        }
+      ]
+    },
+    "expr_rule": {
+      "patterns": [
+        {
+          "include": "#strings"
+        },
+        {
+          "begin": "(/)",
+          "beginCaptures": {
+            "1": {
+              "name": "string.regexp.mn"
+            }
+          },
+          "contentName": "string.regexp.mn",
+          "end": "(?:(?<!\\\\)|(?<=\\\\\\\\))(\\/)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "endCaptures": {
+            "1": {
+              "name": "string.regexp.mn"
+            },
+            "2": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "begin": "(\\[)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#expr_rule__2"
+            }
+          ],
+          "end": "(\\])\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            },
+            "2": {
+              "name": "keyword.operator.mn"
+            },
+            "3": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "begin": "(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#expr_rule__3"
+            }
+          ],
+          "end": "(\\))\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            },
+            "2": {
+              "name": "keyword.operator.mn"
+            },
+            "3": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "begin": "(\\$\\{)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#expr_rule__4"
+            }
+          ],
+          "end": "(\\})\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            },
+            "2": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "begin": "({)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#stmt_block_rule"
+            }
+          ],
+          "end": "(?:(})\\s*(elif|else|catch)?)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            },
+            "2": {
+              "name": "keyword.mn"
+            }
+          }
+        },
+        {
+          "match": "\\b(def)\\b(?!\\$)",
+          "name": "storage.type.function.mn"
+        },
+        {
+          "match": "\\b(lib)\\b(?!\\$)",
+          "name": "keyword.mn"
+        },
+        {
+          "match": "(\\bdefined(?!\\S)|\\btypeof(?!\\S)|\\bmembersof(?!\\S)|\\bnot(?!\\S)|!(?!=)|~|--|\\+\\+|-|\\+)",
+          "name": "keyword.operator.mn"
+        },
+        {
+          "match": "(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)",
+          "name": "keyword.operator.mn"
+        },
+        {
+          "match": "\\b(self|va_args)\\b\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|\\/(?:(?!\\/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "captures": {
+            "1": {
+              "name": "variable.language.mn"
+            },
+            "2": {
+              "name": "keyword.operator.mn"
+            },
+            "3": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "match": "\\b(none(?!\\S)|null(?!\\S)|false(?!\\S)|true(?!\\S))\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "captures": {
+            "1": {
+              "name": "variable.language.mn"
+            },
+            "2": {
+              "name": "keyword.operator.mn"
+            },
+            "3": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "match": "([\\+\\-]?[0-9]+\\.[0-9]*(?![\\.0-9])\\b|[\\+\\-]?[0-9]+(?:\\.[0-9]*(?![\\.0-9]))?[eE][\\+\\-]?[0-9]*(?![\\.0-9])\\b|[\\+\\-]?[0-9]+\\b|[\\+\\-]?(?:0o)[0-7]+\\b|[\\+\\-]?(?:0x)[0-9a-fA-F]+\\b|[\\+\\-]?(?:0b)[0-1]+\\b)\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|\\/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|\\/(?:(?!\\/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "captures": {
+            "1": {
+              "name": "constant.numeric.decimal.mn"
+            },
+            "2": {
+              "name": "keyword.operator.mn"
+            },
+            "3": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "match": "\\b(let(?!\\S)|var(?!\\S)|const(?!\\S)|@|\\$|%)",
+          "name": "storage.type.mn"
+        },
+        {
+          "begin": "\\b([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "entity.name.function.mn"
+            },
+            "2": {
+              "name": "punctuation.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#expr_rule__5"
+            }
+          ],
+          "end": "(\\))",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            }
+          }
+        },
+        {
+          "match": "\\b([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|\\/(?:(?!\\/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "captures": {
+            "1": {
+              "name": "variable.other.readwrite.mn"
+            },
+            "2": {
+              "name": "keyword.operator.mn"
+            },
+            "3": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "begin": "(\\.)\\s*([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            },
+            "2": {
+              "name": "entity.name.function.mn"
+            },
+            "3": {
+              "name": "punctuation.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#expr_rule__6"
+            }
+          ],
+          "end": "(\\))\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.mn"
+            },
+            "2": {
+              "name": "keyword.operator.mn"
+            },
+            "3": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "match": "(\\.)\\s*([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "captures": {
+            "1": {
+              "name": "punctuation.mn"
+            },
+            "2": {
+              "name": "variable.other.mn"
+            },
+            "3": {
+              "name": "keyword.operator.mn"
+            },
+            "4": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "match": "(\\.)",
+          "name": "punctuation.mn"
+        },
+        {
+          "match": "(,)",
+          "name": "punctuation.mn"
+        }
+      ]
+    },
+    "expr_rule__1": {
+      "patterns": []
+    },
+    "expr_rule__2": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#stmt_expr_rule"
+        },
+        {
+          "include": "#expr_rule"
+        }
+      ]
+    },
+    "expr_rule__3": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#expr_rule"
+        }
+      ]
+    },
+    "expr_rule__4": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#expr_rule"
+        }
+      ]
+    },
+    "expr_rule__5": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#expr_rule"
+        }
+      ]
+    },
+    "expr_rule__6": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#expr_rule"
+        }
+      ]
+    },
+    "expr_stmt_rule": {
+      "patterns": [
+        {
+          "include": "#comment"
+        },
+        {
+          "include": "#expr_rule"
+        }
+      ]
+    },
+    "stmt_block_rule": {
+      "patterns": [
+        {
+          "begin": "({)",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#stmt_block_rule"
+            }
+          ],
+          "end": "(?:(})\\s*(elif|else|catch)?)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.block.mn"
+            },
+            "2": {
+              "name": "keyword.mn"
+            }
+          }
+        },
+        {
+          "include": "#stmt_rule"
+        }
+      ]
+    },
+    "stmt_expr_rule": {
+      "patterns": [
+        {
+          "match": "\\b(for)(?!\\S)",
+          "name": "keyword.mn"
+        },
+        {
+          "match": "\\b(if)(?!\\S)",
+          "name": "keyword.mn"
+        },
+        {
+          "match": "\\b(elif)(?!\\S)",
+          "name": "keyword.mn"
+        },
+        {
+          "match": "\\b(else)(?!\\S)",
+          "name": "keyword.mn"
+        },
+        {
+          "match": "\\b(switch)(?!\\S)",
+          "name": "keyword.mn"
+        },
+        {
+          "match": "\\b(while)(?!\\S)",
+          "name": "keyword.mn"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "begin": "(')",
+          "beginCaptures": {
+            "1": {
+              "name": "string.quoted.single.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#strings__1"
+            }
+          ],
+          "end": "(?:(?<!\\\\)|(?<=\\\\\\\\))(')",
+          "endCaptures": {
+            "1": {
+              "name": "string.quoted.single.mn"
+            }
+          }
+        },
+        {
+          "begin": "(\")",
+          "beginCaptures": {
+            "1": {
+              "name": "string.quoted.double.mn"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#strings__2"
+            }
+          ],
+          "end": "(?:(?<!\\\\)|(?<=\\\\\\\\))(\")",
+          "endCaptures": {
+            "1": {
+              "name": "string.quoted.double.mn"
+            }
+          }
+        }
+      ]
+    },
+    "strings__1": {
+      "patterns": [
+        {
+          "match": "(\\\\.)",
+          "name": "constant.character.escape.mn"
+        },
+        {
+          "match": "(%(?:s|d|i|u|f|g|e|x))",
+          "name": "constant.other.placeholder.mn"
+        },
+        {
+          "match": "(.)",
+          "name": "string.quoted.single.mn"
+        }
+      ]
+    },
+    "strings__2": {
+      "patterns": [
+        {
+          "match": "(\\\\.)",
+          "name": "constant.character.escape.mn"
+        },
+        {
+          "match": "(%(?:s|d|i|u|f|g|e|x))",
+          "name": "constant.other.placeholder.mn"
+        },
+        {
+          "match": "(.)",
+          "name": "string.quoted.double.mn"
+        }
+      ]
+    }
+  }
+}

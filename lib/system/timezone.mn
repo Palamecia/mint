@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -45,14 +45,16 @@ class TimeZone {
 		switch typeof timezone {
 		case 'System.TimeZone':
 			return timezone
-		default:
-			self.name = string(timezone)
-			if self.zoneinfo = System.TimeZone.g_lib.call('mint_timezone_open', self.name) {
-				self.zoneinfo.delete = def [g_lib = System.TimeZone.g_lib] (self) {
-					g_lib.call('mint_timezone_close', self)
-				}
+		case 'libobject':
+			if self.d_ptr = timezone {
 				return self
 			}
+			break
+		default:
+			if self.d_ptr = System.TimeZone.g_lib.call('mint_timezone_locate', timezone.toString()) {
+				return self
+			}
+			break
 		}
 	}
 
@@ -60,19 +62,14 @@ class TimeZone {
 	 * Returns the current system time zone.
 	 */
 	@const def current() {
-		return System.TimeZone(System.TimeZone.g_lib.call('mint_timezone_current_name'))
+		return System.TimeZone(System.TimeZone.g_lib.call('mint_timezone_current'))
 	}
 
 	/**
-	 * Sets the system's current time zone to `timezone`.
-	 * 
-	 * An instance of {Exception.SystemError} is raised on error.
+	 * Returns the UTC time zone.
 	 */
-	@const def setCurrent(timezone) {
-		var timezone = System.TimeZone(timezone)
-		if var errno = System.TimeZone.g_lib.call('mint_timezone_set_current', timezone.name) {
-			raise Exception.SystemError(errno, timezone)
-		}
+	@const def utc() {
+		return System.TimeZone('UTC')
 	}
 
 	/**
@@ -86,7 +83,7 @@ class TimeZone {
 	 * Returns the time zone ID for the time zone.
 	 */
 	const def getName(const self) {
-		return self.name
+		return System.TimeZone.g_lib.call('mint_timezone_get_name', self.d_ptr)
 	}
 
 	/**
@@ -101,7 +98,7 @@ class TimeZone {
 	 * * `sec` is the amount of seconds of the time and must be a number between 0 and 60.
 	 */
 	const def secondsSinceEpoch(const self, year, month, day, h = 0, min = 0, sec = 0) {
-		return System.TimeZone.g_lib.call('mint_timezone_seconds_since_epoch', self.zoneinfo, year, month, day, h, min, sec)
+		return System.TimeZone.g_lib.call('mint_timezone_seconds_since_epoch', self.d_ptr, year, month, day, h, min, sec)
 	}
 
 	/**
@@ -113,9 +110,9 @@ class TimeZone {
 	const def timeFromSeconds(const self, seconds) {
 		switch typeof seconds {
 		case 'System.Date':
-			return System.TimeZone.g_lib.call('mint_timezone_time_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
+			return System.TimeZone.g_lib.call('mint_timezone_time_from_time_point', self.d_ptr, seconds.to_std_chrono_time_point())
 		default:
-			return System.TimeZone.g_lib.call('mint_timezone_time_from_seconds', self.zoneinfo, number(seconds))
+			return System.TimeZone.g_lib.call('mint_timezone_time_from_seconds', self.d_ptr, number(seconds))
 		}
 	}
 
@@ -129,9 +126,9 @@ class TimeZone {
 	const def weekDayFromSeconds(const self, seconds) {
 		switch typeof seconds {
 		case 'System.Date':
-			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
+			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_time_point', self.d_ptr, seconds.to_std_chrono_time_point())
 		default:
-			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_seconds', self.zoneinfo, number(seconds))
+			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_seconds', self.d_ptr, number(seconds))
 		}
 	}
 
@@ -143,9 +140,9 @@ class TimeZone {
 	const def yearDayFromSeconds(const self, seconds) {
 		switch typeof seconds {
 		case 'System.Date':
-			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
+			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_time_point', self.d_ptr, seconds.to_std_chrono_time_point())
 		default:
-			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_seconds', self.zoneinfo, number(seconds))
+			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_seconds', self.d_ptr, number(seconds))
 		}
 	}
 
@@ -158,9 +155,9 @@ class TimeZone {
 	const def isDaylightTimeFromSeconds(const self, seconds) {
 		switch typeof seconds {
 		case 'System.Date':
-			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_duration', self.zoneinfo, seconds.to_std_chrono_milliseconds())
+			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_time_point', self.d_ptr, seconds.to_std_chrono_time_point())
 		default:
-			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_seconds', self.zoneinfo, number(seconds))
+			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_seconds', self.d_ptr, number(seconds))
 		}
 	}
 
@@ -177,7 +174,7 @@ class TimeZone {
 	 * * `ms` is the amount of milliseconds of the time and must be a number between 0 and 999.
 	 */
 	const def millisecondsSinceEpoch(const self, year, month, day, h = 0, min = 0, sec = 0, ms = 0) {
-		return System.TimeZone.g_lib.call('mint_timezone_milliseconds_since_epoch', self.zoneinfo, year, month, day, h, min, sec, ms)
+		return System.TimeZone.g_lib.call('mint_timezone_milliseconds_since_epoch', self.d_ptr, year, month, day, h, min, sec, ms)
 	}
 
 	/**
@@ -189,9 +186,9 @@ class TimeZone {
 	const def timeFromMilliseconds(const self, milliseconds) {
 		switch typeof milliseconds {
 		case 'System.Date':
-			return System.TimeZone.g_lib.call('mint_timezone_time_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
+			return System.TimeZone.g_lib.call('mint_timezone_time_from_time_point', self.d_ptr, milliseconds.to_std_chrono_time_point())
 		default:
-			return System.TimeZone.g_lib.call('mint_timezone_time_from_milliseconds', self.zoneinfo, number(milliseconds))
+			return System.TimeZone.g_lib.call('mint_timezone_time_from_milliseconds', self.d_ptr, number(milliseconds))
 		}
 	}
 
@@ -205,9 +202,9 @@ class TimeZone {
 	const def weekDayFromMilliseconds(const self, milliseconds) {
 		switch typeof milliseconds {
 		case 'System.Date':
-			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
+			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_time_point', self.d_ptr, milliseconds.to_std_chrono_time_point())
 		default:
-			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_milliseconds', self.zoneinfo, number(milliseconds))
+			return System.TimeZone.g_lib.call('mint_timezone_week_day_from_milliseconds', self.d_ptr, number(milliseconds))
 		}
 	}
 
@@ -219,9 +216,9 @@ class TimeZone {
 	const def yearDayFromMilliseconds(const self, milliseconds) {
 		switch typeof milliseconds {
 		case 'System.Date':
-			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
+			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_time_point', self.d_ptr, milliseconds.to_std_chrono_time_point())
 		default:
-			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_milliseconds', self.zoneinfo, number(milliseconds))
+			return System.TimeZone.g_lib.call('mint_timezone_year_day_from_milliseconds', self.d_ptr, number(milliseconds))
 		}
 	}
 
@@ -234,9 +231,9 @@ class TimeZone {
 	const def isDaylightTimeFromMilliseconds(const self, milliseconds) {
 		switch typeof milliseconds {
 		case 'System.Date':
-			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_duration', self.zoneinfo, milliseconds.to_std_chrono_milliseconds())
+			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_time_point', self.d_ptr, milliseconds.to_std_chrono_time_point())
 		default:
-			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_milliseconds', self.zoneinfo, number(milliseconds))
+			return System.TimeZone.g_lib.call('mint_timezone_is_dst_from_milliseconds', self.d_ptr, number(milliseconds))
 		}
 	}
 
@@ -246,7 +243,7 @@ class TimeZone {
 	 */
 	const def ==(const self, const other) {
 		if var tz = System.TimeZone(other) {
-			return System.TimeZone.g_lib.call('mint_timezone_match', self.zoneinfo, tz.zoneinfo)
+			return System.TimeZone.g_lib.call('mint_timezone_match', self.d_ptr, tz.d_ptr)
 		}
 		return false
 	}
@@ -257,7 +254,7 @@ class TimeZone {
 	 */
 	const def !=(const self, other) {
 		if var tz = System.TimeZone(other) {
-			return not System.TimeZone.g_lib.call('mint_timezone_match', self.zoneinfo, tz.zoneinfo)
+			return not System.TimeZone.g_lib.call('mint_timezone_match', self.d_ptr, tz.d_ptr)
 		}
 		return true
 	}
@@ -266,10 +263,7 @@ class TimeZone {
 	- @g_lib = lib('libmint-system')
 
 	/// Internal time zone informations.
-	- final zoneinfo = null
-
-	/// Internal time zone name.
-	- final name = ''
+	- final d_ptr = null
 }
 
 }

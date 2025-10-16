@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,11 +21,21 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/casttool.h>
-#include <mint/system/terminal.h>
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/casttool.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/reference.h"
+#include "mint/system/terminal.h"
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <iterator>
+#include <memory>
+#include <vector>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include <Windows.h>
 #include <io.h>
 #else
@@ -35,275 +45,252 @@
 #include <poll.h>
 #endif
 
-using namespace mint;
+namespace {
 
-MINT_FUNCTION(mint_pipe_create, 0, cursor) {
+mint::WeakReference mint_pipe_create(mint::Cursor& cursor) {
+#ifdef MINT_OS_WINDOWS
+	std::array<HANDLE, 2> pipe {INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
+	SECURITY_ATTRIBUTES pipe_attributes {
+	    .nLength = sizeof(SECURITY_ATTRIBUTES),
+	    .lpSecurityDescriptor = nullptr,
+	    .bInheritHandle = true,
+	};
 
-	FunctionHelper helper(cursor, 0);
-
-#ifdef OS_WINDOWS
-	HANDLE hPipe[2];
-	SECURITY_ATTRIBUTES pipeAttributes;
-
-	pipeAttributes.nLength = sizeof(SECURITY_ATTRIBUTES);
-	pipeAttributes.bInheritHandle = true;
-	pipeAttributes.lpSecurityDescriptor = nullptr;
-
-	if (CreatePipe(hPipe + 0, hPipe + 1, &pipeAttributes, 0) != 0) {
-		if ((hPipe[0] != INVALID_HANDLE_VALUE) && (hPipe[1] != INVALID_HANDLE_VALUE)) {
-			helper.return_value(create_iterator(create_handle(hPipe[0]), create_handle(hPipe[1])));
+	if (CreatePipe(std::next(pipe.data(), 0), std::next(pipe.data(), 1), &pipe_attributes, 0) != 0) {
+		if ((pipe[0] != INVALID_HANDLE_VALUE) && (pipe[1] != INVALID_HANDLE_VALUE)) {
+			return mint::create_iterator_from(cursor.ast(), mint::create_handle(cursor.ast(), pipe[0]),
+			    mint::create_handle(cursor.ast(), pipe[1]));
 		}
 	}
 #else
-	int fd[2];
+	std::array<int, 2> fd {-1, -1};
 
-	if (pipe2(fd, O_NONBLOCK) == 0) {
+	if (pipe2(fd.data(), O_NONBLOCK) == 0) {
 		if ((fd[0] != -1) && (fd[1] != -1)) {
-			helper.return_value(create_iterator(create_handle(fd[0]), create_handle(fd[1])));
+			return mint::create_iterator_from(cursor.ast(), mint::create_handle(cursor.ast(), fd[0]),
+			    mint::create_handle(cursor.ast(), fd[1]));
 		}
 	}
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_pipe_close, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	mint::handle_t handle = to_handle(helper.pop_parameter());
-
-#ifdef OS_WINDOWS
-	CloseHandle(handle);
+mint::WeakReference mint_pipe_close(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+#ifdef MINT_OS_WINDOWS
+	CloseHandle(mint::to_handle(handle));
 #else
-	close(handle);
+	close(mint::to_handle(handle));
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_pipe_read, 2, cursor) {
+mint::WeakReference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+    const mint::Reference& stream) {
+#ifdef MINT_OS_WINDOWS
+	DWORD count = 0;
+	std::array<std::uint8_t, BUFSIZ> read_buffer = {};
+	mint::handle_t h = to_handle(handle);
+	auto* stream_buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
-	FunctionHelper helper(cursor, 2);
-	const Reference &stream = helper.pop_parameter();
-
-#ifdef OS_WINDOWS
-	DWORD count;
-	uint8_t read_buffer[1024];
-	mint::handle_t h = to_handle(helper.pop_parameter());
-	std::vector<uint8_t> *stream_buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
-
-	while (ReadFile(h, read_buffer, sizeof(read_buffer), &count, nullptr)) {
+	while (ReadFile(h, read_buffer.data(), static_cast<DWORD>(read_buffer.size()), &count, nullptr)) {
 
 		if (count < 0) {
 			break;
 		}
 
-		copy_n(read_buffer, count, back_inserter(*stream_buffer));
+		std::copy_n(read_buffer.data(), count, std::back_inserter(*stream_buffer));
 	}
 #else
-	uint8_t read_buffer[1024];
-	mint::handle_t fd = to_handle(helper.pop_parameter());
-	std::vector<uint8_t> *stream_buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
+	std::array<std::uint8_t, BUFSIZ> read_buffer = {};
+	mint::handle_t fd = to_handle(handle);
+	auto* stream_buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
-	while (ssize_t count = read(fd, read_buffer, sizeof(read_buffer))) {
+	while (ssize_t count = read(fd, read_buffer.data(), read_buffer.size())) {
 
 		if (count < 0) {
 			break;
 		}
 
-		std::copy_n(read_buffer, count, std::back_inserter(*stream_buffer));
+		std::copy_n(read_buffer.data(), count, std::back_inserter(*stream_buffer));
 	}
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_pipe_write, 2, cursor) {
+mint::WeakReference mint_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+    const mint::Reference& stream) {
 
-	FunctionHelper helper(cursor, 2);
-	const Reference &stream = helper.pop_parameter();
+#ifdef MINT_OS_WINDOWS
+	DWORD count = 0;
+	mint::handle_t h = to_handle(handle);
+	auto* buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
-#ifdef OS_WINDOWS
-	DWORD count;
-	mint::handle_t h = to_handle(helper.pop_parameter());
-	std::vector<uint8_t> *buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
-
-	WriteFile(h, buffer->data(), buffer->size(), &count, nullptr);
+	WriteFile(h, buffer->data(), static_cast<DWORD>(buffer->size()), &count, nullptr);
 #else
-	mint::handle_t fd = to_handle(helper.pop_parameter());
-	std::vector<uint8_t> *buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
+	mint::handle_t fd = to_handle(handle);
+	auto* buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
 	write(fd, buffer->data(), buffer->size());
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_pipe_wait, 2, cursor) {
+mint::WeakReference mint_pipe_wait(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& timeout) {
+#ifdef MINT_OS_WINDOWS
+	mint::handle_t h = to_handle(handle);
+	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::none_format)
+	                          ? INFINITE
+	                          : mint::to_integer<DWORD>(cursor, timeout);
 
-	FunctionHelper helper(cursor, 2);
-	Reference &timeout = helper.pop_parameter();
-
-#ifdef OS_WINDOWS
-	mint::handle_t h = to_handle(helper.pop_parameter());
-	DWORD dwMilliseconds = INFINITE;
-
-	if (timeout.data()->format != Data::FMT_NONE) {
-		dwMilliseconds = static_cast<DWORD>(to_integer(cursor, timeout));
-	}
-
-	DWORD ret = WaitForSingleObjectEx(h, dwMilliseconds, true);
-	helper.return_value(create_boolean(ret == WAIT_OBJECT_0));
+	return mint::create_boolean(WaitForSingleObjectEx(h, time_ms, true) == WAIT_OBJECT_0);
 #else
-	pollfd fds;
-	fds.events = POLLIN;
-	fds.fd = to_handle(helper.pop_parameter());
+	pollfd fds {
+	    .fd = to_handle(handle),
+	    .events = POLLIN,
+	};
 
-	int time_ms = -1;
+	const int time_ms = is_instance_of(timeout, mint::Data::none_format) ? -1 : to_integer<int>(cursor, timeout);
 
-	if (timeout.data()->format != Data::FMT_NONE) {
-		time_ms = static_cast<int>(to_integer(cursor, timeout));
+	if (int ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
+		return mint::create_boolean(true);
 	}
 
-	bool result = false;
-	int ret = poll(&fds, 1, time_ms);
-
-	if ((ret > 0) && (fds.revents & POLLIN)) {
-		result = true;
-	}
-
-	helper.return_value(create_boolean(result));
+	return mint::create_boolean(false);
 #endif
 }
 
-MINT_FUNCTION(mint_system_pipe_create, 2, cursor) {
+mint::WeakReference mint_system_pipe_create(mint::Cursor& cursor, const mint::Reference& fd_read,
+    const mint::Reference& fd_write) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &fd_write = helper.pop_parameter();
-	Reference &fd_read = helper.pop_parameter();
-	WeakReference handles = create_iterator();
+	mint::WeakReference handles = mint::create_iterator(cursor.ast());
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 	static const auto to_handle = [](int fd) {
 		switch (fd) {
-		case STDIN_FILE_NO:
+		case mint::stdin_file_no:
 			return GetStdHandle(STD_INPUT_HANDLE);
-		case STDOUT_FILE_NO:
+		case mint::stdout_file_no:
 			return GetStdHandle(STD_OUTPUT_HANDLE);
-		case STDERR_FILE_NO:
+		case mint::stderr_file_no:
 			return GetStdHandle(STD_ERROR_HANDLE);
 		default:
-			return reinterpret_cast<handle_t>(_get_osfhandle(fd));
+			return std::bit_cast<handle_t>(_get_osfhandle(fd));
 		}
 		return INVALID_HANDLE_VALUE;
 	};
 
-	if (handle_t handle = to_handle(to_integer(cursor, fd_read)); handle != INVALID_HANDLE_VALUE) {
-		iterator_yield(handles.data<Iterator>(), create_handle(handle));
+	if (handle_t handle = to_handle(mint::to_integer<int>(cursor, fd_read)); handle != INVALID_HANDLE_VALUE) {
+		iterator_yield(handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
 	}
 	else {
-		iterator_yield(handles.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(handles.data<mint::Iterator>(), mint::create_none());
 	}
-	if (handle_t handle = to_handle(to_integer(cursor, fd_write)); handle != INVALID_HANDLE_VALUE) {
-		iterator_yield(handles.data<Iterator>(), create_handle(handle));
+	if (handle_t handle = to_handle(mint::to_integer<int>(cursor, fd_write)); handle != INVALID_HANDLE_VALUE) {
+		iterator_yield(handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
 	}
 	else {
-		iterator_yield(handles.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(handles.data<mint::Iterator>(), mint::create_none());
 	}
 #else
-	if (handle_t handle = to_number(cursor, fd_read); handle != -1) {
-		iterator_yield(handles.data<Iterator>(), create_handle(handle));
+	if (auto handle = to_integer<mint::handle_t>(cursor, fd_read); handle != -1) {
+		iterator_yield(handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
 	}
 	else {
-		iterator_yield(handles.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(handles.data<mint::Iterator>(), mint::create_none());
 	}
-	if (handle_t handle = to_number(cursor, fd_write); handle != -1) {
-		iterator_yield(handles.data<Iterator>(), create_handle(handle));
+	if (auto handle = to_integer<mint::handle_t>(cursor, fd_write); handle != -1) {
+		iterator_yield(handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
 	}
 	else {
-		iterator_yield(handles.data<Iterator>(), WeakReference::create<None>());
+		iterator_yield(handles.data<mint::Iterator>(), mint::create_none());
 	}
 #endif
 
-	helper.return_value(std::move(handles));
+	return handles;
 }
 
-MINT_FUNCTION(mint_system_pipe_read, 2, cursor) {
+mint::WeakReference mint_system_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+    const mint::Reference& stream) {
 
-	FunctionHelper helper(cursor, 2);
-	const Reference &stream = helper.pop_parameter();
-	mint::handle_t handle = to_handle(helper.pop_parameter());
-	std::vector<uint8_t> *stream_buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
+	std::vector<std::uint8_t>* stream_buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 
-	DWORD dwCount;
-	while (PeekNamedPipe(handle, NULL, 0, NULL, &dwCount, NULL) && dwCount) {
-		auto *read_buffer = new uint8_t[dwCount];
-		if (ReadFile(handle, read_buffer, dwCount, &dwCount, nullptr)) {
-			copy_n(read_buffer, dwCount, back_inserter(*stream_buffer));
+	DWORD count = 0;
+	while (PeekNamedPipe(to_handle(handle), nullptr, 0, nullptr, &count, nullptr) && count) {
+		auto read_buffer = std::make_unique<std::uint8_t[]>(count);
+		if (ReadFile(to_handle(handle), read_buffer.get(), count, &count, nullptr)) {
+			std::copy_n(read_buffer.get(), count, back_inserter(*stream_buffer));
 		}
-		delete[] read_buffer;
 	}
 #else
-	pollfd rfds;
-	rfds.fd = handle;
-	rfds.events = POLLIN;
+	pollfd rfds {
+	    .fd = to_handle(handle),
+	    .events = POLLIN,
+	};
 
 	const int flags = fcntl(rfds.fd, F_GETFL);
 	fcntl(rfds.fd, F_SETFL, flags | O_NONBLOCK);
 
 	while (::poll(&rfds, 1, 0) == 1) {
-		uint8_t read_buffer[BUFSIZ];
-		if (size_t count = ::read(rfds.fd, read_buffer, BUFSIZ)) {
-			copy_n(read_buffer, count, back_inserter(*stream_buffer));
+		std::array<std::uint8_t, BUFSIZ> read_buffer = {};
+		if (auto count = ::read(rfds.fd, read_buffer.data(), read_buffer.size())) {
+			std::copy_n(read_buffer.data(), count, back_inserter(*stream_buffer));
 		}
 	}
 
 	fcntl(rfds.fd, F_SETFL, flags);
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_system_pipe_write, 2, cursor) {
+mint::WeakReference mint_system_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+    const mint::Reference& stream) {
 
-	FunctionHelper helper(cursor, 2);
-	const Reference &stream = helper.pop_parameter();
-	mint::handle_t handle = to_handle(helper.pop_parameter());
-	std::vector<uint8_t> *buffer = stream.data<LibObject<std::vector<uint8_t>>>()->impl;
+	std::vector<std::uint8_t>* buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
-#ifdef OS_WINDOWS
-	DWORD dwCount;
-	WriteFile(handle, buffer->data(), buffer->size(), &dwCount, nullptr);
+#ifdef MINT_OS_WINDOWS
+	DWORD count = 0;
+	WriteFile(to_handle(handle), buffer->data(), static_cast<DWORD>(buffer->size()), &count, nullptr);
 #else
-	write(handle, buffer->data(), buffer->size());
+	write(to_handle(handle), buffer->data(), buffer->size());
+#endif
+	return {};
+}
+
+mint::WeakReference mint_system_pipe_wait(mint::Cursor& cursor, const mint::Reference& handle,
+    mint::Reference& timeout) {
+#ifdef MINT_OS_WINDOWS
+	mint::handle_t h = to_handle(handle);
+	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::none_format)
+	                          ? INFINITE
+	                          : mint::to_integer<DWORD>(cursor, timeout);
+
+	return mint::create_boolean(WaitForSingleObjectEx(h, time_ms, true) == WAIT_OBJECT_0);
+#else
+	pollfd fds {
+	    .fd = to_handle(handle),
+	    .events = POLLIN,
+	};
+
+	const int time_ms = is_instance_of(timeout, mint::Data::none_format) ? -1 : to_integer<int>(cursor, timeout);
+
+	if (int ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
+		return mint::create_boolean(true);
+	}
+
+	return mint::create_boolean(false);
 #endif
 }
 
-MINT_FUNCTION(mint_system_pipe_wait, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &timeout = helper.pop_parameter();
-
-#ifdef OS_WINDOWS
-	mint::handle_t h = to_handle(helper.pop_parameter());
-	DWORD dwMilliseconds = INFINITE;
-
-	if (timeout.data()->format != Data::FMT_NONE) {
-		dwMilliseconds = static_cast<DWORD>(to_integer(cursor, timeout));
-	}
-
-	DWORD ret = WaitForSingleObjectEx(h, dwMilliseconds, true);
-	helper.return_value(create_boolean(ret == WAIT_OBJECT_0));
-#else
-	pollfd fds;
-	fds.events = POLLIN;
-	fds.fd = to_handle(helper.pop_parameter());
-
-	int time_ms = -1;
-
-	if (timeout.data()->format != Data::FMT_NONE) {
-		time_ms = static_cast<int>(to_integer(cursor, timeout));
-	}
-
-	bool result = false;
-	int ret = poll(&fds, 1, time_ms);
-
-	if ((ret > 0) && (fds.revents & POLLIN)) {
-		result = true;
-	}
-
-	helper.return_value(create_boolean(result));
-#endif
 }
+
+MINT_EXPORT_FUNCTION(mint_pipe_create, 0)
+MINT_EXPORT_FUNCTION(mint_pipe_close, 1)
+MINT_EXPORT_FUNCTION(mint_pipe_read, 2)
+MINT_EXPORT_FUNCTION(mint_pipe_write, 2)
+MINT_EXPORT_FUNCTION(mint_pipe_wait, 2)
+MINT_EXPORT_FUNCTION(mint_system_pipe_create, 2)
+MINT_EXPORT_FUNCTION(mint_system_pipe_read, 2)
+MINT_EXPORT_FUNCTION(mint_system_pipe_write, 2)
+MINT_EXPORT_FUNCTION(mint_system_pipe_wait, 2)

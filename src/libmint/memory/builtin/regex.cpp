@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,166 +23,164 @@
 
 #include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/iterator.h"
+#include "mint/memory/class.h"
+#include "mint/memory/data.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
+#include "mint/memory/reference.h"
 #include "mint/system/utf8.h"
-#include <algorithm>
+#include "mint/scheduler/scheduler.h"
+#include <cstddef>
+#include <regex>
+#include <string>
+#include <utility>
 
 using namespace mint;
 
 namespace {
 
-WeakReference sub_match_to_iterator(const std::string &str, const std::smatch &match, size_t index) {
-
-	WeakReference item = WeakReference::create<Iterator>();
-	std::string match_str = match[index].str();
-
-	iterator_yield(item.data<Iterator>(), create_string(match_str));
-	iterator_yield(item.data<Iterator>(), WeakReference::create<Number>(static_cast<double>(
-											  utf8_byte_index_to_code_point_index(str, match.position(index)))));
-	iterator_yield(item.data<Iterator>(),
-				   WeakReference::create<Number>(static_cast<double>(utf8_code_point_count(match_str))));
-
-	item.data<Iterator>()->construct();
-	return item;
+WeakReference sub_match_to_iterator(AbstractSyntaxTree& ast, const std::string& str, const std::smatch& match,
+    std::size_t index) {
+	const auto match_str = match[index].str();
+	return create_iterator_from(ast, create_string(ast, match_str),
+	    create_unsigned_number(utf8_byte_index_to_code_point_index(str, match.position(index))),
+	    create_unsigned_number(utf8_code_point_count(match_str)));
 }
 
-WeakReference match_to_iterator(const std::string &str, const std::smatch &match) {
+WeakReference match_to_iterator(AbstractSyntaxTree& ast, const std::string& str, const std::smatch& match) {
 
-	WeakReference result = WeakReference::create<Iterator>();
+	WeakReference result = create_iterator(ast);
 
-	for (size_t index = 0; index < match.size(); ++index) {
-		iterator_yield(result.data<Iterator>(), sub_match_to_iterator(str, match, index));
+	for (std::size_t index = 0; index < match.size(); ++index) {
+		iterator_yield(result.data<Iterator>(), sub_match_to_iterator(ast, str, match, index));
 	}
 
-	result.data<Iterator>()->construct();
 	return result;
 }
 
 }
 
-RegexClass *RegexClass::instance() {
-	return GlobalData::instance()->builtin<RegexClass>(Class::REGEX);
+RegexClass& RegexClass::instance(AbstractSyntaxTree& ast) {
+	return ast.global_data().builtin<RegexClass>(Class::regex);
 }
 
-Regex::Regex() :
-	Object(RegexClass::instance()) {}
+Regex::Regex(AbstractSyntaxTree& ast) :
+    Object(RegexClass::instance(ast)) {}
 
-Regex::Regex(Regex &&other) noexcept :
-	Object(RegexClass::instance()),
-	initializer(std::move(other.initializer)),
-	expr(std::move(other.expr)) {}
+Regex::Regex(Regex&& other) noexcept :
+    Object(other.metadata),
+    initializer(std::move(other.initializer)),
+    expr(std::move(other.expr)) {}
 
-Regex::Regex(const Regex &other) :
-	Object(RegexClass::instance()),
-	initializer(other.initializer),
-	expr(other.expr) {}
+Regex::Regex(const Regex& other) :
+    Object(other.metadata),
+    initializer(other.initializer),
+    expr(other.expr) {}
 
-Regex &Regex::operator=(Regex &&other) noexcept {
+Regex& Regex::operator=(Regex&& other) noexcept {
 	initializer = std::move(other.initializer);
 	expr = std::move(other.expr);
 	return *this;
 }
 
-Regex &Regex::operator=(const Regex &other) {
+Regex& Regex::operator=(const Regex& other) {
 	initializer = other.initializer;
 	expr = other.expr;
 	return *this;
 }
 
-RegexClass::RegexClass() :
-	Class("regex", Class::REGEX) {
+RegexClass::RegexClass(AbstractSyntaxTree& ast) :
+    Class(ast.global_data(), "regex", Class::regex) {
 
-	AbstractSyntaxTree *ast = AbstractSyntaxTree::instance();
+	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+		const auto base = get_stack_base(cursor);
 
-	create_builtin_member(COPY_OPERATOR, ast->create_builtin_method(this, 2, [](Cursor *cursor) {
-		const size_t base = get_stack_base(cursor);
+		const auto& other = load_from_stack(cursor, base);
+		const auto& self = load_from_stack(cursor, base - 1);
 
-		Reference &other = load_from_stack(cursor, base);
-		Reference &self = load_from_stack(cursor, base - 1);
-
-		if ((other.data()->format == Data::FMT_OBJECT) && (other.data<Object>()->metadata->metatype() == Class::REGEX)) {
-			self.data<Regex>()->initializer = other.data<Regex>()->initializer;
+		if ((other.data().format() == Data::object_format)
+		    && (other.data<Object>().metadata.metatype() == Class::regex)) {
+			self.data<Regex>().initializer = other.data<Regex>().initializer;
 		}
 		else {
-			self.data<Regex>()->initializer = "/" + to_string(other) + "/";
+			self.data<Regex>().initializer = "/" + to_string(other) + "/";
 		}
-		self.data<Regex>()->expr = to_regex(other);
+		self.data<Regex>().expr = to_regex(other);
 
-		cursor->stack().pop_back();
+		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(REGEX_MATCH_OPERATOR, ast->create_builtin_method(this, 2, [](Cursor *cursor) {
-		const size_t base = get_stack_base(cursor);
+	create_builtin_member(regex_match_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+		const auto base = get_stack_base(cursor);
 
-		const Reference &rvalue = load_from_stack(cursor, base);
-		const Reference &self = load_from_stack(cursor, base - 1);
-		const bool result = regex_search(to_string(rvalue), self.data<Regex>()->expr);
+		const Reference& rvalue = load_from_stack(cursor, base);
+		const Reference& self = load_from_stack(cursor, base - 1);
+		const bool result = regex_search(to_string(rvalue), self.data<Regex>().expr);
 
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
-		cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
+		cursor.stack().pop_back();
+		cursor.stack().pop_back();
+		cursor.stack().emplace_back(create_boolean(result));
 	}));
 
-	create_builtin_member(REGEX_UNMATCH_OPERATOR, ast->create_builtin_method(this, 2, [](Cursor *cursor) {
-		const size_t base = get_stack_base(cursor);
+	create_builtin_member(regex_unmatch_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+		const auto base = get_stack_base(cursor);
 
-		const Reference &rvalue = load_from_stack(cursor, base);
-		const Reference &self = load_from_stack(cursor, base - 1);
-		const bool result = !regex_search(to_string(rvalue), self.data<Regex>()->expr);
+		const Reference& rvalue = load_from_stack(cursor, base);
+		const Reference& self = load_from_stack(cursor, base - 1);
+		const bool result = !regex_search(to_string(rvalue), self.data<Regex>().expr);
 
-		cursor->stack().pop_back();
-		cursor->stack().pop_back();
-		cursor->stack().emplace_back(WeakReference::create<Boolean>(result));
+		cursor.stack().pop_back();
+		cursor.stack().pop_back();
+		cursor.stack().emplace_back(create_boolean(result));
 	}));
 
-	create_builtin_member("match", ast->create_builtin_method(this, 2, [](Cursor *cursor) {
-		const size_t base = get_stack_base(cursor);
+	create_builtin_member("match", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+		const auto base = get_stack_base(cursor);
 
-		const Reference &str = load_from_stack(cursor, base);
-		const Reference &self = load_from_stack(cursor, base - 1);
+		const Reference& str = load_from_stack(cursor, base);
+		const Reference& self = load_from_stack(cursor, base - 1);
 
 		std::smatch match;
-		std::smatch::string_type s = to_string(str);
+		const std::smatch::string_type s = to_string(str);
 
-		if (regex_match(s, match, self.data<Regex>()->expr)) {
-			cursor->stack().pop_back();
-			cursor->stack().pop_back();
-			cursor->stack().emplace_back(match_to_iterator(s, match));
+		if (regex_match(s, match, self.data<Regex>().expr)) {
+			cursor.stack().pop_back();
+			cursor.stack().pop_back();
+			cursor.stack().emplace_back(match_to_iterator(cursor.ast(), s, match));
 		}
 		else {
-			cursor->stack().pop_back();
-			cursor->stack().pop_back();
-			cursor->stack().emplace_back(WeakReference::create<None>());
+			cursor.stack().pop_back();
+			cursor.stack().pop_back();
+			cursor.stack().emplace_back(create_none());
 		}
 	}));
 
-	create_builtin_member("search", ast->create_builtin_method(this, 2, [](Cursor *cursor) {
-		const size_t base = get_stack_base(cursor);
+	create_builtin_member("search", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+		const auto base = get_stack_base(cursor);
 
-		const Reference &str = load_from_stack(cursor, base);
-		const Reference &self = load_from_stack(cursor, base - 1);
+		const Reference& str = load_from_stack(cursor, base);
+		const Reference& self = load_from_stack(cursor, base - 1);
 
 		std::smatch match;
-		std::smatch::string_type s = to_string(str);
+		const std::smatch::string_type s = to_string(str);
 
-		if (regex_search(s, match, self.data<Regex>()->expr)) {
-			cursor->stack().pop_back();
-			cursor->stack().pop_back();
-			cursor->stack().emplace_back(match_to_iterator(s, match));
+		if (regex_search(s, match, self.data<Regex>().expr)) {
+			cursor.stack().pop_back();
+			cursor.stack().pop_back();
+			cursor.stack().emplace_back(match_to_iterator(cursor.ast(), s, match));
 		}
 		else {
-			cursor->stack().pop_back();
-			cursor->stack().pop_back();
-			cursor->stack().emplace_back(WeakReference::create<None>());
+			cursor.stack().pop_back();
+			cursor.stack().pop_back();
+			cursor.stack().emplace_back(create_none());
 		}
 	}));
 
-	create_builtin_member("getFlags", ast->create_builtin_method(this, 1, [](Cursor *cursor) {
-		const Reference &self = cursor->stack().back();
-		cursor->stack().back() = create_string(
-			self.data<Regex>()->initializer.substr(self.data<Regex>()->initializer.rfind('/') + 1));
+	create_builtin_member("getFlags", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+		const Reference& self = cursor.stack().back();
+		cursor.stack().back() = create_string(cursor.ast(),
+		    self.data<Regex>().initializer.substr(self.data<Regex>().initializer.rfind('/') + 1));
 	}));
 }

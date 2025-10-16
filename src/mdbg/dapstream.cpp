@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,62 +22,78 @@
  */
 
 #include "dapstream.h"
+#include <algorithm>
+#include <cstddef>
+#include <iterator>
+#include <string>
 
-#ifdef OS_UNIX
+#ifdef MINT_OS_WINDOWS
+#include <memory>
+#include <Windows.h>
+#include <fileapi.h>
+#include <minwindef.h>
+#include <namedpipeapi.h>
+#include <processenv.h>
+#include <winbase.h>
+#else
+#include "mint/system/terminal.h"
+#include <array>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <fcntl.h>
 #include <poll.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <sys/file.h>
 #include <sys/poll.h>
-#include <mint/system/terminal.h>
+#include <unistd.h>
 #endif
 
 DapStreamReader::DapStreamReader() :
-#ifdef OS_WINDOWS
-	m_handle(GetStdHandle(STD_INPUT_HANDLE)) {
+#ifdef MINT_OS_WINDOWS
+    _handle(GetStdHandle(STD_INPUT_HANDLE)) {
 	/// \todo SetStdHandle(STD_INPUT_HANDLE, internal pipe);
 #else
-	m_fd(dup(mint::STDIN_FILE_NO)) {
+    _fd(dup(mint::stdin_file_no)) {
 	/// \todo dup2(mint::STDIN_FILE_NO, internal pipe);
 #endif
 }
 
 DapStreamReader::~DapStreamReader() {
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 
 #else
-	close(m_fd);
+	close(_fd);
 #endif
 }
 
-size_t DapStreamReader::read(std::string &data) {
+std::size_t DapStreamReader::read(std::string& data) {
 
-	size_t size = 0;
+	std::size_t size = 0;
 
-#ifdef OS_WINDOWS
-	DWORD dwCount = 0;
+#ifdef MINT_OS_WINDOWS
+	DWORD count = 0;
 
-	while (PeekNamedPipe(m_handle, NULL, 0, NULL, &dwCount, NULL) && dwCount) {
-		char *buf = new char[dwCount];
-		if (ReadFile(m_handle, buf, dwCount, &dwCount, NULL)) {
-			copy_n(buf, dwCount, back_inserter(data));
-			size += static_cast<size_t>(dwCount);
+	while (PeekNamedPipe(_handle, nullptr, 0, nullptr, &count, nullptr) && count) {
+		auto buf = std::make_unique<char[]>(count);
+		if (ReadFile(_handle, buf.get(), count, &count, nullptr)) {
+			copy_n(buf.get(), count, std::back_inserter(data));
+			size += static_cast<std::size_t>(count);
 		}
-		delete[] buf;
 	}
 #else
-	pollfd rfds;
-	rfds.fd = m_fd;
-	rfds.events = POLLIN;
+	pollfd rfds {
+	    .fd = _fd,
+	    .events = POLLIN,
+	};
 
 	const int flags = fcntl(rfds.fd, F_GETFL);
 	fcntl(rfds.fd, F_SETFL, flags | O_NONBLOCK);
 
 	while (::poll(&rfds, 1, 0) == 1) {
-		uint8_t read_buffer[BUFSIZ];
-		if (size_t count = ::read(rfds.fd, read_buffer, BUFSIZ)) {
-			copy_n(read_buffer, count, back_inserter(data));
+		auto read_buffer = std::array<std::uint8_t, BUFSIZ>();
+		if (const auto count = ::read(rfds.fd, read_buffer.data(), read_buffer.size())) {
+			std::copy_n(read_buffer.data(), count, std::back_inserter(data));
+			size += static_cast<std::size_t>(count);
 		}
 	}
 
@@ -88,36 +104,33 @@ size_t DapStreamReader::read(std::string &data) {
 }
 
 DapStreamWriter::DapStreamWriter() :
-#ifdef OS_WINDOWS
-	m_handle(GetStdHandle(STD_OUTPUT_HANDLE)) {
+#ifdef MINT_OS_WINDOWS
+    _handle(GetStdHandle(STD_OUTPUT_HANDLE)) {
 #else
-	m_fd(dup(mint::STDOUT_FILE_NO)) {
+    _fd(dup(mint::stdout_file_no)) {
 #endif
 }
 
 DapStreamWriter::~DapStreamWriter() {
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 
 #else
-	close(m_fd);
+	close(_fd);
 #endif
 }
 
-size_t DapStreamWriter::write(const std::string &data) {
+std::size_t DapStreamWriter::write(const std::string& data) {
 
-#ifdef OS_WINDOWS
-	DWORD dwCount = 0;
-
-	if (WriteFile(m_handle, data.data(), static_cast<DWORD>(data.size()), &dwCount, NULL)) {
-		// FlushFileBuffers(m_handle);
-		return static_cast<size_t>(dwCount);
+#ifdef MINT_OS_WINDOWS
+	if (DWORD count = 0; WriteFile(_handle, data.data(), static_cast<DWORD>(data.size()), &count, nullptr)) {
+		// FlushFileBuffers(_handle);
+		return static_cast<std::size_t>(count);
 	}
 #else
-	auto result = ::write(m_fd, data.data(), data.size());
-	if (result > 0) {
-		return static_cast<size_t>(result);
+	if (const auto result = ::write(_fd, data.data(), data.size()); result > 0) {
+		return static_cast<std::size_t>(result);
 	}
 #endif
 
-	return INVALID_LENGTH;
+	return invalid_length;
 }

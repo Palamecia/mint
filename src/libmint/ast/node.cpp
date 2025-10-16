@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,17 +22,19 @@
  */
 
 #include "mint/ast/node.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/reference.h"
 
 using namespace mint;
 
 Node::Node(Command command) :
-	command(command) {}
+    command(command) {}
 
 Node::Node(int parameter) :
-	parameter(parameter) {}
+    parameter(parameter) {}
 
-Node::Node(Symbol *symbol) :
-	symbol(symbol) {}
+Node::Node(const Symbol* symbol) :
+    symbol(symbol) {}
 
-Node::Node(Reference *constant) :
-	constant(constant) {}
+Node::Node(const Reference* constant) :
+    constant(constant) {}

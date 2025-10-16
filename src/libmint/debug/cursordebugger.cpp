@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,107 +22,117 @@
  */
 
 #include "mint/debug/cursordebugger.h"
+#include "mint/ast/module.h"
+#include "mint/ast/node.h"
+#include "mint/debug/debuginfo.h"
 #include "mint/debug/debugtool.h"
-#include "mint/system/filesystem.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
-#include "threadcontext.hpp"
+#include "mint/debug/lineinfo.h"
+#include "mint/debug/threadcontext.h"
+#include "mint/memory/symboltable.h"
+#include "mint/scheduler/process.h"
 
+#include <cstddef>
 #include <filesystem>
+#include <functional>
+#include <string>
 
 using namespace mint;
 
-CursorDebugger::CursorDebugger(Cursor *cursor, ThreadContext *context) :
-	m_cursor(cursor),
-	m_context(context) {}
+CursorDebugger::CursorDebugger(Cursor& cursor, ThreadContext context) :
+    _cursor(cursor),
+    _context(context) {}
 
-const ThreadContext *CursorDebugger::get_thread_context() const {
-	return m_context;
+const ThreadContext& CursorDebugger::get_thread_context() const {
+	return _context;
 }
 
-ThreadContext *CursorDebugger::get_thread_context() {
-	return m_context;
+ThreadContext& CursorDebugger::get_thread_context() {
+	return _context;
 }
 
 Process::ThreadId CursorDebugger::get_thread_id() const {
-	return m_context->thread_id;
+	return _context.thread_id;
 }
 
-void CursorDebugger::update_cursor(Cursor *cursor) {
-	if (m_cursor != cursor) {
-		m_cursor = cursor;
+void CursorDebugger::update_cursor(Cursor& cursor) {
+	if (&_cursor.get() != &cursor) {
+		_cursor = std::ref(cursor);
 	}
 }
 
 bool CursorDebugger::close_cursor() {
-	if (Cursor *cursor = m_cursor->parent()) {
-		m_cursor = cursor;
+	if (Cursor* cursor = _cursor.get().parent()) {
+		_cursor = std::ref(*cursor);
 		return true;
 	}
 	return false;
 }
 
 Node::Command CursorDebugger::command() const {
-	return m_cursor->m_current_context->module->at(m_cursor->m_current_context->iptr).command;
+	return _cursor.get()._current_context->module.get().node_at(_cursor.get()._current_context->iptr).as_command();
 }
 
-Cursor *CursorDebugger::cursor() const {
-	return m_cursor;
+const Cursor& CursorDebugger::cursor() const {
+	return _cursor;
 }
 
-const SymbolTable *CursorDebugger::symbols(size_t stack_frame) const {
+Cursor& CursorDebugger::cursor() {
+	return _cursor;
+}
+
+const SymbolTable* CursorDebugger::symbols(std::size_t stack_frame) const {
 	if (stack_frame == 0) {
-		return m_cursor->m_current_context->symbols;
+		return _cursor.get()._current_context->symbols.get();
 	}
-	if (stack_frame > m_cursor->m_call_stack.size()) {
+	if (stack_frame > _cursor.get()._call_stack.size()) {
 		return nullptr;
 	}
-	return m_cursor->m_call_stack[m_cursor->m_call_stack.size() - stack_frame]->symbols;
+	return _cursor.get()._call_stack[_cursor.get()._call_stack.size() - stack_frame]->symbols.get();
 }
 
-LineInfo CursorDebugger::line_info(size_t stack_frame) const {
-	const Cursor::Context *context = nullptr;
-	AbstractSyntaxTree *ast = m_cursor->ast();
+LineInfo CursorDebugger::line_info(std::size_t stack_frame) const {
+	const Cursor::Context* context = nullptr;
+	const auto& ast = _cursor.get().ast();
 	if (stack_frame == 0) {
-		context = m_cursor->m_current_context;
+		context = _cursor.get()._current_context;
 	}
-	else if (stack_frame > m_cursor->m_call_stack.size()) {
-		context = m_cursor->m_call_stack[m_cursor->m_call_stack.size() - stack_frame];
+	else if (stack_frame > _cursor.get()._call_stack.size()) {
+		context = _cursor.get()._call_stack[_cursor.get()._call_stack.size() - stack_frame];
 	}
 	if (context) {
-		size_t line_number = 0;
-		Module::Id module_id = ast->get_module_id(context->module);
-		if (DebugInfo *infos = m_cursor->ast()->get_debug_info(module_id)) {
+		std::size_t line_number = 0;
+		const auto module_id = ast.get_module_id(context->module);
+		if (DebugInfo* infos = ast.find_debug_info(module_id)) {
 			line_number = infos->line_number(context->iptr);
 		}
-		return {module_id, ast->get_module_name(context->module), line_number};
+		return {module_id, ast.get_module_name(context->module), line_number};
 	}
 	return {};
 }
 
 std::string CursorDebugger::module_name() const {
-	return m_cursor->ast()->get_module_name(m_cursor->m_current_context->module);
+	return _cursor.get().ast().get_module_name(_cursor.get()._current_context->module);
 }
 
 Module::Id CursorDebugger::module_id() const {
-	return m_cursor->ast()->get_module_id(m_cursor->m_current_context->module);
+	return _cursor.get().ast().get_module_id(_cursor.get()._current_context->module);
 }
 
-size_t CursorDebugger::line_number() const {
-	if (DebugInfo *info = m_cursor->ast()->get_debug_info(module_id())) {
-		return info->line_number(m_cursor->m_current_context->iptr);
+std::size_t CursorDebugger::line_number() const {
+	if (DebugInfo* info = _cursor.get().ast().find_debug_info(module_id())) {
+		return info->line_number(_cursor.get()._current_context->iptr);
 	}
 	return 0;
 }
 
-size_t CursorDebugger::call_depth() const {
+std::size_t CursorDebugger::call_depth() const {
 
-	size_t depth = 0;
+	std::size_t depth = 0;
 
-	for (Cursor *cursor = m_cursor; cursor; cursor = cursor->m_parent) {
-
-		depth += cursor->m_call_stack.size();
-
+	for (const auto* cursor = &_cursor.get(); cursor; cursor = cursor->_parent) {
+		depth += cursor->_call_stack.size();
 		if (cursor->parent()) {
 			depth += 1;
 		}

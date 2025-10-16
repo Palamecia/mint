@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,158 +21,182 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_NODE_H
-#define MINT_NODE_H
+#ifndef MINT_AST_NODE_H
+#define MINT_AST_NODE_H
 
 #include "mint/ast/symbol.h"
+#include "mint/config.h"
 #include "mint/memory/reference.h"
+#include <cstdint>
 
 namespace mint {
 
 union MINT_EXPORT Node {
-	enum Command : std::uint8_t {
-		LOAD_MODULE,
+	enum class Command : std::uint8_t {
+		load_module,
 
-		LOAD_FAST,
-		LOAD_SYMBOL,
-		LOAD_MEMBER,
-		LOAD_OPERATOR,
-		LOAD_CONSTANT,
-		LOAD_VAR_SYMBOL,
-		LOAD_VAR_MEMBER,
-		CLONE_REFERENCE,
-		RELOAD_REFERENCE,
-		UNLOAD_REFERENCE,
-		LOAD_EXTRA_ARGUMENTS,
-		RESET_SYMBOL,
-		RESET_FAST,
+		load_fast,
+		load_symbol,
+		load_member,
+		load_operator,
+		load_constant,
+		load_var_symbol,
+		load_var_member,
+		load_defined_member,
+		load_defined_operator,
+		load_defined_var_member,
+		clone_reference,
+		reload_reference,
+		unload_reference,
+		load_extra_arguments,
+		reset_symbol,
+		reset_fast,
 
-		DECLARE_FAST,
-		DECLARE_SYMBOL,
-		DECLARE_FUNCTION,
-		FUNCTION_OVERLOAD,
-		ALLOC_ITERATOR,
-		INIT_ITERATOR,
-		ALLOC_ARRAY,
-		INIT_ARRAY,
-		ALLOC_HASH,
-		INIT_HASH,
-		CREATE_LIB,
+		declare_fast,
+		declare_symbol,
+		declare_function,
+		function_overload,
+		alloc_iterator,
+		init_iterator,
+		alloc_array,
+		init_array,
+		alloc_hash,
+		init_hash,
+		create_lib,
 
-		REGEX_MATCH,
-		REGEX_UNMATCH,
+		regex_match,
+		regex_unmatch,
 
-		STRICT_EQ_OP,
-		STRICT_NE_OP,
+		strict_eq_operator,
+		strict_ne_operator,
 
-		OPEN_PACKAGE,
-		CLOSE_PACKAGE,
-		REGISTER_CLASS,
+		open_package,
+		close_package,
+		register_class,
 
-		MOVE_OP,
-		COPY_OP,
-		ADD_OP,
-		SUB_OP,
-		MOD_OP,
-		MUL_OP,
-		DIV_OP,
-		POW_OP,
-		IS_OP,
-		EQ_OP,
-		NE_OP,
-		LT_OP,
-		GT_OP,
-		LE_OP,
-		GE_OP,
-		INC_OP,
-		DEC_OP,
-		NOT_OP,
-		AND_OP,
-		OR_OP,
-		BAND_OP,
-		BOR_OP,
-		XOR_OP,
-		COMPL_OP,
-		POS_OP,
-		NEG_OP,
-		SHIFT_LEFT_OP,
-		SHIFT_RIGHT_OP,
-		INCLUSIVE_RANGE_OP,
-		EXCLUSIVE_RANGE_OP,
-		SUBSCRIPT_OP,
-		SUBSCRIPT_MOVE_OP,
-		TYPEOF_OP,
-		MEMBERSOF_OP,
-		FIND_OP,
-		IN_OP,
+		move_operator,
+		copy_operator,
+		add_operator,
+		sub_operator,
+		mod_operator,
+		mul_operator,
+		div_operator,
+		pow_operator,
+		is_operator,
+		eq_operator,
+		ne_operator,
+		lt_operator,
+		gt_operator,
+		le_operator,
+		ge_operator,
+		inc_operator,
+		dec_operator,
+		not_operator,
+		and_operator,
+		or_operator,
+		band_operator,
+		bor_operator,
+		xor_operator,
+		compl_operator,
+		pos_operator,
+		neg_operator,
+		shift_left_operator,
+		shift_right_operator,
+		inclusive_range_operator,
+		exclusive_range_operator,
+		subscript_operator,
+		subscript_move_operator,
+		typeof_operator,
+		membersof_operator,
+		find_operator,
+		in_operator,
 
-		FIND_DEFINED_SYMBOL,
-		FIND_DEFINED_MEMBER,
-		FIND_DEFINED_VAR_SYMBOL,
-		FIND_DEFINED_VAR_MEMBER,
-		CHECK_DEFINED,
+		find_defined_symbol,
+		find_defined_member,
+		find_defined_var_symbol,
+		find_defined_var_member,
+		check_defined,
 
-		FIND_INIT,
-		FIND_NEXT,
-		FIND_CHECK,
-		RANGE_INIT,
-		RANGE_NEXT,
-		RANGE_CHECK,
-		RANGE_ITERATOR_CHECK,
+		find_init,
+		find_next,
+		find_check,
+		range_init,
+		range_next,
+		range_check,
+		range_iterator_check,
 
-		BEGIN_GENERATOR_EXPRESSION,
-		END_GENERATOR_EXPRESSION,
-		YIELD_EXPRESSION,
+		begin_generator_expression,
+		end_generator_expression,
+		yield_expression,
 
-		OPEN_PRINTER,
-		CLOSE_PRINTER,
-		PRINT,
+		open_printer,
+		close_printer,
+		print,
 
-		OR_PRE_CHECK,
-		AND_PRE_CHECK,
-		CASE_JUMP,
-		JUMP_ZERO,
-		JUMP,
+		or_pre_check,
+		and_pre_check,
+		case_jump,
+		zero_jump,
+		jump,
 
-		SET_RETRIEVE_POINT,
-		UNSET_RETRIEVE_POINT,
-		RAISE,
+		set_retrieve_point,
+		unset_retrieve_point,
+		raise,
 
-		YIELD,
-		EXIT_GENERATOR,
-		YIELD_EXIT_GENERATOR,
+		yield,
+		exit_generator,
+		yield_exit_generator,
 
-		INIT_CAPTURE,
-		CAPTURE_SYMBOL,
-		CAPTURE_AS,
-		CAPTURE_ALL,
-		CALL,
-		CALL_MEMBER,
-		CALL_BUILTIN,
-		INIT_CALL,
-		INIT_MEMBER_CALL,
-		INIT_OPERATOR_CALL,
-		INIT_VAR_MEMBER_CALL,
-		INIT_EXCEPTION,
-		RESET_EXCEPTION,
-		INIT_PARAM,
-		EXIT_CALL,
-		EXIT_THREAD,
-		EXIT_EXEC,
-		EXIT_MODULE
+		init_capture,
+		capture_symbol,
+		capture_as,
+		capture_all,
+		call,
+		call_member,
+		call_builtin,
+		init_call,
+		init_member_call,
+		init_operator_call,
+		init_var_member_call,
+		init_defined_member_call,
+		init_defined_operator_call,
+		init_defined_var_member_call,
+		init_exception,
+		reset_exception,
+		init_parameter,
+		exit_call,
+		exit_thread,
+		exit_exec,
+		exit_module
 	};
 
 	Node(Command command);
 	Node(int parameter);
-	Node(Symbol *symbol);
-	Node(Reference *constant);
+	Node(const Symbol* symbol);
+	Node(const Reference* constant);
+
+	[[nodiscard]] Command as_command() const {
+		return command;
+	}
+
+	[[nodiscard]] int as_parameter() const {
+		return parameter;
+	}
+
+	[[nodiscard]] const Symbol& as_symbol() const {
+		return *symbol;
+	}
+
+	[[nodiscard]] const Reference& as_constant() const {
+		return *constant;
+	}
 
 	Command command;
 	int parameter;
-	Symbol *symbol;
-	Reference *constant;
+	const Symbol* symbol;
+	const Reference* constant;
 };
 
 }
 
-#endif // MINT_NODE_H
+#endif // MINT_AST_NODE_H

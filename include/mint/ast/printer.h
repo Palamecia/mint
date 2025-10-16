@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_PRINTER_H
-#define MINT_PRINTER_H
+#ifndef MINT_AST_PRINTER_H
+#define MINT_AST_PRINTER_H
 
 #include "mint/config.h"
 
@@ -33,18 +33,16 @@ class Reference;
 class MINT_EXPORT Printer {
 public:
 	Printer() = default;
-	Printer(Printer &&other) = delete;
-	Printer(const Printer &other) = delete;
+	Printer(Printer&& other) = delete;
+	Printer(const Printer& other) = delete;
 	virtual ~Printer() = default;
 
-	Printer &operator=(Printer &&other) = delete;
-	Printer &operator=(const Printer &other) = delete;
+	Printer& operator=(Printer&& other) = delete;
+	Printer& operator=(const Printer& other) = delete;
 
-	virtual void print(Reference &reference) = 0;
-
-	[[nodiscard]] virtual bool global() const;
+	virtual void print(const Reference& reference) = 0;
 };
 
 }
 
-#endif // MINT_PRINTER_H
+#endif // MINT_AST_PRINTER_H

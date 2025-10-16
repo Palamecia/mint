@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -78,10 +78,25 @@ package System {
 
 		/**
 		 * Creates a new instance pointing to the file specified by the given `path`.
+		 
+		 * If `path` is already an instance of {System.File}, this instance
+		 * is returned.
+		 * 
+		 * If `path` provides a `toFile` method, this method is used to create the
+		 * returned value; otherwise the variable is used as a string to get the
+		 * target file path.
 		 */
 		const def new(self, path) {
-			self.path = System.File.g_lib.call('mint_directory_to_native_path', path)
-			return self
+			if typeof path == 'System.File' {
+				return path
+			}
+			if defined path.toFile {
+				return path.toFile()
+			}
+			if defined path {
+				self.path = System.File.g_lib.call('mint_directory_to_native_path', path)
+				return self
+			}
 		}
 
 		/**
@@ -703,6 +718,21 @@ package System {
 		}
 
 		/**
+		 * Sets the position that data is written to or read from to the beginning
+		 * of the file.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def rewind(self) {
+			if not self.isOpen() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			if var errno = System.File.g_lib.call('mint_file_fseek', self.d_ptr, 0) {
+				raise Exception.SystemError(errno, self)
+			}
+		}
+
+		/**
 		 * Returns the file descriptor openned by this object or `none` if the
 		 * file is not oppened.
 		 */
@@ -870,6 +900,13 @@ package System {
 		const def write(self, data) {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			if typeof data === 'Serializer.DataStream' {
+				var (written, errno) = System.File.g_lib.call('mint_file_fwrite_binary', self.d_ptr, data.to_std_vector_uint8_t())
+				if errno {
+					raise Exception.SystemError(errno, self)
+				}
+				return written
 			}
 			if self.codec {
 				var stream = self.codec.encode(data)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,23 +24,23 @@
 #ifndef EVALRESULTPRINTER_H
 #define EVALRESULTPRINTER_H
 
-#include <mint/memory/reference.h>
-#include <mint/ast/printer.h>
+#include "mint/ast/classregister.h"
+#include "mint/memory/reference.h"
+#include "mint/ast/printer.h"
+#include <functional>
 #include <vector>
 
-namespace mint {
-
-class EvalResultPrinter : public Printer {
+class EvalResultPrinter : public mint::Printer {
 public:
-	void print(Reference &reference) override;
+	EvalResultPrinter(mint::AbstractSyntaxTree& ast);
 
-	[[nodiscard]] bool global() const override;
-	[[nodiscard]] WeakReference result();
+	void print(const mint::Reference& reference) override;
+
+	[[nodiscard]] mint::WeakReference result();
 
 private:
-	std::vector<WeakReference> m_results;
+	std::reference_wrapper<mint::AbstractSyntaxTree> _ast;
+	std::vector<mint::WeakReference> _results;
 };
-
-}
 
 #endif // EVALRESULTPRINTER_H

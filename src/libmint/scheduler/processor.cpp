@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,10 +22,19 @@
  */
 
 #include "mint/scheduler/processor.h"
+#include "mint/ast/classregister.h"
+#include "mint/ast/module.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/class.h"
+#include "mint/memory/data.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/symboltable.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/debug/debuginterface.h"
 #include "mint/debug/cursordebugger.h"
 #include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/abstractsyntaxtreewalker.h"
 #include "mint/ast/asttools.h"
 #include "mint/ast/cursor.h"
 #include "mint/memory/builtin/array.h"
@@ -36,507 +45,642 @@
 #include "mint/memory/memorytool.h"
 #include "mint/memory/casttool.h"
 #include "mint/memory/globaldata.h"
+#include "mint/system/assert.h"
+#include <atomic>
+#include <cassert>
+#include <cstddef>
+#include <mutex>
+#include <thread>
+#include <utility>
+#include <vector>
 
 using namespace mint;
 
-static constexpr const size_t QUANTUM = 64 * 1024;
-static std::atomic_bool g_single_thread(true);
-static std::mutex g_step_mutex;
+namespace {
+
+constexpr const std::size_t quantum = 64 * 1024;
+std::atomic_bool g_single_thread {true};
+std::mutex g_step_mutex;
+
+}
 
 namespace {
 
-bool do_run_steps(Cursor *cursor, size_t count) {
+class DoRunSteps {
+	bool _can_continue = true;
+public:
+	bool walk(Cursor& cursor, std::size_t count = 1) {
+		while (_can_continue && count--) {
+			mint::walk<void>(cursor, *this);
+		}
+		return _can_continue;
+	}
 
-	auto &stack = cursor->stack();
-	AbstractSyntaxTree *ast = cursor->ast();
+	static void on_load_module(Cursor& cursor, const Symbol& symbol) {
+		load_module(cursor, symbol.str());
+	}
 
-	while (count--) {
-		switch (cursor->next().command) {
-		case Node::LOAD_MODULE:
-			load_module(cursor, cursor->next().symbol->str());
-			break;
+	static void on_load_fast(Cursor& cursor, const Symbol& symbol, std::size_t index) {
+		cursor.stack().emplace_back(cursor.symbols().get_fast(symbol, index));
+	}
 
-		case Node::LOAD_FAST:
-			{
-				Symbol &symbol = *cursor->next().symbol;
-				const auto index = static_cast<size_t>(cursor->next().parameter);
-				stack.emplace_back(cursor->symbols().get_fast(symbol, index));
-			}
-			break;
-		case Node::LOAD_SYMBOL:
-			stack.emplace_back(get_symbol(&cursor->symbols(), *cursor->next().symbol));
-			break;
-		case Node::LOAD_MEMBER:
-			reduce_member(cursor, get_member(cursor, stack.back(), *cursor->next().symbol));
-			break;
-		case Node::LOAD_OPERATOR:
-			reduce_member(cursor,
-						  get_operator(cursor, stack.back(), static_cast<Class::Operator>(cursor->next().parameter)));
-			break;
-		case Node::LOAD_CONSTANT:
-			stack.emplace_back(WeakReference::share(*cursor->next().constant));
-			break;
-		case Node::LOAD_VAR_SYMBOL:
-			stack.emplace_back(get_symbol(&cursor->symbols(), var_symbol(cursor)));
-			break;
-		case Node::LOAD_VAR_MEMBER:
-			{
-				Symbol &&symbol = var_symbol(cursor);
-				reduce_member(cursor, get_member(cursor, stack.back(), symbol));
-			}
-			break;
-		case Node::CLONE_REFERENCE:
-			{
-				WeakReference reference = std::move(stack.back());
-				stack.back() = WeakReference::clone(reference);
-				stack.emplace_back(std::forward<Reference>(reference));
-			}
-			break;
-		case Node::RELOAD_REFERENCE:
-			stack.emplace_back(WeakReference::share(stack.back()));
-			break;
-		case Node::UNLOAD_REFERENCE:
-			stack.pop_back();
-			break;
-		case Node::LOAD_EXTRA_ARGUMENTS:
-			load_extra_arguments(cursor);
-			break;
-		case Node::RESET_SYMBOL:
-			cursor->symbols().erase(*cursor->next().symbol);
-			break;
-		case Node::RESET_FAST:
-			{
-				const Symbol &symbol = *cursor->next().symbol;
-				const auto index = static_cast<size_t>(cursor->next().parameter);
-				cursor->symbols().erase_fast(symbol, index);
-			}
-			break;
+	static void on_load_symbol(Cursor& cursor, const Symbol& symbol) {
+		cursor.stack().emplace_back(get_symbol(cursor, symbol));
+	}
 
-		case Node::DECLARE_FAST:
-			{
-				const Symbol &symbol = *cursor->next().symbol;
-				const auto index = static_cast<size_t>(cursor->next().parameter);
-				const auto flags = static_cast<Reference::Flags>(cursor->next().parameter);
-				declare_symbol(cursor, symbol, index, flags);
-			}
-			break;
-		case Node::DECLARE_SYMBOL:
-			{
-				const Symbol &symbol = *cursor->next().symbol;
-				const auto flags = static_cast<Reference::Flags>(cursor->next().parameter);
-				declare_symbol(cursor, symbol, flags);
-			}
-			break;
-		case Node::DECLARE_FUNCTION:
-			{
-				const Symbol &symbol = *cursor->next().symbol;
-				const auto flags = static_cast<Reference::Flags>(cursor->next().parameter);
-				declare_function(cursor, symbol, flags);
-			}
-			break;
-		case Node::FUNCTION_OVERLOAD:
-			function_overload_from_stack(cursor);
-			break;
-		case Node::ALLOC_ITERATOR:
-			cursor->waiting_calls().emplace(
-				WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Iterator>()));
-			break;
-		case Node::INIT_ITERATOR:
-			iterator_new(cursor, static_cast<size_t>(cursor->next().parameter));
-			break;
-		case Node::ALLOC_ARRAY:
-			cursor->waiting_calls().emplace(
-				WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Array>()));
-			break;
-		case Node::INIT_ARRAY:
-			array_new(cursor, static_cast<size_t>(cursor->next().parameter));
-			break;
-		case Node::ALLOC_HASH:
-			cursor->waiting_calls().emplace(
-				WeakReference(Reference::CONST_ADDRESS, GarbageCollector::instance().alloc<Hash>()));
-			break;
-		case Node::INIT_HASH:
-			hash_new(cursor, static_cast<size_t>(cursor->next().parameter));
-			break;
-		case Node::CREATE_LIB:
-			stack.emplace_back(WeakReference::create<Library>());
-			break;
+	static void on_load_member(Cursor& cursor, const Symbol& symbol) {
+		auto [member, _] = get_member(cursor, cursor.stack().back(), symbol);
+		reduce_member(cursor, std::move(member));
+	}
 
-		case Node::REGEX_MATCH:
-			regex_match(cursor);
-			break;
-		case Node::REGEX_UNMATCH:
-			regex_unmatch(cursor);
-			break;
+	static void on_load_operator(Cursor& cursor, Class::Operator op) {
+		auto [member, _] = get_operator(cursor, cursor.stack().back(), op);
+		reduce_member(cursor, std::move(member));
+	}
 
-		case Node::STRICT_EQ_OP:
-			strict_eq_operator(cursor);
-			break;
-		case Node::STRICT_NE_OP:
-			strict_ne_operator(cursor);
-			break;
+	static void on_load_constant(Cursor& cursor, const Reference& constant) {
+		cursor.stack().emplace_back(constant);
+	}
 
-		case Node::OPEN_PACKAGE:
-			cursor->symbols().open_package(cursor->next().constant->data<Package>()->data);
-			break;
-		case Node::CLOSE_PACKAGE:
-			cursor->symbols().close_package();
-			break;
-		case Node::REGISTER_CLASS:
-			cursor->symbols().get_package()->register_class(static_cast<ClassRegister::Id>(cursor->next().parameter));
-			break;
+	static void on_load_var_symbol(Cursor& cursor) {
+		cursor.stack().emplace_back(get_symbol(cursor, var_symbol(cursor)));
+	}
 
-		case Node::MOVE_OP:
-			move_operator(cursor);
-			break;
-		case Node::COPY_OP:
-			copy_operator(cursor);
-			break;
-		case Node::ADD_OP:
-			add_operator(cursor);
-			break;
-		case Node::SUB_OP:
-			sub_operator(cursor);
-			break;
-		case Node::MOD_OP:
-			mod_operator(cursor);
-			break;
-		case Node::MUL_OP:
-			mul_operator(cursor);
-			break;
-		case Node::DIV_OP:
-			div_operator(cursor);
-			break;
-		case Node::POW_OP:
-			pow_operator(cursor);
-			break;
-		case Node::IS_OP:
-			is_operator(cursor);
-			break;
-		case Node::EQ_OP:
-			eq_operator(cursor);
-			break;
-		case Node::NE_OP:
-			ne_operator(cursor);
-			break;
-		case Node::LT_OP:
-			lt_operator(cursor);
-			break;
-		case Node::GT_OP:
-			gt_operator(cursor);
-			break;
-		case Node::LE_OP:
-			le_operator(cursor);
-			break;
-		case Node::GE_OP:
-			ge_operator(cursor);
-			break;
-		case Node::INC_OP:
-			inc_operator(cursor);
-			break;
-		case Node::DEC_OP:
-			dec_operator(cursor);
-			break;
-		case Node::NOT_OP:
-			not_operator(cursor);
-			break;
-		case Node::AND_OP:
-			and_operator(cursor);
-			break;
-		case Node::OR_OP:
-			or_operator(cursor);
-			break;
-		case Node::BAND_OP:
-			band_operator(cursor);
-			break;
-		case Node::BOR_OP:
-			bor_operator(cursor);
-			break;
-		case Node::XOR_OP:
-			xor_operator(cursor);
-			break;
-		case Node::COMPL_OP:
-			compl_operator(cursor);
-			break;
-		case Node::POS_OP:
-			pos_operator(cursor);
-			break;
-		case Node::NEG_OP:
-			neg_operator(cursor);
-			break;
-		case Node::SHIFT_LEFT_OP:
-			shift_left_operator(cursor);
-			break;
-		case Node::SHIFT_RIGHT_OP:
-			shift_right_operator(cursor);
-			break;
-		case Node::INCLUSIVE_RANGE_OP:
-			inclusive_range_operator(cursor);
-			break;
-		case Node::EXCLUSIVE_RANGE_OP:
-			exclusive_range_operator(cursor);
-			break;
-		case Node::SUBSCRIPT_OP:
-			subscript_operator(cursor);
-			break;
-		case Node::SUBSCRIPT_MOVE_OP:
-			subscript_move_operator(cursor);
-			break;
-		case Node::TYPEOF_OP:
-			typeof_operator(cursor);
-			break;
-		case Node::MEMBERSOF_OP:
-			membersof_operator(cursor);
-			break;
-		case Node::FIND_OP:
-			find_operator(cursor);
-			break;
-		case Node::IN_OP:
-			in_operator(cursor);
-			break;
+	static void on_load_var_member(Cursor& cursor) {
+		Symbol&& symbol = var_symbol(cursor);
+		auto [member, _] = get_member(cursor, cursor.stack().back(), symbol);
+		reduce_member(cursor, std::move(member));
+	}
 
-		case Node::FIND_DEFINED_SYMBOL:
-			find_defined_symbol(cursor, *cursor->next().symbol);
-			break;
-		case Node::FIND_DEFINED_MEMBER:
-			find_defined_member(cursor, *cursor->next().symbol);
-			break;
-		case Node::FIND_DEFINED_VAR_SYMBOL:
-			find_defined_symbol(cursor, var_symbol(cursor));
-			break;
-		case Node::FIND_DEFINED_VAR_MEMBER:
-			find_defined_member(cursor, var_symbol(cursor));
-			break;
-		case Node::CHECK_DEFINED:
-			check_defined(cursor);
-			break;
-
-		case Node::FIND_INIT:
-			find_init(cursor);
-			break;
-		case Node::FIND_NEXT:
-			find_next(cursor);
-			break;
-		case Node::FIND_CHECK:
-			find_check(cursor, static_cast<size_t>(cursor->next().parameter));
-			break;
-		case Node::RANGE_INIT:
-			range_init(cursor);
-			break;
-		case Node::RANGE_NEXT:
-			range_next(cursor);
-			break;
-		case Node::RANGE_CHECK:
-			range_check(cursor, static_cast<size_t>(cursor->next().parameter));
-			break;
-		case Node::RANGE_ITERATOR_CHECK:
-			range_iterator_check(cursor, static_cast<size_t>(cursor->next().parameter));
-			break;
-
-		case Node::BEGIN_GENERATOR_EXPRESSION:
-			cursor->begin_generator_expression();
-			break;
-
-		case Node::END_GENERATOR_EXPRESSION:
-			cursor->end_generator_expression();
-			break;
-
-		case Node::YIELD_EXPRESSION:
-			cursor->yield_expression(stack.back());
-			stack.pop_back();
-			break;
-
-		case Node::OPEN_PRINTER:
-			cursor->open_printer(create_printer(cursor));
-			break;
-
-		case Node::CLOSE_PRINTER:
-			cursor->close_printer();
-			break;
-
-		case Node::PRINT:
-			{
-				WeakReference reference = std::move(stack.back());
-				stack.pop_back();
-				print(cursor->printer(), reference);
-			}
-			break;
-
-		case Node::OR_PRE_CHECK:
-			or_pre_check(cursor, static_cast<size_t>(cursor->next().parameter));
-			break;
-		case Node::AND_PRE_CHECK:
-			and_pre_check(cursor, static_cast<size_t>(cursor->next().parameter));
-			break;
-
-		case Node::CASE_JUMP:
-			if (to_boolean(stack.back())) {
-				cursor->jmp(static_cast<size_t>(cursor->next().parameter));
-				stack.pop_back();
-			}
-			else {
-				((void)cursor->next());
-			}
-			stack.pop_back();
-			break;
-
-		case Node::JUMP_ZERO:
-			if (to_boolean(stack.back())) {
-				((void)cursor->next());
-			}
-			else {
-				cursor->jmp(static_cast<size_t>(cursor->next().parameter));
-			}
-			stack.pop_back();
-			break;
-
-		case Node::JUMP:
-			cursor->jmp(static_cast<size_t>(cursor->next().parameter));
-			break;
-
-		case Node::SET_RETRIEVE_POINT:
-			cursor->set_retrieve_point(static_cast<size_t>(cursor->next().parameter));
-			break;
-		case Node::UNSET_RETRIEVE_POINT:
-			cursor->unset_retrieve_point();
-			break;
-		case Node::RAISE:
-			{
-				WeakReference exception = std::move(stack.back());
-				stack.pop_back();
-				cursor->raise(std::move(exception));
-			}
-			break;
-
-		case Node::YIELD:
-			yield(cursor, cursor->generator());
-			break;
-		case Node::EXIT_GENERATOR:
-			cursor->exit_call();
-			break;
-		case Node::YIELD_EXIT_GENERATOR:
-			yield(cursor, cursor->generator());
-			cursor->exit_call();
-			break;
-
-		case Node::INIT_CAPTURE:
-			assert(is_instance_of(stack.back(), Data::FMT_FUNCTION));
-			stack.back() = WeakReference::clone(stack.back());
-			break;
-		case Node::CAPTURE_SYMBOL:
-			capture_symbol(cursor, *cursor->next().symbol);
-			break;
-		case Node::CAPTURE_AS:
-			capture_as_symbol(cursor, *cursor->next().symbol);
-			break;
-		case Node::CAPTURE_ALL:
-			capture_all_symbols(cursor);
-			break;
-		case Node::CALL:
-			call_operator(cursor, cursor->next().parameter);
-			break;
-		case Node::CALL_MEMBER:
-			call_member_operator(cursor, cursor->next().parameter);
-			break;
-		case Node::CALL_BUILTIN:
-			ast->call_builtin_method(static_cast<size_t>(cursor->next().parameter), cursor);
-			break;
-		case Node::INIT_CALL:
-			init_call(cursor);
-			break;
-		case Node::INIT_MEMBER_CALL:
-			init_member_call(cursor, *cursor->next().symbol);
-			break;
-		case Node::INIT_OPERATOR_CALL:
-			init_operator_call(cursor, static_cast<Class::Operator>(cursor->next().parameter));
-			break;
-		case Node::INIT_VAR_MEMBER_CALL:
-			init_member_call(cursor, var_symbol(cursor));
-			break;
-		case Node::INIT_EXCEPTION:
-			init_exception(cursor, *cursor->next().symbol);
-			break;
-		case Node::RESET_EXCEPTION:
-			reset_exception(cursor, *cursor->next().symbol);
-			break;
-		case Node::INIT_PARAM:
-			{
-				const Symbol &symbol = *cursor->next().symbol;
-				const auto flags = static_cast<Reference::Flags>(cursor->next().parameter);
-				const auto index = static_cast<size_t>(cursor->next().parameter);
-				init_parameter(cursor, symbol, flags, index);
-			}
-			break;
-		case Node::EXIT_CALL:
-			cursor->exit_call();
-			break;
-		case Node::EXIT_THREAD:
-			return false;
-		case Node::EXIT_EXEC:
-			Scheduler::instance()->exit(static_cast<int>(to_integer(cursor, stack.back())));
-			stack.pop_back();
-			return false;
-		case Node::EXIT_MODULE:
-			if (UNLIKELY(!cursor->exit_module())) {
-				return false;
-			}
+	static void on_load_defined_member(Cursor& cursor, const Symbol& symbol) {
+		const auto& object = cursor.stack().back();
+		if (!is_instance_of(object, Data::none_format)) {
+			auto [member, _] = get_member(cursor, object, symbol);
+			reduce_member(cursor, std::move(member));
 		}
 	}
 
-	return true;
-}
+	static void on_load_defined_operator(Cursor& cursor, Class::Operator op) {
+		const auto& object = cursor.stack().back();
+		if (!is_instance_of(object, Data::none_format)) {
+			auto [member, _] = get_operator(cursor, object, op);
+			reduce_member(cursor, std::move(member));
+		}
+	}
+
+	static void on_load_defined_var_member(Cursor& cursor) {
+		Symbol&& symbol = var_symbol(cursor);
+		const auto& object = cursor.stack().back();
+		if (!is_instance_of(object, Data::none_format)) {
+			auto [member, _] = get_member(cursor, object, symbol);
+			reduce_member(cursor, std::move(member));
+		}
+	}
+
+	static void on_clone_reference(Cursor& cursor) {
+		WeakReference reference = std::move(cursor.stack().back());
+		cursor.stack().back() = WeakReference(copy_from, reference);
+		cursor.stack().emplace_back(std::move(reference));
+	}
+
+	static void on_reload_reference(Cursor& cursor) {
+		cursor.stack().emplace_back(cursor.stack().back());
+	}
+
+	static void on_unload_reference(Cursor& cursor) {
+		cursor.stack().pop_back();
+	}
+
+	static void on_load_extra_arguments(Cursor& cursor) {
+		load_extra_arguments(cursor);
+	}
+
+	static void on_reset_symbol(Cursor& cursor, const Symbol& symbol) {
+		cursor.symbols().erase(symbol);
+	}
+
+	static void on_reset_fast(Cursor& cursor, const Symbol& symbol, std::size_t index) {
+		cursor.symbols().erase_fast(symbol, index);
+	}
+
+	static void on_declare_fast(Cursor& cursor, const Symbol& symbol, std::size_t index, Reference::Flags flags) {
+		declare_symbol(cursor, symbol, index, flags);
+	}
+
+	static void on_declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags flags) {
+		declare_symbol(cursor, symbol, flags);
+	}
+
+	static void on_declare_function(Cursor& cursor, const Symbol& symbol, Reference::Flags flags) {
+		declare_function(cursor, symbol, flags);
+	}
+
+	static void on_function_overload(Cursor& cursor) {
+		function_overload_from_stack(cursor);
+	}
+
+	static void on_alloc_iterator(Cursor& cursor) {
+		cursor.waiting_calls().emplace(make_weak_reference<Iterator>(Reference::const_address, cursor.ast()));
+	}
+
+	static void on_init_iterator(Cursor& cursor, std::size_t length) {
+		iterator_new(cursor, length);
+	}
+
+	static void on_alloc_array(Cursor& cursor) {
+		cursor.waiting_calls().emplace(make_weak_reference<Array>(Reference::const_address, cursor.ast()));
+	}
+
+	static void on_init_array(Cursor& cursor, std::size_t length) {
+		array_new(cursor, length);
+	}
+
+	static void on_alloc_hash(Cursor& cursor) {
+		cursor.waiting_calls().emplace(make_weak_reference<Hash>(Reference::const_address, cursor.ast()));
+	}
+
+	static void on_init_hash(Cursor& cursor, std::size_t length) {
+		hash_new(cursor, length);
+	}
+
+	static void on_create_lib(Cursor& cursor) {
+		constexpr auto flags = Reference::const_address | mint::Reference::const_value | Reference::temporary;
+		cursor.stack().emplace_back(make_weak_reference<Library>(flags, cursor.ast()));
+	}
+
+	static void on_regex_match(Cursor& cursor) {
+		regex_match(cursor);
+	}
+
+	static void on_regex_unmatch(Cursor& cursor) {
+		regex_unmatch(cursor);
+	}
+
+	static void on_strict_eq_operator(Cursor& cursor) {
+		strict_eq_operator(cursor);
+	}
+
+	static void on_strict_ne_operator(Cursor& cursor) {
+		strict_ne_operator(cursor);
+	}
+
+	static void on_open_package(Cursor& cursor, Package& package) {
+		cursor.symbols().open_package(package.data);
+	}
+
+	static void on_close_package(Cursor& cursor) {
+		cursor.symbols().close_package();
+	}
+
+	static void on_register_class(Cursor& cursor, ClassRegister::Id id) {
+		cursor.symbols().get_package().register_class(id);
+	}
+
+	static void on_move_operator(Cursor& cursor) {
+		move_operator(cursor);
+	}
+
+	static void on_copy_operator(Cursor& cursor) {
+		copy_operator(cursor);
+	}
+
+	static void on_add_operator(Cursor& cursor) {
+		add_operator(cursor);
+	}
+
+	static void on_sub_operator(Cursor& cursor) {
+		sub_operator(cursor);
+	}
+
+	static void on_mod_operator(Cursor& cursor) {
+		mod_operator(cursor);
+	}
+
+	static void on_mul_operator(Cursor& cursor) {
+		mul_operator(cursor);
+	}
+
+	static void on_div_operator(Cursor& cursor) {
+		div_operator(cursor);
+	}
+
+	static void on_pow_operator(Cursor& cursor) {
+		pow_operator(cursor);
+	}
+
+	static void on_is_operator(Cursor& cursor) {
+		is_operator(cursor);
+	}
+
+	static void on_eq_operator(Cursor& cursor) {
+		eq_operator(cursor);
+	}
+
+	static void on_ne_operator(Cursor& cursor) {
+		ne_operator(cursor);
+	}
+
+	static void on_lt_operator(Cursor& cursor) {
+		lt_operator(cursor);
+	}
+
+	static void on_gt_operator(Cursor& cursor) {
+		gt_operator(cursor);
+	}
+
+	static void on_le_operator(Cursor& cursor) {
+		le_operator(cursor);
+	}
+
+	static void on_ge_operator(Cursor& cursor) {
+		ge_operator(cursor);
+	}
+
+	static void on_inc_operator(Cursor& cursor) {
+		inc_operator(cursor);
+	}
+
+	static void on_dec_operator(Cursor& cursor) {
+		dec_operator(cursor);
+	}
+
+	static void on_not_operator(Cursor& cursor) {
+		not_operator(cursor);
+	}
+
+	static void on_and_operator(Cursor& cursor) {
+		and_operator(cursor);
+	}
+
+	static void on_or_operator(Cursor& cursor) {
+		or_operator(cursor);
+	}
+
+	static void on_band_operator(Cursor& cursor) {
+		band_operator(cursor);
+	}
+
+	static void on_bor_operator(Cursor& cursor) {
+		bor_operator(cursor);
+	}
+
+	static void on_xor_operator(Cursor& cursor) {
+		xor_operator(cursor);
+	}
+
+	static void on_compl_operator(Cursor& cursor) {
+		compl_operator(cursor);
+	}
+
+	static void on_pos_operator(Cursor& cursor) {
+		pos_operator(cursor);
+	}
+
+	static void on_neg_operator(Cursor& cursor) {
+		neg_operator(cursor);
+	}
+
+	static void on_shift_left_operator(Cursor& cursor) {
+		shift_left_operator(cursor);
+	}
+
+	static void on_shift_right_operator(Cursor& cursor) {
+		shift_right_operator(cursor);
+	}
+
+	static void on_inclusive_range_operator(Cursor& cursor) {
+		inclusive_range_operator(cursor);
+	}
+
+	static void on_exclusive_range_operator(Cursor& cursor) {
+		exclusive_range_operator(cursor);
+	}
+
+	static void on_subscript_operator(Cursor& cursor) {
+		subscript_operator(cursor);
+	}
+
+	static void on_subscript_move_operator(Cursor& cursor) {
+		subscript_move_operator(cursor);
+	}
+
+	static void on_typeof_operator(Cursor& cursor) {
+		typeof_operator(cursor);
+	}
+
+	static void on_membersof_operator(Cursor& cursor) {
+		membersof_operator(cursor);
+	}
+
+	static void on_find_operator(Cursor& cursor) {
+		find_operator(cursor);
+	}
+
+	static void on_in_operator(Cursor& cursor) {
+		in_operator(cursor);
+	}
+
+	static void on_find_defined_symbol(Cursor& cursor, const Symbol& symbol) {
+		find_defined_symbol(cursor, symbol);
+	}
+
+	static void on_find_defined_member(Cursor& cursor, const Symbol& symbol) {
+		find_defined_member(cursor, symbol);
+	}
+
+	static void on_find_defined_var_symbol(Cursor& cursor) {
+		find_defined_symbol(cursor, var_symbol(cursor));
+	}
+
+	static void on_find_defined_var_member(Cursor& cursor) {
+		find_defined_member(cursor, var_symbol(cursor));
+	}
+
+	static void on_check_defined(Cursor& cursor) {
+		check_defined(cursor);
+	}
+
+	static void on_find_init(Cursor& cursor) {
+		find_init(cursor);
+	}
+
+	static void on_find_next(Cursor& cursor) {
+		find_next(cursor);
+	}
+
+	static void on_find_check(Cursor& cursor, std::size_t offset) {
+		find_check(cursor, offset);
+	}
+
+	static void on_range_init(Cursor& cursor) {
+		range_init(cursor);
+	}
+
+	static void on_range_next(Cursor& cursor) {
+		range_next(cursor);
+	}
+
+	static void on_range_check(Cursor& cursor, std::size_t offset) {
+		range_check(cursor, offset);
+	}
+
+	static void on_range_iterator_check(Cursor& cursor, std::size_t offset) {
+		range_iterator_check(cursor, offset);
+	}
+
+	static void on_begin_generator_expression(Cursor& cursor) {
+		cursor.begin_generator_expression();
+	}
+
+	static void on_end_generator_expression(Cursor& cursor) {
+		cursor.end_generator_expression();
+	}
+
+	static void on_yield_expression(Cursor& cursor) {
+		cursor.yield_expression(cursor.stack().back());
+		cursor.stack().pop_back();
+	}
+
+	static void on_open_printer(Cursor& cursor) {
+		cursor.open_printer(create_printer(cursor));
+	}
+
+	static void on_close_printer(Cursor& cursor) {
+		cursor.close_printer();
+	}
+
+	static void on_print(Cursor& cursor) {
+
+		auto reference = std::move(cursor.stack().back());
+		cursor.stack().pop_back();
+
+		auto* printer = cursor.printer();
+		assert(printer);
+		printer->print(reference);
+	}
+
+	static void on_or_pre_check(Cursor& cursor, std::size_t offset) {
+		or_pre_check(cursor, offset);
+	}
+
+	static void on_and_pre_check(Cursor& cursor, std::size_t offset) {
+		and_pre_check(cursor, offset);
+	}
+
+	static void on_case_jump(Cursor& cursor, std::size_t offset) {
+		if (to_boolean(cursor.stack().back())) {
+			cursor.jmp(offset);
+			cursor.stack().pop_back();
+		}
+		cursor.stack().pop_back();
+	}
+
+	static void on_zero_jump(Cursor& cursor, std::size_t offset) {
+		if (!to_boolean(cursor.stack().back())) {
+			cursor.jmp(offset);
+		}
+		cursor.stack().pop_back();
+	}
+
+	static void on_jump(Cursor& cursor, std::size_t offset) {
+		cursor.jmp(offset);
+	}
+
+	static void on_set_retrieve_point(Cursor& cursor, std::size_t offset) {
+		cursor.set_retrieve_point(offset);
+	}
+
+	static void on_unset_retrieve_point(Cursor& cursor) {
+		cursor.unset_retrieve_point();
+	}
+
+	static void on_raise(Cursor& cursor) {
+		WeakReference exception = std::move(cursor.stack().back());
+		cursor.stack().pop_back();
+		cursor.raise(std::move(exception));
+	}
+
+	static void on_yield(Cursor& cursor) {
+		const auto item = std::move(cursor.stack().back());
+		cursor.stack().pop_back();
+		iterator_yield(cursor.generator().data<Iterator>(), WeakReference(create_from, item));
+	}
+
+	static void on_exit_generator(Cursor& cursor) {
+		cursor.exit_call();
+	}
+
+	static void on_yield_exit_generator(Cursor& cursor) {
+		const auto item = std::move(cursor.stack().back());
+		cursor.stack().pop_back();
+		iterator_yield(cursor.generator().data<Iterator>(), WeakReference(create_from, item));
+		cursor.exit_call();
+	}
+
+	static void on_init_capture(Cursor& cursor) {
+		auto& function = cursor.stack().back();
+		assert(is_instance_of(function, Data::function_format));
+		cursor.stack().back() = WeakReference(copy_from, function.flags() | Reference::temporary, function.data());
+	}
+
+	static void on_capture_symbol(Cursor& cursor, const Symbol& symbol) {
+		capture_symbol(cursor, symbol);
+	}
+
+	static void on_capture_as(Cursor& cursor, const Symbol& symbol) {
+		capture_as_symbol(cursor, symbol);
+	}
+
+	static void on_capture_all(Cursor& cursor) {
+		capture_all_symbols(cursor);
+	}
+
+	static void on_call(Cursor& cursor, int signature) {
+		call_operator(cursor, signature);
+	}
+
+	static void on_call_member(Cursor& cursor, int signature) {
+		call_member_operator(cursor, signature);
+	}
+
+	static void on_call_builtin(Cursor& cursor, std::size_t index) {
+		cursor.ast().call_builtin_method(index, cursor);
+	}
+
+	static void on_init_call(Cursor& cursor) {
+		init_call(cursor);
+	}
+
+	static void on_init_member_call(Cursor& cursor, const Symbol& symbol) {
+		init_member_call(cursor, symbol);
+	}
+
+	static void on_init_operator_call(Cursor& cursor, Class::Operator op) {
+		init_operator_call(cursor, op);
+	}
+
+	static void on_init_var_member_call(Cursor& cursor) {
+		init_member_call(cursor, var_symbol(cursor));
+	}
+
+	static void on_init_defined_member_call(Cursor& cursor, const Symbol& symbol, std::size_t offset) {
+		const auto& object = cursor.stack().back();
+		if (!is_instance_of(object, Data::none_format)) {
+			init_member_call(cursor, symbol);
+		}
+		else {
+			cursor.jmp(offset);
+		}
+	}
+
+	static void on_init_defined_operator_call(Cursor& cursor, Class::Operator op, std::size_t offset) {
+		const auto& object = cursor.stack().back();
+		if (!is_instance_of(object, Data::none_format)) {
+			init_operator_call(cursor, op);
+		}
+		else {
+			cursor.jmp(offset);
+		}
+	}
+
+	static void on_init_defined_var_member_call(Cursor& cursor, std::size_t offset) {
+		const auto symbol = var_symbol(cursor);
+		const auto& object = cursor.stack().back();
+		if (!is_instance_of(object, Data::none_format)) {
+			init_member_call(cursor, symbol);
+		}
+		else {
+			cursor.jmp(offset);
+		}
+	}
+
+	static void on_init_exception(Cursor& cursor, const Symbol& symbol) {
+		init_exception(cursor, symbol);
+	}
+
+	static void on_reset_exception(Cursor& cursor, const Symbol& symbol) {
+		reset_exception(cursor, symbol);
+	}
+
+	static void on_init_parameter(Cursor& cursor, const Symbol& symbol, Reference::Flags flags, std::size_t index) {
+		init_parameter(cursor, symbol, flags, index);
+	}
+
+	static void on_exit_call(Cursor& cursor) {
+		cursor.exit_call();
+	}
+
+	void on_exit_thread(Cursor& /*cursor*/) {
+		_can_continue = false;
+	}
+
+	void on_exit_exec(Cursor& cursor) {
+		auto* scheduler = Scheduler::instance();
+		assert_x(scheduler, __func__, "execution should be done using a scheduler");
+		scheduler->exit(to_integer<int>(cursor, cursor.stack().back()));
+		cursor.stack().pop_back();
+		_can_continue = false;
+	}
+
+	void on_exit_module(Cursor& cursor) {
+		_can_continue = cursor.exit_module();
+	}
+};
 
 }
 
-bool mint::debug_steps(CursorDebugger *cursor, DebugInterface *handle) {
-
+ProcessorLocker::ProcessorLocker() {
 	lock_processor();
+}
+
+ProcessorLocker::~ProcessorLocker() {
+	unlock_processor();
+}
+
+bool mint::debug_steps(CursorDebugger& cursor, DebugInterface& handle) {
+
+	auto do_run_steps = DoRunSteps();
 
 	do {
-		for (size_t i = 0; i < QUANTUM; ++i) {
-			if (!handle->debug(cursor)) {
-				unlock_processor();
+		for (std::size_t i = 0; i < quantum; ++i) {
+			if (!handle.debug(cursor)) {
 				return false;
 			}
-			if (!do_run_steps(cursor->cursor(), 1)) {
-				unlock_processor();
+			if (!do_run_steps.walk(cursor.cursor())) {
 				return false;
 			}
+		}
+		static GarbageCollector& g_garbage_collector = GarbageCollector::instance();
+		if (g_garbage_collector.is_threshold_exceded()) {
+			g_garbage_collector.collect();
 		}
 	}
 	while (g_single_thread);
 
-	unlock_processor();
 	return true;
 }
 
-bool mint::run_steps(Cursor *cursor) {
+bool mint::run_steps(Cursor& cursor) {
 
-	lock_processor();
+	auto do_run_steps = DoRunSteps();
 
 	do {
-		if (!do_run_steps(cursor, QUANTUM)) {
-			unlock_processor();
+		if (!do_run_steps.walk(cursor, quantum)) {
 			return false;
+		}
+		static GarbageCollector& g_garbage_collector = GarbageCollector::instance();
+		if (g_garbage_collector.is_threshold_exceded()) {
+			g_garbage_collector.collect();
 		}
 	}
 	while (g_single_thread);
 
-	unlock_processor();
 	return true;
 }
 
-bool mint::run_step(Cursor *cursor) {
-
-	lock_processor();
-
-	if (!do_run_steps(cursor, 1)) {
-		unlock_processor();
-		return false;
-	}
-
-	unlock_processor();
-	return true;
+bool mint::run_step(Cursor& cursor) {
+	auto do_run_steps = DoRunSteps();
+	return do_run_steps.walk(cursor);
 }
 
 void mint::set_multi_thread(bool enabled) {

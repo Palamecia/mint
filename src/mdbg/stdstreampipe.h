@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,39 +24,39 @@
 #ifndef STDSTREAMPIPE_H
 #define STDSTREAMPIPE_H
 
-#include <mint/system/terminal.h>
-#include <cstdint>
+#include "mint/system/terminal.h"
+#include <cstddef>
 #include <array>
+#include <string>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include <Windows.h>
+#include <winnt.h>
 #endif
 
 class StdStreamPipe {
 public:
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 	using handle_t = HANDLE;
 #else
 	using handle_t = int;
 #endif
-	StdStreamPipe(const StdStreamPipe &) = default;
-	StdStreamPipe(StdStreamPipe &&) = delete;
+	StdStreamPipe(const StdStreamPipe&) = default;
+	StdStreamPipe(StdStreamPipe&&) = delete;
 	StdStreamPipe(mint::StdStreamFileNo number);
 	~StdStreamPipe();
 
-	StdStreamPipe &operator=(const StdStreamPipe &) = default;
-	StdStreamPipe &operator=(StdStreamPipe &&) = delete;
+	StdStreamPipe& operator=(const StdStreamPipe&) = default;
+	StdStreamPipe& operator=(StdStreamPipe&&) = delete;
 
 	[[nodiscard]] bool can_read() const;
 	[[nodiscard]] std::string read();
 
 private:
-	enum : std::uint8_t {
-		READ_INDEX,
-		WRITE_INDEX
-	};
+	static constexpr std::size_t read_index = 0;
+	static constexpr std::size_t write_index = 1;
 
-	std::array<handle_t, 2> m_handles;
+	std::array<handle_t, 2> _handles;
 };
 
 #endif // STDSTREAMPIPE_H

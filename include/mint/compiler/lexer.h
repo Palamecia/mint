@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,44 +21,46 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_LEXER_H
-#define MINT_LEXER_H
+#ifndef MINT_COMPILER_LEXER_H
+#define MINT_COMPILER_LEXER_H
 
+#include "mint/config.h"
 #include "mint/system/datastream.h"
 
+#include <functional>
 #include <map>
+#include <string>
 
 namespace mint {
 
 class MINT_EXPORT Lexer {
+	std::reference_wrapper<DataStream> _stream;
+	int _cptr = 0;
+	int _remaining = 0; // hack
 public:
-	explicit Lexer(DataStream *stream);
+	explicit Lexer(DataStream& stream);
 
 	std::string next_token();
-	static int token_type(const std::string &token);
+	static int token_type(const std::string& token);
 
 	std::string read_regex();
 
-	std::string format_error(const char *error) const;
+	[[nodiscard]] std::string format_error(const std::string& error) const;
 	[[nodiscard]] bool at_end() const;
 
 	static bool is_digit(int c);
 	static bool is_white_space(int c);
-	static bool is_operator(const std::string &token);
-	static bool is_operator(const std::string &token, int *type);
+	static bool is_operator(const std::string& token);
+	static bool is_operator(const std::string& token, int* type);
 
 protected:
 	std::string tokenize_string(char delim);
 
 private:
-	static const std::map<std::string, int> KEYWORDS;
-	static const std::map<std::string, int> OPERATORS;
-
-	DataStream *m_stream;
-	int m_cptr;
-	int m_remaining; // hack
+	static const std::map<std::string, int> keywords;
+	static const std::map<std::string, int> operators;
 };
 
 }
 
-#endif // MINT_LEXER_H
+#endif // MINT_COMPILER_LEXER_H

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,18 +21,19 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/system/filesystem.h>
-#include <mint/system/error.h>
-#include <filesystem>
-#include <cstring>
-#include <sstream>
-#include <fstream>
-#include <vector>
-
 #include "dictionary.h"
+#include "mint/system/arguments.h"
+#include "mint/system/error.h"
 #include "parser.h"
-
-using namespace mint;
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
+#include <fstream>
+#include <ranges>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace {
 
@@ -42,40 +43,40 @@ struct Options {
 };
 
 void print_help() {
-	puts("Usage : mintdoc [path] [option]");
-	puts("Generate a mint project's documentation from formatted comments.");
-	puts("The mint project directory must be identified by path.");
-	puts("Options :");
-	puts("  --help              : Print this help message and exit");
-	puts("  -o, --output 'path' : Set a custom path for the generated documents (the default path is ./build/)");
+	std::puts("Usage : mintdoc [path] [option]");
+	std::puts("Generate a mint project's documentation from formatted comments.");
+	std::puts("The mint project directory must be identified by path.");
+	std::puts("Options :");
+	std::puts("  --help              : Print this help message and exit");
+	std::puts("  -o, --output 'path' : Set a custom path for the generated documents (the default path is ./build/)");
 }
 
-bool parse_argument(Options *options, int argc, int &argn, char **argv) {
+bool parse_argument(Options& options, auto& it, const auto& end) {
 
-	if (!strcmp(argv[argn], "-o") || !strcmp(argv[argn], "--output")) {
-		if (++argn < argc) {
-			options->output = std::filesystem::weakly_canonical(argv[argn]);
+	if (*it == "-o" || *it == "--output") {
+		if (++it != end) {
+			options.output = std::filesystem::weakly_canonical(*it);
 			return true;
 		}
 	}
-	else if (!strcmp(argv[argn], "--help")) {
+	else if (*it == "--help") {
 		print_help();
 		return false;
 	}
 	else {
-		options->roots.push_back(std::filesystem::weakly_canonical(argv[argn]));
+		options.roots.push_back(std::filesystem::weakly_canonical(*it));
 		return true;
 	}
 
 	print_help();
-	error("parameter %d ('%s') is not valid", argn, argv[argn]);
+	mint::error("parameter ('{}') is not valid", *it);
 	return false;
 }
 
-bool parse_arguments(Options *options, int argc, char **argv) {
+bool parse_arguments(Options& options, const std::vector<std::string>& args) {
 
-	for (int argn = 1; argn < argc; argn++) {
-		if (!parse_argument(options, argc, argn, argv)) {
+	for (auto it = args.begin(); it != args.end(); ++it) {
+		if (!parse_argument(options, it, args.end())) {
 			return false;
 		}
 	}
@@ -83,71 +84,71 @@ bool parse_arguments(Options *options, int argc, char **argv) {
 	return true;
 }
 
-std::string base_name(const std::string &filename) {
+std::string base_name(const std::string& filename) {
 	return filename.substr(0, filename.rfind('.'));
 }
 
-std::string module_path_to_string(const std::vector<std::string> &path, const std::string &module) {
+std::string module_path_to_string(const std::vector<std::string>& path, const std::string& module) {
 	std::string name;
-	for (const std::string &scope : path) {
+	for (const std::string& scope : path) {
 		name += scope + ".";
 	}
 	return name + base_name(module);
 }
 
-void setup(Dictionary *dictionary, std::vector<std::string> *module_path, const std::filesystem::path &path) {
-	for (const auto &entry : std::filesystem::directory_iterator {path}) {
+void setup(Dictionary& dictionary, std::vector<std::string>& module_path, const std::filesystem::path& path) {
+	for (const auto& entry : std::filesystem::directory_iterator {path}) {
 		if (entry.is_directory()) {
-			dictionary->open_module_group(module_path_to_string(*module_path, entry.path().stem().generic_string()));
-			module_path->push_back(entry.path().stem().generic_string());
+			dictionary.open_module_group(module_path_to_string(module_path, entry.path().stem().generic_string()));
+			module_path.push_back(entry.path().stem().generic_string());
 			setup(dictionary, module_path, entry.path());
-			module_path->pop_back();
-			dictionary->close_module();
+			module_path.pop_back();
+			dictionary.close_module();
 		}
 		else if (entry.path().extension() == ".mn") {
 			Parser parser(entry.path());
-			dictionary->open_module(module_path_to_string(*module_path, entry.path().stem().generic_string()));
+			dictionary.open_module(module_path_to_string(module_path, entry.path().stem().generic_string()));
 			parser.parse(dictionary);
-			dictionary->close_module();
+			dictionary.close_module();
 		}
 		else if (entry.path().extension() == ".mintdoc") {
-			std::string name = entry.path().stem().generic_string();
-			std::stringstream stream;
-			std::ifstream file(entry.path());
+			const auto name = entry.path().stem().generic_string();
+			auto stream = std::stringstream();
+			auto file = std::ifstream(entry.path());
 			stream << file.rdbuf();
 			if (name == "module") {
-				dictionary->set_module_doc(stream.str());
+				dictionary.set_module_doc(std::move(stream).str());
 			}
 			else if (name == "package") {
-				dictionary->set_package_doc(stream.str());
+				dictionary.set_package_doc(std::move(stream).str());
 			}
 			else {
-				dictionary->set_page_doc(name, stream.str());
+				dictionary.set_page_doc(name, std::move(stream).str());
 			}
 		}
 	}
 }
 
-int run(int argc, char **argv) {
+int run(const std::vector<std::string>& args) {
 
-	Options options;
-	Dictionary dictionary;
-	std::vector<std::string> module_path;
+	auto options = Options();
+	auto dictionary = Dictionary();
+	auto module_path = std::vector<std::string>();
 
 	options.output = std::filesystem::current_path() / "build";
 
-	if (!parse_arguments(&options, argc, argv)) {
+	if (!parse_arguments(options, args)) {
 		return EXIT_FAILURE;
 	}
 
-	for (const std::filesystem::path &root : options.roots) {
+	for (const std::filesystem::path& root : options.roots) {
 
 		if (!std::filesystem::exists(root)) {
-			error("'%s' is not a valid mint project directory", root.c_str());
+			mint::error("'{}' is not a valid mint project directory", root.generic_string());
 			return EXIT_FAILURE;
 		}
 
-		setup(&dictionary, &module_path, root);
+		setup(dictionary, module_path, root);
 	}
 
 	std::filesystem::create_directories(options.output);
@@ -158,26 +159,6 @@ int run(int argc, char **argv) {
 
 }
 
-#ifdef OS_WINDOWS
-
-#include <Windows.h>
-
-int wmain(int argc, wchar_t **argv) {
-	char **utf8_argv = static_cast<char **>(malloc(argc * sizeof(char *)));
-	for (int i = 0; i < argc; ++i) {
-		int length = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, nullptr, 0, nullptr, nullptr);
-		utf8_argv[i] = static_cast<char *>(malloc(length * sizeof(char)));
-		WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, utf8_argv[i], length, nullptr, nullptr);
-	}
-	int status = run(argc, utf8_argv);
-	for (int i = 0; i < argc; ++i) {
-		free(utf8_argv[i]);
-	}
-	free(utf8_argv);
-	return status;
+int main() {
+	return run({std::from_range, std::views::drop(mint::arguments(), 1)});
 }
-#else
-int main(int argc, char **argv) {
-	return run(argc, argv);
-}
-#endif

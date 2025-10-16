@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,10 +24,18 @@
 #ifndef MINT_PROCESS_HIGHLIGHTER_H
 #define MINT_PROCESS_HIGHLIGHTER_H
 
+#include "mint/ast/classregister.h"
 #include "mint/compiler/lexicalhandler.h"
+#include "mint/compiler/token.h"
+#include "mint/memory/reference.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
+#include <string>
+#include <tuple>
+#include <vector>
 
 namespace mint {
 
@@ -36,55 +44,62 @@ class ClassDescription;
 
 class Highlighter : public LexicalHandler {
 public:
-	Highlighter(std::string &output, std::string_view::size_type offset);
+	Highlighter(const AbstractSyntaxTree& ast, std::string_view::size_type offset);
 	Highlighter(const Highlighter&) = delete;
 	Highlighter(Highlighter&&) = delete;
 	~Highlighter() override = default;
 
-	Highlighter &operator=(const Highlighter&) = delete;
-	Highlighter &operator=(Highlighter&&) = delete;
+	Highlighter& operator=(const Highlighter&) = delete;
+	Highlighter& operator=(Highlighter&&) = delete;
+
+	[[nodiscard]] std::string output() const;
 
 protected:
 	bool on_script_begin() override;
 	bool on_script_end() override;
 
-	bool on_symbol_token(const std::vector<std::string> &context, const std::string &token,
-						 std::string::size_type offset) override;
-	bool on_token(token::Type type, const std::string &token, std::string::size_type offset) override;
-	bool on_white_space(const std::string &token, std::string::size_type offset) override;
-	bool on_comment(const std::string &token, std::string::size_type offset) override;
+	bool on_symbol_token(const std::vector<std::string>& context, const std::string& token,
+	    std::string::size_type offset) override;
+	bool on_token(Token type, const std::string& token, std::string::size_type offset) override;
+	bool on_white_space(const std::string& token, std::string::size_type offset) override;
+	bool on_comment(const std::string& token, std::string::size_type offset) override;
 
-	enum Style :std::uint8_t {
-		TEXT,
-		COMMENT,
-		KEYWORD,
-		CONSTANT,
-		USER_TYPE,
-		MODULE_PATH,
-		NUMBER_LITERAL,
-		STRING_LITERAL,
-		REGEX_LITERAL,
-		STANDARD_SYMBOL,
-		BRACE,
-		BRACE_MATCH
+	enum class Style : std::uint8_t {
+		text,
+		comment,
+		keyword,
+		operator_keyword,
+		controle_keyword,
+		constant,
+		function,
+		user_type,
+		number_literal,
+		string_literal,
+		regex_literal,
+		standard_symbol,
+		module_path,
+		brace,
+		brace_match
 	};
 
 	void set_style(Style style);
 
-	static bool is_defined_class(const std::vector<std::string> &context, const std::string &token);
-	static bool is_defined_symbol(const std::vector<std::string> &context, const std::string &token);
-	static bool resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc);
+	[[nodiscard]] const Reference* find_defined_symbol(const std::vector<std::string>& context,
+	    const std::string& token) const;
+	[[nodiscard]] std::optional<std::tuple<const PackageData*, const ClassDescription*>> resolve_path(
+	    const std::vector<std::string>& context) const;
 
 private:
-	std::string &m_output;
-	std::string_view::size_type m_offset;
+	std::reference_wrapper<const AbstractSyntaxTree> _ast;
+	std::string_view::size_type _offset;
+	std::string _output;
 
-	size_t m_brace_depth = 0;
-	std::optional<size_t> m_brace_match;
-	size_t m_bracket_depth = 0;
-	std::optional<size_t> m_bracket_match;
-	size_t m_parenthesis_depth = 0;
-	std::optional<size_t> m_parenthesis_match;
+	std::size_t _brace_depth = 0;
+	std::optional<std::size_t> _brace_match;
+	std::size_t _bracket_depth = 0;
+	std::optional<std::size_t> _bracket_match;
+	std::size_t _parenthesis_depth = 0;
+	std::optional<std::size_t> _parenthesis_match;
 };
 
 }

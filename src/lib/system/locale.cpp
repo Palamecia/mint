@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,167 +21,160 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/casttool.h>
-#include <locale>
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/casttool.h"
+#include "mint/memory/reference.h"
 #include <array>
+#include <cerrno>
+#include <clocale>
+#include <cstddef>
+#include <cstdint>
+#include <locale>
+#include <span>
+#include <type_traits>
+#include <unicode/locid.h>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include "win32/winlocale.h"
 #else
+#include <bits/types/locale_t.h>
 #include <langinfo.h>
+#include <locale.h>
+#include <nl_types.h>
 #endif
-
-using namespace mint;
 
 /**
 @see https://man7.org/linux/man-pages/man5/locale.5.html
 @see https://docs.microsoft.com/en-us/windows/win32/intl/national-language-support
 */
 
-#ifdef OS_WINDOWS
-using Locale = std::remove_pointer<MSVCRT__locale_t>::type;
+namespace {
+
+#ifdef MINT_OS_WINDOWS
+using Locale = std::remove_pointer_t<MSVCRT__locale_t>;
 #else
-using Locale = std::remove_pointer<locale_t>::type;
+using Locale = std::remove_pointer_t<locale_t>;
 #endif
 
-MINT_FUNCTION(mint_locale_current_name, 0, cursor) {
-	FunctionHelper helper(cursor, 0);
-	helper.return_value(create_string(std::locale().name()));
+mint::WeakReference mint_locale_current_name(mint::Cursor& cursor) {
+	return mint::create_string(cursor.ast(), std::locale().name());
 }
 
-MINT_FUNCTION(mint_locale_set_current_name, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &name = helper.pop_parameter();
-
-	std::string name_str = to_string(name);
-	if (setlocale(LC_ALL, name_str.c_str()) == nullptr) {
-		helper.return_value(create_number(errno));
+mint::WeakReference mint_locale_set_current_name(mint::Cursor& /*cursor*/, const mint::Reference& name) {
+	if (std::setlocale(LC_ALL, to_string(name).c_str()) == nullptr) {
+		return mint::create_number(errno);
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_locale_list, 0, cursor) {
+mint::WeakReference mint_locale_list(mint::Cursor& cursor) {
+	if (std::int32_t count = 0; const auto* locales = icu::Locale::getAvailableLocales(count)) {
+		mint::WeakReference result = mint::create_array(cursor.ast());
+		for (const auto& locale : std::span(locales, count)) {
+			array_append(result.data<mint::Array>(), mint::create_string(cursor.ast(), locale.getName()));
+		}
+		return result;
+	}
+	return {};
+}
 
-	FunctionHelper helper(cursor, 0);
-	WeakReference result = create_array();
-
-#ifdef OS_WINDOWS
-	if (EnumSystemLocalesEx(
-			[](LPWSTR name, DWORD flags, LPARAM result) -> BOOL {
-				std::array<char, 255> locale_name {};
-				WideCharToMultiByte(CP_UTF8, 0, name, -1, locale_name.data(), locale_name.size(), nullptr, nullptr);
-				array_append(((WeakReference *)result)->data<Array>(), create_string(locale_name.data()));
-				return TRUE;
-			},
-			LOCALE_ALL, LPARAM(&result), NULL)) {
-		helper.return_value(std::move(result));
+mint::WeakReference mint_locale_create(mint::Cursor& cursor, const mint::Reference& name) {
+#ifdef MINT_OS_WINDOWS
+	if (MSVCRT__locale_t locale = MSVCRT__create_locale(MSVCRT_LC_ALL, to_string(name).c_str())) {
+		return mint::create_c_object(cursor.ast(), locale);
 	}
 #else
-
-	helper.return_value(std::move(result));
+	if (locale_t locale = newlocale(LC_ALL_MASK, to_string(name).c_str(), nullptr)) {
+		return mint::create_c_object(cursor.ast(), locale);
+	}
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_locale_create, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &name = helper.pop_parameter();
-
-	std::string name_str = to_string(name);
-#ifdef OS_WINDOWS
-	if (MSVCRT__locale_t locale = MSVCRT__create_locale(MSVCRT_LC_ALL, name_str.c_str())) {
-		helper.return_value(create_object(locale));
-	}
+mint::WeakReference mint_locale_delete(mint::Cursor& /*cursor*/, const mint::Reference& locale) {
+#ifdef MINT_OS_WINDOWS
+	MSVCRT__free_locale(locale.data<mint::LibObject<std::remove_pointer_t<MSVCRT__locale_t>>>().ptr);
 #else
-	if (locale_t locale = newlocale(LC_ALL_MASK, name_str.c_str(), nullptr)) {
-		helper.return_value(create_object(locale));
-	}
+	freelocale(locale.data<mint::LibObject<std::remove_pointer_t<locale_t>>>().ptr);
 #endif
+	return {};
 }
 
-MINT_FUNCTION(mint_locale_delete, 1, cursor) {
+mint::WeakReference mint_locale_day_name(mint::Cursor& cursor, const mint::Reference& locale,
+    const mint::Reference& day, mint::Reference& format) {
 
-	FunctionHelper helper(cursor, 1);
-	const Reference &locale = helper.pop_parameter();
+	static constexpr std::size_t day_count = 7;
+	static const std::array<std::array<nl_item, day_count>, 2> day_item {{
+	    {ABDAY_1, ABDAY_2, ABDAY_3, ABDAY_4, ABDAY_5, ABDAY_6, ABDAY_7},
+	    {DAY_1, DAY_2, DAY_3, DAY_4, DAY_5, DAY_6, DAY_7},
+	}};
 
-#ifdef OS_WINDOWS
-	MSVCRT__free_locale(locale.data<LibObject<std::remove_pointer<MSVCRT__locale_t>::type>>()->impl);
-#else
-	freelocale(locale.data<LibObject<std::remove_pointer<locale_t>::type>>()->impl);
-#endif
-}
+	const auto format_index = mint::to_integer<int>(cursor, format);
+	const auto day_index = mint::to_integer<int>(cursor, day);
 
-MINT_FUNCTION(mint_locale_day_name, 3, cursor) {
-
-	FunctionHelper helper(cursor, 3);
-	Reference &format = helper.pop_parameter();
-	Reference &day = helper.pop_parameter();
-	Reference &locale = helper.pop_parameter();
-
-	static const nl_item DAY_ITEM[2][7] = {
-		{ABDAY_1, ABDAY_2, ABDAY_3, ABDAY_4, ABDAY_5, ABDAY_6, ABDAY_7},
-		{DAY_1, DAY_2, DAY_3, DAY_4, DAY_5, DAY_6, DAY_7},
-	};
-
-	auto format_index = to_integer(cursor, format);
-	auto day_index = to_integer(cursor, day);
-
-	if ((day_index >= 0) && (day_index <= 6) && (format_index >= 0) && (format_index <= 1)) {
-		helper.return_value(
-			create_string(nl_langinfo_l(DAY_ITEM[format_index][day_index], locale.data<LibObject<Locale>>()->impl)));
+	if ((day_index >= 0) && (day_index < day_count) && (format_index >= 0) && (format_index <= 1)) {
+		return mint::create_string(cursor.ast(),
+		    nl_langinfo_l(day_item[format_index][day_index], locale.data<mint::LibObject<Locale>>().ptr));
 	}
+
+	return {};
 }
 
-MINT_FUNCTION(mint_locale_month_name, 3, cursor) {
+mint::WeakReference mint_locale_month_name(mint::Cursor& cursor, const mint::Reference& locale,
+    const mint::Reference& month, mint::Reference& format) {
 
-	FunctionHelper helper(cursor, 3);
-	Reference &format = helper.pop_parameter();
-	Reference &month = helper.pop_parameter();
-	Reference &locale = helper.pop_parameter();
+	static constexpr std::size_t month_count = 12;
+	static const std::array<std::array<nl_item, month_count>, 2> month_item {{
+	    {ABMON_1, ABMON_2, ABMON_3, ABMON_4, ABMON_5, ABMON_6, ABMON_7, ABMON_8, ABMON_9, ABMON_10, ABMON_11, ABMON_12},
+	    {MON_1, MON_2, MON_3, MON_4, MON_5, MON_6, MON_7, MON_8, MON_9, MON_10, MON_11, MON_12},
+	}};
 
-	static const nl_item MONTH_ITEM[2][12] = {
-		{ABMON_1, ABMON_2, ABMON_3, ABMON_4, ABMON_5, ABMON_6, ABMON_7, ABMON_8, ABMON_9, ABMON_10, ABMON_11, ABMON_12},
-		{MON_1, MON_2, MON_3, MON_4, MON_5, MON_6, MON_7, MON_8, MON_9, MON_10, MON_11, MON_12},
-	};
+	const auto format_index = mint::to_integer<int>(cursor, format);
+	const auto month_index = mint::to_integer<int>(cursor, month);
 
-	auto format_index = to_integer(cursor, format);
-	auto month_index = to_integer(cursor, month);
-
-	if ((month_index >= 1) && (month_index <= 12) && (format_index >= 0) && (format_index <= 1)) {
-		helper.return_value(create_string(
-			nl_langinfo_l(MONTH_ITEM[format_index][month_index - 1], locale.data<LibObject<Locale>>()->impl)));
+	if ((month_index >= 1) && (month_index <= month_count) && (format_index >= 0) && (format_index <= 1)) {
+		return mint::create_string(cursor.ast(),
+		    nl_langinfo_l(month_item[format_index][month_index - 1], locale.data<mint::LibObject<Locale>>().ptr));
 	}
+
+	return {};
 }
 
-MINT_FUNCTION(mint_locale_am_name, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &locale = helper.pop_parameter();
-
-	helper.return_value(create_string(nl_langinfo_l(AM_STR, locale.data<LibObject<Locale>>()->impl)));
+mint::WeakReference mint_locale_am_name(mint::Cursor& cursor, const mint::Reference& locale) {
+	return mint::create_string(cursor.ast(), nl_langinfo_l(AM_STR, locale.data<mint::LibObject<Locale>>().ptr));
 }
 
-MINT_FUNCTION(mint_locale_pm_name, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const Reference &locale = helper.pop_parameter();
-
-	helper.return_value(create_string(nl_langinfo_l(PM_STR, locale.data<LibObject<Locale>>()->impl)));
+mint::WeakReference mint_locale_pm_name(mint::Cursor& cursor, const mint::Reference& locale) {
+	return mint::create_string(cursor.ast(), nl_langinfo_l(PM_STR, locale.data<mint::LibObject<Locale>>().ptr));
 }
 
-MINT_FUNCTION(mint_locale_date_format, 2, cursor) {
+mint::WeakReference mint_locale_date_format(mint::Cursor& cursor, const mint::Reference& locale,
+    const mint::Reference& format) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &format = helper.pop_parameter();
-	Reference &locale = helper.pop_parameter();
+	static constexpr std::size_t format_count = 4;
+	static const std::array<nl_item, format_count> format_item = {D_T_FMT, D_FMT, T_FMT, T_FMT_AMPM};
 
-	static const nl_item FORMAT_ITEM[4] = {D_T_FMT, D_FMT, T_FMT, T_FMT_AMPM};
+	const auto format_index = mint::to_integer<int>(cursor, format);
 
-	auto format_index = to_integer(cursor, format);
-
-	if ((format_index >= 0) && (format_index < 4)) {
-		helper.return_value(
-			create_string(nl_langinfo_l(FORMAT_ITEM[format_index], locale.data<LibObject<Locale>>()->impl)));
+	if ((format_index >= 0) && (format_index < format_count)) {
+		return mint::create_string(cursor.ast(),
+		    nl_langinfo_l(format_item[format_index], locale.data<mint::LibObject<Locale>>().ptr));
 	}
+
+	return {};
 }
+
+}
+
+MINT_EXPORT_FUNCTION(mint_locale_current_name, 0);
+MINT_EXPORT_FUNCTION(mint_locale_set_current_name, 1);
+MINT_EXPORT_FUNCTION(mint_locale_list, 0);
+MINT_EXPORT_FUNCTION(mint_locale_create, 1);
+MINT_EXPORT_FUNCTION(mint_locale_delete, 1);
+MINT_EXPORT_FUNCTION(mint_locale_day_name, 3);
+MINT_EXPORT_FUNCTION(mint_locale_month_name, 3);
+MINT_EXPORT_FUNCTION(mint_locale_am_name, 1);
+MINT_EXPORT_FUNCTION(mint_locale_pm_name, 1);
+MINT_EXPORT_FUNCTION(mint_locale_date_format, 2);

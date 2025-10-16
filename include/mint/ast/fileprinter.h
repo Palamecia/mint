@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,39 +21,39 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_FILEPRINTER_H
-#define MINT_FILEPRINTER_H
+#ifndef MINT_AST_FILEPRINTER_H
+#define MINT_AST_FILEPRINTER_H
 
 #include "mint/ast/printer.h"
+#include "mint/config.h"
 
 #include <cstdio>
+#include <filesystem>
+#include <string>
 
 namespace mint {
 
 class MINT_EXPORT FilePrinter : public Printer {
 public:
-	explicit FilePrinter(const char *path);
+	explicit FilePrinter(const std::filesystem::path& path);
 	explicit FilePrinter(int fd);
-	FilePrinter(FilePrinter &&other) = delete;
-	FilePrinter(const FilePrinter &other) = delete;
+	FilePrinter(FilePrinter&& other) = delete;
+	FilePrinter(const FilePrinter& other) = delete;
 	~FilePrinter() override;
 
-	FilePrinter &operator=(FilePrinter &&other) = delete;
-	FilePrinter &operator=(const FilePrinter &other) = delete;
+	FilePrinter& operator=(FilePrinter&& other) = delete;
+	FilePrinter& operator=(const FilePrinter& other) = delete;
 
-	void print(Reference &reference) override;
+	void print(const Reference& reference) override;
 
-	[[nodiscard]] FILE *file() const;
-
-protected:
-	int internal_print(const char *str);
+	[[nodiscard]] FILE* stream() const;
 
 private:
-	int (*m_print)(FILE *stream, const char *str);
-	int (*m_close)(FILE *stream);
-	FILE *m_stream;
+	FILE* _stream;
+	void (*_print)(FILE* stream, const std::string& str);
+	int (*_close)(FILE* stream);
 };
 
 }
 
-#endif // MINT_FILEPRINTER_H
+#endif // MINT_AST_FILEPRINTER_H

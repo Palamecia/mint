@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,13 +22,15 @@
  */
 
 #include "threadentrypoint.h"
+#include "mint/ast/node.h"
 
 using namespace mint;
 
 ThreadEntryPoint::ThreadEntryPoint() {
-	push_node(Node::EXIT_THREAD);
+	push_node(Node::Command::exit_thread);
 }
 
-ThreadEntryPoint *ThreadEntryPoint::instance() {
-	return &g_instance;
+ThreadEntryPoint& ThreadEntryPoint::instance() {
+	static ThreadEntryPoint g_instance;
+	return g_instance;
 }

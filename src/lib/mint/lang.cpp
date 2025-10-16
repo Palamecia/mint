@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,9 +21,17 @@
  * IN THE SOFTWARE.
  */
 
+#include "mint/ast/classregister.h"
+#include "mint/ast/symbol.h"
+#include "mint/debug/lineinfo.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/data.h"
+#include "mint/memory/memorytool.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/globaldata.h"
 #include "mint/memory/casttool.h"
+#include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/scheduler/processor.h"
 #include "mint/scheduler/process.h"
@@ -34,9 +42,11 @@
 
 #include "evalresultprinter.h"
 #include <filesystem>
+#include <functional>
+#include <memory>
+#include <ranges>
 #include <string>
-
-using namespace mint;
+#include <utility>
 
 namespace {
 
@@ -44,443 +54,347 @@ std::filesystem::path add_module_extension(std::filesystem::path path) {
 	return path.replace_extension(".mn");
 }
 
-void find_module_recursive_helper(Array *result, const std::filesystem::path &root_path,
-								  const std::filesystem::path &directory_path) {
-	for (const auto &entry : std::filesystem::directory_iterator {directory_path}) {
+void find_module_recursive_helper(mint::AbstractSyntaxTree& ast, mint::Array& result,
+    const std::filesystem::path& root_path, const std::filesystem::path& directory_path) {
+	for (const auto& entry : std::filesystem::directory_iterator {directory_path}) {
 		if (entry.is_directory()) {
-			find_module_recursive_helper(result, root_path, entry.path());
+			find_module_recursive_helper(ast, result, root_path, entry.path());
 		}
-		else if (is_module_file(entry.path())) {
-			array_append(result, create_string(FileSystem::to_module_path(root_path, entry.path())));
+		else if (mint::is_module_file(entry.path())) {
+			array_append(result, mint::create_string(ast, mint::FileSystem::to_module_path(root_path, entry.path())));
 		}
 	}
 }
+
+mint::WeakReference mint_lang_modules_roots(mint::Cursor& cursor) {
+	return mint::create_array(cursor.ast(),
+	    {std::from_range, std::views::transform(mint::FileSystem::instance().library_path(),
+	                          [&ast = cursor.ast()](const std::filesystem::path& path) {
+		                          return mint::create_string(ast, path.generic_string());
+	                          })});
 }
 
-MINT_FUNCTION(mint_lang_modules_roots, 0, cursor) {
+mint::WeakReference mint_lang_modules_list(mint::Cursor& cursor, const mint::Reference& module_path) {
 
-	FunctionHelper helper(cursor, 0);
-	WeakReference result = create_array();
+	const auto module_path_str = to_string(module_path);
+	mint::WeakReference result = mint::create_array(cursor.ast());
 
-	for (const std::filesystem::path &path : FileSystem::instance().library_path()) {
-		array_append(result.data<Array>(), create_string(path.generic_string()));
-	}
-
-	helper.return_value(std::move(result));
-}
-
-MINT_FUNCTION(mint_lang_modules_list, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	const std::string module_path = to_string(helper.pop_parameter());
-	WeakReference result = create_array();
-
-	for (const std::filesystem::path &path : FileSystem::instance().library_path()) {
-		const std::filesystem::path root_path = std::filesystem::absolute(path);
-		if (module_path.empty()) {
-			find_module_recursive_helper(result.data<Array>(), root_path, root_path);
+	for (const std::filesystem::path& path : mint::FileSystem::instance().library_path()) {
+		if (const auto root_path = std::filesystem::absolute(path); module_path_str.empty()) {
+			find_module_recursive_helper(cursor.ast(), result.data<mint::Array>(), root_path, root_path);
 		}
-		else {
-			const std::filesystem::path file_path = FileSystem::to_system_path(root_path, module_path);
-			if (std::filesystem::exists(add_module_extension(file_path))) {
-				array_append(result.data<Array>(), create_string(module_path));
-			}
-			else {
-				find_module_recursive_helper(result.data<Array>(), root_path, file_path);
-			}
+		else if (const auto file_path = mint::FileSystem::to_system_path(root_path, module_path_str);
+		    std::filesystem::exists(add_module_extension(file_path))) {
+			array_append(result.data<mint::Array>(), mint::create_string(cursor.ast(), module_path_str));
+		}
+		else if (std::filesystem::exists(file_path)) {
+			find_module_recursive_helper(cursor.ast(), result.data<mint::Array>(), root_path, file_path);
 		}
 	}
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_lang_main_module_path, 0, cursor) {
-	FunctionHelper helper(cursor, 0);
-	helper.return_value(create_string(FileSystem::instance().get_main_module_path().generic_string()));
+mint::WeakReference mint_lang_main_module_path(mint::Cursor& cursor) {
+	return mint::create_string(cursor.ast(), mint::FileSystem::instance().get_main_module_path().generic_string());
 }
 
-MINT_FUNCTION(mint_lang_to_module_path, 1, cursor) {
+mint::WeakReference mint_lang_to_module_path(mint::Cursor& cursor, const mint::Reference& file_path) {
 
-	FunctionHelper helper(cursor, 1);
-	const std::filesystem::path file_path = std::filesystem::absolute(to_string(helper.pop_parameter()));
+	const auto file_path_str = to_string(file_path);
 
-	if (is_module_file(file_path)) {
-		for (const std::filesystem::path &path : FileSystem::instance().library_path()) {
-			std::filesystem::path root_path = std::filesystem::absolute(path);
-			if (FileSystem::is_subpath(file_path, root_path)) {
-				helper.return_value(create_string(FileSystem::to_module_path(root_path, file_path)));
-				return;
+	if (mint::is_module_file(std::filesystem::absolute(file_path_str))) {
+		for (const std::filesystem::path& path : mint::FileSystem::instance().library_path()) {
+			if (const auto root_path = std::filesystem::absolute(path);
+			    mint::FileSystem::is_subpath(file_path_str, root_path)) {
+				return mint::create_string(cursor.ast(), mint::FileSystem::to_module_path(root_path, file_path_str));
 			}
 		}
 	}
+
+	return {};
 }
 
-MINT_FUNCTION(mint_lang_to_file_path, 1, cursor) {
+mint::WeakReference mint_lang_to_file_path(mint::Cursor& cursor, const mint::Reference& module_path) {
 
-	FunctionHelper helper(cursor, 1);
-	const std::string module_path = to_string(helper.pop_parameter());
-	const std::filesystem::path file_path = std::filesystem::absolute(to_system_path(module_path));
+	const std::filesystem::path file_path = std::filesystem::absolute(mint::to_system_path(to_string(module_path)));
 
 	if (std::filesystem::exists(file_path)) {
-		helper.return_value(create_string(file_path.generic_string()));
+		return mint::create_string(cursor.ast(), file_path.generic_string());
 	}
+
+	return {};
 }
 
-MINT_FUNCTION(mint_lang_load_module, 1, cursor) {
-	auto &stack = cursor->stack();
-	Reference &module_path = stack.back();
-	stack.back() = create_boolean(cursor->load_module(to_string(module_path)));
-}
+mint::WeakReference mint_lang_get_object_locals(mint::Cursor& cursor, const mint::Reference& object) {
 
-MINT_FUNCTION(mint_lang_backtrace, 1, cursor) {
+	mint::WeakReference result = mint::create_hash(cursor.ast());
 
-	Reference &thread_id = cursor->stack().back();
-	WeakReference result = create_array();
-
-	cursor->exit_call();
-	cursor->exit_call();
-
-	if (is_instance_of(thread_id, Data::FMT_NONE)) {
-		for (const LineInfo &info : cursor->dump()) {
-			array_append(result.data<Array>(), array_item(create_iterator(create_string(info.module_name()),
-																		  create_number(info.line_number()))));
-		}
-	}
-	else if (Scheduler *scheduler = Scheduler::instance()) {
-		if (Process *thread = scheduler->find_thread(to_integer(cursor, thread_id))) {
-			for (const LineInfo &info : thread->cursor()->dump()) {
-				array_append(result.data<Array>(), array_item(create_iterator(create_string(info.module_name()),
-																			  create_number(info.line_number()))));
+	if (mint::is_instance_of(object, mint::Data::object_format)) {
+		for (const auto& [symbol, member] : object.data<mint::Object>().metadata.members()) {
+			if (!(member.get().value.flags() & mint::Reference::visibility_mask)) {
+				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
+				    member.get().value);
 			}
 		}
 	}
 
-	cursor->stack().back() = std::move(result);
+	return result;
 }
 
-MINT_FUNCTION(mint_lang_get_object_locals, 1, cursor) {
+mint::WeakReference mint_lang_get_object_globals(mint::Cursor& cursor, const mint::Reference& object) {
 
-	FunctionHelper helper(cursor, 1);
-	Reference &object = helper.pop_parameter();
-	WeakReference result = create_hash();
+	mint::WeakReference result = mint::create_hash(cursor.ast());
 
-	switch (object.data()->format) {
-	case Data::FMT_OBJECT:
-		if (Object *data = object.data<Object>()) {
-			for (auto &symbol : data->metadata->members()) {
-				if (!(symbol.second->value.flags() & Reference::VISIBILITY_MASK)) {
-					hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second->value);
-				}
+	switch (object.data().format()) {
+	case mint::Data::object_format:
+		for (const auto& [symbol, member] : object.data<mint::Object>().metadata.globals()) {
+			if (!(member.get().value.flags() & mint::Reference::visibility_mask)) {
+				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
+				    member.get().value);
 			}
 		}
 		break;
-
+	case mint::Data::package_format:
+		for (const auto& [symbol, member] : object.data<mint::Package>().data.symbols()) {
+			hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()), member);
+		}
+		break;
 	default:
 		break;
 	}
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_lang_get_locals, 0, cursor) {
+mint::WeakReference mint_lang_get_globals(mint::Cursor& cursor) {
 
-	cursor->exit_call();
-	cursor->exit_call();
+	mint::WeakReference result = mint::create_hash(cursor.ast());
 
-	WeakReference result = create_hash();
-
-	for (auto &symbol : cursor->symbols()) {
-		hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second);
+	for (const auto& [symbol, member] : cursor.ast().global_data().symbols()) {
+		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()), member);
 	}
 
-	cursor->stack().emplace_back(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_lang_get_object_globals, 1, cursor) {
+mint::WeakReference mint_lang_get_object_types(mint::Cursor& cursor, const mint::Reference& object) {
 
-	FunctionHelper helper(cursor, 1);
-	Reference &object = helper.pop_parameter();
-	WeakReference result = create_hash();
+	mint::WeakReference result = mint::create_hash(cursor.ast());
 
-	switch (object.data()->format) {
-	case Data::FMT_OBJECT:
-		if (Object *data = object.data<Object>()) {
-			for (auto &symbol : data->metadata->globals()) {
-				if (!(symbol.second->value.flags() & Reference::VISIBILITY_MASK)) {
-					hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second->value);
-				}
+	switch (object.data().format()) {
+	case mint::Data::object_format:
+		for (const auto& [symbol, type] : object.data<mint::Object>().metadata.classes()) {
+			if (!(type.get().value.flags() & mint::Reference::visibility_mask)) {
+				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
+				    mint::create_alias(type.get().value.data<mint::Object>().metadata));
 			}
 		}
 		break;
-
-	case Data::FMT_PACKAGE:
-		if (PackageData *data = object.data<Package>()->data) {
-			for (auto &symbol : data->symbols()) {
-				hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second);
-			}
+	case mint::Data::package_format:
+		for (const auto& [symbol, type] : object.data<mint::Package>().data.classes()) {
+			hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
+			    mint::create_alias(type));
 		}
 		break;
-
 	default:
 		break;
 	}
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_lang_get_globals, 0, cursor) {
+mint::WeakReference mint_lang_get_types(mint::Cursor& cursor) {
 
-	FunctionHelper helper(cursor, 0);
-	WeakReference result = create_hash();
+	mint::WeakReference result = mint::create_hash(cursor.ast());
 
-	for (auto &symbol : GlobalData::instance()->symbols()) {
-		hash_insert(result.data<Hash>(), create_string(symbol.first.str()), symbol.second);
+	for (const auto& [symbol, type] : cursor.ast().global_data().classes()) {
+		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
+		    mint::create_alias(type));
 	}
 
-	helper.return_value(std::move(result));
+	return result;
 }
 
-MINT_FUNCTION(mint_lang_get_object_types, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &object = helper.pop_parameter();
-	WeakReference result = create_hash();
-
-	switch (object.data()->format) {
-	case Data::FMT_OBJECT:
-		if (auto *data = object.data<Object>()) {
-			if (const ClassDescription *description = data->metadata->get_description()) {
-				for (ClassDescription::Id i = 0; const ClassDescription *child = description->get_class_description(i);
-					 ++i) {
-					if (Class::MemberInfo *type = data->metadata->get_class(child->name())) {
-						if (!(type->value.flags() & Reference::VISIBILITY_MASK)) {
-							hash_insert(result.data<Hash>(), create_string(child->name().str()),
-										WeakReference::create(type->value.data<Object>()->metadata->make_instance()));
-						}
-					}
-				}
-			}
-		}
-		break;
-
-	case Data::FMT_PACKAGE:
-		if (PackageData *data = object.data<Package>()->data) {
-			for (ClassDescription::Id i = 0; const ClassDescription *description = data->get_class_description(i); ++i) {
-				if (Class *type = data->get_class(description->name())) {
-					hash_insert(result.data<Hash>(), create_string(description->name().str()),
-								WeakReference::create(type->make_instance()));
-				}
-			}
-		}
-		break;
-
-	default:
-		break;
-	}
-
-	helper.return_value(std::move(result));
-}
-
-MINT_FUNCTION(mint_lang_get_types, 0, cursor) {
-
-	FunctionHelper helper(cursor, 0);
-	WeakReference result = create_hash();
-
-	for (ClassRegister::Id i = 0;
-		 const ClassDescription *description = GlobalData::instance()->get_class_description(i); ++i) {
-		if (Class *type = GlobalData::instance()->get_class(Symbol(description->name()))) {
-			hash_insert(result.data<Hash>(), create_string(description->name().str()),
-						WeakReference::create(type->make_instance()));
-		}
-	}
-
-	helper.return_value(std::move(result));
-}
-
-MINT_FUNCTION(mint_lang_is_main, 0, cursor) {
-
-	cursor->exit_call();
-	cursor->exit_call();
-
-	bool has_va_args = cursor->symbols().find("va_args") != cursor->symbols().end();
-	bool is_first_module = !cursor->call_in_progress();
-
-	cursor->stack().emplace_back(create_boolean(has_va_args && is_first_module));
-}
-
-MINT_FUNCTION(mint_at_exit, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &callback = helper.pop_parameter();
+mint::WeakReference mint_at_exit(mint::FunctionHelper& helper, const mint::Reference& callback) {
 
 	struct Callback {
-		explicit Callback(WeakReference &&function) :
-			m_function(std::make_shared<StrongReference>(std::move(function))) {}
+		Callback(mint::Scheduler& scheduler, mint::WeakReference&& function) :
+		    _scheduler(scheduler),
+		    _function(std::make_shared<mint::StrongReference>(std::move(function))) {}
 
 		void operator()(int status) {
-			if (Scheduler *scheduler = Scheduler::instance()) {
-				scheduler->invoke(*m_function, create_number(status));
-			}
+			_scheduler.get().invoke(*_function, mint::create_number(status));
 		}
 
 	private:
-		std::shared_ptr<StrongReference> m_function;
+		std::reference_wrapper<mint::Scheduler> _scheduler;
+		std::shared_ptr<mint::StrongReference> _function;
 	};
 
-	if (Scheduler *scheduler = Scheduler::instance()) {
-		scheduler->add_exit_callback(Callback {std::move(callback)});
-	}
+	mint::Scheduler& scheduler = helper.scheduler();
+	scheduler.add_exit_callback(Callback(scheduler, callback));
+	return {};
 }
 
-MINT_FUNCTION(mint_at_error, 1, cursor) {
-
-	FunctionHelper helper(cursor, 1);
-	Reference &callback = helper.pop_parameter();
+mint::WeakReference mint_at_error(mint::FunctionHelper& helper, const mint::Reference& callback) {
 
 	struct Callback {
-		explicit Callback(WeakReference &&function) :
-			m_function(std::make_shared<StrongReference>(std::move(function))) {}
+		Callback(mint::Scheduler& scheduler, mint::WeakReference&& function) :
+		    _scheduler(scheduler),
+		    _function(std::make_shared<mint::StrongReference>(std::move(function))) {}
 
-		void operator()() {
-			if (Scheduler *scheduler = Scheduler::instance()) {
-				WeakReference backtrace = create_array();
-				if (const Process *process = scheduler->current_process()) {
-					for (const LineInfo &info : process->cursor()->dump()) {
-						array_append(backtrace.data<Array>(),
-									 array_item(create_iterator(create_string(info.module_name()),
-																create_number(info.line_number()))));
-					}
+		void operator()(const std::string& message) {
+			mint::WeakReference backtrace = mint::create_array(_scheduler.get().ast());
+			if (const mint::Process* process = mint::Scheduler::current_process()) {
+				for (const mint::LineInfo& info : process->cursor().dump()) {
+					array_append(backtrace.data<mint::Array>(),
+					    array_item(create_iterator_from(_scheduler.get().ast(),
+					        mint::create_string(_scheduler.get().ast(), info.module_name()),
+					        mint::create_unsigned_number(info.line_number()))));
 				}
-				scheduler->invoke(*m_function, create_string(get_error_message()), std::move(backtrace));
 			}
+			_scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().ast(), message),
+			    std::move(backtrace));
 		}
+
 	private:
-		std::shared_ptr<StrongReference> m_function;
+		std::reference_wrapper<mint::Scheduler> _scheduler;
+		std::shared_ptr<mint::StrongReference> _function;
 	};
 
-	add_error_callback(Callback {std::move(callback)});
+	mint::add_error_callback(Callback(helper.scheduler(), callback));
+	return {};
 }
 
-MINT_FUNCTION(mint_lang_exec, 2, cursor) {
+mint::WeakReference mint_lang_exec(mint::FunctionHelper& helper, const mint::Reference& src,
+    const mint::Reference& context) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &context = helper.pop_parameter();
-	Reference &src = helper.pop_parameter();
+	if (auto process = mint::Process::from_buffer(helper.scheduler(), to_string(src) + "\n")) {
 
-	if (Process *process = Process::from_buffer(cursor->ast(), to_string(src) + "\n")) {
-
-		for (auto &symbol : to_hash(context)) {
-			process->cursor()->symbols().emplace(Symbol(to_string(symbol.first)), symbol.second);
+		for (auto& symbol : to_hash(context)) {
+			process->cursor().symbols().emplace(mint::Symbol(to_string(symbol.first)), symbol.second);
 		}
 
-		unlock_processor();
+		mint::unlock_processor();
 		process->setup();
 
 		do {
 			process->exec();
 		}
-		while (process->cursor()->call_in_progress());
+		while (process->cursor().call_in_progress());
 
 		process->cleanup();
-		delete process;
-		lock_processor();
+		mint::lock_processor();
 	}
+
+	return {};
 }
 
-MINT_FUNCTION(mint_lang_eval, 2, cursor) {
+mint::WeakReference mint_lang_eval(mint::FunctionHelper& helper, const mint::Reference& src,
+    const mint::Reference& context) {
 
-	FunctionHelper helper(cursor, 2);
-	Reference &context = helper.pop_parameter();
-	Reference &src = helper.pop_parameter();
+	if (auto process = mint::Process::from_buffer(helper.scheduler(), to_string(src) + "\n")) {
 
-	if (Process *process = Process::from_buffer(cursor->ast(), to_string(src) + "\n")) {
-
-		for (auto &symbol : to_hash(context)) {
-			process->cursor()->symbols().emplace(Symbol(to_string(symbol.first)), symbol.second);
+		for (auto& symbol : to_hash(context)) {
+			process->cursor().symbols().emplace(mint::Symbol(to_string(symbol.first)), symbol.second);
 		}
 
-		EvalResultPrinter printer;
-		process->cursor()->open_printer(&printer);
-		unlock_processor();
+		auto printer = std::make_unique<EvalResultPrinter>(process->cursor().ast());
+		auto& printer_ref = *printer;
+		process->cursor().open_printer(std::move(printer));
+		mint::unlock_processor();
 		process->setup();
 
 		do {
 			process->exec();
 		}
-		while (process->cursor()->call_in_progress());
+		while (process->cursor().call_in_progress());
 
-		helper.return_value(printer.result());
+		auto result = printer_ref.result();
 		process->cleanup();
-		delete process;
-		lock_processor();
+		mint::lock_processor();
+		return result;
 	}
+
+	return {};
 }
 
-MINT_FUNCTION(mint_lang_create_object_global, 3, cursor) {
-
-	FunctionHelper helper(cursor, 3);
-	Reference &value = helper.pop_parameter();
-	Reference &name = helper.pop_parameter();
-	Reference &object = helper.pop_parameter();
-
-	Symbol symbol(to_string(name));
-
-	switch (object.data()->format) {
-	case Data::FMT_OBJECT:
-		if (auto *data = object.data<Object>()) {
-			if (data->metadata->globals().find(symbol) == data->metadata->globals().end()) {
-				auto *member = new Class::MemberInfo {
-					/*.offset = */ Class::MemberInfo::INVALID_OFFSET,
-					/*.owner = */ data->metadata,
-					/*.value = */ WeakReference(Reference::GLOBAL | value.flags(), value.data()),
-				};
-				data->metadata->globals().emplace(symbol, member);
-				helper.return_value(create_boolean(true));
-			}
-			else {
-				helper.return_value(create_boolean(false));
-			}
-		}
-		else {
-			helper.return_value(create_boolean(false));
-		}
-		break;
-
-	case Data::FMT_PACKAGE:
-		if (PackageData *data = object.data<Package>()->data) {
-			if (data->symbols().find(symbol) == data->symbols().end()) {
-				data->symbols().emplace(symbol, WeakReference(Reference::GLOBAL | value.flags(), value.data()));
-				helper.return_value(create_boolean(true));
-			}
-			else {
-				helper.return_value(create_boolean(false));
-			}
-		}
-		else {
-			helper.return_value(create_boolean(false));
-		}
-		break;
-
-	default:
-		helper.return_value(create_boolean(false));
-		break;
-	}
 }
 
-MINT_FUNCTION(mint_lang_create_global, 2, cursor) {
+MINT_EXPORT_FUNCTION(mint_lang_modules_roots, 0);
+MINT_EXPORT_FUNCTION(mint_lang_modules_list, 1);
+MINT_EXPORT_FUNCTION(mint_lang_main_module_path, 0);
+MINT_EXPORT_FUNCTION(mint_lang_to_module_path, 1);
+MINT_EXPORT_FUNCTION(mint_lang_to_file_path, 1)
 
-	FunctionHelper helper(cursor, 2);
-	Reference &value = helper.pop_parameter();
-	Reference &name = helper.pop_parameter();
-
-	SymbolTable *symbols = &GlobalData::instance()->symbols();
-	Symbol symbol(to_string(name));
-
-	if (symbols->find(symbol) == symbols->end()) {
-		symbols->emplace(symbol, WeakReference(Reference::GLOBAL | value.flags(), value.data()));
-		helper.return_value(create_boolean(true));
-	}
-	else {
-		helper.return_value(create_boolean(false));
-	}
+MINT_RAW_FUNCTION(mint_lang_load_module, 1, cursor) {
+	auto& stack = cursor.stack();
+	const auto& module_path = stack.back();
+	stack.back() = mint::create_boolean(cursor.load_module(to_string(module_path)));
 }
+
+MINT_RAW_FUNCTION(mint_lang_backtrace, 1, cursor) {
+
+	const auto& thread_id = cursor.stack().back();
+	auto result = mint::create_array(cursor.ast());
+
+	cursor.exit_call();
+	cursor.exit_call();
+
+	if (is_instance_of(thread_id, mint::Data::none_format)) {
+		for (const mint::LineInfo& info : cursor.dump()) {
+			array_append(result.data<mint::Array>(),
+			    array_item(create_iterator_from(cursor.ast(), mint::create_string(cursor.ast(), info.module_name()),
+			        mint::create_unsigned_number(info.line_number()))));
+		}
+	}
+	else if (const auto* scheduler = mint::Scheduler::instance()) {
+		if (const auto* thread = scheduler->find_thread(mint::to_integer<mint::Process::ThreadId>(cursor, thread_id))) {
+			for (const mint::LineInfo& info : thread->cursor().dump()) {
+				array_append(result.data<mint::Array>(),
+				    array_item(create_iterator_from(cursor.ast(), mint::create_string(cursor.ast(), info.module_name()),
+				        mint::create_unsigned_number(info.line_number()))));
+			}
+		}
+	}
+
+	cursor.stack().back() = std::move(result);
+}
+
+MINT_EXPORT_FUNCTION(mint_lang_get_object_locals, 1);
+
+MINT_RAW_FUNCTION(mint_lang_get_locals, 0, cursor) {
+
+	cursor.exit_call();
+	cursor.exit_call();
+
+	mint::WeakReference result = mint::create_hash(cursor.ast());
+
+	for (auto& symbol : cursor.symbols()) {
+		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.first.str()), symbol.second);
+	}
+
+	cursor.stack().emplace_back(std::move(result));
+}
+
+MINT_EXPORT_FUNCTION(mint_lang_get_object_globals, 1);
+MINT_EXPORT_FUNCTION(mint_lang_get_globals, 0);
+MINT_EXPORT_FUNCTION(mint_lang_get_object_types, 1);
+MINT_EXPORT_FUNCTION(mint_lang_get_types, 0);
+
+MINT_RAW_FUNCTION(mint_lang_is_main, 0, cursor) {
+
+	cursor.exit_call();
+	cursor.exit_call();
+
+	const bool has_va_args = cursor.symbols().contains("va_args");
+	const bool is_first_module = !cursor.call_in_progress();
+
+	cursor.stack().emplace_back(mint::create_boolean(has_va_args && is_first_module));
+}
+
+MINT_EXPORT_FUNCTION(mint_at_exit, 1);
+MINT_EXPORT_FUNCTION(mint_at_error, 1);
+MINT_EXPORT_FUNCTION(mint_lang_exec, 2);
+MINT_EXPORT_FUNCTION(mint_lang_eval, 2);

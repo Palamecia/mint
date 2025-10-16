@@ -5,15 +5,7 @@ Checks:
   - clang-analyzer-*
   - concurrency-*
   - cppcoreguidelines-*
-  - -cppcoreguidelines-avoid-c-arrays
   - -cppcoreguidelines-avoid-do-while
-  - -cppcoreguidelines-no-malloc
-  - -cppcoreguidelines-owning-memory
-  - -cppcoreguidelines-pro-bounds-array-to-pointer-decay
-  - -cppcoreguidelines-pro-bounds-pointer-arithmetic
-  - -cppcoreguidelines-pro-type-reinterpret-cast
-  - -cppcoreguidelines-pro-type-union-access
-  - -cppcoreguidelines-pro-type-vararg
   - misc-*
   - -misc-no-recursion
   - -misc-non-private-member-variables-in-classes
@@ -28,21 +20,22 @@ Checks:
   - -readability-uppercase-literal-suffix
 CheckOptions:
   readability-identifier-naming.ClassCase: CamelCase
-  readability-identifier-naming.ClassIgnoredRegexp: '(iterator|hash|equal_to|compare_to)'
+  readability-identifier-naming.ClassIgnoredRegexp: '(iterator|const_iterator)'
   readability-identifier-naming.ClassMemberPrefix: 'g_'
   readability-identifier-naming.ConstantCase: lower_case
-  readability-identifier-naming.ConstexprVariableCase: UPPER_CASE
+  readability-identifier-naming.ConstexprVariableCase: lower_case
   readability-identifier-naming.EnumCase: CamelCase
-  readability-identifier-naming.EnumConstantCase: UPPER_CASE
+  readability-identifier-naming.EnumConstantCase: lower_case
   readability-identifier-naming.FunctionCase: lower_case
-  readability-identifier-naming.GlobalConstantCase: UPPER_CASE
+  readability-identifier-naming.GlobalConstantCase: lower_case
   readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
   readability-identifier-naming.MemberCase: lower_case
   readability-identifier-naming.NamespaceCase: lower_case
   readability-identifier-naming.ParameterCase: lower_case
-  readability-identifier-naming.PrivateMemberPrefix: 'm_'
+  readability-identifier-naming.PrivateMemberPrefix: '_'
   readability-identifier-naming.StaticVariablePrefix: 'g_'
   readability-identifier-naming.StructCase: CamelCase
+  readability-identifier-naming.StructIgnoredRegexp: '(sentinel|hash|equal_to|compare_to)'
   readability-identifier-naming.UnionCase: CamelCase
   readability-identifier-naming.VariableCase: lower_case
   modernize-use-auto.MinTypeNameLength: 0

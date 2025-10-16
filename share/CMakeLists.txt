@@ -11,11 +11,5 @@ add_custom_target(subl-syntax
 )
 add_custom_target(vscode-syntax
 	SOURCES
-	vscode/syntaxes/mint.tmLanguage
-)
-
-mint_install_cmake(
-	cmake/mint-config.cmake
-	cmake/mint-flags.cmake
-	cmake/mint-install.cmake
+	vscode/syntaxes/mint.tmLanguage.json
 )

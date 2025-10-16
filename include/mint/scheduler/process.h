@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,66 +21,72 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_PROCESS_H
-#define MINT_PROCESS_H
+#ifndef MINT_SCHEDULER_PROCESS_H
+#define MINT_SCHEDULER_PROCESS_H
 
 #include "mint/ast/cursor.h"
+#include "mint/config.h"
 
 #include <filesystem>
+#include <memory>
+#include <string>
 #include <thread>
 
 namespace mint {
 
 class DebugInterface;
+class Scheduler;
 
 class MINT_EXPORT Process {
 public:
 	using ThreadId = int;
 
-	Process(Cursor *cursor);
-	Process(Process &&) = delete;
-	Process(const Process &) = default;
-	virtual ~Process();
+	Process(std::unique_ptr<Cursor>&& cursor);
+	Process(Process&&) = delete;
+	Process(const Process&) = delete;
+	virtual ~Process() = default;
 
-	Process &operator=(Process &&) = delete;
-	Process &operator=(const Process &) = default;
+	Process& operator=(Process&&) = delete;
+	Process& operator=(const Process&) = delete;
 
-	static Process *from_main_file(AbstractSyntaxTree *ast, const std::filesystem::path &file);
-	static Process *from_file(AbstractSyntaxTree *ast, const std::filesystem::path &file);
-	static Process *from_buffer(AbstractSyntaxTree *ast, const std::string &buffer);
-	static Process *from_standard_input(AbstractSyntaxTree *ast);
+	static std::unique_ptr<Process> from_main_file(Scheduler& scheduler, const std::filesystem::path& file);
+	static std::unique_ptr<Process> from_file(Scheduler& scheduler, const std::filesystem::path& file);
+	static std::unique_ptr<Process> from_buffer(Scheduler& scheduler, const std::string& buffer);
+	static std::unique_ptr<Process> from_standard_input(Scheduler& scheduler);
 
-	void parse_argument(const std::string &arg);
+	void parse_argument(const std::string& arg);
 
 	virtual void setup();
 	virtual void cleanup();
 
 	bool exec();
-	bool debug(DebugInterface *debug_interface);
+	bool debug(DebugInterface& debug_interface);
 	bool resume();
 
 	[[nodiscard]] ThreadId get_thread_id() const;
 	void set_thread_id(ThreadId id);
 
-	[[nodiscard]] std::thread *get_thread_handle() const;
-	void set_thread_handle(std::thread *handle);
+	[[nodiscard]] std::thread* get_thread_handle() const;
+	std::unique_ptr<std::thread> release_thread_handle();
+	void set_thread_handle(std::unique_ptr<std::thread>&& handle);
 
 	[[nodiscard]] bool is_endless() const;
-	[[nodiscard]] Cursor *cursor() const;
+	[[nodiscard]] bool is_thread() const;
+	[[nodiscard]] Cursor& cursor() const;
 
 protected:
 	void set_endless(bool endless);
 	void dump();
 
 private:
-	Cursor *m_cursor;
-	bool m_endless;
+	std::unique_ptr<Cursor> _cursor;
+	bool _endless = false;
 
-	std::thread *m_thread_handle = nullptr;
-	ThreadId m_thread_id;
-	int m_error_handler;
+	std::unique_ptr<std::thread> _thread_handle;
+	ThreadId _thread_id = 0;
+	int _error_handler = 0;
 };
 
 }
 
-#endif // MINT_PROCESS_H
+#endif // MINT_SCHEDULER_PROCESS_H

@@ -24,7 +24,7 @@ typedef struct _PROCESSINFO {
 } PROCESSINFO;
 
 BOOL EnableTokenPrivilege(IN LPCTSTR pszPrivilege);
-BOOL GetNtProcessInfo(IN const DWORD dwPID, OUT PROCESSINFO *ppi);
+BOOL GetNtProcessInfo(IN const DWORD dwPID, OUT PROCESSINFO* ppi);
 
 LPWSTR GetNtProcessCommandLine(HANDLE hProcess);
 DWORD GetNtProcessCurrentDirectory(HANDLE hProcess, LPWSTR lpCurrentDirectory, DWORD nSize);

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,6 +21,4 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-
-using namespace mint;
+#include "mint/memory/functiontool.h"

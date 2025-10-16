@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,14 +21,26 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_MODULE_H
-#define MINT_MODULE_H
+#ifndef MINT_AST_MODULE_H
+#define MINT_AST_MODULE_H
 
+#include "mint/ast/symbol.h"
+#include "mint/config.h"
+#include "mint/memory/data.h"
+#include "mint/memory/garbagecollector.h"
 #include "mint/ast/node.h"
 #include "mint/debug/debuginfo.h"
+#include "mint/memory/reference.h"
 
+#include <concepts>
+#include <cstddef>
 #include <cstdint>
+#include <initializer_list>
+#include <limits>
+#include <memory>
 #include <string>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace mint {
@@ -36,86 +48,103 @@ namespace mint {
 class parser;
 class PackageData;
 
-class MINT_EXPORT Module {
+class MINT_EXPORT Module : public MemoryRoot {
 	friend class AbstractSyntaxTree;
 	friend class MainBranch;
 	friend class BubBranch;
 public:
-	using Id = size_t;
+	using Id = std::size_t;
 
-	static constexpr const char *INVALID_NAME = "unknown";
-	static constexpr const Id INVALID_ID = static_cast<size_t>(-1);
+	static constexpr const char* invalid_name = "unknown";
+	static constexpr const Id invalid_id = std::numeric_limits<std::size_t>::max();
 
-	static constexpr const char *MAIN_NAME = "main";
-	static constexpr const Id MAIN_ID = 0;
+	static constexpr const char* main_name = "main";
+	static constexpr const Id main_id = 0;
 
-	enum State : std::uint8_t {
-		NOT_COMPILED,
-		NOT_LOADED,
-		READY
+	enum class State : std::uint8_t {
+		not_compiled,
+		not_loaded,
+		ready
 	};
 
 	struct Info {
-		Id id = INVALID_ID;
-		Module *module = nullptr;
-		DebugInfo *debug_info = nullptr;
-		State state = NOT_COMPILED;
+		Id id = invalid_id;
+		Module* module = nullptr;
+		DebugInfo* debug_info = nullptr;
+		State state = State::not_compiled;
 	};
 
 	struct Handle {
-		Id module;
-		size_t offset;
-		PackageData *package;
-		size_t fast_count;
+		Module& module;
+		std::size_t offset;
+		PackageData& package;
+		std::size_t fast_count;
 		bool generator;
 		bool symbols;
 	};
 
-	Module(Module &&other) = delete;
-	Module(const Module &other) = delete;
+	Module();
+	Module(Module&& other) = delete;
+	Module(const Module& other) = delete;
 	~Module();
 
-	Module &operator=(Module &&other) = delete;
-	Module &operator=(const Module &other) = delete;
+	Module& operator=(Module&& other) = delete;
+	Module& operator=(const Module& other) = delete;
 
-	inline Node &at(size_t idx);
-	[[nodiscard]] inline size_t end() const;
-	[[nodiscard]] inline size_t next_node_offset() const;
+	[[nodiscard]] inline const Node& node_at(std::size_t idx) const;
+	[[nodiscard]] inline Node& node_at(std::size_t idx);
+	[[nodiscard]] inline std::size_t end() const;
+	[[nodiscard]] inline std::size_t next_node_offset() const;
 
-	[[nodiscard]] Handle *find_handle(Id module, size_t offset) const;
-	Handle *make_handle(PackageData *package, Id module, size_t offset);
-	Handle *make_builtin_handle(PackageData *package, Id module, size_t offset);
+	[[nodiscard]] Handle* find_handle(std::size_t offset) const;
+	Handle& get_handle(PackageData& package, std::size_t offset);
+	Handle& make_handle(PackageData& package, std::size_t offset);
+	Handle& make_builtin_handle(PackageData& package, std::size_t offset);
 
-	Reference *make_constant(Data *data);
-	Symbol *make_symbol(const char *name);
+	template<std::derived_from<Data> Type, typename... Args>
+	Reference* make_constant(Args&&... args);
+	Reference* make_constant(Data& data);
+	Symbol* make_symbol(const std::string& name);
+
+	void mark() override;
 
 protected:
-	Module() = default;
-
-	void push_node(const Node &node);
-	void push_nodes(const std::vector<Node> &nodes);
-	void push_nodes(const std::initializer_list<Node> &nodes);
-	void replace_node(size_t offset, const Node &node);
+	void push_node(const Node& node);
+	void push_nodes(const std::vector<Node>& nodes);
+	void push_nodes(const std::initializer_list<Node>& nodes);
+	void replace_node(std::size_t offset, const Node& node);
 
 private:
-	std::vector<Node> m_tree;
-	std::vector<Handle *> m_handles;
-	std::vector<Reference *> m_constants;
-	std::map<std::string, Symbol *> m_symbols;
+	std::vector<Node> _tree;
+	std::vector<std::unique_ptr<Handle>> _handles;
+	std::vector<std::unique_ptr<WeakReference>> _constants;
+	std::unordered_map<std::string, std::unique_ptr<Symbol>> _symbols;
 };
 
-Node &Module::at(size_t idx) {
-	return m_tree[idx];
+const Node& Module::node_at(std::size_t idx) const {
+	return _tree[idx];
 }
 
-size_t Module::end() const {
-	return m_tree.size() - 1;
+Node& Module::node_at(std::size_t idx) {
+	return _tree[idx];
 }
 
-size_t Module::next_node_offset() const {
-	return m_tree.size();
+std::size_t Module::end() const {
+	return _tree.size() - 1;
+}
+
+std::size_t Module::next_node_offset() const {
+	return _tree.size();
+}
+
+template<std::derived_from<Data> Type, typename... Args>
+Reference* Module::make_constant(Args&&... args) {
+	return _constants
+	    .emplace_back(std::make_unique<WeakReference>(Reference::const_address | Reference::const_value,
+	        std::in_place_type<Type>, std::forward<Args>(args)...))
+	    .get();
 }
 
 }
 
-#endif // MINT_MODULE_H
+#endif // MINT_AST_MODULE_H

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,28 +21,30 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_OBJECTPRINTER_H
-#define MINT_OBJECTPRINTER_H
+#ifndef MINT_MEMORY_OBJECTPRINTER_H
+#define MINT_MEMORY_OBJECTPRINTER_H
 
 #include "mint/ast/printer.h"
+#include "mint/config.h"
 #include "mint/memory/reference.h"
+#include <functional>
 
 namespace mint {
 
 class Cursor;
-struct Object;
+class Object;
 
 class MINT_EXPORT ObjectPrinter : public Printer {
 public:
-	ObjectPrinter(Cursor *cursor, Reference::Flags flags, Object *object);
+	ObjectPrinter(Cursor& cursor, Reference::Flags flags, Object& object);
 
-	void print(Reference &reference) override;
+	void print(const Reference& reference) override;
 
 private:
-	StrongReference m_object;
-	Cursor *m_cursor;
+	StrongReference _object;
+	std::reference_wrapper<Cursor> _cursor;
 };
 
 }
 
-#endif // MINT_OBJECTPRINTER_H
+#endif // MINT_MEMORY_OBJECTPRINTER_H

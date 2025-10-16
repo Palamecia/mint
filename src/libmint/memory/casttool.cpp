@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,25 +22,45 @@
  */
 
 #include "mint/memory/casttool.h"
-#include "mint/memory/memorytool.h"
+#include "mint/ast/cursor.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/string.h"
+#include "mint/memory/data.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include "mint/system/assert.h"
+#include "mint/system/error.h"
 #include "mint/system/string.h"
 #include "mint/system/utf8.h"
-#include "mint/system/error.h"
-#include "mint/ast/cursor.h"
+#include "mint/scheduler/scheduler.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstddef>
+#include <cstdint>
+#include <exception>
+#include <format>
+#include <iterator>
 #include <optional>
+#include <regex>
+#include <stdexcept>
 #include <string>
 #include <cmath>
+#include <ranges>
+#include <string_view>
+#include <utility>
 
 using namespace mint;
 
 namespace {
 
-std::string number_to_char(intmax_t number) {
+std::string number_to_char(std::intmax_t number) {
 
 	std::string result;
 
@@ -54,530 +74,386 @@ std::string number_to_char(intmax_t number) {
 
 }
 
-double mint::to_unsigned_number(const std::string &str, bool *error) {
-
-	const char *value = str.c_str();
-	double intpart = 0;
-
-	if (value[0] == '0') {
-		switch (value[1]) {
-		case 'b':
-		case 'B':
-			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
-				switch (*cptr) {
-				case '0':
-					intpart = intpart * 2;
-					break;
-				case '1':
-					intpart = (intpart * 2) + 1;
-					break;
-				default:
-					if (error) {
-						*error = true;
-					}
-					return 0;
-				}
+double mint::to_number(Cursor& cursor, const Reference& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
+		error("invalid use of none value in an operation");
+	case Data::null_format:
+		cursor.raise(ref);
+		break;
+	case Data::number_format:
+		return ref.data<Number>().value;
+	case Data::boolean_format:
+		return ref.data<Boolean>().value;
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			try {
+				return to_signed_number(ref.data<String>().str);
 			}
-			if (error) {
-				*error = false;
-			}
-			return intpart;
-		case 'o':
-		case 'O':
-			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
-				if ('0' <= *cptr && *cptr < '8') {
-					intpart = (intpart * 8) + (*cptr - '0');
-				}
-				else {
-					if (error) {
-						*error = true;
-					}
-					return 0;
-				}
-			}
-			if (error) {
-				*error = false;
-			}
-			return intpart;
-
-		case 'x':
-		case 'X':
-			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
-				if (*cptr >= 'A') {
-					const int digit = ((*cptr - 'A') & (~('a' ^ 'A'))) + 10;
-					if (digit < 16) {
-						intpart = (intpart * 16) + digit;
-					}
-					else {
-						if (error) {
-							*error = true;
-						}
-						return 0;
-					}
-				}
-				else if (isdigit(*cptr)) {
-					intpart = (intpart * 16) + (*cptr - '0');
-				}
-				else {
-					if (error) {
-						*error = true;
-					}
-					return 0;
-				}
-			}
-			if (error) {
-				*error = false;
-			}
-			return intpart;
-
-		default:
-			break;
-		}
-	}
-
-	bool decimals = false;
-	bool exponent = false;
-	double fracpart = 0.;
-	intmax_t fracexp = 0;
-	intmax_t exppart = 0;
-	intmax_t expsign = 0;
-
-	for (const char *cptr = value; *cptr != '\0'; ++cptr) {
-		switch (*cptr) {
-		case '.':
-			if (decimals || exponent) {
-				if (error) {
-					*error = true;
-				}
+			catch (std::exception&) {
 				return 0;
 			}
-			decimals = true;
-			break;
-		case 'e':
-		case 'E':
-			if (exponent) {
-				if (error) {
-					*error = true;
-				}
-				return 0;
-			}
-			exponent = true;
-			switch (cptr[1]) {
-			case '+':
-				expsign = +1;
-				++cptr;
-				break;
-			case '-':
-				expsign = -1;
-				++cptr;
-				break;
-			default:
-				break;
-			}
-			break;
-		default:
-			if (isdigit(*cptr)) {
-				if (exponent) {
-					exppart = (exppart * 10) + (*cptr - '0');
-				}
-				else if (decimals) {
-					fracpart = (fracpart * 10) + (*cptr - '0');
-					--fracexp;
-				}
-				else {
-					intpart = (intpart * 10) + (*cptr - '0');
-				}
-			}
-			else {
-				if (error) {
-					*error = true;
-				}
-				return 0;
-			}
-		}
-	}
-
-	if (error) {
-		*error = false;
-	}
-
-	if (exponent) {
-		return (fracpart * pow(10, fracexp) + intpart) * pow(10, copysign(exppart, expsign));
-	}
-
-	if (decimals) {
-		return fracpart * pow(10, fracexp) + intpart;
-	}
-
-	return intpart;
-}
-
-double mint::to_signed_number(const std::string &str, bool *error) {
-	const char *data = str.data();
-	return *data == '-' ? -to_unsigned_number(data + 1, error) : +to_unsigned_number(str, error);
-}
-
-uintmax_t mint::to_unsigned_integer(const std::string &str, bool *error) {
-
-	const char *value = str.c_str();
-	uintmax_t intpart = 0;
-
-	if (value[0] == '0') {
-		switch (value[1]) {
-		case 'b':
-		case 'B':
-			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
-				switch (*cptr) {
-				case '0':
-					intpart = intpart << 1;
-					break;
-				case '1':
-					intpart = (intpart << 1) + 1;
-					break;
-				default:
-					if (error) {
-						*error = true;
-					}
-					return 0;
-				}
-			}
-			if (error) {
-				*error = false;
-			}
-			return intpart;
-		case 'o':
-		case 'O':
-			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
-				if ('0' <= *cptr && *cptr < '8') {
-					intpart = (intpart * 8) + (*cptr - '0');
-				}
-				else {
-					if (error) {
-						*error = true;
-					}
-					return 0;
-				}
-			}
-			if (error) {
-				*error = false;
-			}
-			return intpart;
-
-		case 'x':
-		case 'X':
-			for (const char *cptr = value + 2; *cptr != '\0'; ++cptr) {
-				if (*cptr >= 'A') {
-					const int digit = ((*cptr - 'A') & (~('a' ^ 'A'))) + 10;
-					if (digit < 16) {
-						intpart = (intpart * 16) + digit;
-					}
-					else {
-						if (error) {
-							*error = true;
-						}
-						return 0;
-					}
-				}
-				else if (isdigit(*cptr)) {
-					intpart = (intpart * 16) + (*cptr - '0');
-				}
-				else {
-					if (error) {
-						*error = true;
-					}
-					return 0;
-				}
-			}
-			if (error) {
-				*error = false;
-			}
-			return intpart;
-		default:
-			break;
-		}
-	}
-
-	for (const char *cptr = value; *cptr != '\0'; ++cptr) {
-		if ('0' <= *cptr && *cptr <= '9') {
-			intpart = (intpart * 10) + (*cptr - '0');
-		}
-		else {
-			if (error) {
-				*error = true;
-			}
-			return 0;
-		}
-	}
-	if (error) {
-		*error = false;
-	}
-
-	return intpart;
-}
-
-intmax_t mint::to_signed_integer(const std::string &str, bool *error) {
-	const char *data = str.data();
-	return *data == '-' ? -static_cast<intmax_t>(to_unsigned_integer(data + 1, error))
-						: +static_cast<intmax_t>(to_unsigned_integer(str, error));
-}
-
-intmax_t mint::to_integer(double value) {
-	return static_cast<intmax_t>(value);
-}
-
-intmax_t mint::to_integer(Cursor *cursor, Reference &ref) {
-
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
-		error("invalid use of none value in an operation");
-	case Data::FMT_NULL:
-		cursor->raise(std::forward<Reference>(ref));
-		break;
-	case Data::FMT_NUMBER:
-		return to_integer(ref.data<Number>()->value);
-	case Data::FMT_BOOLEAN:
-		return ref.data<Boolean>()->value;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::STRING:
-			return to_signed_integer(ref.data<String>()->str);
-		case Class::ITERATOR:
-			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
-				return to_integer(cursor, *item);
-			}
-			return to_integer(cursor, WeakReference::create<None>());
-		default:
-			error("invalid conversion from '%s' to 'number'", type_name(ref).c_str());
-		}
-		break;
-	case Data::FMT_PACKAGE:
-		error("invalid conversion from 'package' to 'number'");
-	case Data::FMT_FUNCTION:
-		error("invalid conversion from 'function' to 'number'");
-	}
-
-	return 0;
-}
-
-intmax_t mint::to_integer(Cursor *cursor, Reference &&ref) {
-
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
-		error("invalid use of none value in an operation");
-	case Data::FMT_NULL:
-		cursor->raise(std::move(ref));
-		break;
-	case Data::FMT_NUMBER:
-		return to_integer(ref.data<Number>()->value);
-	case Data::FMT_BOOLEAN:
-		return ref.data<Boolean>()->value;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::STRING:
-			return to_signed_integer(ref.data<String>()->str);
-		case Class::ITERATOR:
-			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
-				return to_integer(cursor, *item);
-			}
-			return to_integer(cursor, WeakReference::create<None>());
-		default:
-			error("invalid conversion from '%s' to 'number'", type_name(ref).c_str());
-		}
-		break;
-	case Data::FMT_PACKAGE:
-		error("invalid conversion from 'package' to 'number'");
-	case Data::FMT_FUNCTION:
-		error("invalid conversion from 'function' to 'number'");
-	}
-
-	return 0;
-}
-
-double mint::to_number(Cursor *cursor, Reference &ref) {
-
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
-		error("invalid use of none value in an operation");
-	case Data::FMT_NULL:
-		cursor->raise(std::forward<Reference>(ref));
-		break;
-	case Data::FMT_NUMBER:
-		return ref.data<Number>()->value;
-	case Data::FMT_BOOLEAN:
-		return ref.data<Boolean>()->value;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::STRING:
-			return to_signed_number(ref.data<String>()->str);
-		case Class::ITERATOR:
-			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+		case Class::iterator:
+			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
-			return to_number(cursor, WeakReference::create<None>());
+			return to_number(cursor, create_none());
 		default:
-			error("invalid conversion from '%s' to 'number'", type_name(ref).c_str());
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_number(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+			}
+			error("invalid conversion from '{}' to 'number'", type_name(ref));
 		}
 		break;
-	case Data::FMT_PACKAGE:
+	case Data::package_format:
 		error("invalid conversion from 'package' to 'number'");
-	case Data::FMT_FUNCTION:
+	case Data::function_format:
 		error("invalid conversion from 'function' to 'number'");
 	}
-
 	return 0;
 }
 
-double mint::to_number(Cursor *cursor, Reference &&ref) {
-
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
+double mint::to_number(Cursor& cursor, Reference&& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
 		error("invalid use of none value in an operation");
-	case Data::FMT_NULL:
-		cursor->raise(std::move(ref));
+	case Data::null_format:
+		cursor.raise(std::move(ref));
 		break;
-	case Data::FMT_NUMBER:
-		return ref.data<Number>()->value;
-	case Data::FMT_BOOLEAN:
-		return ref.data<Boolean>()->value;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::STRING:
-			return to_signed_number(ref.data<String>()->str);
-		case Class::ITERATOR:
-			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+	case Data::number_format:
+		return ref.data<Number>().value;
+	case Data::boolean_format:
+		return ref.data<Boolean>().value;
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			try {
+				return to_signed_number(ref.data<String>().str);
+			}
+			catch (std::exception&) {
+				return 0;
+			}
+		case Class::iterator:
+			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
-			return to_number(cursor, WeakReference::create<None>());
+			return to_number(cursor, create_none());
 		default:
-			error("invalid conversion from '%s' to 'number'", type_name(ref).c_str());
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_number(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+			}
+			error("invalid conversion from '{}' to 'number'", type_name(ref));
 		}
 		break;
-	case Data::FMT_PACKAGE:
+	case Data::package_format:
 		error("invalid conversion from 'package' to 'number'");
-	case Data::FMT_FUNCTION:
+	case Data::function_format:
 		error("invalid conversion from 'function' to 'number'");
 	}
-
 	return 0;
 }
 
-bool mint::to_boolean(const Reference &ref) {
+std::intmax_t mint::to_signed_integer(Cursor& cursor, const Reference& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
+		error("invalid use of none value in an operation");
+	case Data::null_format:
+		cursor.raise(ref);
+		break;
+	case Data::number_format:
+		return to_signed_integer(ref.data<Number>().value);
+	case Data::boolean_format:
+		return ref.data<Boolean>().value;
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			try {
+				return to_signed_integer(ref.data<String>().str);
+			}
+			catch (std::exception&) {
+				return 0;
+			}
+		case Class::iterator:
+			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
+				return to_signed_integer(cursor, *item);
+			}
+			return to_signed_integer(cursor, create_none());
+		default:
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_signed_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+			}
+			error("invalid conversion from '{}' to 'number'", type_name(ref));
+		}
+		break;
+	case Data::package_format:
+		error("invalid conversion from 'package' to 'number'");
+	case Data::function_format:
+		error("invalid conversion from 'function' to 'number'");
+	}
+	return 0;
+}
 
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
-	case Data::FMT_NULL:
+std::intmax_t mint::to_signed_integer(Cursor& cursor, Reference&& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
+		error("invalid use of none value in an operation");
+	case Data::null_format:
+		cursor.raise(std::move(ref));
+		break;
+	case Data::number_format:
+		return to_signed_integer(ref.data<Number>().value);
+	case Data::boolean_format:
+		return ref.data<Boolean>().value;
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			return to_signed_integer(ref.data<String>().str);
+		case Class::iterator:
+			try {
+				if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
+					return to_signed_integer(cursor, *item);
+				}
+				return to_signed_integer(cursor, create_none());
+			}
+			catch (std::exception&) {
+				return 0;
+			}
+		default:
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_signed_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+			}
+			error("invalid conversion from '{}' to 'number'", type_name(ref));
+		}
+		break;
+	case Data::package_format:
+		error("invalid conversion from 'package' to 'number'");
+	case Data::function_format:
+		error("invalid conversion from 'function' to 'number'");
+	}
+	return 0;
+}
+
+std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, const Reference& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
+		error("invalid use of none value in an operation");
+	case Data::null_format:
+		cursor.raise(ref);
+		break;
+	case Data::number_format:
+		return to_unsigned_integer(ref.data<Number>().value);
+	case Data::boolean_format:
+		return ref.data<Boolean>().value;
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			try {
+				return to_unsigned_integer(ref.data<String>().str);
+			}
+			catch (std::exception&) {
+				return 0;
+			}
+		case Class::iterator:
+			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
+				return to_unsigned_integer(cursor, *item);
+			}
+			return to_unsigned_integer(cursor, create_none());
+		default:
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_unsigned_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+			}
+			error("invalid conversion from '{}' to 'number'", type_name(ref));
+		}
+		break;
+	case Data::package_format:
+		error("invalid conversion from 'package' to 'number'");
+	case Data::function_format:
+		error("invalid conversion from 'function' to 'number'");
+	}
+	return 0;
+}
+
+std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, Reference&& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
+		error("invalid use of none value in an operation");
+	case Data::null_format:
+		cursor.raise(std::move(ref));
+		break;
+	case Data::number_format:
+		return to_unsigned_integer(ref.data<Number>().value);
+	case Data::boolean_format:
+		return ref.data<Boolean>().value;
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			try {
+				return to_unsigned_integer(ref.data<String>().str);
+			}
+			catch (std::exception&) {
+				return 0;
+			}
+		case Class::iterator:
+			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
+				return to_unsigned_integer(cursor, *item);
+			}
+			return to_unsigned_integer(cursor, create_none());
+		default:
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_unsigned_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+			}
+			error("invalid conversion from '{}' to 'number'", type_name(ref));
+		}
+		break;
+	case Data::package_format:
+		error("invalid conversion from 'package' to 'number'");
+	case Data::function_format:
+		error("invalid conversion from 'function' to 'number'");
+	}
+	return 0;
+}
+
+bool mint::to_boolean(const Reference& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
+	case Data::null_format:
 		return false;
-	case Data::FMT_NUMBER:
-		return ref.data<Number>()->value != 0.;
-	case Data::FMT_BOOLEAN:
-		return ref.data<Boolean>()->value;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::ITERATOR:
-			return !ref.data<Iterator>()->ctx.empty();
+	case Data::number_format:
+		return ref.data<Number>().value != 0.;
+	case Data::boolean_format:
+		return ref.data<Boolean>().value;
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::iterator:
+			return !ref.data<Iterator>().ctx.empty();
 		default:
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_boolean)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_boolean(scheduler->invoke(ref, builtin_symbols::to_boolean));
+			}
 			break;
 		}
 		break;
 	default:
 		break;
 	}
-
 	return true;
 }
 
-std::string mint::to_char(const Reference &ref) {
-
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
-	case Data::FMT_NULL:
+std::string mint::to_char(const Reference& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
+	case Data::null_format:
 		return {};
-	case Data::FMT_NUMBER:
-		return number_to_char(to_integer(ref.data<Number>()->value));
-	case Data::FMT_BOOLEAN:
-		return ref.data<Boolean>()->value ? "y" : "n";
-	case Data::FMT_OBJECT:
-		if (ref.data<Object>()->metadata->metatype() == Class::STRING) {
-			return *const_utf8iterator(ref.data<String>()->str.begin());
+	case Data::number_format:
+		return number_to_char(to_signed_integer(ref.data<Number>().value));
+	case Data::boolean_format:
+		return ref.data<Boolean>().value ? "y" : "n";
+	case Data::object_format:
+		if (ref.data<Object>().metadata.metatype() == Class::string) {
+			return *const_utf8iterator(ref.data<String>().str.begin());
 		}
-		else {
-			error("invalid conversion from '%s' to 'character'", type_name(ref).c_str());
+		if (ref.data<Object>().metadata.find_member(builtin_symbols::to_string)) {
+			auto* scheduler = Scheduler::instance();
+			assert_x(scheduler, __func__, "execution should be done using a scheduler");
+			return to_string(scheduler->invoke(ref, builtin_symbols::to_string));
 		}
-	case Data::FMT_PACKAGE:
+		error("invalid conversion from '{}' to 'character'", type_name(ref));
+	case Data::package_format:
 		error("invalid conversion from 'package' to 'character'");
-	case Data::FMT_FUNCTION:
+	case Data::function_format:
 		error("invalid conversion from 'function' to 'character'");
 	}
-
 	return {};
 }
 
-std::string mint::to_string(const Reference &ref) {
-
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
+std::string mint::to_string(const Reference& ref) {
+	switch (ref.data().format()) {
+	case Data::none_format:
 		return {};
-	case Data::FMT_NULL:
+	case Data::null_format:
 		return "(null)";
-	case Data::FMT_NUMBER:
+	case Data::number_format:
 		{
-			double fracpart, intpart;
-			if ((fracpart = modf(ref.data<Number>()->value, &intpart)) != 0.) {
+			double intpart = 0.;
+			const auto fracpart = modf(ref.data<Number>().value, &intpart);
+			if (fracpart != 0.) {
 				return mint::to_string(intpart + fracpart);
 			}
-			return mint::to_string(to_integer(intpart));
+			return mint::to_string(to_signed_integer(intpart));
 		}
-	case Data::FMT_BOOLEAN:
-		return ref.data<Boolean>()->value ? "true" : "false";
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::STRING:
-			return ref.data<String>()->str;
-		case Class::REGEX:
-			return ref.data<Regex>()->initializer;
-		case Class::ARRAY:
-			return "["
-				   + mint::join(ref.data<Array>()->values, ", ",
-								[](auto it) {
-									return to_string(array_get_item(it));
-								})
-				   + "]";
-		case Class::HASH:
-			return "{"
-				   + mint::join(ref.data<Hash>()->values, ", ",
-								[](auto it) {
-									return to_string(hash_get_key(it)) + " : " + to_string(hash_get_value(it));
-								})
-				   + "}";
-		case Class::ITERATOR:
-			if (std::optional<WeakReference> &&item = iterator_get(ref.data<Iterator>())) {
+	case Data::boolean_format:
+		return ref.data<Boolean>().value ? "true" : "false";
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::string:
+			return ref.data<String>().str;
+		case Class::regex:
+			return ref.data<Regex>().initializer;
+		case Class::array:
+			return std::format("[{}]", std::views::transform(ref.data<Array>().values,
+			                               [](auto& item) {
+				                               return to_string(item);
+			                               })
+			                               | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
+		case Class::hash:
+			return std::format("{{{}}}", std::views::transform(ref.data<Hash>().values,
+			                                 [](auto& item) {
+				                                 return to_string(item.first) + " : " + to_string(item.second);
+			                                 })
+			                                 | std::views::join_with(std::string(", "))
+			                                 | std::ranges::to<std::string>());
+		case Class::iterator:
+			if (auto item = iterator_get(ref.data<Iterator>())) {
 				return to_string(*item);
 			}
-			return to_string(WeakReference::create<None>());
-		case Class::OBJECT:
+			return to_string(create_none());
+		case Class::object:
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_string)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_string(scheduler->invoke(ref, builtin_symbols::to_string));
+			}
 			return is_object(ref.data<Object>()) ? "(object)" : "(class)";
-		case Class::LIBRARY:
+		case Class::library:
 			return "(library)";
-		case Class::LIBOBJECT:
+		case Class::libobject:
 			return "(libobject)";
 		}
-	case Data::FMT_PACKAGE:
+	case Data::package_format:
 		return "(package)";
-	case Data::FMT_FUNCTION:
+	case Data::function_format:
 		return "(function)";
 	}
-
 	return {};
 }
 
-std::regex mint::to_regex(Reference &ref) {
-
-	switch (ref.data()->format) {
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::REGEX:
-			return ref.data<Regex>()->expr;
+std::regex mint::to_regex(const Reference& ref) {
+	switch (ref.data().format()) {
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::regex:
+			return ref.data<Regex>().expr;
 		default:
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_regex)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_regex(scheduler->invoke(ref, builtin_symbols::to_regex));
+			}
 			break;
 		}
 		[[fallthrough]];
@@ -588,84 +464,306 @@ std::regex mint::to_regex(Reference &ref) {
 	try {
 		return std::regex(to_string(ref));
 	}
-	catch (const std::regex_error &) {
-		error("regular expression '/%s/' is not valid", to_string(ref).c_str());
+	catch (const std::regex_error&) {
+		error("regular expression '/{}/' is not valid", to_string(ref));
 	}
 }
 
-Array::values_type mint::to_array(Reference &ref) {
-
+Array::values_type mint::to_array(const Reference& ref) {
 	Array::values_type result;
-
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
+	switch (ref.data().format()) {
+	case Data::none_format:
 		return result;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::ARRAY:
-			result.reserve(ref.data<Array>()->values.size());
-			std::transform(ref.data<Array>()->values.begin(), ref.data<Array>()->values.end(),
-						   std::back_inserter(result), [](auto &item) {
-							   return array_get_item(item);
-						   });
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::array:
+			result.reserve(ref.data<Array>().values.size());
+			std::ranges::transform(ref.data<Array>().values, std::back_inserter(result), [](auto& item) {
+				return array_get_item(item);
+			});
 			return result;
-		case Class::HASH:
-			result.reserve(ref.data<Hash>()->values.size());
-			std::transform(ref.data<Hash>()->values.begin(), ref.data<Hash>()->values.end(), std::back_inserter(result),
-						   [](const auto &item) {
-							   return hash_get_key(item);
-						   });
+		case Class::hash:
+			result.reserve(ref.data<Hash>().values.size());
+			std::ranges::transform(ref.data<Hash>().values, std::back_inserter(result), [](const auto& item) {
+				return hash_get_key(item);
+			});
 			return result;
-		case Class::ITERATOR:
-			result.reserve(ref.data<Iterator>()->ctx.size());
-			std::transform(ref.data<Iterator>()->ctx.begin(), ref.data<Iterator>()->ctx.end(),
-						   std::back_inserter(result), [](const Reference &item) {
-							   return array_item(item);
-						   });
+		case Class::iterator:
+			result.reserve(ref.data<Iterator>().ctx.size());
+			std::ranges::transform(ref.data<Iterator>().ctx, std::back_inserter(result), [](const Reference& item) {
+				return array_item(item);
+			});
 			return result;
 		default:
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_array)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_array(scheduler->invoke(ref, builtin_symbols::to_array));
+			}
 			break;
 		}
 		[[fallthrough]];
 	default:
 		result.emplace_back(array_item(ref));
 	}
-
 	return result;
 }
 
-Hash::values_type mint::to_hash(Reference &ref) {
-
+Hash::values_type mint::to_hash(const Reference& ref) {
 	Hash::values_type result;
-
-	switch (ref.data()->format) {
-	case Data::FMT_NONE:
+	switch (ref.data().format()) {
+	case Data::none_format:
 		return result;
-	case Data::FMT_OBJECT:
-		switch (ref.data<Object>()->metadata->metatype()) {
-		case Class::ARRAY:
-			for (size_t i = 0; i < ref.data<Array>()->values.size(); ++i) {
-				result.emplace(WeakReference::create<Number>(static_cast<double>(i)),
-							   array_get_item(ref.data<Array>()->values.at(i)));
+	case Data::object_format:
+		switch (ref.data<Object>().metadata.metatype()) {
+		case Class::array:
+			for (std::size_t i = 0; i < ref.data<Array>().values.size(); ++i) {
+				constexpr auto flags = Reference::const_address | Reference::const_value | Reference::temporary;
+				result.emplace(make_weak_reference<Number>(flags, i), array_get_item(ref.data<Array>().values.at(i)));
 			}
 			return result;
-		case Class::HASH:
-			for (auto &item : ref.data<Hash>()->values) {
+		case Class::hash:
+			for (auto& item : ref.data<Hash>().values) {
 				result.emplace(hash_get_key(item), hash_get_value(item));
 			}
 			return result;
-		case Class::ITERATOR:
-			for (const Reference &item : ref.data<Iterator>()->ctx) {
+		case Class::iterator:
+			for (const Reference& item : ref.data<Iterator>().ctx) {
 				result.emplace(hash_key(item), WeakReference());
 			}
 			return result;
 		default:
+			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_hash)) {
+				auto* scheduler = Scheduler::instance();
+				assert_x(scheduler, __func__, "execution should be done using a scheduler");
+				return to_hash(scheduler->invoke(ref, builtin_symbols::to_hash));
+			}
 			break;
 		}
 		[[fallthrough]];
 	default:
 		result.emplace(hash_key(ref), WeakReference());
 	}
-
 	return result;
+}
+
+double mint::to_unsigned_number(std::string_view str) {
+
+	double intpart = 0;
+
+	if (str.starts_with('0') && str.length() > 1) {
+		switch (str[1]) {
+		case 'b':
+		case 'B':
+			for (const char ch : str.substr(2)) {
+				switch (ch) {
+				case '0':
+					intpart = intpart * static_cast<double>(binary_base);
+					break;
+				case '1':
+					intpart = (intpart * static_cast<double>(binary_base)) + 1;
+					break;
+				default:
+					throw std::invalid_argument(__func__);
+				}
+			}
+			return intpart;
+		case 'o':
+		case 'O':
+			for (const char ch : str.substr(2)) {
+				if ('0' <= ch && ch < '8') {
+					intpart = (intpart * static_cast<double>(octal_base)) + (ch - '0');
+				}
+				else {
+					throw std::invalid_argument(__func__);
+				}
+			}
+			return intpart;
+
+		case 'x':
+		case 'X':
+			for (const char ch : str.substr(2)) {
+				if (ch >= 'A') {
+					if (const int digit = ((ch - 'A') & (~('a' ^ 'A'))) + 10; digit < hexadecimal_base) {
+						intpart = (intpart * static_cast<double>(hexadecimal_base)) + digit;
+					}
+					else {
+						throw std::invalid_argument(__func__);
+					}
+				}
+				else if (isdigit(ch)) {
+					intpart = (intpart * static_cast<double>(hexadecimal_base)) + (ch - '0');
+				}
+				else {
+					throw std::invalid_argument(__func__);
+				}
+			}
+			return intpart;
+
+		default:
+			break;
+		}
+	}
+
+	bool decimals = false;
+	bool exponent = false;
+	bool sign_expected = false;
+	double fracpart = 0.;
+	std::intmax_t fracexp = 0;
+	std::intmax_t exppart = 0;
+	std::intmax_t expsign = 0;
+
+	for (const char ch : str) {
+		switch (ch) {
+		case '.':
+			if (decimals || exponent) {
+				throw std::invalid_argument(__func__);
+			}
+			decimals = true;
+			break;
+		case 'e':
+		case 'E':
+			if (exponent) {
+				throw std::invalid_argument(__func__);
+			}
+			sign_expected = true;
+			exponent = true;
+			break;
+		case '+':
+			if (!sign_expected) {
+				throw std::invalid_argument(__func__);
+			}
+			sign_expected = false;
+			expsign = +1;
+			break;
+		case '-':
+			if (!sign_expected) {
+				throw std::invalid_argument(__func__);
+			}
+			sign_expected = false;
+			expsign = -1;
+			break;
+		default:
+			if (!isdigit(ch)) {
+				throw std::invalid_argument(__func__);
+			}
+			if (exponent) {
+				exppart = (exppart * decimal_base) + (ch - '0');
+				sign_expected = false;
+			}
+			else if (decimals) {
+				fracpart = (fracpart * static_cast<double>(decimal_base)) + (ch - '0');
+				--fracexp;
+			}
+			else {
+				intpart = (intpart * static_cast<double>(decimal_base)) + (ch - '0');
+			}
+		}
+	}
+
+	if (exponent) {
+		return (fracpart * pow(static_cast<std::intmax_t>(decimal_base), fracexp) + intpart)
+		       * pow(decimal_base, copysign(exppart, expsign));
+	}
+
+	if (decimals) {
+		return (fracpart * pow(static_cast<std::intmax_t>(decimal_base), fracexp)) + intpart;
+	}
+
+	return intpart;
+}
+
+double mint::to_signed_number(std::string_view str) {
+	return str.starts_with('-') ? -to_unsigned_number(str.substr(1)) : +to_unsigned_number(str);
+}
+
+std::uintmax_t mint::to_unsigned_integer(std::string_view str) {
+
+	std::uintmax_t intpart = 0;
+
+	if (str.starts_with('0') && str.length() > 1) {
+		switch (str[1]) {
+		case 'b':
+		case 'B':
+			for (const char ch : str.substr(2)) {
+				switch (ch) {
+				case '0':
+					intpart = intpart << 1;
+					break;
+				case '1':
+					intpart = (intpart << 1) + 1;
+					break;
+				default:
+					throw std::invalid_argument(__func__);
+				}
+			}
+			return intpart;
+		case 'o':
+		case 'O':
+			for (const char ch : str.substr(2)) {
+				if ('0' <= ch && ch < '8') {
+					intpart = (intpart * octal_base) + (ch - '0');
+				}
+				else {
+					throw std::invalid_argument(__func__);
+				}
+			}
+			return intpart;
+
+		case 'x':
+		case 'X':
+			for (const char ch : str.substr(2)) {
+				if (ch >= 'A') {
+					const int digit = ((ch - 'A') & (~('a' ^ 'A'))) + 10;
+					if (digit < hexadecimal_base) {
+						intpart = (intpart * hexadecimal_base) + digit;
+					}
+					else {
+						throw std::invalid_argument(__func__);
+					}
+				}
+				else if (isdigit(ch)) {
+					intpart = (intpart * hexadecimal_base) + (ch - '0');
+				}
+				else {
+					throw std::invalid_argument(__func__);
+				}
+			}
+			return intpart;
+		default:
+			break;
+		}
+	}
+
+	for (const char ch : str) {
+		if ('0' <= ch && ch <= '9') {
+			intpart = (intpart * decimal_base) + (ch - '0');
+		}
+		else {
+			throw std::invalid_argument(__func__);
+		}
+	}
+
+	return intpart;
+}
+
+std::intmax_t mint::to_signed_integer(std::string_view str) {
+	return str.starts_with('-') ? -static_cast<std::intmax_t>(to_unsigned_integer(str.substr(1)))
+	                            : +static_cast<std::intmax_t>(to_unsigned_integer(str));
+}
+
+double mint::to_signed_number(std::intmax_t value) {
+	return static_cast<double>(value);
+}
+
+double mint::to_unsigned_number(std::uintmax_t value) {
+	return static_cast<double>(value);
+}
+
+std::intmax_t mint::to_signed_integer(double value) {
+	return static_cast<std::intmax_t>(value);
+}
+
+std::uintmax_t mint::to_unsigned_integer(double value) {
+	return static_cast<std::uintmax_t>(value);
 }

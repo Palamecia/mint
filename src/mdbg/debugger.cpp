@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -25,107 +25,125 @@
 #include "interactivedebugger.h"
 #include "dapdebugger.h"
 #include "dapstream.h"
+#include "mint/config.h"
+#include "mint/debug/cursordebugger.h"
+#include "mint/debug/debuginfo.h"
+#include "mint/debug/debuginterface.h"
+#include "mint/scheduler/scheduler.h"
 #include "mint/system/error.h"
 
-#include <mint/debug/debugtool.h>
-#include <mint/system/terminal.h>
+#include "mint/ast/module.h"
+#include "mint/debug/debugtool.h"
+#include "mint/system/stdio.h"
 
+#include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 #include <memory>
+#include <string>
+#include <unordered_set>
+#include <vector>
 
-using namespace mint;
+Debugger::Debugger(const std::vector<std::string>& args) {
 
-Debugger::Debugger(int argc, char **argv) {
+	std::vector<std::string> process_args;
 
-	std::vector<char *> args;
-
-	if (parse_arguments(argc, argv, args)) {
-		m_scheduler = std::make_unique<Scheduler>(static_cast<int>(args.size()), args.data());
-		m_scheduler->set_debug_interface(this);
+	if (parse_arguments(args, process_args)) {
+		_scheduler = std::make_unique<mint::Scheduler>(process_args);
+		_scheduler->set_debug_interface(this);
 	}
 }
 
 Debugger::~Debugger() {}
 
-void Debugger::add_pending_breakpoint_from_file(const std::string &file_path, size_t line_number) {
-	m_pending_breakpoints.push_back({PendingBreakpoint::FROM_FILE_PATH, file_path, line_number});
+void Debugger::add_pending_breakpoint_from_file(const std::string& file_path, std::size_t line_number) {
+	_pending_breakpoints.push_back({
+	    .type = PendingBreakpoint::From::file_path,
+	    .module = file_path,
+	    .line_number = line_number,
+	});
 }
 
-void Debugger::add_pending_breakpoint_from_module(const std::string &module, size_t line_number) {
-	m_pending_breakpoints.push_back({PendingBreakpoint::FROM_MODULE_PATH, module, line_number});
+void Debugger::add_pending_breakpoint_from_module(const std::string& module, std::size_t line_number) {
+	_pending_breakpoints.push_back({
+	    .type = PendingBreakpoint::From::module_path,
+	    .module = module,
+	    .line_number = line_number,
+	});
 }
 
 void Debugger::pause_on_next_step() {
-	m_pause_on_next_step = true;
+	_pause_on_next_step = true;
 }
 
 int Debugger::run() {
 
-	if (!m_scheduler) {
+	if (!_scheduler) {
 		return EXIT_FAILURE;
 	}
 
-	set_exit_callback([&] {
-		m_backend->on_error(this);
+	mint::set_exit_callback([&] {
+		_backend->on_error(*this);
 	});
 
-	if (!m_backend->setup(this, m_scheduler.get())) {
+	if (!_backend->setup(*this, *_scheduler)) {
 		return EXIT_FAILURE;
 	}
 
-	m_scheduler->add_exit_callback([&](int code) {
-		m_backend->on_exit(this, code);
+	_scheduler->add_exit_callback([&](int code) {
+		_backend->on_exit(*this, code);
 	});
 
-	int code = m_scheduler->run();
-	m_backend->cleanup(this, m_scheduler.get());
+	const int code = _scheduler->run();
+	_backend->cleanup(*this, *_scheduler);
 	return code;
 }
 
-bool Debugger::parse_arguments(int argc, char **argv, std::vector<char *> &args) {
+bool Debugger::parse_arguments(const std::vector<std::string>& args, std::vector<std::string>& process_args) {
 
 	bool configuring = true;
-	args.push_back(argv[0]);
 
-	for (int argn = 1; argn < argc; ++argn) {
+	for (auto it = args.begin(); it != args.end(); ++it) {
 		if (configuring) {
-			if (!strcmp(argv[argn], "-b") || !strcmp(argv[argn], "--breakpoint")) {
-				if (++argn < argc) {
-					const std::string module = argv[argn];
-					if (++argn < argc) {
-						const auto line_number = static_cast<size_t>(atol(argv[argn]));
+			if (*it == "-b" || *it == "--breakpoint") {
+				if (++it != args.end()) {
+					const std::string module = *it;
+					if (++it != args.end()) {
+						const auto line_number = static_cast<std::size_t>(std::stol(*it));
 						add_pending_breakpoint_from_module(module, line_number);
 						continue;
 					}
 				}
 				return false;
 			}
-			if (!strcmp(argv[argn], "--wait")) {
-				m_pause_on_next_step = true;
+			if (*it == "--wait") {
+				_pause_on_next_step = true;
 				continue;
 			}
-			if (!strcmp(argv[argn], "--stdio")) {
-				m_backend = std::make_unique<DapDebugger>(new DapStreamReader, new DapStreamWriter);
+			if (*it == "--stdio") {
+				_backend = std::make_unique<DapDebugger>(std::make_unique<DapStreamReader>(),
+				    std::make_unique<DapStreamWriter>());
 				continue;
 			}
-			if (!strcmp(argv[argn], "--version")) {
+			if (*it == "--version") {
 				print_version();
 				return false;
 			}
-			if (!strcmp(argv[argn], "--help")) {
+			if (*it == "--help") {
 				print_help();
 				return false;
 			}
-			if (!strcmp(argv[argn], "--")) {
+			if (*it == "--") {
 				configuring = false;
 				continue;
 			}
 		}
 
-		args.push_back(argv[argn]);
+		process_args.push_back(*it);
 	}
 
-	if (!m_backend) {
-		m_backend = std::make_unique<InteractiveDebugger>();
+	if (!_backend) {
+		_backend = std::make_unique<InteractiveDebugger>();
 	}
 
 	return true;
@@ -146,68 +164,70 @@ void Debugger::print_help() {
 	mint::print(stdout, "  --stdio           : Starts the debug using the Debug Adapter Protocol over stdio\n");
 }
 
-bool Debugger::handle_events(CursorDebugger *cursor) {
+bool Debugger::process_events(mint::CursorDebugger& cursor) {
 
-	AbstractSyntaxTree *ast = cursor->cursor()->ast();
+	mint::AbstractSyntaxTree& ast = cursor.cursor().ast();
 
-	while (DebugInfo *info = ast->get_debug_info(m_module_count)) {
-		m_backend->on_module_loaded(this, cursor, ast->get_module(m_module_count++));
+	while (mint::Module* module = ast.find_module(_module_count)) {
+		_backend->on_module_loaded(*this, cursor, *module);
+		++_module_count;
 	}
 
-	for (auto it = m_pending_breakpoints.begin(); it != m_pending_breakpoints.end();) {
-		const PendingBreakpoint &breakpoint = *it;
-		const std::string module = breakpoint.type == PendingBreakpoint::FROM_FILE_PATH
-									   ? to_module_path(breakpoint.module)
-									   : breakpoint.module;
-		Module::Info info = ast->module_info(module);
-		if (DebugInfo *debug_info = info.debug_info; debug_info && info.state != Module::NOT_COMPILED) {
+	for (auto it = _pending_breakpoints.begin(); it != _pending_breakpoints.end();) {
+		const PendingBreakpoint& breakpoint = *it;
+		const std::string module = breakpoint.type == PendingBreakpoint::From::file_path
+		                               ? mint::to_module_path(breakpoint.module)
+		                               : breakpoint.module;
+		const auto info = ast.module_info(module);
+		if (mint::DebugInfo* debug_info = info.debug_info;
+		    debug_info && info.state != mint::Module::State::not_compiled) {
 			create_breakpoint({info.id, module, debug_info->to_executable_line_number(breakpoint.line_number)});
-			it = m_pending_breakpoints.erase(it);
+			it = _pending_breakpoints.erase(it);
 		}
 		else {
 			++it;
 		}
 	}
 
-	if (m_pause_on_next_step) {
-		m_pause_on_next_step = false;
+	if (_pause_on_next_step) {
+		_pause_on_next_step = false;
 		do_pause(cursor);
-		if (!m_backend->on_pause(this, cursor)) {
+		if (!_backend->on_pause(*this, cursor)) {
 			return false;
 		}
 	}
 
-	return m_backend->handle_events(this, cursor);
+	return _backend->process_events(*this, cursor);
 }
 
-bool Debugger::check(CursorDebugger *cursor) {
-	return m_backend->check(this, cursor);
+bool Debugger::check(mint::CursorDebugger& cursor) {
+	return _backend->check(*this, cursor);
 }
 
-void Debugger::on_thread_started(CursorDebugger *cursor) {
-	m_backend->on_thread_started(this, cursor);
+void Debugger::on_thread_started(mint::CursorDebugger& cursor) {
+	_backend->on_thread_started(*this, cursor);
 }
 
-void Debugger::on_thread_exited(CursorDebugger *cursor) {
-	m_backend->on_thread_exited(this, cursor);
+void Debugger::on_thread_exited(mint::CursorDebugger& cursor) {
+	_backend->on_thread_exited(*this, cursor);
 }
 
-void Debugger::on_breakpoint_created(const Breakpoint &breakpoint) {
-	m_backend->on_breakpoint_created(this, breakpoint);
+void Debugger::on_breakpoint_created(const mint::Breakpoint& breakpoint) {
+	_backend->on_breakpoint_created(*this, breakpoint);
 }
 
-void Debugger::on_breakpoint_deleted(const Breakpoint &breakpoint) {
-	m_backend->on_breakpoint_deleted(this, breakpoint);
+void Debugger::on_breakpoint_deleted(const mint::Breakpoint& breakpoint) {
+	_backend->on_breakpoint_deleted(*this, breakpoint);
 }
 
-bool Debugger::on_breakpoint(CursorDebugger *cursor, const std::unordered_set<Breakpoint::Id> &breakpoints) {
-	return m_backend->on_breakpoint(this, cursor, breakpoints);
+bool Debugger::on_breakpoint(mint::CursorDebugger& cursor, const std::unordered_set<mint::Breakpoint::Id>& breakpoints) {
+	return _backend->on_breakpoint(*this, cursor, breakpoints);
 }
 
-bool Debugger::on_exception(CursorDebugger *cursor) {
-	return m_backend->on_exception(this, cursor);
+bool Debugger::on_exception(mint::CursorDebugger& cursor) {
+	return _backend->on_exception(*this, cursor);
 }
 
-bool Debugger::on_step(CursorDebugger *cursor) {
-	return m_backend->on_step(this, cursor);
+bool Debugger::on_step(mint::CursorDebugger& cursor) {
+	return _backend->on_step(*this, cursor);
 }

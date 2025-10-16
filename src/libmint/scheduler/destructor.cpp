@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,41 +22,70 @@
  */
 
 #include "mint/scheduler/destructor.h"
+#include "mint/memory/garbagecollector.h"
+#include "mint/memory/reference.h"
+#include "mint/scheduler/process.h"
 #include "mint/scheduler/processor.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/memory/operatortool.h"
+#include "mint/scheduler/scheduler.h"
+#include "mint/system/assert.h"
+#include <cassert>
+#include <functional>
+#include <memory>
 
 using namespace mint;
 
-Destructor::Destructor(Object *object, Reference &&member, Class *owner, const Process *process) :
-	Process(AbstractSyntaxTree::instance()->create_cursor(process ? process->cursor() : nullptr)),
-	m_owner(owner),
-	m_object(object),
-	m_member(std::move(member)) {
+namespace {
+
+auto make_thread() {
+	auto* scheduler = Scheduler::instance();
+	assert_x(scheduler, __func__, "execution should be done using a scheduler");
+	return std::make_unique<Cursor>(scheduler->ast());
+}
+
+}
+
+Destructor::Destructor(Object* object, const Reference& member, Class& owner, const Process* process) :
+    Process(process ? process->cursor().make_thread() : make_thread()),
+    _owner(owner),
+    _object(object),
+    _member(member) {
 	if (process) {
 		set_thread_id(process->get_thread_id());
 	}
 }
 
+Destructor::Destructor(Object* object, const Reference& member, Class& owner, AbstractSyntaxTree& ast) :
+    Process(std::make_unique<Cursor>(ast)),
+    _owner(owner),
+    _object(object),
+    _member(member) {}
+
+Destructor::Destructor(Object* object, const Reference& member, Class& owner, const Process& process) :
+    Process(process.cursor().make_thread()),
+    _owner(owner),
+    _object(object),
+    _member(member) {
+	set_thread_id(process.get_thread_id());
+}
+
 Destructor::~Destructor() {}
 
 void Destructor::setup() {
-	lock_processor();
-	assert(m_member.data()->format == Data::FMT_FUNCTION);
-	cursor()->stack().emplace_back(Reference::DEFAULT, m_object);
-	cursor()->waiting_calls().emplace(std::forward<Reference>(m_member));
-	cursor()->waiting_calls().top().set_metadata(m_owner);
+	auto _ = ProcessorLocker();
+	assert(_member.data().format() == Data::function_format);
+	cursor().stack().emplace_back(Reference::default_flags, *_object);
+	cursor().waiting_calls().emplace(_member, _owner);
 	call_member_operator(cursor(), 0);
-	unlock_processor();
 }
 
 void Destructor::cleanup() {
-	lock_processor();
-	cursor()->stack().pop_back();					// Pop destructor result
-	GarbageCollector::instance().destroy(m_object); // Free memory owned by object
-	unlock_processor();
+	auto _ = ProcessorLocker();
+	cursor().stack().pop_back();                   // Pop destructor result
+	GarbageCollector::instance().destroy(_object); // Free memory owned by object
 }
 
-bool mint::is_destructor(Process *process) {
-	return dynamic_cast<Destructor *>(process) != nullptr;
+bool mint::is_destructor(Process& process) {
+	return dynamic_cast<Destructor*>(&process) != nullptr;
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -38,14 +38,14 @@
 class DocParser {
 public:
 	DocParser() = default;
-	DocParser(const DocParser &) = delete;
-	DocParser(DocParser &&) = delete;
+	DocParser(const DocParser&) = delete;
+	DocParser(DocParser&&) = delete;
 	~DocParser() = default;
 
-	DocParser &operator=(const DocParser &) = delete;
-	DocParser &operator=(DocParser &&) = delete;
+	DocParser& operator=(const DocParser&) = delete;
+	DocParser& operator=(DocParser&&) = delete;
 
-	[[nodiscard]] std::unique_ptr<DocNode> parse(std::stringstream &stream);
+	[[nodiscard]] std::unique_ptr<DocNode> parse(std::stringstream& stream);
 
 protected:
 	static std::unique_ptr<DocNodeBlock> create_block(DocNode::Type type);
@@ -56,13 +56,13 @@ protected:
 	static std::unique_ptr<DocNodeCodeBlock> create_code_block(std::uint8_t fence_length);
 	static std::unique_ptr<DocNodeHeading> create_heading(std::int8_t level);
 	static std::unique_ptr<DocNode> create_node(DocNode::Type type);
-	static std::unique_ptr<DocNodeLiteral> create_text(const std::string &str);
-	static std::unique_ptr<DocNodeLiteral> create_code(const std::string &str);
-	static std::unique_ptr<DocNodeLiteral> create_html(const std::string &str);
+	static std::unique_ptr<DocNodeLiteral> create_text(const std::string& str);
+	static std::unique_ptr<DocNodeLiteral> create_code(const std::string& str);
+	static std::unique_ptr<DocNodeLiteral> create_html(const std::string& str);
 	static std::unique_ptr<DocNodeSymbolLink> make_symbol_link(DocNodeSymbolLink::TagType tag_type,
-															   const std::string &symbol);
-	static std::vector<std::unique_ptr<DocNode>> make_node_list(std::unique_ptr<DocNode> &&node);
-	static DocNodeSymbolLink::TagType get_tag_type(const std::string &tag);
+	    const std::string& symbol);
+	static std::vector<std::unique_ptr<DocNode>> make_node_list(std::unique_ptr<DocNode>&& node);
+	static DocNodeSymbolLink::TagType get_tag_type(const std::string& tag);
 
 	class Delimiter {
 	public:
@@ -73,37 +73,37 @@ protected:
 		bool operator!=(DocLexer::Token token) const;
 
 	private:
-		std::vector<DocLexer::Token> m_delimiters;
+		std::vector<DocLexer::Token> _delimiters;
 	};
 
-	std::unique_ptr<DocNode> parse_block_quote(DocLexer::Token &type, std::string &token);
+	std::unique_ptr<DocNode> parse_block_quote(DocLexer::Token& type, std::string& token);
 	std::vector<std::unique_ptr<DocNode>> parse_table();
-	std::unique_ptr<DocNode> parse_unordered_list(DocLexer::Token &type, std::string &token, std::size_t &column,
-												  std::uint8_t indent);
-	std::unique_ptr<DocNode> parse_ordered_list(DocLexer::Token &type, std::string &token, std::size_t &column,
-												std::uint8_t indent);
-	std::vector<std::unique_ptr<DocNode>> parse_link(DocLexer::Token &type, std::string &token);
-	std::vector<std::unique_ptr<DocNode>> parse_wiki_link(DocLexer::Token &type, std::string &token);
+	std::unique_ptr<DocNode> parse_unordered_list(DocLexer::Token& type, std::string& token, std::size_t& column,
+	    std::uint8_t indent);
+	std::unique_ptr<DocNode> parse_ordered_list(DocLexer::Token& type, std::string& token, std::size_t& column,
+	    std::uint8_t indent);
+	std::vector<std::unique_ptr<DocNode>> parse_link(DocLexer::Token& type, std::string& token);
+	std::vector<std::unique_ptr<DocNode>> parse_wiki_link(DocLexer::Token& type, std::string& token);
 	std::unique_ptr<DocNode> parse_heading();
-	std::unique_ptr<DocNode> parse_paragraph(DocLexer::Token &type, std::string &token);
-	std::unique_ptr<DocNode> parse_thematic_break(DocLexer::Token &type, std::string &token);
-	std::vector<std::unique_ptr<DocNode>> parse_text(const Delimiter &delimiter);
-	std::vector<std::unique_ptr<DocNode>> parse_text(DocLexer::Token &type, std::string &token,
-													 const Delimiter &delimiter);
-	std::unique_ptr<DocNode> parse_format_block(DocLexer::Token &type, std::string &token, DocNode::Type format,
-												const Delimiter &delimiter, std::string text);
-	std::unique_ptr<DocNode> parse_code(const Delimiter &delimiter, std::uint8_t fence_length, std::size_t column);
-	std::vector<std::unique_ptr<DocNode>> parse_html(DocLexer::Token &type, std::string &token);
+	std::unique_ptr<DocNode> parse_paragraph(DocLexer::Token& type, std::string& token);
+	std::unique_ptr<DocNode> parse_thematic_break(DocLexer::Token& type, std::string& token);
+	std::vector<std::unique_ptr<DocNode>> parse_text(const Delimiter& delimiter);
+	std::vector<std::unique_ptr<DocNode>> parse_text(DocLexer::Token& type, std::string& token,
+	    const Delimiter& delimiter);
+	std::unique_ptr<DocNode> parse_format_block(DocLexer::Token& type, std::string& token, DocNode::Type format,
+	    const Delimiter& delimiter, std::string text);
+	std::unique_ptr<DocNode> parse_code(const Delimiter& delimiter, std::uint8_t fence_length, std::size_t column);
+	std::vector<std::unique_ptr<DocNode>> parse_html(DocLexer::Token& type, std::string& token);
 
-	std::string parse_url(const Delimiter &delimiter);
+	std::string parse_url(const Delimiter& delimiter);
 
 	std::unique_ptr<DocNode> parse_symbol_link();
 
 	static std::vector<std::unique_ptr<DocNode>> join_table_nodes(
-		std::vector<std::vector<std::unique_ptr<DocNode>>> &&node_lists);
+	    std::vector<std::vector<std::unique_ptr<DocNode>>> node_lists);
 
 private:
-	std::unique_ptr<DocLexer> m_lexer;
+	std::unique_ptr<DocLexer> _lexer;
 };
 
 #endif // MINTDOC_DOCPARSER_H

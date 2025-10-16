@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,82 +21,62 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_EXCEPTION_H
-#define MINT_EXCEPTION_H
+#ifndef MINT_SCHEDULER_EXCEPTION_H
+#define MINT_SCHEDULER_EXCEPTION_H
 
+#include "mint/ast/cursor.h"
 #include "mint/config.h"
+#include "mint/memory/reference.h"
 #include "mint/scheduler/process.h"
+#include <exception>
+#include <functional>
+#include <utility>
 
 namespace mint {
 
 class MINT_EXPORT Exception : public Process {
 public:
-	Exception(Reference &&reference, const Process *process);
-	Exception(Exception &&) = delete;
-	Exception(const Exception &) = delete;
+	Exception(Reference&& reference, const Process& process);
+	Exception(Exception&&) = delete;
+	Exception(const Exception&) = delete;
 	~Exception() override;
 
-	Exception &operator=(Exception &&) = delete;
-	Exception &operator=(const Exception &) = delete;
+	Exception& operator=(Exception&&) = delete;
+	Exception& operator=(const Exception&) = delete;
 
 	void setup() override;
 	void cleanup() override;
 
 private:
-	StrongReference m_reference;
-	bool m_handled;
+	StrongReference _reference;
+	bool _handled;
 };
 
-MINT_EXPORT bool is_exception(Process *process);
+MINT_EXPORT bool is_exception(Process& process);
 
 class MintException : public std::exception {
 public:
-	MintException(Cursor *cursor, Reference &&reference) :
-		m_cursor(cursor),
-		m_reference(std::move(reference)) {}
+	MintException(Cursor& cursor, Reference&& reference) :
+	    _cursor(cursor),
+	    _reference(std::move(reference)) {}
 
-	MintException(MintException &&other) noexcept :
-		m_cursor(other.m_cursor),
-		m_reference(StrongReference::share(other.m_reference)) {}
-
-	MintException(const MintException &other) :
-		m_cursor(other.m_cursor),
-		m_reference(StrongReference::copy(other.m_reference)) {}
-
-	~MintException() override = default;
-	
-	MintException &operator=(MintException &&other) noexcept {
-		m_cursor = other.m_cursor;
-		m_reference = StrongReference::share(other.m_reference);
-		return *this;
+	Cursor& cursor() {
+		return _cursor;
 	}
 
-	MintException &operator=(const MintException &other) {
-		if (UNLIKELY(this == &other)) {
-			return *this;
-		}
-		m_cursor = other.m_cursor;
-		m_reference = StrongReference::copy(other.m_reference);
-		return *this;
+	Reference&& take_exception() noexcept {
+		return std::move(_reference);
 	}
 
-	Cursor *cursor() {
-		return m_cursor;
-	}
-
-	Reference &&take_exception() noexcept {
-		return std::move(m_reference);
-	}
-
-	[[nodiscard]] const char *what() const noexcept override {
+	[[nodiscard]] const char* what() const noexcept override {
 		return "MintException";
 	}
 
 private:
-	Cursor *m_cursor;
-	StrongReference m_reference;
+	std::reference_wrapper<Cursor> _cursor;
+	StrongReference _reference;
 };
 
 }
 
-#endif // MINT_EXCEPTION_H
+#endif // MINT_SCHEDULER_EXCEPTION_H

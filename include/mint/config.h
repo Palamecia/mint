@@ -8,55 +8,47 @@ using byte_t = unsigned char;
 #define MINT_TO_STR(__str) #__str
 #define MINT_MACRO_TO_STR(__str) MINT_TO_STR(__str)
 
-#if defined(_WIN32)
-#define OS_WINDOWS
+#ifdef _WIN32
+#define MINT_OS_WINDOWS
 #ifdef _WIN64
-#define OS_WIN_64
+#define MINT_OS_WIN_64
 #else
-#define OS_WIN_32
+#define MINT_OS_WIN_32
 #endif
-#elif defined(__APPLE__)
-#define OS_MAC
-#define OS_UNIX
-#elif defined(__linux__)
-#define OS_LINUX
-#define OS_UNIX
-#elif defined(__unix__)
-#define OS_UNIX
+#elifdef __APPLE__
+#define MINT_OS_MAC
+#define MINT_OS_UNIX
+#elifdef __linux__
+#define MINT_OS_LINUX
+#define MINT_OS_UNIX
+#elifdef __unix__
+#define MINT_OS_UNIX
 #endif
 
 #if !defined(NDEBUG) || defined(_DEBUG)
-#define BUILD_TYPE_DEBUG
+#define MINT_BUILD_TYPE_DEBUG
 #else
-#define BUILD_TYPE_RELEASE
+#define MINT_BUILD_TYPE_RELEASE
 #endif
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 
-#define DECL_IMPORT __declspec(dllimport)
-#define DECL_EXPORT __declspec(dllexport)
+#define MINT_DECL_IMPORT __declspec(dllimport)
+#define MINT_DECL_EXPORT __declspec(dllexport)
 
 #pragma warning(disable: 4251)
 #define _UNICODE
 #define UNICODE
 
-#define __attribute__(ignore)
-
-#define LIKELY(expr) (expr)
-#define UNLIKELY(expr) (expr)
-
 #ifdef BUILD_MINT_LIB
-#define MINT_EXPORT DECL_EXPORT
+#define MINT_EXPORT MINT_DECL_EXPORT
 #else
-#define MINT_EXPORT DECL_IMPORT
+#define MINT_EXPORT MINT_DECL_IMPORT
 #endif
 #else
-#define DECL_IMPORT
-#define DECL_EXPORT
+#define MINT_DECL_IMPORT
+#define MINT_DECL_EXPORT
 #define MINT_EXPORT
-
-#define LIKELY(expr) __builtin_expect(!!(expr), true)
-#define UNLIKELY(expr) __builtin_expect(!!(expr), false)
 #endif
 
 #endif // MINT_CONFIG_H

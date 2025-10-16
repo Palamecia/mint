@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,12 +21,39 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/garbagecollector.h>
-#include <mint/memory/functiontool.h>
+#include "mint/memory/garbagecollector.h"
+#include "mint/memory/casttool.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include <cstddef>
 
-using namespace mint;
+namespace {
 
-MINT_FUNCTION(mint_garbage_collector_collect, 0, cursor) {
-	FunctionHelper helper(cursor, 0);
-	helper.return_value(create_number(static_cast<double>(GarbageCollector::instance().collect())));
+mint::WeakReference mint_garbage_collector_collect(mint::Cursor& /*cursor*/) {
+	return mint::create_unsigned_number(mint::GarbageCollector::instance().collect());
 }
+
+mint::WeakReference mint_garbage_collector_get_threshold(mint::Cursor& /*cursor*/) {
+	return mint::create_unsigned_number(mint::GarbageCollector::instance().get_threshold());
+}
+
+mint::WeakReference mint_garbage_collector_set_threshold(mint::Cursor& cursor, const mint::Reference& threshold) {
+	mint::GarbageCollector::instance().set_threshold(mint::to_integer<std::size_t>(cursor, threshold));
+	return {};
+}
+
+mint::WeakReference mint_garbage_collector_get_refcount(mint::Cursor& /*cursor*/, const mint::Reference& object) {
+	return mint::create_unsigned_number(mint::GarbageCollector::get_refcount(object.data()));
+}
+
+mint::WeakReference mint_garbage_collector_get_count(mint::Cursor& /*cursor*/) {
+	return mint::create_unsigned_number(mint::GarbageCollector::instance().get_count());
+}
+
+}
+
+MINT_EXPORT_FUNCTION(mint_garbage_collector_collect, 0)
+MINT_EXPORT_FUNCTION(mint_garbage_collector_get_threshold, 0)
+MINT_EXPORT_FUNCTION(mint_garbage_collector_set_threshold, 1)
+MINT_EXPORT_FUNCTION(mint_garbage_collector_get_refcount, 1)
+MINT_EXPORT_FUNCTION(mint_garbage_collector_get_count, 0)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,22 +21,22 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_BUFFERSTREAM_H
-#define MINT_BUFFERSTREAM_H
+#ifndef MINT_SYSTEM_BUFFERSTREAM_H
+#define MINT_SYSTEM_BUFFERSTREAM_H
 
+#include "mint/config.h"
 #include "mint/system/datastream.h"
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <gsl/pointers>
+#include <string>
 
 namespace mint {
 
 class MINT_EXPORT BufferStream : public DataStream {
 public:
-	explicit BufferStream(const std::string &buffer);
-	BufferStream(BufferStream &&) = delete;
-	BufferStream(const BufferStream &) = delete;
-	~BufferStream() override;
-
-	BufferStream &operator=(BufferStream &&) = delete;
-	BufferStream &operator=(const BufferStream &) = delete;
+	explicit BufferStream(std::string buffer);
 
 	[[nodiscard]] bool at_end() const override;
 
@@ -48,17 +48,17 @@ protected:
 	int next_buffered_char() override;
 
 private:
-	enum Status : std::uint8_t {
-		READY,
-		FLUSH,
-		OVER
+	enum class Status : std::uint8_t {
+		ready,
+		flush,
+		over
 	};
 
-	const char *m_buffer;
-	const char *m_cptr;
-	Status m_status;
+	std::string _buffer;
+	std::size_t _pos = 0;
+	Status _status;
 };
 
 }
 
-#endif // MINT_BUFFERSTREAM_H
+#endif // MINT_SYSTEM_BUFFERSTREAM_H

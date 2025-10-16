@@ -1,11 +1,15 @@
-project(mdbg_executable)
+project(mdbg)
 
-# Target mdbg_executable
-add_executable(${PROJECT_NAME})
+find_package(Microsoft.GSL CONFIG REQUIRED)
+
+# Target mdbg
+add_executable(mdbg)
 
 target_sources(
-	${PROJECT_NAME}
-	PRIVATE
+	mdbg
+PRIVATE
+	commandrunner.cpp
+	commandrunner.h
 	dapdebugger.cpp
 	dapdebugger.h
 	dapmessage.cpp
@@ -24,7 +28,10 @@ target_sources(
 	highlighter.h
 	interactivedebugger.cpp
 	interactivedebugger.h
-	json.hpp
+	json.cpp
+	json.h
+	log.cpp
+	log.h
 	main.cpp
 	stdstreampipe.cpp
 	stdstreampipe.h
@@ -33,16 +40,21 @@ target_sources(
 )
 
 set_target_properties(
-	${PROJECT_NAME}
+	mdbg
 	PROPERTIES
 	OUTPUT_NAME mdbg
 	INSTALL_RPATH "$ORIGIN/../lib:$ORIGIN/../lib64"
 )
 
 target_link_libraries(
-	${PROJECT_NAME}
-	mint_library
+	mdbg
+PRIVATE 
+	libmint
+	Microsoft.GSL::GSL
 )
 
 # Install
-mint_install_executable(${PROJECT_NAME})
+install(
+	TARGETS mdbg
+	RUNTIME COMPONENT runtime DESTINATION ${MINT_RUNTIME_INSTALL_DIR}
+)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,43 +24,45 @@
 #ifndef MDBG_DEBUGGERBACKEND_H
 #define MDBG_DEBUGGERBACKEND_H
 
-#include <mint/debug/debuginterface.h>
-#include <mint/debug/cursordebugger.h>
-#include <mint/scheduler/scheduler.h>
+#include "mint/ast/module.h"
+#include "mint/debug/debuginterface.h"
+#include "mint/debug/cursordebugger.h"
+#include "mint/scheduler/scheduler.h"
+#include <unordered_set>
 
 class Debugger;
 
 class DebuggerBackend {
 public:
 	DebuggerBackend() = default;
-	DebuggerBackend(const DebuggerBackend &) = default;
-	DebuggerBackend(DebuggerBackend &&) = delete;
+	DebuggerBackend(const DebuggerBackend&) = default;
+	DebuggerBackend(DebuggerBackend&&) = delete;
 	virtual ~DebuggerBackend();
 
-	DebuggerBackend &operator=(const DebuggerBackend &) = default;
-	DebuggerBackend &operator=(DebuggerBackend &&) = delete;
+	DebuggerBackend& operator=(const DebuggerBackend&) = default;
+	DebuggerBackend& operator=(DebuggerBackend&&) = delete;
 
-	virtual bool setup(Debugger *debugger, mint::Scheduler *scheduler) = 0;
-	virtual bool handle_events(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
-	virtual bool check(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
-	virtual void cleanup(Debugger *debugger, mint::Scheduler *scheduler) = 0;
+	virtual bool setup(Debugger& debugger, mint::Scheduler& scheduler) = 0;
+	virtual bool process_events(Debugger& debugger, mint::CursorDebugger& cursor) = 0;
+	virtual bool check(Debugger& debugger, mint::CursorDebugger& cursor) = 0;
+	virtual void cleanup(Debugger& debugger, mint::Scheduler& scheduler) = 0;
 
-	virtual void on_thread_started(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
-	virtual void on_thread_exited(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
+	virtual void on_thread_started(Debugger& debugger, mint::CursorDebugger& cursor) = 0;
+	virtual void on_thread_exited(Debugger& debugger, mint::CursorDebugger& cursor) = 0;
 
-	virtual void on_breakpoint_created(Debugger *debugger, const mint::Breakpoint &breakpoint) = 0;
-	virtual void on_breakpoint_deleted(Debugger *debugger, const mint::Breakpoint &breakpoint) = 0;
+	virtual void on_breakpoint_created(Debugger& debugger, const mint::Breakpoint& breakpoint) = 0;
+	virtual void on_breakpoint_deleted(Debugger& debugger, const mint::Breakpoint& breakpoint) = 0;
 
-	virtual void on_module_loaded(Debugger *debugger, mint::CursorDebugger *cursor, mint::Module *module) = 0;
+	virtual void on_module_loaded(Debugger& debugger, mint::CursorDebugger& cursor, mint::Module& module) = 0;
 
-	virtual bool on_breakpoint(Debugger *debugger, mint::CursorDebugger *cursor,
-							   const std::unordered_set<mint::Breakpoint::Id> &breakpoints) = 0;
-	virtual bool on_exception(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
-	virtual bool on_pause(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
-	virtual bool on_step(Debugger *debugger, mint::CursorDebugger *cursor) = 0;
+	virtual bool on_breakpoint(Debugger& debugger, mint::CursorDebugger& cursor,
+	    const std::unordered_set<mint::Breakpoint::Id>& breakpoints) = 0;
+	virtual bool on_exception(Debugger& debugger, mint::CursorDebugger& cursor) = 0;
+	virtual bool on_pause(Debugger& debugger, mint::CursorDebugger& cursor) = 0;
+	virtual bool on_step(Debugger& debugger, mint::CursorDebugger& cursor) = 0;
 
-	virtual void on_exit(Debugger *debugger, int code) = 0;
-	virtual void on_error(Debugger *debugger) = 0;
+	virtual void on_exit(Debugger& debugger, int code) = 0;
+	virtual void on_error(Debugger& debugger) = 0;
 };
 
 #endif // MDBG_DEBUGGERBACKEND_H

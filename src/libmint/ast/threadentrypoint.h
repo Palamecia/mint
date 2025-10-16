@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -30,13 +30,10 @@ namespace mint {
 
 class ThreadEntryPoint : public Module {
 public:
-	static ThreadEntryPoint *instance();
+	static ThreadEntryPoint& instance();
 
 protected:
 	ThreadEntryPoint();
-
-private:
-	static ThreadEntryPoint g_instance;
 };
 
 }

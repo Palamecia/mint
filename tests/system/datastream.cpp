@@ -1,18 +1,19 @@
+#include <cstddef>
+#include <cstdio>
+#include <filesystem>
 #include <gtest/gtest.h>
-#include <mint/system/datastream.h>
+#include "mint/system/datastream.h"
 
 #include <string>
 #include <utility>
 
-using namespace mint;
-
-class TestStream : public DataStream {
+class TestStream : public mint::DataStream {
 public:
 	explicit TestStream(std::string buffer) :
-		m_buffer(std::move(buffer)) {}
+	    _buffer(std::move(buffer)) {}
 
 	[[nodiscard]] bool at_end() const override {
-		return m_pos >= m_buffer.size();
+		return _pos >= _buffer.size();
 	}
 
 	[[nodiscard]] bool is_valid() const override {
@@ -25,20 +26,20 @@ public:
 
 protected:
 	int read_char() override {
-		if (m_pos < m_buffer.size()) {
-			return m_buffer[m_pos++];
+		if (_pos < _buffer.size()) {
+			return _buffer[_pos++];
 		}
 
 		return EOF;
 	}
 
 	int next_buffered_char() override {
-		return m_buffer[m_pos++];
+		return _buffer[_pos++];
 	}
 
 private:
-	std::string m_buffer;
-	size_t m_pos = 0;
+	std::string _buffer;
+	std::size_t _pos = 0;
 };
 
 TEST(datastream, get_char) {
@@ -54,9 +55,9 @@ TEST(datastream, get_char) {
 TEST(datastream, set_new_line_callback) {
 
 	TestStream stream(" \n \n\n\n\n\n");
-	size_t line_number = 1;
+	std::size_t line_number = 1;
 
-	stream.set_new_line_callback([&line_number](size_t number) {
+	stream.set_new_line_callback([&line_number](std::size_t number) {
 		line_number = number;
 	});
 

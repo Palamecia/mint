@@ -1,21 +1,30 @@
 project(mint-serializer)
 
-set(${PROJECT_NAME}_SOURCES
+add_library(mint-serializer MODULE)
+
+target_sources(
+	mint-serializer
+PRIVATE
 	datastream.cpp
 )
 
-add_library(${PROJECT_NAME}
-	MODULE
-	${${PROJECT_NAME}_SOURCES}
-)
-
 set_target_properties(
-	${PROJECT_NAME}
+	mint-serializer
 	PROPERTIES
 	PREFIX lib
+	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
 )
 
-target_link_libraries(${PROJECT_NAME} mint_library)
+target_link_libraries(
+	mint-serializer
+PRIVATE
+	libmint
+)
 
 # Install
-mint_install_library(${PROJECT_NAME} SUBDIR mint)
+install(
+	TARGETS mint-serializer
+	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+)

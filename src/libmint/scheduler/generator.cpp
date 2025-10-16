@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,28 +22,30 @@
  */
 
 #include "mint/scheduler/generator.h"
+#include "mint/scheduler/process.h"
 #include "mint/scheduler/processor.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/savedstate.h"
+#include <memory>
+#include <utility>
 
 using namespace mint;
 
-Generator::Generator(std::unique_ptr<SavedState> state, const Process *process) :
-	Process(AbstractSyntaxTree::instance()->create_cursor(process->cursor())),
-	m_state(std::move(state)) {
-	set_thread_id(process->get_thread_id());
+Generator::Generator(std::unique_ptr<SavedState>&& state, const Process& process) :
+    Process(process.cursor().make_thread()),
+    _state(std::move(state)) {
+	set_thread_id(process.get_thread_id());
 }
 
 Generator::~Generator() {}
 
 void Generator::setup() {
-	lock_processor();
-	cursor()->restore(std::move(m_state));
-	unlock_processor();
+	auto _ = ProcessorLocker();
+	cursor().restore(std::move(_state));
 }
 
 void Generator::cleanup() {}
 
-bool mint::is_generator(Process *process) {
-	return dynamic_cast<Generator *>(process) != nullptr;
+bool mint::is_generator(Process& process) {
+	return dynamic_cast<Generator*>(&process) != nullptr;
 }

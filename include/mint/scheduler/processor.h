@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_PROCESSOR_H
-#define MINT_PROCESSOR_H
+#ifndef MINT_SCHEDULER_PROCESSOR_H
+#define MINT_SCHEDULER_PROCESSOR_H
 
 #include "mint/config.h"
 
@@ -32,9 +32,20 @@ class Cursor;
 class CursorDebugger;
 class DebugInterface;
 
-MINT_EXPORT bool debug_steps(CursorDebugger *cursor, DebugInterface *handle);
-MINT_EXPORT bool run_steps(Cursor *cursor);
-MINT_EXPORT bool run_step(Cursor *cursor);
+class ProcessorLocker {
+public:
+	ProcessorLocker();
+	ProcessorLocker(const ProcessorLocker&) = delete;
+	ProcessorLocker(ProcessorLocker&&) = delete;
+	~ProcessorLocker();
+
+	ProcessorLocker& operator=(const ProcessorLocker&) = delete;
+	ProcessorLocker& operator=(ProcessorLocker&&) = delete;
+};
+
+MINT_EXPORT bool debug_steps(CursorDebugger& cursor, DebugInterface& handle);
+MINT_EXPORT bool run_steps(Cursor& cursor);
+MINT_EXPORT bool run_step(Cursor& cursor);
 
 MINT_EXPORT void set_multi_thread(bool enabled);
 MINT_EXPORT void lock_processor();
@@ -42,4 +53,4 @@ MINT_EXPORT void unlock_processor();
 
 }
 
-#endif // MINT_PROCESSOR_H
+#endif // MINT_SCHEDULER_PROCESSOR_H

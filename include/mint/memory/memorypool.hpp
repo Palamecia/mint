@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,41 +21,47 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_MEMORYPOOL_HPP
-#define MINT_MEMORYPOOL_HPP
+#ifndef MINT_MEMORY_MEMORYPOOL_HPP
+#define MINT_MEMORY_MEMORYPOOL_HPP
 
 #include "mint/system/poolallocator.hpp"
 #include "mint/system/assert.h"
+#include <cassert>
+#include <concepts>
+#include <cstddef>
+#include <memory>
+#include <new>
 
 namespace mint {
 
 class MemoryPool {
 public:
 	MemoryPool() = default;
-	MemoryPool(MemoryPool &&) = delete;
-	MemoryPool(const MemoryPool &other) = delete;
+	MemoryPool(MemoryPool&&) = delete;
+	MemoryPool(const MemoryPool& other) = delete;
 	virtual ~MemoryPool() = default;
 
-	MemoryPool &operator=(MemoryPool &&) = delete;
-	MemoryPool &operator=(const MemoryPool &other) = delete;
+	MemoryPool& operator=(MemoryPool&&) = delete;
+	MemoryPool& operator=(const MemoryPool& other) = delete;
 
-	virtual void free(void *address) = 0;
+	virtual void free(void* address) = 0;
 };
 
 template<class Type>
 class SystemPool : public MemoryPool {
 public:
 	template<typename... Args>
-	Type *alloc(Args... args) {
+	    requires std::constructible_from<Type, Args...>
+	Type* alloc(Args&&... args) {
 		return assert_not_null<std::bad_alloc>(new Type(std::forward<Args>(args)...));
 	}
 
-	void free(Type *object) {
+	void free(Type* object) {
 		delete object;
 	}
 
-	void free(void *address) override {
-		delete static_cast<Type *>(address);
+	void free(void* address) override {
+		delete static_cast<Type*>(address);
 	}
 };
 
@@ -63,37 +69,38 @@ template<>
 class SystemPool<std::nullptr_t> : public MemoryPool {
 public:
 	template<typename... Args>
-	std::nullptr_t alloc([[maybe_unused]] Args... args) {
+	std::nullptr_t alloc([[maybe_unused]] Args&&... args) {
 		return nullptr;
 	}
 
 	void free([[maybe_unused]] std::nullptr_t object) {}
 
-	void free([[maybe_unused]] void *address) override {}
+	void free([[maybe_unused]] void* address) override {}
 };
 
 template<class Type>
 class LocalPool : public MemoryPool, private PoolAllocator<Type> {
 public:
 	template<typename... Args>
-	Type *alloc(Args &&...args) {
-		return new (PoolAllocator<Type>::allocate()) Type(std::forward<Args>(args)...);
+	    requires std::constructible_from<Type, Args...>
+	Type* alloc(Args&&... args) {
+		return std::construct_at(PoolAllocator<Type>::allocate(), std::forward<Args>(args)...);
 	}
 
-	void free(Type *object) {
+	void free(Type* object) {
 		assert(object);
-		object->Type::~Type();
+		std::destroy_at(object);
 		PoolAllocator<Type>::deallocate(object);
 	}
 
-	void free(void *address) override {
+	void free(void* address) override {
 		assert(address);
-		Type *object = static_cast<Type *>(address);
-		object->Type::~Type();
+		auto* object = static_cast<Type*>(address);
+		std::destroy_at(object);
 		PoolAllocator<Type>::deallocate(object);
 	}
 };
 
 }
 
-#endif // MINT_MEMORYPOOL_HPP
+#endif // MINT_MEMORY_MEMORYPOOL_HPP

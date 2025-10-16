@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,18 +23,21 @@
 
 #include "mint/scheduler/inputstream.h"
 #include "mint/scheduler/scheduler.h"
+#include "mint/system/assert.h"
 #include "mint/system/terminal.h"
 
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
-
-#define MINT_NEW_LINE_PROMPT "\033[1;32m>>>\033[0m "
-#define MINT_CONTINUE_PROMPT "\033[1;32m...\033[0m "
+#include <filesystem>
+#include <format>
+#include <utility>
 
 using namespace mint;
 
 namespace {
 
-int amount_of_digits(size_t value) {
+int amount_of_digits(std::size_t value) {
 
 	int amount = 1;
 
@@ -48,28 +51,18 @@ int amount_of_digits(size_t value) {
 }
 
 InputStream::InputStream() {
-	m_terminal.set_auto_braces("{}[]()''\"\"");
-	m_terminal.set_prompt([this](size_t row_number) {
-		size_t number = row_number + line_number();
-		size_t number_digits = static_cast<size_t>(amount_of_digits(number) / 4) + 3;
-		std::string prompt(number_digits + strlen(MINT_NEW_LINE_PROMPT) + 2, ' ');
-
-		if (row_number) {
-			snprintf(prompt.data(), prompt.length(), "% *zd " MINT_CONTINUE_PROMPT, static_cast<int>(number_digits),
-					 number);
+	_terminal.set_auto_braces("{}[]()''\"\"");
+	_terminal.set_prompt([this](std::size_t row_number) {
+		const std::size_t number = row_number + line_number();
+		const std::size_t number_digits = static_cast<std::size_t>(amount_of_digits(number) / 4) + 3;
+		if (row_number == 0) {
+			return std::format("{: {}} \033[1;32m❯❯❯\033[0m ", number, number_digits);
 		}
-		else {
-			snprintf(prompt.data(), prompt.length(), "% *zd " MINT_NEW_LINE_PROMPT, static_cast<int>(number_digits),
-					 number);
-		}
-
-		return prompt;
+		return std::format("{: {}} \033[1;32m...\033[0m ", number, number_digits);
 	});
 }
 
-InputStream::~InputStream() {}
-
-InputStream &InputStream::instance() {
+InputStream& InputStream::instance() {
 
 	static InputStream g_instance;
 
@@ -77,11 +70,11 @@ InputStream &InputStream::instance() {
 }
 
 bool InputStream::at_end() const {
-	return m_status == OVER;
+	return _status == Status::over;
 }
 
 bool InputStream::is_valid() const {
-	return is_term(STDIN_FILE_NO);
+	return is_term(stdin_file_no);
 }
 
 std::filesystem::path InputStream::path() const {
@@ -89,20 +82,20 @@ std::filesystem::path InputStream::path() const {
 }
 
 void InputStream::next() {
-	m_level = 0;
-	m_status = READY;
+	_level = 0;
+	_status = Status::ready;
 }
 
 void InputStream::set_highlighter(Terminal::HighlighterFunction highlight) {
-	m_terminal.set_highlighter(std::move(highlight));
+	_terminal.set_highlighter(std::move(highlight));
 }
 
 void InputStream::set_completion_generator(Terminal::CompletionGeneratorFunction generator) {
-	m_terminal.set_completion_generator(std::move(generator));
+	_terminal.set_completion_generator(std::move(generator));
 }
 
 void InputStream::set_brace_matcher(Terminal::BraceMatcherFunction matcher) {
-	m_terminal.set_brace_matcher(std::move(matcher));
+	_terminal.set_brace_matcher(std::move(matcher));
 }
 
 void InputStream::update_buffer() {
@@ -111,58 +104,60 @@ void InputStream::update_buffer() {
 		Terminal::print(stdout, "\n");
 	}
 
-	auto buffer = m_terminal.read_line();
+	auto buffer = _terminal.read_line();
 	if (buffer.has_value()) {
-		m_buffer = *buffer;
+		_buffer = *buffer;
 	}
 	else {
-		Scheduler::instance()->exit(EXIT_SUCCESS);
-		m_buffer.clear();
-		m_status = OVER;
+		auto* scheduler = Scheduler::instance();
+		assert_x(scheduler, __func__, "execution should be done using a scheduler");
+		scheduler->exit(EXIT_SUCCESS);
+		_buffer.clear();
+		_status = Status::over;
 	}
 
-	m_cptr = m_buffer.data();
+	_cptr = _buffer.data();
 }
 
 int InputStream::read_char() {
 
-	if (m_must_fetch_more) {
-		m_must_fetch_more = false;
+	if (_must_fetch_more) {
+		_must_fetch_more = false;
 		update_buffer();
 	}
-	else if ((m_status == READY) && (*m_cptr == '\0')) {
+	else if ((_status == Status::ready) && (*_cptr == '\0')) {
 		update_buffer();
 	}
 
-	switch (m_status) {
-	case READY:
-		switch (*m_cptr) {
+	switch (_status) {
+	case Status::ready:
+		switch (*_cptr) {
 		case '\n':
-			if (m_level) {
-				m_must_fetch_more = *(m_cptr + 1) == '\0';
+			if (_level) {
+				_must_fetch_more = *(_cptr + 1) == '\0';
 			}
 			else {
-				m_status = BREAKING;
+				_status = Status::breaking;
 			}
 			break;
 		case '{':
 		case '[':
 		case '(':
-			m_level++;
+			_level++;
 			break;
 		case '}':
 		case ']':
 		case ')':
-			m_level--;
+			_level--;
 			break;
 		case '/':
-			m_status = COULD_START_COMMENT;
+			_status = Status::could_start_comment;
 			break;
 		case '\'':
-			m_status = SINGLE_QUOTE_STRING;
+			_status = Status::single_quote_string;
 			break;
 		case '"':
-			m_status = DOUBLE_QUOTE_STRING;
+			_status = Status::double_quote_string;
 			break;
 		default:
 			break;
@@ -170,57 +165,57 @@ int InputStream::read_char() {
 
 		return next_buffered_char();
 
-	case COULD_START_COMMENT:
-		switch (*m_cptr) {
+	case Status::could_start_comment:
+		switch (*_cptr) {
 		case '\n':
-			if (m_level) {
-				m_must_fetch_more = *(m_cptr + 1) == '\0';
-				m_status = READY;
+			if (_level) {
+				_must_fetch_more = *(_cptr + 1) == '\0';
+				_status = Status::ready;
 			}
 			else {
-				m_status = BREAKING;
+				_status = Status::breaking;
 			}
 			break;
 		case '{':
 		case '[':
 		case '(':
-			m_status = READY;
-			m_level++;
+			_status = Status::ready;
+			_level++;
 			break;
 		case '}':
 		case ']':
 		case ')':
-			m_status = READY;
-			m_level--;
+			_status = Status::ready;
+			_level--;
 			break;
 		case '/':
-			m_status = SINGLE_LINE_COMMENT;
+			_status = Status::single_line_comment;
 			break;
 		case '*':
-			m_status = MULTI_LINE_COMMENT;
+			_status = Status::multi_line_comment;
 			break;
 		case '\'':
-			m_status = SINGLE_QUOTE_STRING;
+			_status = Status::single_quote_string;
 			break;
 		case '"':
-			m_status = DOUBLE_QUOTE_STRING;
+			_status = Status::double_quote_string;
 			break;
 		default:
-			m_status = READY;
+			_status = Status::ready;
 			break;
 		}
 
 		return next_buffered_char();
 
-	case SINGLE_LINE_COMMENT:
-		switch (*m_cptr) {
+	case Status::single_line_comment:
+		switch (*_cptr) {
 		case '\n':
-			if (m_level) {
-				m_must_fetch_more = *(m_cptr + 1) == '\0';
-				m_status = READY;
+			if (_level) {
+				_must_fetch_more = *(_cptr + 1) == '\0';
+				_status = Status::ready;
 			}
 			else {
-				m_status = BREAKING;
+				_status = Status::breaking;
 			}
 			break;
 		default:
@@ -229,13 +224,13 @@ int InputStream::read_char() {
 
 		return next_buffered_char();
 
-	case MULTI_LINE_COMMENT:
-		switch (*m_cptr) {
+	case Status::multi_line_comment:
+		switch (*_cptr) {
 		case '\n':
-			m_must_fetch_more = *(m_cptr + 1) == '\0';
+			_must_fetch_more = *(_cptr + 1) == '\0';
 			break;
 		case '*':
-			m_status = COULD_END_COMMENT;
+			_status = Status::could_end_comment;
 			break;
 		default:
 			break;
@@ -243,32 +238,32 @@ int InputStream::read_char() {
 
 		return next_buffered_char();
 
-	case COULD_END_COMMENT:
-		switch (*m_cptr) {
+	case Status::could_end_comment:
+		switch (*_cptr) {
 		case '\n':
-			m_must_fetch_more = *(m_cptr + 1) == '\0';
-			m_status = MULTI_LINE_COMMENT;
+			_must_fetch_more = *(_cptr + 1) == '\0';
+			_status = Status::multi_line_comment;
 			break;
 		case '/':
-			m_status = READY;
+			_status = Status::ready;
 			break;
 		default:
-			m_status = MULTI_LINE_COMMENT;
+			_status = Status::multi_line_comment;
 			break;
 		}
 
 		return next_buffered_char();
 
-	case SINGLE_QUOTE_STRING:
-		switch (*m_cptr) {
+	case Status::single_quote_string:
+		switch (*_cptr) {
 		case '\n':
-			m_must_fetch_more = *(m_cptr + 1) == '\0';
+			_must_fetch_more = *(_cptr + 1) == '\0';
 			break;
 		case '\\':
-			m_status = SINGLE_QUOTE_STRING_ESCAPE_NEXT;
+			_status = Status::single_quote_string_escape_next;
 			break;
 		case '\'':
-			m_status = READY;
+			_status = Status::ready;
 			break;
 		default:
 			break;
@@ -276,29 +271,29 @@ int InputStream::read_char() {
 
 		return next_buffered_char();
 
-	case SINGLE_QUOTE_STRING_ESCAPE_NEXT:
-		switch (*m_cptr) {
+	case Status::single_quote_string_escape_next:
+		switch (*_cptr) {
 		case '\n':
-			m_must_fetch_more = *(m_cptr + 1) == '\0';
-			m_status = SINGLE_QUOTE_STRING;
+			_must_fetch_more = *(_cptr + 1) == '\0';
+			_status = Status::single_quote_string;
 			break;
 		default:
-			m_status = SINGLE_QUOTE_STRING;
+			_status = Status::single_quote_string;
 			break;
 		}
 
 		return next_buffered_char();
 
-	case DOUBLE_QUOTE_STRING:
-		switch (*m_cptr) {
+	case Status::double_quote_string:
+		switch (*_cptr) {
 		case '\n':
-			m_must_fetch_more = *(m_cptr + 1) == '\0';
+			_must_fetch_more = *(_cptr + 1) == '\0';
 			break;
 		case '\\':
-			m_status = SINGLE_QUOTE_STRING_ESCAPE_NEXT;
+			_status = Status::single_quote_string_escape_next;
 			break;
 		case '"':
-			m_status = READY;
+			_status = Status::ready;
 			break;
 		default:
 			break;
@@ -306,25 +301,25 @@ int InputStream::read_char() {
 
 		return next_buffered_char();
 
-	case DOUBLE_QUOTE_STRING_ESCAPE_NEXT:
-		switch (*m_cptr) {
+	case Status::double_quote_string_escape_next:
+		switch (*_cptr) {
 		case '\n':
-			m_must_fetch_more = *(m_cptr + 1) == '\0';
-			m_status = DOUBLE_QUOTE_STRING;
+			_must_fetch_more = *(_cptr + 1) == '\0';
+			_status = Status::double_quote_string;
 			break;
 		default:
-			m_status = DOUBLE_QUOTE_STRING;
+			_status = Status::double_quote_string;
 			break;
 		}
 
 		return next_buffered_char();
 
-	case BREAKING:
-		m_status = OVER;
+	case Status::breaking:
+		_status = Status::over;
 		break;
 
-	case OVER:
-		m_status = READY;
+	case Status::over:
+		_status = Status::ready;
 		break;
 	}
 
@@ -332,5 +327,5 @@ int InputStream::read_char() {
 }
 
 int InputStream::next_buffered_char() {
-	return *m_cptr++;
+	return *_cptr++;
 }

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -139,6 +139,8 @@ class LexicalHandler {
 		Equal
 		/// The token is a `?` operator.
 		Question
+		/// The token is a `?.` operator.
+		QuestionDot
 		/// The token is a `:` operator.
 		Colon
 		/// The token is a `:=` operator.

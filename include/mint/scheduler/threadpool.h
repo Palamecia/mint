@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,11 +21,13 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_THREADPOOL_H
-#define MINT_THREADPOOL_H
+#ifndef MINT_SCHEDULER_THREADPOOL_H
+#define MINT_SCHEDULER_THREADPOOL_H
 
+#include "mint/config.h"
 #include "mint/scheduler/process.h"
 
+#include <functional>
 #include <unordered_map>
 #include <mutex>
 #include <list>
@@ -36,21 +38,20 @@ class MINT_EXPORT ThreadPool {
 public:
 	ThreadPool() = default;
 
-	Process *find(Process::ThreadId thread) const;
-	Process::ThreadId start(Process *thread);
-	void attach(Process *thread);
-	void stop(Process *thread);
+	Process* find(Process::ThreadId thread) const;
+	Process::ThreadId start(Process& thread);
+	void stop(Process& thread);
 	void stop_all();
 
-	void join(Process *thread);
+	void join(Process& thread);
 
 private:
-	std::unordered_map<Process::ThreadId, Process *> m_handles;
-	Process::ThreadId m_next_thread_id = 1;
-	std::list<Process *> m_stack;
-	mutable std::mutex m_mutex;
+	std::unordered_map<Process::ThreadId, std::reference_wrapper<Process>> _handles;
+	Process::ThreadId _next_thread_id = 1;
+	std::list<std::reference_wrapper<Process>> _stack;
+	mutable std::mutex _mutex;
 };
 
 }
 
-#endif // MINT_THREADPOOL_H
+#endif // MINT_SCHEDULER_THREADPOOL_H

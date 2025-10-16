@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,28 +21,25 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_STDIO_H
-#define MINT_STDIO_H
+#ifndef MINT_SYSTEM_STDIO_H
+#define MINT_SYSTEM_STDIO_H
 
 #include "mint/config.h"
 
 #include <cstdio>
+#include <string>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include <Windows.h>
-
-using ssize_t = SSIZE_T;
-
-MINT_EXPORT ssize_t getline(char **lineptr, size_t *n, FILE *stream);
-MINT_EXPORT ssize_t getdelim(char **lineptr, size_t *n, int delim, FILE *stream);
 #endif
 
 namespace mint {
 
-MINT_EXPORT int printf(FILE *stream, const char *format, ...) __attribute__((format(printf, 2, 3)));
-MINT_EXPORT int vprintf(FILE *stream, const char *format, va_list args);
-MINT_EXPORT int print(FILE *stream, const char *str);
+MINT_EXPORT std::string get_line(FILE* stream);
+MINT_EXPORT std::string get_delim(int delim, FILE* stream);
+
+MINT_EXPORT void print(FILE* stream, const std::string& str);
 
 }
 
-#endif // MINT_STDIO_H
+#endif // MINT_SYSTEM_STDIO_H

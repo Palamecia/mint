@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,16 +22,26 @@
  */
 
 #include "dapmessage.h"
+#include "json.h"
+#include "log.h"
 
+#include <cstddef>
+#include <exception>
+#include <memory>
+#include <optional>
+#include <print>
 #include <regex>
+#include <sstream>
+#include <string>
+#include <utility>
 
 namespace {
 
-std::string::size_type regex_find(const std::string &str, const std::regex &re,
-										 std::string::size_type from = std::string::npos) {
+std::string::size_type regex_find(const std::string& str, const std::regex& re,
+    std::string::size_type from = std::string::npos) {
 	std::smatch match;
 	while (regex_search(str, match, re)) {
-		std::string::size_type pos = match.position();
+		const auto pos = match.position();
 		if (from == std::string::npos) {
 			return pos;
 		}
@@ -44,168 +54,177 @@ std::string::size_type regex_find(const std::string &str, const std::regex &re,
 
 }
 
-const std::string DapMessage::CONTENT_LENGTH = "Content-Length: ";
+const std::string DapMessage::content_length = "Content-Length: ";
 int DapMessage::g_next_seq = 1;
 
-std::unique_ptr<DapMessage> DapMessage::decode(const std::string &data) {
-	if (std::unique_ptr<Json> json = Json::parse(data)) {
-		if (const JsonObject *object = json->to_object()) {
-			if (const JsonString *type = object->get_string("type")) {
-				if (*type == "request") {
-					return std::make_unique<DapRequestMessage>(object);
-				}
-				if (*type == "response") {
-					return std::make_unique<DapResponseMessage>(object);
-				}
-				if (*type == "event") {
-					return std::make_unique<DapEventMessage>(object);
-				}
+std::unique_ptr<DapMessage> DapMessage::decode(const std::string& data) {
+	try {
+		const auto object = parse_json_object(data);
+		if (const JsonString* type = object.get_string("type")) {
+			if (*type == "request") {
+				return std::make_unique<DapRequestMessage>(object);
+			}
+			if (*type == "response") {
+				return std::make_unique<DapResponseMessage>(object);
+			}
+			if (*type == "event") {
+				return std::make_unique<DapEventMessage>(object);
 			}
 		}
+	}
+	catch (std::exception& error) {
+		std::println(Logger::default_logger(), "Failed to decode message: {}", error.what());
 	}
 	return nullptr;
 }
 
-DapRequestMessage::DapRequestMessage(const JsonObject *json) :
-	m_seq(attribute_or_default(json->get_number("seq"), -1)),
-	m_command(*json->get_string("command")),
-	m_arguments(attribute_or_default(json->get_object("arguments"), nullptr)) {}
+DapRequestMessage::DapRequestMessage(const JsonObject& json) :
+    _seq(attribute_or_default(json.get_number("seq"), -1)),
+    _command(attribute_or_default(json.get_string("command"))),
+    _arguments(attribute_as_optional(json.get_object("arguments"))) {}
 
 std::string DapRequestMessage::encode() const {
 	std::stringstream stream;
 	stream << "{"
-		   << R"("type":"request",)";
-	if (m_seq != -1) {
-		stream << "\"seq\":" << m_seq << ",";
+	       << R"("type":"request",)";
+	if (_seq != -1) {
+		stream << "\"seq\":" << _seq << ",";
 	}
-	stream << R"("command":")" << m_command << "\"";
-	if (m_arguments) {
-		stream << ",\"arguments\":" << m_arguments->to_json();
+	stream << R"("command":")" << _command << "\"";
+	if (_arguments) {
+		stream << ",\"arguments\":" << _arguments->to_json();
 	}
 	stream << "}";
 	return stream.str();
 }
 
 DapMessage::Type DapRequestMessage::get_type() const {
-	return REQUEST;
+	return request;
 }
 
 int DapRequestMessage::get_seq() const {
-	return m_seq;
+	return _seq;
 }
 
 std::string DapRequestMessage::get_command() const {
-	return m_command;
+	return _command;
 }
 
-const JsonObject *DapRequestMessage::get_arguments() const {
-	return m_arguments.get();
+JsonObject DapRequestMessage::get_arguments() const {
+	return _arguments.value_or({});
 }
 
-DapResponseMessage::DapResponseMessage(const JsonObject *json) :
-	m_seq(*json->get_number("seq")),
-	m_request_seq(*json->get_number("request_seq")),
-	m_success(*json->get_boolean("success")),
-	m_command(*json->get_string("command")),
-	m_message(*json->get_string("message")),
-	m_body(new JsonObject(*json->get_object("body"))),
-	m_error(attribute_or_default(json->get_object("error"), nullptr)) {}
+bool DapRequestMessage::has_arguments() const {
+	return _arguments.has_value();
+}
 
-DapResponseMessage::DapResponseMessage(const DapRequestMessage *request, JsonObject *body) :
-	m_seq(g_next_seq++),
-	m_request_seq(request->get_seq()),
-	m_success(true),
-	m_command(request->get_command()),
-	m_body(body) {}
+DapResponseMessage::DapResponseMessage(const JsonObject& json) :
+    _seq(*json.get_number("seq")),
+    _request_seq(*json.get_number("request_seq")),
+    _success(*json.get_boolean("success")),
+    _command(*json.get_string("command")),
+    _message(*json.get_string("message")),
+    _body(attribute_as_optional(json.get_object("body"))),
+    _error(attribute_as_optional(json.get_object("error"))) {}
 
-DapResponseMessage::DapResponseMessage(const DapRequestMessage *request, std::string message, JsonObject *error) :
-	m_seq(g_next_seq++),
-	m_request_seq(request->get_seq()),
-	m_success(false),
-	m_command(request->get_command()),
-	m_message(std::move(message)),
-	m_error(error) {}
+DapResponseMessage::DapResponseMessage(const DapRequestMessage& request, std::optional<JsonObject> body) :
+    _seq(g_next_seq++),
+    _request_seq(request.get_seq()),
+    _success(true),
+    _command(request.get_command()),
+    _body(std::move(body)) {}
+
+DapResponseMessage::DapResponseMessage(const DapRequestMessage& request, std::string message,
+    std::optional<JsonObject> error) :
+    _seq(g_next_seq++),
+    _request_seq(request.get_seq()),
+    _success(false),
+    _command(request.get_command()),
+    _message(std::move(message)),
+    _error(std::move(error)) {}
 
 std::string DapResponseMessage::encode() const {
 	std::stringstream stream;
 	stream << "{"
-		   << R"("type":"response",)";
-	if (m_seq != -1) {
-		stream << "\"seq\":" << m_seq << ",";
+	       << R"("type":"response",)";
+	if (_seq != -1) {
+		stream << "\"seq\":" << _seq << ",";
 	}
-	if (m_request_seq != -1) {
-		stream << "\"request_seq\":" << m_request_seq << ",";
+	if (_request_seq != -1) {
+		stream << "\"request_seq\":" << _request_seq << ",";
 	}
-	stream << R"("command":")" << m_command << "\","
-		   << "\"success\":" << (m_success ? "true" : "false");
-	if (m_success) {
-		if (m_body) {
-			stream << ",\"body\":" << m_body->to_json();
+	stream << R"("command":")" << _command << "\","
+	       << "\"success\":" << (_success ? "true" : "false");
+	if (_success) {
+		if (_body) {
+			stream << ",\"body\":" << _body->to_json();
 		}
 	}
 	else {
-		stream << R"("message":")" << m_message << "\","
-			   << R"("error":")" << m_error->to_json() << "\"";
+		stream << R"("message":")" << _message << "\"";
+		if (_error) {
+			stream << R"(,"error":")" << _error->to_json() << "\"";
+		}
 	}
 	stream << "}";
 	return stream.str();
 }
 
 DapMessage::Type DapResponseMessage::get_type() const {
-	return RESPONSE;
+	return response;
 }
 
 int DapResponseMessage::get_seq() const {
-	return m_seq;
+	return _seq;
 }
 
-DapEventMessage::DapEventMessage(const JsonObject *json) :
-	m_seq(attribute_or_default(json->get_number("seq"), -1)),
-	m_event(*json->get_string("event")),
-	m_body(new JsonObject(*json->get_object("body"))) {}
+DapEventMessage::DapEventMessage(const JsonObject& json) :
+    _seq(attribute_or_default(json.get_number("seq"), -1)),
+    _event(attribute_or_default(json.get_string("event"))),
+    _body(attribute_as_optional(json.get_object("body"))) {}
 
-DapEventMessage::DapEventMessage(std::string event, JsonObject *body) :
-	m_seq(g_next_seq++),
-	m_event(std::move(event)),
-	m_body(body) {}
+DapEventMessage::DapEventMessage(std::string event, std::optional<JsonObject> body) :
+    _seq(g_next_seq++),
+    _event(std::move(event)),
+    _body(std::move(body)) {}
 
 std::string DapEventMessage::encode() const {
 	std::stringstream stream;
 	stream << "{"
-		   << R"("type":"event",)";
-	if (m_seq != -1) {
-		stream << "\"seq\":" << m_seq << ",";
+	       << R"("type":"event",)";
+	if (_seq != -1) {
+		stream << "\"seq\":" << _seq << ",";
 	}
-	stream << R"("event":")" << m_event << "\"";
-	if (m_body) {
-		stream << ",\"body\":" << m_body->to_json();
+	stream << R"("event":")" << _event << "\"";
+	if (_body) {
+		stream << ",\"body\":" << _body->to_json();
 	}
 	stream << "}";
 	return stream.str();
 }
 
 DapMessage::Type DapEventMessage::get_type() const {
-	return EVENT;
+	return event;
 }
 
 int DapEventMessage::get_seq() const {
-	return m_seq;
+	return _seq;
 }
 
 std::string DapEventMessage::get_event() const {
-	return m_event;
+	return _event;
 }
 
 std::unique_ptr<DapMessage> DapMessageReader::next_message() {
 
-	read(m_stream);
+	read(_stream);
 
 	auto begin = std::string::npos;
 	auto length = next_message_length(begin);
 
-	if (length != INVALID_LENGTH && length <= m_stream.size()) {
-		if (std::unique_ptr<DapMessage> message = DapMessage::decode(m_stream.substr(begin, length - begin))) {
-			m_stream.erase(0, begin + length);
+	if (length != invalid_length && length <= _stream.size()) {
+		if (std::unique_ptr<DapMessage> message = DapMessage::decode(_stream.substr(begin, length - begin))) {
+			_stream.erase(0, begin + length);
 			return message;
 		}
 	}
@@ -213,25 +232,24 @@ std::unique_ptr<DapMessage> DapMessageReader::next_message() {
 	return nullptr;
 }
 
-size_t DapMessageReader::next_message_length(std::string::size_type &begin) const {
+std::size_t DapMessageReader::next_message_length(std::string::size_type& begin) const {
 
-	auto index = m_stream.find(DapMessage::CONTENT_LENGTH);
-	if (index != std::string::npos) {
-		auto eol = regex_find(m_stream, std::regex("\\r?\\n"), index);
-		begin = regex_find(m_stream, std::regex(R"(\r?\n\r?\n)"), index);
+	if (auto index = _stream.find(DapMessage::content_length); index != std::string::npos) {
+		auto eol = regex_find(_stream, std::regex("\\r?\\n"), index);
+		begin = regex_find(_stream, std::regex(R"(\r?\n\r?\n)"), index);
 		if (begin != std::string::npos) {
-			begin += m_stream[begin] == '\r' ? 2 : 1;
-			begin += m_stream[begin] == '\r' ? 2 : 1;
+			begin += _stream[begin] == '\r' ? 2 : 1;
+			begin += _stream[begin] == '\r' ? 2 : 1;
 			return begin
-				   + stoull(m_stream.substr(index + DapMessage::CONTENT_LENGTH.length(),
-											eol - index - DapMessage::CONTENT_LENGTH.length()));
+			       + std::stoull(_stream.substr(index + DapMessage::content_length.length(),
+			           eol - index - DapMessage::content_length.length()));
 		}
 	}
 
-	return INVALID_LENGTH;
+	return invalid_length;
 }
 
 void DapMessageWriter::append_message(std::unique_ptr<DapMessage> message) {
 	const std::string data = message->encode();
-	write(DapMessage::CONTENT_LENGTH + std::to_string(data.length()) + "\r\n\r\n" + data);
+	write(DapMessage::content_length + std::to_string(data.length()) + "\r\n\r\n" + data);
 }

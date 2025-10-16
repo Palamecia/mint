@@ -4,7 +4,7 @@ add_executable(test-compiler)
 
 target_sources(
 	test-compiler
-	PRIVATE
+PRIVATE
 	buildtool.cpp
 	compiler.cpp
 	lexer.cpp
@@ -13,9 +13,10 @@ target_sources(
 
 target_link_libraries(
 	test-compiler
-	GTest::Main
-	GTest::GTest
-	mint_library
+PRIVATE
+	libmint
+	GTest::gtest
+	GTest::gtest_main
 )
 
 gtest_discover_tests(test-compiler)

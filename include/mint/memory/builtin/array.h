@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,35 +21,39 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_BUILTIN_ARRAY_H
-#define MINT_BUILTIN_ARRAY_H
+#ifndef MINT_MEMORY_BUILTIN_ARRAY_H
+#define MINT_MEMORY_BUILTIN_ARRAY_H
 
+#include "mint/config.h"
 #include "mint/memory/class.h"
+#include "mint/memory/garbagecollector.h"
 #include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include <cstddef>
+#include <cstdint>
+#include <vector>
 
 namespace mint {
 
+class AbstractSyntaxTree;
 class Cursor;
 
 class MINT_EXPORT ArrayClass : public Class {
-	friend class GlobalData;
 public:
-	static ArrayClass *instance();
-
-private:
-	ArrayClass();
+	ArrayClass(AbstractSyntaxTree& ast);
+	static ArrayClass& instance(AbstractSyntaxTree& ast);
 };
 
-struct MINT_EXPORT Array : public Object {
+class MINT_EXPORT Array : public Object {
 	friend class GarbageCollector;
 public:
-	Array();
-	Array(Array &&other) noexcept;
-	Array(const Array &other);
+	explicit Array(AbstractSyntaxTree& ast);
+	Array(Array&& other) noexcept;
+	Array(const Array& other);
 	~Array() override = default;
 
-	Array &operator=(Array &&other) noexcept;
-	Array &operator=(const Array &other);
+	Array& operator=(Array&& other) noexcept;
+	Array& operator=(const Array& other);
 
 	void mark() override;
 
@@ -60,17 +64,17 @@ private:
 	static LocalPool<Array> g_pool;
 };
 
-MINT_EXPORT void array_new(Cursor *cursor, size_t length);
-MINT_EXPORT void array_append(Array *array, const Reference &item);
-MINT_EXPORT void array_append(Array *array, Reference &&item);
-MINT_EXPORT WeakReference array_insert(Array *array, intmax_t index, const Reference &item);
-MINT_EXPORT WeakReference array_insert(Array *array, intmax_t index, Reference &&item);
-MINT_EXPORT WeakReference array_get_item(Array *array, intmax_t index);
-MINT_EXPORT WeakReference array_get_item(const Array::values_type::iterator &it);
-MINT_EXPORT WeakReference array_get_item(Array::values_type::value_type &value);
-MINT_EXPORT size_t array_index(const Array *array, intmax_t index);
-MINT_EXPORT WeakReference array_item(const Reference &item);
+MINT_EXPORT void array_new(Cursor& cursor, std::size_t length);
+MINT_EXPORT void array_append(Array& array, const Reference& item);
+MINT_EXPORT void array_append(Array& array, Reference&& item);
+MINT_EXPORT WeakReference array_insert(Array& array, intmax_t index, const Reference& item);
+MINT_EXPORT WeakReference array_insert(Array& array, intmax_t index, Reference&& item);
+MINT_EXPORT WeakReference array_get_item(Array& array, intmax_t index);
+MINT_EXPORT WeakReference array_get_item(const Array::values_type::iterator& it);
+MINT_EXPORT WeakReference array_get_item(Array::values_type::value_type& value);
+MINT_EXPORT std::size_t array_index(const Array& array, intmax_t index);
+MINT_EXPORT WeakReference array_item(const Reference& item);
 
 }
 
-#endif // MINT_BUILTIN_ARRAY_H
+#endif // MINT_MEMORY_BUILTIN_ARRAY_H

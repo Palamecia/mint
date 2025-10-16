@@ -7,31 +7,28 @@ Mint is an interpreted scripting language.
 On Linux:
 
 ```shell
-mkdir build
-cd build
-cmake ..
-make
-sudo make install
+cmake --preset=vcpkg
+cmake --build build
+sudo cmake --install build
 ```
 
 This will install mint as `/bin/mint`.
 
-To build mint in release mode use `cmake -DCMAKE_BUILD_TYPE=Release ..`.
+To build mint in release mode use `cmake --preset=vcpkg -DCMAKE_BUILD_TYPE=Release`.
 For more details about CMake see [`CMake documentation`](https://cmake.org/).
 
 On Windows:
 
 ```bat
-mkdir build
-cd build
-cmake ..
-cmake --build . --target ALL_BUILD
-cmake --build . --target INSTALL
+cmake --preset=vcpkg
+cmake --build build
+cmake --install build
 ```
 
 This will install mint as `C:\mint\bin\mint.exe`.
 
-To build mint in release mode use `cmake --build . --target ALL_BUILD --config Release` and `cmake --build . --target INSTALL --config Release`.
+To build mint in release mode use `cmake --preset=vcpkg -DCMAKE_BUILD_TYPE=Release`.
+For more details about CMake see [`CMake documentation`](https://cmake.org/).
 
 ## First steps
 

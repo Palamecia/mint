@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,41 +24,41 @@
 #include "mint/system/filestream.h"
 #include "mint/system/filesystem.h"
 
+#include <cstdio>
 #include <filesystem>
 
 using namespace mint;
 
-FileStream::FileStream(const std::filesystem::path &name) :
-	m_file(open_file(name, "r")),
-	m_path(name),
-	m_over(false) {}
+FileStream::FileStream(const std::filesystem::path& name) :
+    _file(open_file(name, "r")),
+    _path(name),
+    _over(false) {}
 
 FileStream::~FileStream() {
-
-	if (m_file) {
-		fclose(m_file);
+	if (_file) {
+		std::fclose(_file);
 	}
 }
 
 bool FileStream::at_end() const {
-	return m_over;
+	return _over;
 }
 
 bool FileStream::is_valid() const {
-	return m_file != nullptr;
+	return _file != nullptr;
 }
 
 std::filesystem::path FileStream::path() const {
-	return m_path;
+	return _path;
 }
 
 int FileStream::read_char() {
 
-	int c = next_buffered_char();
+	const auto c = next_buffered_char();
 
 	switch (c) {
 	case EOF:
-		m_over = true;
+		_over = true;
 		break;
 	default:
 		break;
@@ -68,5 +68,5 @@ int FileStream::read_char() {
 }
 
 int FileStream::next_buffered_char() {
-	return fgetc(m_file);
+	return fgetc(_file);
 }

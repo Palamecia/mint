@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,310 +23,385 @@
 
 #include "highlighter.h"
 
+#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/symbol.h"
+#include "mint/compiler/token.h"
+#include "mint/memory/class.h"
+#include "mint/memory/data.h"
 #include "mint/memory/globaldata.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
 #include "mint/system/terminal.h"
+#include <algorithm>
+#include <functional>
+#include <memory>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <tuple>
+#include <vector>
 
 #define is_standard_symbol(_token) ((_token == "self") || (_token == "va_args"))
 
 using namespace mint;
 
-Highlighter::Highlighter(std::string &output, std::string_view::size_type offset) :
-	m_output(output),
-	m_offset(offset) {}
+Highlighter::Highlighter(const AbstractSyntaxTree& ast, std::string_view::size_type offset) :
+    _ast(ast),
+    _offset(offset) {}
+
+std::string Highlighter::output() const {
+	return _output;
+}
 
 bool Highlighter::on_script_begin() {
-	m_output.clear();
+	_output.clear();
 	return true;
 }
 
 bool Highlighter::on_script_end() {
-	set_style(TEXT);
+	set_style(Style::text);
 	return true;
 }
 
-bool Highlighter::on_symbol_token(const std::vector<std::string> &context, const std::string &token,
-								  [[maybe_unused]] std::string::size_type offset) {
-	if (is_defined_class(context, token)) {
-		set_style(USER_TYPE);
-	}
-	else if (is_defined_symbol(context, token)) {
-		set_style(CONSTANT);
+bool Highlighter::on_symbol_token(const std::vector<std::string>& context, const std::string& token,
+    [[maybe_unused]] std::string::size_type offset) {
+	if (const auto* reference = find_defined_symbol(context, token)) {
+		switch (reference->data().format()) {
+		case Data::none_format:
+		case Data::null_format:
+		case Data::number_format:
+		case Data::boolean_format:
+			set_style(Style::constant);
+			break;
+		case Data::function_format:
+			set_style(Style::function);
+			break;
+		case Data::object_format:
+			if (is_instance_of(*reference, Class::object) && is_class(reference->data<Object>())) {
+				set_style(Style::user_type);
+			}
+			else {
+				set_style(Style::constant);
+			}
+			break;
+		case Data::package_format:
+			set_style(Style::user_type);
+			break;
+		}
 	}
 	else if (is_standard_symbol(token)) {
-		set_style(STANDARD_SYMBOL);
+		set_style(Style::standard_symbol);
 	}
 	else {
-		set_style(TEXT);
+		set_style(Style::text);
 	}
 	return true;
 }
 
-bool Highlighter::on_token(token::Type type, const std::string &token, std::string::size_type offset) {
+bool Highlighter::on_token(Token type, const std::string& token, std::string::size_type offset) {
 	switch (type) {
-	case token::ASSERT_TOKEN:
-	case token::BREAK_TOKEN:
-	case token::CASE_TOKEN:
-	case token::CATCH_TOKEN:
-	case token::CLASS_TOKEN:
-	case token::CONST_TOKEN:
-	case token::CONTINUE_TOKEN:
-	case token::DEF_TOKEN:
-	case token::DEFAULT_TOKEN:
-	case token::DEFINED_TOKEN:
-	case token::ELIF_TOKEN:
-	case token::ELSE_TOKEN:
-	case token::ENUM_TOKEN:
-	case token::EXIT_TOKEN:
-	case token::FINAL_TOKEN:
-	case token::FOR_TOKEN:
-	case token::IF_TOKEN:
-	case token::IN_TOKEN:
-	case token::IS_TOKEN:
-	case token::LET_TOKEN:
-	case token::LIB_TOKEN:
-	case token::LOAD_TOKEN:
-	case token::MEMBERSOF_TOKEN:
-	case token::OVERRIDE_TOKEN:
-	case token::PACKAGE_TOKEN:
-	case token::PRINT_TOKEN:
-	case token::RAISE_TOKEN:
-	case token::RETURN_TOKEN:
-	case token::SWITCH_TOKEN:
-	case token::TRY_TOKEN:
-	case token::TYPEOF_TOKEN:
-	case token::VAR_TOKEN:
-	case token::WHILE_TOKEN:
-	case token::YIELD_TOKEN:
-		set_style(KEYWORD);
+	case mint::Token::assert_token:
+	case mint::Token::class_token:
+	case mint::Token::const_token:
+	case mint::Token::def_token:
+	case mint::Token::defined_token:
+	case mint::Token::enum_token:
+	case mint::Token::final_token:
+	case mint::Token::in_token:
+	case mint::Token::is_token:
+	case mint::Token::let_token:
+	case mint::Token::lib_token:
+	case mint::Token::membersof_token:
+	case mint::Token::override_token:
+	case mint::Token::package_token:
+	case mint::Token::typeof_token:
+	case mint::Token::var_token:
+		set_style(Style::keyword);
 		break;
-	case token::CONSTANT_TOKEN:
-		set_style(CONSTANT);
+	case mint::Token::exclamation_token:
+	case mint::Token::exclamation_equal_token:
+	case mint::Token::exclamation_dbl_equal_token:
+	case mint::Token::exclamation_tilde_token:
+	case mint::Token::sharp_token:
+	case mint::Token::dollar_token:
+	case mint::Token::percent_token:
+	case mint::Token::percent_equal_token:
+	case mint::Token::amp_token:
+	case mint::Token::dbl_amp_token:
+	case mint::Token::amp_equal_token:
+	case mint::Token::asterisk_token:
+	case mint::Token::dbl_asterisk_token:
+	case mint::Token::asterisk_equal_token:
+	case mint::Token::plus_token:
+	case mint::Token::dbl_plus_token:
+	case mint::Token::plus_equal_token:
+	case mint::Token::minus_token:
+	case mint::Token::dbl_minus_token:
+	case mint::Token::minus_equal_token:
+	case mint::Token::dot_token:
+	case mint::Token::dbl_dot_token:
+	case mint::Token::tpl_dot_token:
+	case mint::Token::slash_token:
+	case mint::Token::slash_equal_token:
+	case mint::Token::colon_token:
+	case mint::Token::colon_equal_token:
+	case mint::Token::left_angled_token:
+	case mint::Token::dbl_left_angled_token:
+	case mint::Token::dbl_left_angled_equal_token:
+	case mint::Token::left_angled_equal_token:
+	case mint::Token::equal_token:
+	case mint::Token::dbl_equal_token:
+	case mint::Token::tpl_equal_token:
+	case mint::Token::equal_right_angled_token:
+	case mint::Token::equal_tilde_token:
+	case mint::Token::right_angled_token:
+	case mint::Token::right_angled_equal_token:
+	case mint::Token::dbl_right_angled_token:
+	case mint::Token::dbl_right_angled_equal_token:
+	case mint::Token::question_token:
+	case mint::Token::question_dot_token:
+	case mint::Token::at_token:
+	case mint::Token::back_slash_token:
+	case mint::Token::caret_token:
+	case mint::Token::caret_equal_token:
+	case mint::Token::pipe_token:
+	case mint::Token::pipe_equal_token:
+	case mint::Token::dbl_pipe_token:
+	case mint::Token::tilde_token:
+		set_style(Style::operator_keyword);
 		break;
-	case token::STRING_TOKEN:
+	case mint::Token::break_token:
+	case mint::Token::case_token:
+	case mint::Token::catch_token:
+	case mint::Token::continue_token:
+	case mint::Token::default_token:
+	case mint::Token::elif_token:
+	case mint::Token::else_token:
+	case mint::Token::exit_token:
+	case mint::Token::for_token:
+	case mint::Token::if_token:
+	case mint::Token::load_token:
+	case mint::Token::print_token:
+	case mint::Token::raise_token:
+	case mint::Token::return_token:
+	case mint::Token::switch_token:
+	case mint::Token::try_token:
+	case mint::Token::while_token:
+	case mint::Token::yield_token:
+		set_style(Style::controle_keyword);
+		break;
+	case Token::constant_token:
+		set_style(Style::constant);
+		break;
+	case Token::string_token:
 		for (std::string::size_type from = 0, to = token.find('\n'); from != std::string::npos;
-			 from = std::max(to, to + 1), to = token.find('\n', to + 1)) {
-			set_style(STRING_LITERAL);
-			m_output.append(token.substr(from, to - from));
+		    from = std::max(to, to + 1), to = token.find('\n', to + 1)) {
+			set_style(Style::string_literal);
+			_output.append(token.substr(from, to - from));
 			if (to != std::string::npos) {
-				set_style(TEXT);
-				m_output.append("\n");
+				set_style(Style::text);
+				_output.append("\n");
 			}
 		}
 		return true;
-	case token::REGEX_TOKEN:
-		set_style(REGEX_LITERAL);
+	case Token::regex_token:
+		set_style(Style::regex_literal);
 		break;
-	case token::NUMBER_TOKEN:
-		set_style(NUMBER_LITERAL);
+	case Token::number_token:
+		set_style(Style::number_literal);
 		break;
-	case token::MODULE_PATH_TOKEN:
-		set_style(MODULE_PATH);
+	case Token::module_path_token:
+		set_style(Style::module_path);
 		break;
-	case token::OPEN_BRACE_TOKEN:
-		m_brace_depth++;
-		if (m_offset == offset) {
-			m_brace_match = m_brace_depth;
-			set_style(BRACE_MATCH);
+	case Token::open_brace_token:
+		_brace_depth++;
+		if (_offset == offset) {
+			_brace_match = _brace_depth;
+			set_style(Style::brace_match);
 		}
 		else {
-			set_style(BRACE);
+			set_style(Style::brace);
 		}
 		break;
-	case token::CLOSE_BRACE_TOKEN:
-		if (m_brace_match && *m_brace_match == m_brace_depth) {
-			m_brace_match = std::nullopt;
-			set_style(BRACE_MATCH);
+	case Token::close_brace_token:
+		if (_brace_match && *_brace_match == _brace_depth) {
+			_brace_match = std::nullopt;
+			set_style(Style::brace_match);
 		}
 		else {
-			set_style(BRACE);
+			set_style(Style::brace);
 		}
-		m_brace_depth--;
+		_brace_depth--;
 		break;
-	case token::OPEN_BRACKET_TOKEN:
-		m_bracket_depth++;
-		if (m_offset == offset) {
-			m_bracket_match = m_bracket_depth;
-			set_style(BRACE_MATCH);
+	case Token::open_bracket_token:
+		_bracket_depth++;
+		if (_offset == offset) {
+			_bracket_match = _bracket_depth;
+			set_style(Style::brace_match);
 		}
 		else {
-			set_style(BRACE);
+			set_style(Style::brace);
 		}
 		break;
-	case token::CLOSE_BRACKET_TOKEN:
-	case token::CLOSE_BRACKET_EQUAL_TOKEN:
-		if (m_bracket_match && *m_bracket_match == m_bracket_depth) {
-			m_bracket_match = std::nullopt;
-			set_style(BRACE_MATCH);
+	case Token::close_bracket_token:
+	case Token::close_bracket_equal_token:
+		if (_bracket_match && *_bracket_match == _bracket_depth) {
+			_bracket_match = std::nullopt;
+			set_style(Style::brace_match);
 		}
 		else {
-			set_style(BRACE);
+			set_style(Style::brace);
 		}
-		m_bracket_depth--;
+		_bracket_depth--;
 		break;
-	case token::OPEN_PARENTHESIS_TOKEN:
-		m_parenthesis_depth++;
-		if (m_offset == offset) {
-			m_parenthesis_match = m_parenthesis_depth;
-			set_style(BRACE_MATCH);
+	case Token::open_parenthesis_token:
+		_parenthesis_depth++;
+		if (_offset == offset) {
+			_parenthesis_match = _parenthesis_depth;
+			set_style(Style::brace_match);
 		}
 		else {
-			set_style(BRACE);
+			set_style(Style::brace);
 		}
 		break;
-	case token::CLOSE_PARENTHESIS_TOKEN:
-		if (m_parenthesis_match && *m_parenthesis_match == m_parenthesis_depth) {
-			m_parenthesis_match = std::nullopt;
-			set_style(BRACE_MATCH);
+	case Token::close_parenthesis_token:
+		if (_parenthesis_match && *_parenthesis_match == _parenthesis_depth) {
+			_parenthesis_match = std::nullopt;
+			set_style(Style::brace_match);
 		}
 		else {
-			set_style(BRACE);
+			set_style(Style::brace);
 		}
-		m_parenthesis_depth--;
+		_parenthesis_depth--;
 		break;
-	case token::COMMENT_TOKEN:
+	case Token::comment_token:
 		// done in on_comment
 		return true;
-	case token::SYMBOL_TOKEN:
+	case Token::symbol_token:
 		// done in on_symbol_token
 		break;
 	default:
-		set_style(TEXT);
+		set_style(Style::text);
 		break;
 	}
-	m_output.append(token);
+	_output.append(token);
 	return true;
 }
 
-bool Highlighter::on_white_space(const std::string &token, [[maybe_unused]] std::string::size_type offset) {
-	set_style(TEXT);
-	m_output.append(token);
+bool Highlighter::on_white_space(const std::string& token, [[maybe_unused]] std::string::size_type offset) {
+	set_style(Style::text);
+	_output.append(token);
 	return true;
 }
 
-bool Highlighter::on_comment(const std::string &token, [[maybe_unused]] std::string::size_type offset) {
+bool Highlighter::on_comment(const std::string& token, [[maybe_unused]] std::string::size_type offset) {
 	if (token.empty() || token.back() != '\n') {
-		set_style(COMMENT);
-		m_output.append(token);
+		set_style(Style::comment);
+		_output.append(token);
 	}
 	else {
-		set_style(COMMENT);
-		m_output.append(token.substr(0, token.size() - 1));
-		set_style(TEXT);
-		m_output.append("\n");
+		set_style(Style::comment);
+		_output.append(token.substr(0, token.size() - 1));
+		set_style(Style::text);
+		_output.append("\n");
 	}
 	return true;
 }
 
 void Highlighter::set_style(Style style) {
 	switch (style) {
-	case TEXT:
-		m_output.append(MINT_TERM_RESET);
+	case Style::text:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET));
 		break;
-
-	case COMMENT:
-		m_output.append(MINT_TERM_FG_GREY_WITH(MINT_TERM_BOLD_OPTION));
+	case Style::comment:
+		_output.append(MINT_TERM_OPT(MINT_TERM_FG_DARK_GREEN));
 		break;
-
-	case KEYWORD:
-		m_output.append(MINT_TERM_RESET);
-		m_output.append(MINT_TERM_FG_BLUE_WITH(MINT_TERM_ITALIC_OPTION));
+	case Style::operator_keyword:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_WHITE));
 		break;
-
-	case CONSTANT:
-		m_output.append(MINT_TERM_FG_YELLOW_WITH(MINT_TERM_RESET_OPTION));
+	case Style::keyword:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_BLUE));
 		break;
-
-	case USER_TYPE:
-		m_output.append(MINT_TERM_FG_CYAN_WITH(MINT_TERM_RESET_OPTION));
+	case Style::controle_keyword:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_MAGENTA));
 		break;
-
-	case MODULE_PATH:
-		m_output.append(MINT_TERM_FG_MAGENTA_WITH(MINT_TERM_RESET_OPTION));
+	case Style::constant:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_BLUE));
 		break;
-
-	case NUMBER_LITERAL:
-		m_output.append(MINT_TERM_FG_YELLOW_WITH(MINT_TERM_RESET_OPTION));
+	case Style::function:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_DARK_YELLOW));
 		break;
-
-	case STRING_LITERAL:
-		m_output.append(MINT_TERM_FG_GREEN_WITH(MINT_TERM_RESET_OPTION));
+	case Style::user_type:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_CYAN));
 		break;
-
-	case REGEX_LITERAL:
-		m_output.append(MINT_TERM_FG_RED_WITH(MINT_TERM_RESET_OPTION));
+	case Style::number_literal:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_GREEN));
 		break;
-
-	case STANDARD_SYMBOL:
-		m_output.append(MINT_TERM_RESET);
-		m_output.append(MINT_TERM_FG_YELLOW_WITH(MINT_TERM_ITALIC_OPTION));
+	case Style::string_literal:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_YELLOW));
 		break;
-
-	case BRACE:
-		m_output.append(MINT_TERM_FG_MAGENTA_WITH(MINT_TERM_RESET_OPTION));
+	case Style::regex_literal:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_RED));
 		break;
-
-	case BRACE_MATCH:
-		m_output.append(MINT_TERM_RESET);
-		m_output.append(MINT_TERM_FG_RED_WITH(MINT_TERM_BOLD_OPTION));
+	case Style::standard_symbol:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_ITALIC, MINT_TERM_FG_BLUE));
+		break;
+	case Style::module_path:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_GREEN));
+		break;
+	case Style::brace:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_MAGENTA));
+		break;
+	case Style::brace_match:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_BOLD, MINT_TERM_FG_RED));
 		break;
 	}
 }
 
-bool Highlighter::is_defined_class(const std::vector<std::string> &context, const std::string &token) {
+const Reference* Highlighter::find_defined_symbol(const std::vector<std::string>& context,
+    const std::string& token) const {
 
-	Symbol symbol(token);
-	PackageData *pack = nullptr;
-	ClassDescription *desc = nullptr;
+	const auto symbol = Symbol(token);
 
-	if (resolve_path(context, pack, desc)) {
-
-		if (desc) {
-			return desc->find_class_description(symbol) != nullptr;
-		}
-
-		if (pack) {
-			return pack->get_class(symbol) != nullptr;
-		}
-
-		GlobalData *global_data = GlobalData::instance();
-		return global_data->get_class(symbol) != nullptr;
+	auto location = resolve_path(context);
+	if (!location) {
+		return nullptr;
 	}
 
-	return false;
-}
-
-bool Highlighter::is_defined_symbol(const std::vector<std::string> &context, const std::string &token) {
-
-	Symbol symbol(token);
-	PackageData *pack = nullptr;
-	ClassDescription *desc = nullptr;
-
-	if (resolve_path(context, pack, desc)) {
-
-		if (desc) {
-			Class *prototype = desc->generate();
-			return prototype->globals().contains(symbol);
+	auto [pack, desc] = *location;
+	if (desc) {
+		if (const auto* reference = desc->find_member(symbol)) {
+			return reference;
 		}
-
-		if (pack) {
-			return pack->symbols().contains(symbol);
+		return nullptr;
+	}
+	if (pack) {
+		if (auto it = pack->symbols().find(symbol); it != pack->symbols().end()) {
+			return std::addressof(it->second);
 		}
-
-		GlobalData *global_data = GlobalData::instance();
-		return global_data->symbols().contains(symbol);
+		return nullptr;
 	}
 
-	return false;
+	const auto& global_data = _ast.get().global_data();
+	if (auto it = global_data.symbols().find(symbol); it != global_data.symbols().end()) {
+		return std::addressof(it->second);
+	}
+	return nullptr;
 }
 
-bool Highlighter::resolve_path(const std::vector<std::string> &context, PackageData *&pack, ClassDescription *&desc) {
+std::optional<std::tuple<const PackageData*, const ClassDescription*>> Highlighter::resolve_path(
+    const std::vector<std::string>& context) const {
 
-	for (const std::string &token : context) {
-		Symbol symbol(token);
+	const PackageData* pack = nullptr;
+	const ClassDescription* desc = nullptr;
+
+	for (const std::string& token : context) {
+		const auto symbol = Symbol(token);
 		if (desc) {
 			desc = desc->find_class_description(symbol);
 			if (desc == nullptr) {
-				return false;
+				return std::nullopt;
 			}
 		}
 		else if (pack) {
@@ -334,21 +409,21 @@ bool Highlighter::resolve_path(const std::vector<std::string> &context, PackageD
 			if (desc == nullptr) {
 				pack = pack->find_package(symbol);
 				if (pack == nullptr) {
-					return false;
+					return std::nullopt;
 				}
 			}
 		}
 		else {
-			const GlobalData *global_data = GlobalData::instance();
-			desc = global_data->find_class_description(symbol);
+			const auto& global_data = _ast.get().global_data();
+			desc = global_data.find_class_description(symbol);
 			if (desc == nullptr) {
-				pack = global_data->find_package(symbol);
+				pack = global_data.find_package(symbol);
 				if (pack == nullptr) {
-					return false;
+					return std::nullopt;
 				}
 			}
 		}
 	}
 
-	return true;
+	return std::make_tuple(pack, desc);
 }

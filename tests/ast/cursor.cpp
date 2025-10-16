@@ -1,2 +1,2 @@
 #include <gtest/gtest.h>
-#include <mint/ast/cursor.h>
+#include "mint/ast/cursor.h"

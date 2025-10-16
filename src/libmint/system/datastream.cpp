@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,25 +22,23 @@
  */
 
 #include "mint/system/datastream.h"
+#include "mint/config.h"
+#include <cstddef>
+#include <cstdio>
+#include <functional>
+#include <string>
 
 using namespace mint;
 
-DataStream::DataStream() :
-	m_new_line_callback([](size_t) {}),
-	m_line_number(1),
-	m_state(STATE_NEW_LINE) {}
-
-DataStream::~DataStream() {}
-
 int DataStream::get_char() {
 
-	int c = read_char();
+	const int c = read_char();
 
-	switch (m_state) {
-	case STATE_NEW_LINE:
+	switch (_state) {
+	case State::state_new_line:
 		begin_line();
 		[[fallthrough]];
-	case STATE_READING:
+	case State::state_reading:
 		switch (c) {
 		case EOF:
 		case '\0':
@@ -49,7 +47,7 @@ int DataStream::get_char() {
 			end_line();
 			break;
 		default:
-			m_cached_line += static_cast<char>(c);
+			_cached_line += static_cast<char>(c);
 			break;
 		}
 	}
@@ -57,18 +55,18 @@ int DataStream::get_char() {
 	return c;
 }
 
-void DataStream::set_new_line_callback(const std::function<void(size_t)> &callback) {
-	m_new_line_callback = callback;
+void DataStream::set_new_line_callback(const std::function<void(std::size_t)>& callback) {
+	_new_line_callback = callback;
 }
 
-size_t DataStream::line_number() const {
-	return m_line_number;
+std::size_t DataStream::line_number() const {
+	return _line_number;
 }
 
 std::string DataStream::line_error() {
 
-	std::string line = m_cached_line;
-	size_t err_pos = line.empty() ? 0 : line.size() - 1;
+	auto line = _cached_line;
+	const auto err_pos = line.empty() ? 0 : line.size() - 1;
 
 	if (line.empty() || line.back() != '\n') {
 		int c = next_buffered_char();
@@ -80,16 +78,16 @@ std::string DataStream::line_error() {
 	}
 
 	if (err_pos > 1) {
-		for (size_t i = 0; i < err_pos - 1; ++i) {
+		for (std::size_t i = 0; i < err_pos - 1; ++i) {
 
-			auto c = static_cast<byte_t>(m_cached_line[i]);
+			auto c = static_cast<byte_t>(_cached_line[i]);
 
 			if (c == '\t') {
 				line += '\t';
 			}
 			else if (c & 0x80) {
 
-				size_t size = 2;
+				std::size_t size = 2;
 
 				if (c & 0x04) {
 					size++;
@@ -111,7 +109,7 @@ std::string DataStream::line_error() {
 	}
 	line += '^';
 
-	if (m_state != STATE_NEW_LINE) {
+	if (_state != State::state_new_line) {
 		end_line();
 	}
 
@@ -119,12 +117,12 @@ std::string DataStream::line_error() {
 }
 
 void DataStream::begin_line() {
-	m_new_line_callback(m_line_number);
-	m_state = STATE_READING;
-	m_cached_line.clear();
+	_new_line_callback(_line_number);
+	_state = State::state_reading;
+	_cached_line.clear();
 }
 
 void DataStream::end_line() {
-	m_state = STATE_NEW_LINE;
-	m_line_number++;
+	_state = State::state_new_line;
+	_line_number++;
 }

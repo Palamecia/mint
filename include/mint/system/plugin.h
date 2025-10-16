@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,15 +21,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_PLUGIN_H
-#define MINT_PLUGIN_H
+#ifndef MINT_SYSTEM_PLUGIN_H
+#define MINT_SYSTEM_PLUGIN_H
 
 #include "mint/config.h"
 
 #include <filesystem>
+#include <memory>
 #include <string>
 
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 #include <Windows.h>
 #endif
 
@@ -39,37 +40,37 @@ class Cursor;
 
 class MINT_EXPORT Plugin {
 public:
-#ifdef OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 	using handle_type = HMODULE;
 #else
-	using handle_type = void *;
+	using handle_type = void*;
 #endif
 
-	explicit Plugin(const std::filesystem::path &path);
-	Plugin(const Plugin &) = delete;
-	Plugin(Plugin &&) = delete;
+	explicit Plugin(const std::filesystem::path& path);
+	Plugin(const Plugin&) = delete;
+	Plugin(Plugin&&) = delete;
 	~Plugin();
 
-	Plugin &operator=(const Plugin &) = delete;
-	Plugin &operator=(Plugin &&) = delete;
+	Plugin& operator=(const Plugin&) = delete;
+	Plugin& operator=(Plugin&&) = delete;
 
-	static Plugin *load(const std::string &plugin);
-	static std::string function_name(const std::string &name, int signature);
+	static std::unique_ptr<Plugin> load(const std::string& plugin);
+	static std::string function_name(const std::string& name, int signature);
 
-	bool call(const std::string &function, int signature, Cursor *cursor);
+	bool call(const std::string& function, int signature, Cursor& cursor);
 
 	[[nodiscard]] std::filesystem::path get_path() const;
 
 protected:
-	using function_type = void (*)(Cursor *);
+	using function_type = void (*)(Cursor&);
 
-	function_type get_function(const std::string &name);
+	function_type get_function(const std::string& name);
 
 private:
-	std::filesystem::path m_path;
-	handle_type m_handle;
+	std::filesystem::path _path;
+	handle_type _handle;
 };
 
 }
 
-#endif // MINT_PLUGIN_H
+#endif // MINT_SYSTEM_PLUGIN_H

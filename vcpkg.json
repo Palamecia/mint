@@ -1,0 +1,9 @@
+{
+  "name": "mint",
+  "dependencies": [
+    "gtest",
+    "libiconv",
+    "ms-gsl",
+    "icu"
+  ]
+}

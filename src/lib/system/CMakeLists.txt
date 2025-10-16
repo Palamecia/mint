@@ -1,6 +1,12 @@
 project(mint-system)
 
-set(${PROJECT_NAME}_SOURCES
+find_package(ICU REQUIRED COMPONENTS uc i18n data)
+
+add_library(mint-system MODULE)
+
+target_sources(
+	mint-system
+PRIVATE
 	date.cpp
 	directory.cpp
 	errno.cpp
@@ -16,40 +22,37 @@ set(${PROJECT_NAME}_SOURCES
 	timezone.cpp
 )
 
-if (UNIX)
-	set(${PROJECT_NAME}_SOURCES
-		${${PROJECT_NAME}_SOURCES}
-		unix/tzfile.cpp
-	)
-endif()
-
 if (WIN32)
-	set(${PROJECT_NAME}_SOURCES
-		${${PROJECT_NAME}_SOURCES}
+	target_sources(
+		mint-system
+	PRIVATE
 		win32/NtProcessInfo.cpp
+		win32/NtProcessInfo.h
 		win32/winlocale.cpp
-		win32/wintz.cpp
+		win32/winlocale.h
 	)
 endif()
-
-add_library(${PROJECT_NAME}
-	MODULE
-	${${PROJECT_NAME}_SOURCES}
-)
 
 set_target_properties(
-	${PROJECT_NAME}
+	mint-system
 	PROPERTIES
 	PREFIX lib
+	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
 )
 
-target_link_libraries(${PROJECT_NAME} mint_library)
-
-if (WIN32)
-	if (ICU_LIBRARIES)
-		target_link_libraries(${PROJECT_NAME} ${ICU_LIBRARIES})
-	endif()
-endif()
+target_link_libraries(
+	mint-system
+PRIVATE
+	libmint
+	ICU::i18n
+	ICU::uc
+	ICU::data
+)
 
 # Install
-mint_install_library(${PROJECT_NAME} SUBDIR mint)
+install(
+	TARGETS mint-system
+	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
+)

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,196 +23,200 @@
 
 #include "mint/compiler/lexer.h"
 #include "mint/compiler/token.h"
+#include "mint/system/datastream.h"
 #include "parser.hpp"
+#include <cctype>
 #include <cstdint>
+#include <cstdio>
+#include <map>
+#include <string>
 
-const std::map<std::string, int> Lexer::KEYWORDS = {
-	{"and", parser::token::DBL_AMP_TOKEN},
-	{"assert", parser::token::ASSERT_TOKEN},
-	{"break", parser::token::BREAK_TOKEN},
-	{"case", parser::token::CASE_TOKEN},
-	{"catch", parser::token::CATCH_TOKEN},
-	{"class", parser::token::CLASS_TOKEN},
-	{"const", parser::token::CONST_TOKEN},
-	{"continue", parser::token::CONTINUE_TOKEN},
-	{"def", parser::token::DEF_TOKEN},
-	{"default", parser::token::DEFAULT_TOKEN},
-	{"defined", parser::token::DEFINED_TOKEN},
-	{"elif", parser::token::ELIF_TOKEN},
-	{"else", parser::token::ELSE_TOKEN},
-	{"enum", parser::token::ENUM_TOKEN},
-	{"exit", parser::token::EXIT_TOKEN},
-	{"false", parser::token::CONSTANT_TOKEN},
-	{"final", parser::token::FINAL_TOKEN},
-	{"for", parser::token::FOR_TOKEN},
-	{"if", parser::token::IF_TOKEN},
-	{"in", parser::token::IN_TOKEN},
-	{"is", parser::token::IS_TOKEN},
-	{"let", parser::token::LET_TOKEN},
-	{"lib", parser::token::LIB_TOKEN},
-	{"load", parser::token::LOAD_TOKEN},
-	{"membersof", parser::token::MEMBERSOF_TOKEN},
-	{"none", parser::token::CONSTANT_TOKEN},
-	{"not", parser::token::EXCLAMATION_TOKEN},
-	{"null", parser::token::CONSTANT_TOKEN},
-	{"or", parser::token::DBL_PIPE_TOKEN},
-	{"override", parser::token::OVERRIDE_TOKEN},
-	{"package", parser::token::PACKAGE_TOKEN},
-	{"print", parser::token::PRINT_TOKEN},
-	{"raise", parser::token::RAISE_TOKEN},
-	{"return", parser::token::RETURN_TOKEN},
-	{"switch", parser::token::SWITCH_TOKEN},
-	{"true", parser::token::CONSTANT_TOKEN},
-	{"try", parser::token::TRY_TOKEN},
-	{"typeof", parser::token::TYPEOF_TOKEN},
-	{"var", parser::token::VAR_TOKEN},
-	{"while", parser::token::WHILE_TOKEN},
-	{"xor", parser::token::CARET_TOKEN},
-	{"yield", parser::token::YIELD_TOKEN},
+const std::map<std::string, int> Lexer::keywords {
+    {"and", parser::token::dbl_amp_token},
+    {"assert", parser::token::assert_token},
+    {"break", parser::token::break_token},
+    {"case", parser::token::case_token},
+    {"catch", parser::token::catch_token},
+    {"class", parser::token::class_token},
+    {"const", parser::token::const_token},
+    {"continue", parser::token::continue_token},
+    {"def", parser::token::def_token},
+    {"default", parser::token::default_token},
+    {"defined", parser::token::defined_token},
+    {"elif", parser::token::elif_token},
+    {"else", parser::token::else_token},
+    {"enum", parser::token::enum_token},
+    {"exit", parser::token::exit_token},
+    {"false", parser::token::constant_token},
+    {"final", parser::token::final_token},
+    {"for", parser::token::for_token},
+    {"if", parser::token::if_token},
+    {"in", parser::token::in_token},
+    {"is", parser::token::is_token},
+    {"let", parser::token::let_token},
+    {"lib", parser::token::lib_token},
+    {"load", parser::token::load_token},
+    {"membersof", parser::token::membersof_token},
+    {"none", parser::token::constant_token},
+    {"not", parser::token::exclamation_token},
+    {"null", parser::token::constant_token},
+    {"or", parser::token::dbl_pipe_token},
+    {"override", parser::token::override_token},
+    {"package", parser::token::package_token},
+    {"print", parser::token::print_token},
+    {"raise", parser::token::raise_token},
+    {"return", parser::token::return_token},
+    {"switch", parser::token::switch_token},
+    {"true", parser::token::constant_token},
+    {"try", parser::token::try_token},
+    {"typeof", parser::token::typeof_token},
+    {"var", parser::token::var_token},
+    {"while", parser::token::while_token},
+    {"xor", parser::token::caret_token},
+    {"yield", parser::token::yield_token},
 };
 
-const std::map<std::string, int> Lexer::OPERATORS = {
-	{"!", parser::token::EXCLAMATION_TOKEN},
-	{"!=", parser::token::EXCLAMATION_EQUAL_TOKEN},
-	{"!==", parser::token::EXCLAMATION_DBL_EQUAL_TOKEN},
-	{"!~", parser::token::EXCLAMATION_TILDE_TOKEN},
-	{"#!", parser::token::COMMENT_TOKEN},
-	{"#", parser::token::SHARP_TOKEN},
-	{"$", parser::token::DOLLAR_TOKEN},
-	{"%", parser::token::PERCENT_TOKEN},
-	{"%=", parser::token::PERCENT_EQUAL_TOKEN},
-	{"&", parser::token::AMP_TOKEN},
-	{"&&", parser::token::DBL_AMP_TOKEN},
-	{"&=", parser::token::AMP_EQUAL_TOKEN},
-	{"(", parser::token::OPEN_PARENTHESIS_TOKEN},
-	{")", parser::token::CLOSE_PARENTHESIS_TOKEN},
-	{"*", parser::token::ASTERISK_TOKEN},
-	{"**", parser::token::DBL_ASTERISK_TOKEN},
-	{"*=", parser::token::ASTERISK_EQUAL_TOKEN},
-	{"+", parser::token::PLUS_TOKEN},
-	{"++", parser::token::DBL_PLUS_TOKEN},
-	{"+=", parser::token::PLUS_EQUAL_TOKEN},
-	{",", parser::token::COMMA_TOKEN},
-	{"-", parser::token::MINUS_TOKEN},
-	{"--", parser::token::DBL_MINUS_TOKEN},
-	{"-=", parser::token::MINUS_EQUAL_TOKEN},
-	{".", parser::token::DOT_TOKEN},
-	{"..", parser::token::DBL_DOT_TOKEN},
-	{"...", parser::token::TPL_DOT_TOKEN},
-	{"/", parser::token::SLASH_TOKEN},
-	{"/*", parser::token::COMMENT_TOKEN},
-	{"//", parser::token::COMMENT_TOKEN},
-	{"/=", parser::token::SLASH_EQUAL_TOKEN},
-	{":", parser::token::COLON_TOKEN},
-	{":=", parser::token::COLON_EQUAL_TOKEN},
-	{";", parser::token::LINE_END_TOKEN},
-	{"<", parser::token::LEFT_ANGLED_TOKEN},
-	{"<<", parser::token::DBL_LEFT_ANGLED_TOKEN},
-	{"<<=", parser::token::DBL_LEFT_ANGLED_EQUAL_TOKEN},
-	{"<=", parser::token::LEFT_ANGLED_EQUAL_TOKEN},
-	{"=", parser::token::EQUAL_TOKEN},
-	{"==", parser::token::DBL_EQUAL_TOKEN},
-	{"===", parser::token::TPL_EQUAL_TOKEN},
-	{"=>", parser::token::EQUAL_RIGHT_ANGLED_TOKEN},
-	{"=~", parser::token::EQUAL_TILDE_TOKEN},
-	{">", parser::token::RIGHT_ANGLED_TOKEN},
-	{">=", parser::token::RIGHT_ANGLED_EQUAL_TOKEN},
-	{">>", parser::token::DBL_RIGHT_ANGLED_TOKEN},
-	{">>=", parser::token::DBL_RIGHT_ANGLED_EQUAL_TOKEN},
-	{"?", parser::token::QUESTION_TOKEN},
-	{"@", parser::token::AT_TOKEN},
-	{"[", parser::token::OPEN_BRACKET_TOKEN},
-	{"\\", parser::token::BACK_SLASH_TOKEN},
-	{"\\\n", parser::token::NO_LINE_END_TOKEN},
-	{"\n", parser::token::LINE_END_TOKEN},
-	{"]", parser::token::CLOSE_BRACKET_TOKEN},
-	{"]=", parser::token::CLOSE_BRACKET_EQUAL_TOKEN},
-	{"^", parser::token::CARET_TOKEN},
-	{"^=", parser::token::CARET_EQUAL_TOKEN},
-	{"{", parser::token::OPEN_BRACE_TOKEN},
-	{"|", parser::token::PIPE_TOKEN},
-	{"|=", parser::token::PIPE_EQUAL_TOKEN},
-	{"||", parser::token::DBL_PIPE_TOKEN},
-	{"}", parser::token::CLOSE_BRACE_TOKEN},
-	{"~", parser::token::TILDE_TOKEN},
+const std::map<std::string, int> Lexer::operators {
+    {"!", parser::token::exclamation_token},
+    {"!=", parser::token::exclamation_equal_token},
+    {"!==", parser::token::exclamation_dbl_equal_token},
+    {"!~", parser::token::exclamation_tilde_token},
+    {"#!", parser::token::comment_token},
+    {"#", parser::token::sharp_token},
+    {"$", parser::token::dollar_token},
+    {"%", parser::token::percent_token},
+    {"%=", parser::token::percent_equal_token},
+    {"&", parser::token::amp_token},
+    {"&&", parser::token::dbl_amp_token},
+    {"&=", parser::token::amp_equal_token},
+    {"(", parser::token::open_parenthesis_token},
+    {")", parser::token::close_parenthesis_token},
+    {"*", parser::token::asterisk_token},
+    {"**", parser::token::dbl_asterisk_token},
+    {"*=", parser::token::asterisk_equal_token},
+    {"+", parser::token::plus_token},
+    {"++", parser::token::dbl_plus_token},
+    {"+=", parser::token::plus_equal_token},
+    {",", parser::token::comma_token},
+    {"-", parser::token::minus_token},
+    {"--", parser::token::dbl_minus_token},
+    {"-=", parser::token::minus_equal_token},
+    {".", parser::token::dot_token},
+    {"..", parser::token::dbl_dot_token},
+    {"...", parser::token::tpl_dot_token},
+    {"/", parser::token::slash_token},
+    {"/*", parser::token::comment_token},
+    {"//", parser::token::comment_token},
+    {"/=", parser::token::slash_equal_token},
+    {":", parser::token::colon_token},
+    {":=", parser::token::colon_equal_token},
+    {";", parser::token::line_end_token},
+    {"<", parser::token::left_angled_token},
+    {"<<", parser::token::dbl_left_angled_token},
+    {"<<=", parser::token::dbl_left_angled_equal_token},
+    {"<=", parser::token::left_angled_equal_token},
+    {"=", parser::token::equal_token},
+    {"==", parser::token::dbl_equal_token},
+    {"===", parser::token::tpl_equal_token},
+    {"=>", parser::token::equal_right_angled_token},
+    {"=~", parser::token::equal_tilde_token},
+    {">", parser::token::right_angled_token},
+    {">=", parser::token::right_angled_equal_token},
+    {">>", parser::token::dbl_right_angled_token},
+    {">>=", parser::token::dbl_right_angled_equal_token},
+    {"?", parser::token::question_token},
+    {"?.", parser::token::question_dot_token},
+    {"@", parser::token::at_token},
+    {"[", parser::token::open_bracket_token},
+    {"\\", parser::token::back_slash_token},
+    {"\\\n", parser::token::no_line_end_token},
+    {"\n", parser::token::line_end_token},
+    {"]", parser::token::close_bracket_token},
+    {"]=", parser::token::close_bracket_equal_token},
+    {"^", parser::token::caret_token},
+    {"^=", parser::token::caret_equal_token},
+    {"{", parser::token::open_brace_token},
+    {"|", parser::token::pipe_token},
+    {"|=", parser::token::pipe_equal_token},
+    {"||", parser::token::dbl_pipe_token},
+    {"}", parser::token::close_brace_token},
+    {"~", parser::token::tilde_token},
 };
 
-Lexer::Lexer(DataStream *stream) :
-	m_stream(stream),
-	m_cptr(0),
-	m_remaining(0) {}
+Lexer::Lexer(DataStream& stream) :
+    _stream(stream) {}
 
 std::string Lexer::next_token() {
 
-	while (is_white_space(static_cast<char>(m_cptr))) {
-		m_cptr = m_stream->get_char();
+	while (is_white_space(static_cast<char>(_cptr))) {
+		_cptr = _stream.get().get_char();
 	}
 
 	std::string token;
 	int token_type = -1;
 
 	enum SearchMode : std::uint8_t {
-		FIND_OPERATOR,
-		FIND_NUMBER,
-		FIND_IDENTIFIER
+		find_operator,
+		find_number,
+		find_identifier
 	};
 
-	SearchMode find_mode = is_operator(std::string({static_cast<char>(m_cptr)}), &token_type) ? FIND_OPERATOR
-						   : is_digit(m_cptr)												  ? FIND_NUMBER
-																							  : FIND_IDENTIFIER;
+	const auto find_mode = is_operator(std::string({static_cast<char>(_cptr)}), &token_type) ? find_operator
+	                       : is_digit(_cptr)                                                 ? find_number
+	                                                                                         : find_identifier;
 
-	if (m_remaining) {
-		token += static_cast<char>(m_remaining);
-		m_remaining = 0;
+	if (_remaining) {
+		token += static_cast<char>(_remaining);
+		_remaining = 0;
 	}
 
-	if (m_cptr == '\'' || m_cptr == '"') {
-		return tokenize_string(static_cast<char>(m_cptr));
+	if (_cptr == '\'' || _cptr == '"') {
+		return tokenize_string(static_cast<char>(_cptr));
 	}
 
 	switch (find_mode) {
-	case FIND_OPERATOR:
-		while (!is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF)
-			   && is_operator(token + static_cast<char>(m_cptr), &token_type)) {
-			token += static_cast<char>(m_cptr);
-			m_cptr = m_stream->get_char();
+	case find_operator:
+		while (!is_white_space(static_cast<char>(_cptr)) && (_cptr != EOF)
+		       && is_operator(token + static_cast<char>(_cptr), &token_type)) {
+			token += static_cast<char>(_cptr);
+			_cptr = _stream.get().get_char();
 		}
 
 		switch (token_type) {
-		case parser::token::BACK_SLASH_TOKEN:
-		case parser::token::CLOSE_BRACKET_TOKEN:
-			while (is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF)) {
-				m_cptr = m_stream->get_char();
+		case parser::token::back_slash_token:
+		case parser::token::close_bracket_token:
+			while (is_white_space(static_cast<char>(_cptr)) && (_cptr != EOF)) {
+				_cptr = _stream.get().get_char();
 			}
-			if (is_operator(token + static_cast<char>(m_cptr), &token_type)) {
-				m_remaining = m_cptr;
-				m_cptr = m_stream->get_char();
-				if (UNLIKELY(is_operator(std::string({static_cast<char>(m_remaining), static_cast<char>(m_cptr)})))) {
+			if (is_operator(token + static_cast<char>(_cptr), &token_type)) {
+				_remaining = _cptr;
+				_cptr = _stream.get().get_char();
+				if (is_operator(std::string({static_cast<char>(_remaining), static_cast<char>(_cptr)}))) [[unlikely]] {
 					token_type = -1;
 				}
 				else {
-					token += static_cast<char>(m_remaining);
-					m_remaining = 0;
+					token += static_cast<char>(_remaining);
+					_remaining = 0;
 				}
 			}
 			break;
 
-		case parser::token::COMMENT_TOKEN:
+		case parser::token::comment_token:
 			if (token == "//" || token == "#!") {
-				while (m_cptr != '\n' && m_cptr != EOF) {
-					m_cptr = m_stream->get_char();
+				while (_cptr != '\n' && _cptr != EOF) {
+					_cptr = _stream.get().get_char();
 				}
 				return next_token();
 			}
 
 			if (token == "/*") {
 				for (;;) {
-					while (m_cptr != '*' && m_cptr != EOF) {
-						m_cptr = m_stream->get_char();
+					while (_cptr != '*' && _cptr != EOF) {
+						_cptr = _stream.get().get_char();
 					}
-					switch ((m_cptr = m_stream->get_char())) {
+					switch ((_cptr = _stream.get().get_char())) {
 					case '/':
-						m_cptr = m_stream->get_char();
+						_cptr = _stream.get().get_char();
 						return next_token();
 					case EOF:
 						return {};
@@ -227,60 +231,60 @@ std::string Lexer::next_token() {
 			break;
 		}
 
-		if (token_type == parser::token::NO_LINE_END_TOKEN) {
+		if (token_type == parser::token::no_line_end_token) {
 			return next_token();
 		}
 		break;
 
-	case FIND_NUMBER:
-		while (!is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF) && is_digit(m_cptr)) {
-			token += static_cast<char>(m_cptr);
-			m_cptr = m_stream->get_char();
+	case find_number:
+		while (!is_white_space(static_cast<char>(_cptr)) && (_cptr != EOF) && is_digit(_cptr)) {
+			token += static_cast<char>(_cptr);
+			_cptr = _stream.get().get_char();
 		}
 
-		if (m_cptr == 'b' || m_cptr == 'B' || m_cptr == 'o' || m_cptr == 'O' || m_cptr == 'x' || m_cptr == 'X') {
-			while (!is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF)
-				   && !is_operator(std::string({static_cast<char>(m_cptr)}))) {
-				token += static_cast<char>(m_cptr);
-				m_cptr = m_stream->get_char();
+		if (_cptr == 'b' || _cptr == 'B' || _cptr == 'o' || _cptr == 'O' || _cptr == 'x' || _cptr == 'X') {
+			while (!is_white_space(static_cast<char>(_cptr)) && (_cptr != EOF)
+			       && !is_operator(std::string({static_cast<char>(_cptr)}))) {
+				token += static_cast<char>(_cptr);
+				_cptr = _stream.get().get_char();
 			}
 			return token;
 		}
 
-		if (m_cptr == '.') {
+		if (_cptr == '.') {
 			std::string decimals = ".";
-			m_cptr = m_stream->get_char();
-			if (is_operator(decimals + static_cast<char>(m_cptr))) {
-				m_remaining = '.';
+			_cptr = _stream.get().get_char();
+			if (is_operator(decimals + static_cast<char>(_cptr))) {
+				_remaining = '.';
 				return token;
 			}
-			while (is_digit(m_cptr)) {
-				decimals += static_cast<char>(m_cptr);
-				m_cptr = m_stream->get_char();
+			while (is_digit(_cptr)) {
+				decimals += static_cast<char>(_cptr);
+				_cptr = _stream.get().get_char();
 			}
 			token += decimals;
 		}
 
-		if (m_cptr == 'e' || m_cptr == 'E') {
-			std::string exponent = std::string({static_cast<char>(m_cptr)});
-			m_cptr = m_stream->get_char();
-			if (m_cptr == '+' || m_cptr == '-') {
-				exponent += static_cast<char>(m_cptr);
-				m_cptr = m_stream->get_char();
+		if (_cptr == 'e' || _cptr == 'E') {
+			std::string exponent = std::string({static_cast<char>(_cptr)});
+			_cptr = _stream.get().get_char();
+			if (_cptr == '+' || _cptr == '-') {
+				exponent += static_cast<char>(_cptr);
+				_cptr = _stream.get().get_char();
 			}
-			while (is_digit(m_cptr)) {
-				exponent += static_cast<char>(m_cptr);
-				m_cptr = m_stream->get_char();
+			while (is_digit(_cptr)) {
+				exponent += static_cast<char>(_cptr);
+				_cptr = _stream.get().get_char();
 			}
 			token += exponent;
 		}
 		break;
 
-	case FIND_IDENTIFIER:
-		while (!is_white_space(static_cast<char>(m_cptr)) && (m_cptr != EOF)
-			   && !is_operator(std::string({static_cast<char>(m_cptr)}))) {
-			token += static_cast<char>(m_cptr);
-			m_cptr = m_stream->get_char();
+	case find_identifier:
+		while (!is_white_space(static_cast<char>(_cptr)) && (_cptr != EOF)
+		       && !is_operator(std::string({static_cast<char>(_cptr)}))) {
+			token += static_cast<char>(_cptr);
+			_cptr = _stream.get().get_char();
 		}
 		break;
 	}
@@ -288,27 +292,27 @@ std::string Lexer::next_token() {
 	return token;
 }
 
-int Lexer::token_type(const std::string &token) {
+int Lexer::token_type(const std::string& token) {
 
-	if (auto it = KEYWORDS.find(token); it != KEYWORDS.end()) {
+	if (auto it = keywords.find(token); it != keywords.end()) {
 		return it->second;
 	}
 
-	if (auto it = OPERATORS.find(token); it != OPERATORS.end()) {
+	if (auto it = operators.find(token); it != operators.end()) {
 		return it->second;
 	}
 
 	if (token.empty()) {
-		return parser::token::FILE_END_TOKEN;
+		return parser::token::file_end_token;
 	}
 	if (is_digit(token.front())) {
-		return parser::token::NUMBER_TOKEN;
+		return parser::token::number_token;
 	}
 	if (token.front() == '\'' || token.front() == '"') {
-		return parser::token::STRING_TOKEN;
+		return parser::token::string_token;
 	}
 
-	return parser::token::SYMBOL_TOKEN;
+	return parser::token::symbol_token;
 }
 
 std::string Lexer::read_regex() {
@@ -317,33 +321,33 @@ std::string Lexer::read_regex() {
 	bool escape = false;
 
 	do {
-		if (m_cptr == EOF || m_cptr == '\n') {
+		if (_cptr == EOF || _cptr == '\n') {
 			return regex;
 		}
-		regex += static_cast<char>(m_cptr);
-		escape = (m_cptr == '\\');
-		m_cptr = m_stream->get_char();
+		regex += static_cast<char>(_cptr);
+		escape = (_cptr == '\\');
+		_cptr = _stream.get().get_char();
 	}
-	while ((m_cptr != '/') || escape);
+	while ((_cptr != '/') || escape);
 
 	return regex;
 }
 
-std::string Lexer::format_error(const char *error) const {
+std::string Lexer::format_error(const std::string& error) const {
 
-	auto path = m_stream->path();
-	auto line_number = m_stream->line_number();
-	auto line_error = m_stream->line_error();
+	auto path = _stream.get().path();
+	auto line_number = _stream.get().line_number();
+	auto line_error = _stream.get().line_error();
 
 	return path.generic_string() + ":" + std::to_string(line_number) + " " + error + "\n" + line_error;
 }
 
 bool Lexer::at_end() const {
-	return m_stream->at_end();
+	return _stream.get().at_end();
 }
 
 bool Lexer::is_digit(int c) {
-#ifdef BUILD_TYPE_DEBUG
+#ifdef MINT_BUILD_TYPE_DEBUG
 	return isascii(c) && isdigit(c);
 #else
 	return isdigit(c);
@@ -354,19 +358,15 @@ bool Lexer::is_white_space(int c) {
 	return (c <= ' ') && (c != '\n') && (c >= '\0');
 }
 
-bool Lexer::is_operator(const std::string &token) {
-	return OPERATORS.find(token) != OPERATORS.end();
+bool Lexer::is_operator(const std::string& token) {
+	return operators.contains(token);
 }
 
-bool Lexer::is_operator(const std::string &token, int *type) {
-
-	auto it = OPERATORS.find(token);
-
-	if (it != OPERATORS.end()) {
+bool Lexer::is_operator(const std::string& token, int* type) {
+	if (auto it = operators.find(token); it != operators.end()) {
 		*type = it->second;
 		return true;
 	}
-
 	return false;
 }
 
@@ -376,130 +376,131 @@ std::string Lexer::tokenize_string(char delim) {
 	bool shift = false;
 
 	do {
-		if (m_cptr == EOF) {
+		if (_cptr == EOF) {
 			return token;
 		}
-		token += static_cast<char>(m_cptr);
-		shift = ((m_cptr == '\\') && !shift);
+		token += static_cast<char>(_cptr);
+		shift = ((_cptr == '\\') && !shift);
 	}
-	while (((m_cptr = m_stream->get_char()) != delim) || shift);
-	token += static_cast<char>(m_cptr);
+	while (((_cptr = _stream.get().get_char()) != delim) || shift);
+	token += static_cast<char>(_cptr);
 
-	m_cptr = m_stream->get_char();
+	_cptr = _stream.get().get_char();
 	return token;
 }
 
-mint::token::Type mint::token::from_local_id(int id) {
+mint::Token mint::token_from_local_id(int id) {
 
 #define BEGIN_TOKEN_CAST(__id) switch (__id) {
 
 #define TOKEN_CAST(__token) \
 	case parser::token::__token: \
-		return mint::token::__token;
+		return mint::Token::__token;
 
 #define END_TOKEN_CAST() }
 
 	BEGIN_TOKEN_CAST(id)
-	TOKEN_CAST(ASSERT_TOKEN)
-	TOKEN_CAST(BREAK_TOKEN)
-	TOKEN_CAST(CASE_TOKEN)
-	TOKEN_CAST(CATCH_TOKEN)
-	TOKEN_CAST(CLASS_TOKEN)
-	TOKEN_CAST(CONST_TOKEN)
-	TOKEN_CAST(CONTINUE_TOKEN)
-	TOKEN_CAST(DEF_TOKEN)
-	TOKEN_CAST(DEFAULT_TOKEN)
-	TOKEN_CAST(ELIF_TOKEN)
-	TOKEN_CAST(ELSE_TOKEN)
-	TOKEN_CAST(ENUM_TOKEN)
-	TOKEN_CAST(EXIT_TOKEN)
-	TOKEN_CAST(FINAL_TOKEN)
-	TOKEN_CAST(FOR_TOKEN)
-	TOKEN_CAST(IF_TOKEN)
-	TOKEN_CAST(IN_TOKEN)
-	TOKEN_CAST(LET_TOKEN)
-	TOKEN_CAST(LIB_TOKEN)
-	TOKEN_CAST(LOAD_TOKEN)
-	TOKEN_CAST(OVERRIDE_TOKEN)
-	TOKEN_CAST(PACKAGE_TOKEN)
-	TOKEN_CAST(PRINT_TOKEN)
-	TOKEN_CAST(RAISE_TOKEN)
-	TOKEN_CAST(RETURN_TOKEN)
-	TOKEN_CAST(SWITCH_TOKEN)
-	TOKEN_CAST(TRY_TOKEN)
-	TOKEN_CAST(WHILE_TOKEN)
-	TOKEN_CAST(YIELD_TOKEN)
-	TOKEN_CAST(VAR_TOKEN)
-	TOKEN_CAST(CONSTANT_TOKEN)
-	TOKEN_CAST(STRING_TOKEN)
-	TOKEN_CAST(NUMBER_TOKEN)
-	TOKEN_CAST(SYMBOL_TOKEN)
-	TOKEN_CAST(NO_LINE_END_TOKEN)
-	TOKEN_CAST(LINE_END_TOKEN)
-	TOKEN_CAST(FILE_END_TOKEN)
-	TOKEN_CAST(COMMENT_TOKEN)
-	TOKEN_CAST(DOLLAR_TOKEN)
-	TOKEN_CAST(AT_TOKEN)
-	TOKEN_CAST(SHARP_TOKEN)
-	TOKEN_CAST(BACK_SLASH_TOKEN)
-	TOKEN_CAST(COMMA_TOKEN)
-	TOKEN_CAST(DBL_PIPE_TOKEN)
-	TOKEN_CAST(DBL_AMP_TOKEN)
-	TOKEN_CAST(PIPE_TOKEN)
-	TOKEN_CAST(CARET_TOKEN)
-	TOKEN_CAST(AMP_TOKEN)
-	TOKEN_CAST(EQUAL_TOKEN)
-	TOKEN_CAST(QUESTION_TOKEN)
-	TOKEN_CAST(COLON_TOKEN)
-	TOKEN_CAST(COLON_EQUAL_TOKEN)
-	TOKEN_CAST(CLOSE_BRACKET_EQUAL_TOKEN)
-	TOKEN_CAST(PLUS_EQUAL_TOKEN)
-	TOKEN_CAST(MINUS_EQUAL_TOKEN)
-	TOKEN_CAST(ASTERISK_EQUAL_TOKEN)
-	TOKEN_CAST(SLASH_EQUAL_TOKEN)
-	TOKEN_CAST(PERCENT_EQUAL_TOKEN)
-	TOKEN_CAST(DBL_LEFT_ANGLED_EQUAL_TOKEN)
-	TOKEN_CAST(DBL_RIGHT_ANGLED_EQUAL_TOKEN)
-	TOKEN_CAST(AMP_EQUAL_TOKEN)
-	TOKEN_CAST(PIPE_EQUAL_TOKEN)
-	TOKEN_CAST(CARET_EQUAL_TOKEN)
-	TOKEN_CAST(EQUAL_RIGHT_ANGLED_TOKEN)
-	TOKEN_CAST(DBL_DOT_TOKEN)
-	TOKEN_CAST(TPL_DOT_TOKEN)
-	TOKEN_CAST(DBL_EQUAL_TOKEN)
-	TOKEN_CAST(TPL_EQUAL_TOKEN)
-	TOKEN_CAST(EXCLAMATION_EQUAL_TOKEN)
-	TOKEN_CAST(EXCLAMATION_DBL_EQUAL_TOKEN)
-	TOKEN_CAST(IS_TOKEN)
-	TOKEN_CAST(EQUAL_TILDE_TOKEN)
-	TOKEN_CAST(EXCLAMATION_TILDE_TOKEN)
-	TOKEN_CAST(LEFT_ANGLED_TOKEN)
-	TOKEN_CAST(RIGHT_ANGLED_TOKEN)
-	TOKEN_CAST(LEFT_ANGLED_EQUAL_TOKEN)
-	TOKEN_CAST(RIGHT_ANGLED_EQUAL_TOKEN)
-	TOKEN_CAST(DBL_LEFT_ANGLED_TOKEN)
-	TOKEN_CAST(DBL_RIGHT_ANGLED_TOKEN)
-	TOKEN_CAST(PLUS_TOKEN)
-	TOKEN_CAST(MINUS_TOKEN)
-	TOKEN_CAST(ASTERISK_TOKEN)
-	TOKEN_CAST(SLASH_TOKEN)
-	TOKEN_CAST(PERCENT_TOKEN)
-	TOKEN_CAST(EXCLAMATION_TOKEN)
-	TOKEN_CAST(TILDE_TOKEN)
-	TOKEN_CAST(TYPEOF_TOKEN)
-	TOKEN_CAST(MEMBERSOF_TOKEN)
-	TOKEN_CAST(DEFINED_TOKEN)
-	TOKEN_CAST(DBL_PLUS_TOKEN)
-	TOKEN_CAST(DBL_MINUS_TOKEN)
-	TOKEN_CAST(DBL_ASTERISK_TOKEN)
-	TOKEN_CAST(DOT_TOKEN)
-	TOKEN_CAST(OPEN_PARENTHESIS_TOKEN)
-	TOKEN_CAST(CLOSE_PARENTHESIS_TOKEN)
-	TOKEN_CAST(OPEN_BRACKET_TOKEN)
-	TOKEN_CAST(CLOSE_BRACKET_TOKEN)
-	TOKEN_CAST(OPEN_BRACE_TOKEN)
-	TOKEN_CAST(CLOSE_BRACE_TOKEN)
+	TOKEN_CAST(assert_token)
+	TOKEN_CAST(break_token)
+	TOKEN_CAST(case_token)
+	TOKEN_CAST(catch_token)
+	TOKEN_CAST(class_token)
+	TOKEN_CAST(const_token)
+	TOKEN_CAST(continue_token)
+	TOKEN_CAST(def_token)
+	TOKEN_CAST(default_token)
+	TOKEN_CAST(elif_token)
+	TOKEN_CAST(else_token)
+	TOKEN_CAST(enum_token)
+	TOKEN_CAST(exit_token)
+	TOKEN_CAST(final_token)
+	TOKEN_CAST(for_token)
+	TOKEN_CAST(if_token)
+	TOKEN_CAST(in_token)
+	TOKEN_CAST(let_token)
+	TOKEN_CAST(lib_token)
+	TOKEN_CAST(load_token)
+	TOKEN_CAST(override_token)
+	TOKEN_CAST(package_token)
+	TOKEN_CAST(print_token)
+	TOKEN_CAST(raise_token)
+	TOKEN_CAST(return_token)
+	TOKEN_CAST(switch_token)
+	TOKEN_CAST(try_token)
+	TOKEN_CAST(while_token)
+	TOKEN_CAST(yield_token)
+	TOKEN_CAST(var_token)
+	TOKEN_CAST(constant_token)
+	TOKEN_CAST(string_token)
+	TOKEN_CAST(number_token)
+	TOKEN_CAST(symbol_token)
+	TOKEN_CAST(no_line_end_token)
+	TOKEN_CAST(line_end_token)
+	TOKEN_CAST(file_end_token)
+	TOKEN_CAST(comment_token)
+	TOKEN_CAST(dollar_token)
+	TOKEN_CAST(at_token)
+	TOKEN_CAST(sharp_token)
+	TOKEN_CAST(back_slash_token)
+	TOKEN_CAST(comma_token)
+	TOKEN_CAST(dbl_pipe_token)
+	TOKEN_CAST(dbl_amp_token)
+	TOKEN_CAST(pipe_token)
+	TOKEN_CAST(caret_token)
+	TOKEN_CAST(amp_token)
+	TOKEN_CAST(equal_token)
+	TOKEN_CAST(question_token)
+	TOKEN_CAST(question_dot_token)
+	TOKEN_CAST(colon_token)
+	TOKEN_CAST(colon_equal_token)
+	TOKEN_CAST(close_bracket_equal_token)
+	TOKEN_CAST(plus_equal_token)
+	TOKEN_CAST(minus_equal_token)
+	TOKEN_CAST(asterisk_equal_token)
+	TOKEN_CAST(slash_equal_token)
+	TOKEN_CAST(percent_equal_token)
+	TOKEN_CAST(dbl_left_angled_equal_token)
+	TOKEN_CAST(dbl_right_angled_equal_token)
+	TOKEN_CAST(amp_equal_token)
+	TOKEN_CAST(pipe_equal_token)
+	TOKEN_CAST(caret_equal_token)
+	TOKEN_CAST(equal_right_angled_token)
+	TOKEN_CAST(dbl_dot_token)
+	TOKEN_CAST(tpl_dot_token)
+	TOKEN_CAST(dbl_equal_token)
+	TOKEN_CAST(tpl_equal_token)
+	TOKEN_CAST(exclamation_equal_token)
+	TOKEN_CAST(exclamation_dbl_equal_token)
+	TOKEN_CAST(is_token)
+	TOKEN_CAST(equal_tilde_token)
+	TOKEN_CAST(exclamation_tilde_token)
+	TOKEN_CAST(left_angled_token)
+	TOKEN_CAST(right_angled_token)
+	TOKEN_CAST(left_angled_equal_token)
+	TOKEN_CAST(right_angled_equal_token)
+	TOKEN_CAST(dbl_left_angled_token)
+	TOKEN_CAST(dbl_right_angled_token)
+	TOKEN_CAST(plus_token)
+	TOKEN_CAST(minus_token)
+	TOKEN_CAST(asterisk_token)
+	TOKEN_CAST(slash_token)
+	TOKEN_CAST(percent_token)
+	TOKEN_CAST(exclamation_token)
+	TOKEN_CAST(tilde_token)
+	TOKEN_CAST(typeof_token)
+	TOKEN_CAST(membersof_token)
+	TOKEN_CAST(defined_token)
+	TOKEN_CAST(dbl_plus_token)
+	TOKEN_CAST(dbl_minus_token)
+	TOKEN_CAST(dbl_asterisk_token)
+	TOKEN_CAST(dot_token)
+	TOKEN_CAST(open_parenthesis_token)
+	TOKEN_CAST(close_parenthesis_token)
+	TOKEN_CAST(open_bracket_token)
+	TOKEN_CAST(close_bracket_token)
+	TOKEN_CAST(open_brace_token)
+	TOKEN_CAST(close_brace_token)
 	END_TOKEN_CAST()
 
-	return mint::token::FILE_END_TOKEN;
+	return mint::Token::file_end_token;
 }

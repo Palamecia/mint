@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,16 +21,24 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_DEBUGINTERFACE_H
-#define MINT_DEBUGINTERFACE_H
+#ifndef MINT_DEBUG_DEBUGINTERFACE_H
+#define MINT_DEBUG_DEBUGINTERFACE_H
 
+#include "mint/ast/module.h"
+#include "mint/config.h"
 #include "mint/scheduler/process.h"
+#include "mint/debug/cursordebugger.h"
 #include "mint/debug/lineinfo.h"
 
+#include <cstddef>
+#include <functional>
+#include <limits>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include <atomic>
 #include <mutex>
+#include <vector>
 
 namespace mint {
 
@@ -40,78 +48,78 @@ class CursorDebugger;
 
 struct MINT_EXPORT Breakpoint {
 
-	using Id = size_t;
+	using Id = std::size_t;
 
-	static constexpr const Id INVALID_ID = static_cast<size_t>(-1);
+	static constexpr const Id invalid_id = std::numeric_limits<std::size_t>::max();
 
-	Id id = INVALID_ID;
+	Id id = invalid_id;
 	LineInfo info;
 };
 
-using ThreadList = std::vector<CursorDebugger *>;
+using ThreadList = std::vector<std::reference_wrapper<CursorDebugger>>;
 using BreakpointList = std::vector<Breakpoint>;
 
 class MINT_EXPORT DebugInterface {
 public:
 	DebugInterface() = default;
-	DebugInterface(DebugInterface &&) = delete;
-	DebugInterface(const DebugInterface &) = delete;
+	DebugInterface(DebugInterface&&) = delete;
+	DebugInterface(const DebugInterface&) = delete;
 	virtual ~DebugInterface() = default;
 
-	DebugInterface &operator=(DebugInterface &&) = delete;
-	DebugInterface &operator=(const DebugInterface &) = delete;
+	DebugInterface& operator=(DebugInterface&&) = delete;
+	DebugInterface& operator=(const DebugInterface&) = delete;
 
-	bool debug(CursorDebugger *cursor);
-	void exit(CursorDebugger *cursor);
+	bool debug(CursorDebugger& cursor);
+	void exit(CursorDebugger& cursor);
 
-	void do_run(CursorDebugger *cursor);
-	void do_pause(CursorDebugger *cursor);
-	void do_next(CursorDebugger *cursor);
-	void do_enter(CursorDebugger *cursor);
-	void do_return(CursorDebugger *cursor);
+	void do_run(CursorDebugger& cursor);
+	void do_pause(CursorDebugger& cursor);
+	void do_next(CursorDebugger& cursor);
+	void do_enter(CursorDebugger& cursor);
+	void do_return(CursorDebugger& cursor);
 
 	ThreadList get_threads() const;
-	CursorDebugger *get_thread(Process::ThreadId id) const;
-	CursorDebugger *declare_thread(const Process *thread);
-	void remove_thread(const Process *thread);
+	CursorDebugger* find_thread(Process::ThreadId id) const;
+	CursorDebugger& declare_thread(const Process& thread);
+	void remove_thread(const Process& thread);
 
 	BreakpointList get_breakpoints() const;
 	Breakpoint get_breakpoint(Breakpoint::Id id) const;
-	Breakpoint::Id create_breakpoint(const LineInfo &info);
-	void remove_breakpoint(const LineInfo &info);
+	Breakpoint::Id create_breakpoint(const LineInfo& info);
+	void remove_breakpoint(const LineInfo& info);
 	void remove_breakpoint(Breakpoint::Id id);
 	void clear_breakpoints();
 
 protected:
-	virtual bool handle_events(CursorDebugger *cursor) = 0;
-	virtual bool check(CursorDebugger *cursor) = 0;
+	virtual bool process_events(CursorDebugger& cursor) = 0;
+	virtual bool check(CursorDebugger& cursor) = 0;
 
-	virtual void on_thread_started(CursorDebugger *cursor) = 0;
-	virtual void on_thread_exited(CursorDebugger *cursor) = 0;
+	virtual void on_thread_started(CursorDebugger& cursor) = 0;
+	virtual void on_thread_exited(CursorDebugger& cursor) = 0;
 
-	virtual void on_breakpoint_created(const Breakpoint &breakpoint) = 0;
-	virtual void on_breakpoint_deleted(const Breakpoint &breakpoint) = 0;
+	virtual void on_breakpoint_created(const Breakpoint& breakpoint) = 0;
+	virtual void on_breakpoint_deleted(const Breakpoint& breakpoint) = 0;
 
-	virtual bool on_breakpoint(CursorDebugger *cursor, const std::unordered_set<Breakpoint::Id> &breakpoints) = 0;
-	virtual bool on_exception(CursorDebugger *cursor) = 0;
-	virtual bool on_step(CursorDebugger *cursor) = 0;
+	virtual bool on_breakpoint(CursorDebugger& cursor, const std::unordered_set<Breakpoint::Id>& breakpoints) = 0;
+	virtual bool on_exception(CursorDebugger& cursor) = 0;
+	virtual bool on_step(CursorDebugger& cursor) = 0;
 
 private:
 	Breakpoint::Id next_breakpoint_id() const;
 
-	std::recursive_mutex m_runtime_mutex;
-	std::atomic_bool m_running = {true};
-	CursorDebugger *m_exiting = nullptr;
+	std::recursive_mutex _runtime_mutex;
+	std::atomic_bool _running = {true};
+	CursorDebugger* _exiting = nullptr;
 
-	mutable std::mutex m_config_mutex;
-	std::unordered_map<Process::ThreadId, CursorDebugger *> m_threads;
+	mutable std::mutex _config_mutex;
+	std::unordered_map<Process::ThreadId, std::unique_ptr<CursorDebugger>> _threads;
 
 	struct {
 		std::unordered_map<Breakpoint::Id, Breakpoint> list;
-		std::unordered_map<Module::Id, std::unordered_map<size_t, std::unordered_set<Breakpoint::Id>>> position;
-	} m_breakpoints;
+		std::unordered_map<Module::Id, std::unordered_map<std::size_t, std::unordered_set<Breakpoint::Id>>> position;
+	} _breakpoints;
 };
 
 }
 
-#endif // MINT_DEBUGINTERFACE_H
+#endif // MINT_DEBUG_DEBUGINTERFACE_H

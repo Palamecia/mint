@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -28,6 +28,235 @@
 
 load mint.type
 load mint.operator
+
+/**
+ * This class provides a wrapper around the built-in iterator API.
+ */
+class Iterator {
+    /**
+     * Creates a new instance iterating on the elements of `range`.
+     */
+    const def new(self, range) {
+        if self.iterator = range.inOperator() {
+            return self
+        }
+    }
+
+    /**
+     * Returns a built-in `iterator` on the elements of the iterator.
+     */
+    const def in(self) {
+        return self.iterator.inOperator()
+    }
+
+    /**
+     * Returns `true` if the iterator contains `value`; otherwise returns `false`.
+     */
+    const def in(self, const value) {
+        return self.iterator.inOperator(value)
+    }
+
+    /**
+     * Walks over `other` and move the value of the elements to the variable at
+     * the same position in `self`. If `other` contains less variables than `self`,
+     * extra variables of `self` remain unchanged. If `self` contains less variables
+     * than `other`, the walk over `other` is interrupted where `self` has no more
+     * element.
+     */
+    const def :=(self, const other) {
+        return self.iterator.copyOperator(other)
+    }
+
+    /**
+     * Returns the current element of the iterator and move the iteration context
+     * forward.
+     */
+    const def next(self) {
+        return self.iterator.next()
+    }
+
+    /**
+     * Returns the current element of the iterator.
+     */
+    const def value(self) {
+        return self.iterator.value()
+    }
+
+    /**
+     * Returns `true` if the iterator has no more element; otherwise returns `false`.
+     */
+    const def isEmpty(const self) {
+        return self.iterator.isEmpty()
+    }
+
+    /**
+     * Walk over `self` and apply the `func` function to each element.
+     */
+    const def each(self, const func) {
+        return self.iterator.each(func)
+    }
+
+    /// Internal iterator data.
+    # final iterator = null
+}
+
+/**
+ * This class provides a wrapper around the built-in iterator API and adds methods
+ * to move it in both directions.
+ */
+class BidirectionalIterator : Iterator {
+    /**
+     * Creates a new instance iterating on the elements of `range`.
+     */
+    override const def new(self, range) {
+        if self = Iterator.new(self, range) {
+            if not self.iterator.isEmpty() {
+                self.items << self.iterator.value()
+            }
+            return self
+        }
+    }
+
+    /**
+     * Returns a built-in `iterator` on the elements of the iterator.
+     */
+    override const def in(self) {
+        while not self.isEmpty() {
+            yield self.next()
+        }
+    }
+
+    /**
+     * Returns `true` if the iterator contains `value`; otherwise returns `false`.
+     */
+    override const def in(self, const value) {
+        if value in self {
+            return true
+        }
+        return false
+    }
+
+    /**
+     * Walks over `other` and move the value of the elements to the variable at
+     * the same position in `self`. If `other` contains less variables than `self`,
+     * extra variables of `self` remain unchanged. If `self` contains less variables
+     * than `other`, the walk over `other` is interrupted where `self` has no more
+     * element.
+     */
+    override const def :=(self, const other) {
+        other = other.inOperator()
+        for let item in self {
+            item = other.next()
+        }
+    }
+
+    /**
+     * Returns the current element of the iterator and move the iteration context
+     * backward.
+     */
+    const def previous(self) {
+        if self.index <= 0 {
+            return none
+        }
+        --self.index
+        return self.items[self.index]
+    }
+
+    /**
+     * Returns the current element of the iterator and move the iteration context
+     * forward.
+     */
+    override const def next(self) {
+        if self.index + 1 < self.items.size() {
+            let value = self.items[self.index]
+            ++self.index
+            return value
+        }
+        if self.iterator.isEmpty() {
+            return none
+        }
+        let value = self.iterator.next()
+        self.items << self.iterator.value()
+        ++self.index
+        return value
+    }
+
+    /**
+     * Returns the current element of the iterator.
+     */
+    override const def value(self) {
+        if self.index < self.items.size() {
+            return self.items[self.index]
+        }
+    }
+
+    /**
+     * Sets the position of the current element to the beginning of the iterator.
+     */
+    const def rewind(self) {
+        self.index = 0
+    }
+
+    /**
+     * Returns `true` if the iterator has no more element; otherwise returns `false`.
+     */
+    const def isEmpty(const self) {
+        return self.index + 1 >= self.items.size() and self.iterator.isEmpty()
+    }
+
+    /**
+     * Walk over `self` and apply the `func` function to each element.
+     */
+    override const def each(self, const func) {
+        for let item in self {
+            func(item)
+        }
+    }
+
+    /// Internal list of laready reached elements.
+    # final items = []
+
+    /// Internal index to the current element.
+    # final index = 0
+}
+
+/**
+ * This class provides a wrapper around the built-in iterator API and adds methods
+ * to directly access a contained element.
+ */
+class RandomAccessIterator : BidirectionalIterator {
+    /**
+     * Returns the element at the position `index`.
+     */
+    const def [](self, const index) {
+        while index >= self.items.size() and not self.isEmpty() {
+            self.next()
+        }
+        if index < self.items.size() {
+            return self.items[index]
+        }
+    }
+
+    /**
+     * Returns the position of the current element.
+     */
+    const def tell(const self) {
+        return self.index
+    }
+
+    /**
+     * Sets the position of the current element to `index`. If `index` is after
+     * the last element, the iterator is moved to the end.
+     */
+    const def seek(self, index) {
+        while index >= self.items.size() and not self.isEmpty() {
+            self.next()
+        }
+        if index < self.items.size() {
+            self.items = index
+        }
+    }
+}
 
 /**
  * Returns `true` if `predicate` returns `true` for all elements in `range`;
@@ -120,8 +349,8 @@ def countIf(range, predicate) {
  */
 def mismatch(range, other) {
 
-    var it_range = inOperator(range)
-    var it_other = inOperator(other)
+    var it_range = range.inOperator()
+    var it_other = other.inOperator()
 
     while not it_range.isEmpty() and not it_other.isEmpty() and it_range.value() == it_other.value() {
         it_range.next()
@@ -137,8 +366,8 @@ def mismatch(range, other) {
  */
 def mismatch(range, other, predicate) {
 
-    var it_range = inOperator(range)
-    var it_other = inOperator(other)
+    var it_range = range.inOperator()
+    var it_other = other.inOperator()
 
     while not it_range.isEmpty() and not it_other.isEmpty() and predicate(it_range.value(), it_other.value()) {
         it_range.next()
@@ -154,7 +383,7 @@ def mismatch(range, other, predicate) {
  */
 def find(range, value) {
 
-    var it = inOperator(range)
+    var it = range.inOperator()
 
     while not it.isEmpty() {
         if value == it.value() {
@@ -172,7 +401,7 @@ def find(range, value) {
  */
 def findIf(range, predicate) {
 
-    var it = inOperator(range)
+    var it = range.inOperator()
 
     while not it.isEmpty() {
         if predicate(it.value()) {
@@ -190,7 +419,7 @@ def findIf(range, predicate) {
  */
 def findIfNot(range, predicate) {
 
-    var it = inOperator(range)
+    var it = range.inOperator()
 
     while not it.isEmpty() {
         if not predicate(it.value()) {
@@ -209,8 +438,8 @@ def findIfNot(range, predicate) {
  */
 def findEnd(range, other) {
 
-    var it_range = inOperator(range)
-    var it_other = inOperator(other)
+    var it_range = range.inOperator()
+    var it_other = other.inOperator()
 
     if it_other.isEmpty() {
         return ()
@@ -219,7 +448,7 @@ def findEnd(range, other) {
     var result = ()
 
     while found = search(range, other) {
-        result = copy(found)
+        result = found.clone()
         range = found
         range.next()
     }
@@ -233,8 +462,8 @@ def findEnd(range, other) {
  */
 def findEnd(range, other, predicate) {
 
-    var it_range = inOperator(range)
-    var it_other = inOperator(other)
+    var it_range = range.inOperator()
+    var it_other = other.inOperator()
 
     if it_other.isEmpty() {
         return ()
@@ -243,7 +472,7 @@ def findEnd(range, other, predicate) {
     var result = ()
 
     while let found = search(range, other, predicate) {
-        result = copy(found)
+        result = found.clone()
         range = found
         range.next()
     }
@@ -258,7 +487,7 @@ def findEnd(range, other, predicate) {
  */
 def findFirstOf(range, values) {
 
-    var it_range = inOperator(range)
+    var it_range = range.inOperator()
 
     while not it_range.isEmpty() {
         for let element in values {
@@ -278,7 +507,7 @@ def findFirstOf(range, values) {
  */
 def findFirstOf(range, values, predicate) {
 
-    var it_range = inOperator(range)
+    var it_range = range.inOperator()
 
     while not it_range.isEmpty() {
         for let element in values {
@@ -298,8 +527,8 @@ def findFirstOf(range, values, predicate) {
  */
 def adjacentFind(range) {
 
-    var it_range = inOperator(range)
-    var it_next = inOperator(range)
+    var it_range = range.inOperator()
+    var it_next = range.inOperator()
     it_next.next()
 
     while not it_next.isEmpty() {
@@ -319,8 +548,8 @@ def adjacentFind(range) {
  */
 def adjacentFind(range, predicate) {
 
-    var it_range = inOperator(range)
-    var it_next = inOperator(range)
+    var it_range = range.inOperator()
+    var it_next = range.inOperator()
     it_next.next()
 
     while not it_next.isEmpty() {
@@ -344,8 +573,8 @@ def search(range, other) {
     var it_range = range.inOperator()
 
     while not it_range.isEmpty() {
-        let it_search = it_range.copy()
-        let it_other = other.copy().inOperator()
+        let it_search = it_range.clone()
+        let it_other = other.clone().inOperator()
         while not it_search.isEmpty() and not it_other.isEmpty() {
             if not (it_search.next() == it_other.next()) {
                 break
@@ -369,8 +598,8 @@ def search(range, other, predicate) {
     var it_range = range.inOperator()
 
     while not it_range.isEmpty() {
-        let it_search = it_range.copy()
-        let it_other = other.copy().inOperator()
+        let it_search = it_range.clone()
+        let it_other = other.clone().inOperator()
         while not it_search.isEmpty() and not it_other.isEmpty() {
             if not predicate(it_search.next(), it_other.next()) {
                 break
@@ -392,10 +621,10 @@ def search(range, other, predicate) {
  */
 def searchN(range, n, value) {
 
-    var it_range = inOperator(range)
+    var it_range = range.inOperator()
 
     while not it_range.isEmpty() {
-        let result = copy(it_range)
+        let result = it_range.clone()
         let count = 0
         while count < n {
             if it_range.isEmpty() {
@@ -421,10 +650,10 @@ def searchN(range, n, value) {
  */
 def searchN(range, n, value, predicate) {
 
-    var it_range = inOperator(range)
+    var it_range = range.inOperator()
 
     while not it_range.isEmpty() {
-        let result = copy(it_range)
+        let result = it_range.clone()
         let count = 0
         while count < n {
             if it_range.isEmpty() {
@@ -461,7 +690,7 @@ def filter(range, predicate) {
  * implement the `==` operator.
  */
 def endsWith(range, other) {
-    return count(findEnd(range, copy(other))) == count(other)
+    return count(findEnd(range, other.clone())) == count(other)
 }
 
 /**
@@ -470,7 +699,7 @@ def endsWith(range, other) {
  * compared using `predicate`.
  */
 def endsWith(range, other, predicate) {
-    return count(findEnd(range, copy(other), predicate)) == count(other)
+    return count(findEnd(range, other.clone(), predicate)) == count(other)
 }
 
 /**
@@ -480,8 +709,8 @@ def endsWith(range, other, predicate) {
  */
 def startsWith(range, other) {
 
-    var it_range = inOperator(range)
-    var it_other = inOperator(other)
+    var it_range = range.inOperator()
+    var it_other = other.inOperator()
 
     while not it_other.isEmpty() {
         if it_range.isEmpty() {
@@ -502,8 +731,8 @@ def startsWith(range, other) {
  */
 def startsWith(range, other, predicate) {
 
-    var it_range = inOperator(range)
-    var it_other = inOperator(other)
+    var it_range = range.inOperator()
+    var it_other = other.inOperator()
 
     while not it_other.isEmpty() {
         if it_range.isEmpty() {
@@ -523,7 +752,7 @@ def startsWith(range, other, predicate) {
  */
 def copy(range, other) {
 
-    var it_range = inOperator(range)
+    var it_range = range.inOperator()
 
     for var element in other {
         it_range.next() := element
@@ -539,7 +768,7 @@ def copy(range, other) {
  */
 def copyIf(range, other, predicate) {
 
-    var it_range = inOperator(range)
+    var it_range = range.inOperator()
 
     for var element in other {
         if predicate(element) {
@@ -556,7 +785,7 @@ def copyIf(range, other, predicate) {
  */
 def copyN(range, n, other) {
 
-    var it_range = inOperator(range)
+    var it_range = range.inOperator()
     var count = 0
 
     for var element in other {
@@ -674,7 +903,7 @@ def reversed(range) {
  * Reverses the order of the elements in `range` and returns `range`.
  */
 def reverse(range) {
-    return range := reversed(copy(range))
+    return range := reversed(range.clone())
 }
 
 /**

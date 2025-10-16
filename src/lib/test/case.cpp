@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,16 +21,16 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/debug/debugtool.h>
-#include <mint/ast/cursor.h>
+#include "mint/memory/functiontool.h"
+#include "mint/debug/debugtool.h"
+#include "mint/ast/cursor.h"
+#include <format>
 
-using namespace mint;
-
-MINT_FUNCTION(mint_test_case_line_infos, 0, cursor) {
-	cursor->exit_call();
-	LineInfoList call_stack = cursor->dump();
-	const LineInfo &line_info = call_stack.at(1);
-	cursor->stack().emplace_back(create_string(line_info.to_string() + ":\n"
-											   + get_module_line(line_info.module_name(), line_info.line_number())));
+MINT_RAW_FUNCTION(mint_test_case_line_infos, 0, cursor) {
+	cursor.exit_call();
+	const auto call_stack = cursor.dump();
+	const auto& line_info = call_stack.at(1);
+	cursor.stack().emplace_back(mint::create_string(cursor.ast(),
+	    std::format("{}:\n{}", line_info.to_string(),
+	        mint::get_module_line(line_info.module_name(), line_info.line_number()))));
 }

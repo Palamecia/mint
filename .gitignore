@@ -1,3 +1,4 @@
-share/vscode/node_modules
-share/vscode/client/node_modules
-share/vscode/client/out
+build/
+share/vscode/node_modules/
+share/vscode/client/node_modules/
+share/vscode/client/out/

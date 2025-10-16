@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -22,31 +22,28 @@
  */
 
 #include "context.h"
+#include "mint/ast/symbol.h"
+#include "mint/compiler/buildtool.h"
+#include <cstddef>
 
 using namespace mint;
 
-int mint::find_fast_symbol_index(const Definition *def, const Symbol *symbol) {
-
-	auto i = def->fast_symbol_indexes.find(*symbol);
-	if (i != def->fast_symbol_indexes.end()) {
+std::size_t mint::find_fast_symbol_index(const Definition& def, const Symbol& symbol) {
+	if (auto i = def.fast_symbol_indexes.find(symbol); i != def.fast_symbol_indexes.end()) {
 		return i->second;
 	}
-
-	return -1;
+	return invalid_index;
 }
 
-int mint::create_fast_symbol_index(Definition *def, const Symbol *symbol) {
-	const int index = static_cast<int>(def->fast_symbol_count++);
-	return def->fast_symbol_indexes[*symbol] = index;
+std::size_t mint::create_fast_symbol_index(Definition& def, const Symbol& symbol) {
+	const auto index = def.fast_symbol_count++;
+	return def.fast_symbol_indexes[symbol] = index;
 }
 
-int mint::fast_symbol_index(Definition *def, const Symbol *symbol) {
-
-	auto i = def->fast_symbol_indexes.find(*symbol);
-	if (i != def->fast_symbol_indexes.end()) {
+std::size_t mint::fast_symbol_index(Definition& def, const Symbol& symbol) {
+	if (auto i = def.fast_symbol_indexes.find(symbol); i != def.fast_symbol_indexes.end()) {
 		return i->second;
 	}
-
-	const int index = static_cast<int>(def->fast_symbol_count++);
-	return def->fast_symbol_indexes[*symbol] = index;
+	const auto index = def.fast_symbol_count++;
+	return def.fast_symbol_indexes[symbol] = index;
 }

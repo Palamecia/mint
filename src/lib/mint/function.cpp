@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -21,72 +21,75 @@
  * IN THE SOFTWARE.
  */
 
-#include <mint/memory/functiontool.h>
-#include <mint/memory/builtin/iterator.h>
-#include <mint/memory/memorytool.h>
-#include <mint/memory/operatortool.h>
-#include <mint/ast/cursor.h>
-
-using namespace mint;
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/class.h"
+#include "mint/memory/data.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/operatortool.h"
+#include "mint/ast/cursor.h"
+#include <algorithm>
+#include <string>
+#include <utility>
 
 namespace {
 
-std::string get_member_name(Class::MemberInfo *infos) {
+std::string get_member_name(mint::Class::MemberInfo& infos) {
 
-	Class *metadata = infos->owner;
-	const Class::MembersMapping &members = metadata->members();
+	mint::Class& metadata = infos.owner.get();
+	const auto members = metadata.members();
 
-	auto it = std::find_if(members.begin(), members.end(), [infos](const auto &member) {
-		return infos == member.second;
+	auto it = std::ranges::find(members, &infos, [](const auto& member) {
+		return &member.second.get();
 	});
 	if (it != members.end()) {
-		return metadata->full_name() + "." + it->first.str();
+		return metadata.full_name() + "." + (*it).first.str();
 	}
-	return metadata->full_name() + ".<function>";
+	return metadata.full_name() + ".<function>";
 }
 
-}
-
-MINT_FUNCTION(mint_get_member_info, 2, cursor) {
-
-	FunctionHelper helper(cursor, 2);
-	Reference &member = helper.pop_parameter();
-	Reference &object = helper.pop_parameter();
-
-	if (object.data()->format == Data::FMT_OBJECT) {
-		if (Class::MemberInfo *infos = find_member_info(object.data<Object>(), member)) {
-			helper.return_value(create_object(infos));
+mint::WeakReference mint_get_member_info(mint::Cursor& cursor, const mint::Reference& object,
+    const mint::Reference& member) {
+	if (is_instance_of(object, mint::Data::object_format)) {
+		if (mint::Class::MemberInfo* infos = find_member_info(object.data<mint::Object>(), member)) {
+			return create_c_object(cursor.ast(), infos);
 		}
 	}
+	return {};
 }
 
-MINT_FUNCTION(mint_function_name, 1, cursor) {
-	FunctionHelper helper(cursor, 1);
-	Class::MemberInfo *infos = helper.pop_parameter().data<LibObject<Class::MemberInfo>>()->impl;
-	helper.return_value(create_string(get_member_name(infos)));
+mint::WeakReference mint_function_name(mint::Cursor& cursor, const mint::Reference& infos) {
+	return mint::create_string(cursor.ast(),
+	    get_member_name(*infos.data<mint::LibObject<mint::Class::MemberInfo>>().ptr));
 }
 
-MINT_FUNCTION(mint_function_call, 4, cursor) {
+}
 
-	WeakReference args = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
+MINT_RAW_FUNCTION(mint_function_call, 4, cursor) {
 
-	WeakReference func = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
+	const auto args = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
 
-	WeakReference object = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
+	auto func = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
 
-	WeakReference member_info = std::move(cursor->stack().back());
-	cursor->stack().pop_back();
+	auto object = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
 
-	const auto signature = static_cast<int>(args.data<Iterator>()->ctx.size());
-	cursor->stack().emplace_back(std::move(object));
-	cursor->stack().insert(cursor->stack().end(), std::make_move_iterator(args.data<Iterator>()->ctx.begin()),
-						   std::make_move_iterator(args.data<Iterator>()->ctx.end()));
+	const auto member_info = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
 
-	cursor->waiting_calls().emplace(std::move(func));
-	cursor->waiting_calls().top().set_metadata(member_info.data<LibObject<Class::MemberInfo>>()->impl->owner);
+	const auto signature = static_cast<int>(args.data<mint::Iterator>().ctx.size());
+	cursor.stack().emplace_back(std::move(object));
+	cursor.stack().append_range(args.data<mint::Iterator>().ctx);
+
+	cursor.waiting_calls().emplace(std::move(func),
+	    member_info.data<mint::LibObject<mint::Class::MemberInfo>>().ptr->owner);
 
 	call_member_operator(cursor, signature);
 }
+
+MINT_EXPORT_FUNCTION(mint_get_member_info, 2);
+MINT_EXPORT_FUNCTION(mint_function_name, 1);

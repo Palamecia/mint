@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -24,24 +24,35 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
+#include "mint/ast/symbol.h"
 #include "mint/compiler/buildtool.h"
+#include "casetable.h"
 #include "catchcontext.h"
 #include "branch.h"
+#include <cstddef>
+#include <memory>
+#include <vector>
 
 namespace mint {
 
 struct Block {
 	Block(BuildContext::BlockType type);
+	Block(const Block&) = delete;
+	Block(Block&&) = delete;
+	~Block();
+
+	Block& operator=(const Block&) = delete;
+	Block& operator=(Block&&) = delete;
 
 	BuildContext::BlockType type;
-	Branch::ForwardNodeIndex *forward = nullptr;
-	Branch::BackwardNodeIndex *backward = nullptr;
-	CatchContext *catch_context = nullptr;
-	CaseTable *case_table = nullptr;
-	size_t retrieve_point_count = 0;
-	std::vector<Symbol *> *condition_scoped_symbols = nullptr;
-	std::vector<Symbol *> *range_loop_scoped_symbols = nullptr;
-	std::vector<Symbol *> block_scoped_symbols;
+	Branch::ForwardNodeIndex* forward = nullptr;
+	Branch::BackwardNodeIndex* backward = nullptr;
+	std::unique_ptr<CatchContext> catch_context;
+	std::unique_ptr<CaseTable> case_table;
+	std::size_t retrieve_point_count = 0;
+	std::unique_ptr<std::vector<const Symbol*>> condition_scoped_symbols;
+	std::unique_ptr<std::vector<const Symbol*>> range_loop_scoped_symbols;
+	std::vector<const Symbol*> block_scoped_symbols;
 
 	[[nodiscard]] bool is_breakable() const;
 	[[nodiscard]] bool is_continuable() const;

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2025 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -23,6 +23,7 @@
 
 #include "mint/memory/object.h"
 #include "mint/memory/class.h"
+#include "mint/memory/data.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
@@ -30,135 +31,137 @@
 #include "mint/memory/builtin/library.h"
 #include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/string.h"
+#include "mint/ast/cursor.h"
+#include "mint/memory/symboltable.h"
 #include "mint/system/error.h"
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
+#include <memory>
+#include <span>
+#include <unordered_map>
+#include <utility>
 
 using namespace mint;
 
-Number::Number(double value) :
-	Data(FMT_NUMBER),
-	value(value) {}
+std::allocator<WeakReference> Object::g_allocator;
 
-Number::Number(const Number &other) :
-	Data(FMT_NUMBER),
-	value(other.value) {}
+Number::Number(double value) :
+    value(value) {}
+
+Number::Number(std::intmax_t value) :
+    value(static_cast<double>(value)) {}
+
+Number::Number(std::uintmax_t value) :
+    value(static_cast<double>(value)) {}
 
 Boolean::Boolean(bool value) :
-	Data(FMT_BOOLEAN),
-	value(value) {}
+    value(value) {}
 
-Boolean::Boolean(const Boolean &other) :
-	Data(FMT_BOOLEAN),
-	value(other.value) {}
-
-Object::Object(Class *type) :
-	Data(FMT_OBJECT),
-	metadata(type),
-	data(nullptr) {}
+Object::Object(Class& type) :
+    metadata(type),
+    data(nullptr) {}
 
 Object::~Object() {
-	if (data) {
-		for (size_t offset = 0; offset < metadata->size(); ++offset) {
-			data[offset].~WeakReference();
-		}
-		free(data);
-	}
+	destroy();
 }
 
 void Object::construct() {
-
-	data = static_cast<WeakReference *>(malloc(metadata->size() * sizeof(WeakReference)));
-
-	for (const Class::MemberInfo *member : metadata->slots()) {
-		new (data + member->offset) WeakReference(WeakReference::clone(member->value));
+	data = g_allocator.allocate(std::max(1uz, metadata.size()));
+	for (const Class::MemberInfo& member : metadata.slots()) {
+		std::construct_at(std::next(data, static_cast<std::ptrdiff_t>(member.offset)), copy_from, member.value);
 	}
 }
 
-void Object::construct(const Object &other) {
-	std::unordered_map<const Data *, Data *> memory_map;
+void Object::construct(const Object& other) {
+	std::unordered_map<const Data*, Data*> memory_map;
 	memory_map.emplace(&other, this);
 	construct(other, memory_map);
 }
 
-void Object::construct(const Object &other, std::unordered_map<const Data *, Data *> &memory_map) {
+void Object::destroy() {
+	if (data) {
+		for (std::size_t offset = 0; offset < metadata.size(); ++offset) {
+			std::destroy_at(std::next(data, static_cast<std::ptrdiff_t>(offset)));
+		}
+		g_allocator.deallocate(data, std::max(1uz, metadata.size()));
+	}
+}
+
+void Object::construct(const Object& other, std::unordered_map<const Data*, Data*>& memory_map) {
 
 	if (other.data) {
 
-		if (UNLIKELY(!metadata->is_copyable())) {
-			error("type '%s' is not copyable", metadata->full_name().c_str());
+		if (!metadata.is_copyable()) [[unlikely]] {
+			error("type '{}' is not copyable", metadata.full_name());
 		}
 
-		data = static_cast<WeakReference *>(malloc(metadata->size() * sizeof(WeakReference)));
+		data = g_allocator.allocate(std::max(1uz, metadata.size()));
 
-		for (auto &member : metadata->slots()) {
+		for (const auto& member : metadata.slots()) {
 
-			Reference &target_ref = other.data[member->offset];
-			Reference *member_ref = data + member->offset;
-			auto i = memory_map.find(target_ref.data());
+			const auto& target_ref = other.data[member.get().offset];
+			WeakReference* member_ref = data + member.get().offset;
+			auto i = memory_map.find(&target_ref.data());
 
 			if (i == memory_map.end()) {
-				if ((target_ref.flags() & (Reference::CONST_ADDRESS | Reference::CONST_VALUE))
-					!= (Reference::CONST_ADDRESS | Reference::CONST_VALUE)) {
-					switch (target_ref.data()->format) {
-					case Data::FMT_OBJECT:
-						switch (target_ref.data<Object>()->metadata->metatype()) {
-						case Class::OBJECT:
-							member_ref = new (member_ref)
-								WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Object>(
-																	  target_ref.data<Object>()->metadata));
+				if ((target_ref.flags() & (Reference::const_address | Reference::const_value))
+				    != (Reference::const_address | Reference::const_value)) {
+					switch (target_ref.data().format()) {
+					case Data::object_format:
+						switch (target_ref.data<Object>().metadata.metatype()) {
+						case Class::object:
+							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Object>,
+							    target_ref.data<Object>().metadata);
 							break;
-						case Class::STRING:
-							member_ref = new (member_ref)
-								WeakReference(target_ref.flags(),
-											  GarbageCollector::instance().alloc<String>(*target_ref.data<String>()));
+						case Class::string:
+							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<String>,
+							    target_ref.data<String>());
 							break;
-						case Class::REGEX:
-							member_ref = new (member_ref)
-								WeakReference(target_ref.flags(),
-											  GarbageCollector::instance().alloc<Regex>(*target_ref.data<Regex>()));
+						case Class::regex:
+							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Regex>,
+							    target_ref.data<Regex>());
 							break;
-						case Class::ARRAY:
-							member_ref = new (member_ref)
-								WeakReference(target_ref.flags(),
-											  GarbageCollector::instance().alloc<Array>(*target_ref.data<Array>()));
+						case Class::array:
+							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Array>,
+							    target_ref.data<Array>());
 							break;
-						case Class::HASH:
-							member_ref = new (member_ref)
-								WeakReference(target_ref.flags(),
-											  GarbageCollector::instance().alloc<Hash>(*target_ref.data<Hash>()));
+						case Class::hash:
+							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Hash>,
+							    target_ref.data<Hash>());
 							break;
-						case Class::ITERATOR:
-							member_ref = new (member_ref)
-								WeakReference(target_ref.flags(), GarbageCollector::instance().alloc<Iterator>(
-																	  *target_ref.data<Iterator>()));
+						case Class::iterator:
+							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Iterator>,
+							    target_ref.data<Iterator>());
 							break;
-						case Class::LIBRARY:
-							member_ref = new (member_ref)
-								WeakReference(target_ref.flags(),
-											  GarbageCollector::instance().alloc<Library>(*target_ref.data<Library>()));
+						case Class::library:
+							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Library>,
+							    target_ref.data<Library>());
 							break;
-						case Class::LIBOBJECT:
-							member_ref = new (member_ref) WeakReference(WeakReference::clone(target_ref));
-							memory_map.emplace(target_ref.data(), member_ref->data());
+						case Class::libobject:
+							member_ref = std::construct_at(member_ref, WeakReference(copy_from, target_ref));
+							memory_map.emplace(&target_ref.data(), &member_ref->data());
 							continue;
 						}
 
-						memory_map.emplace(target_ref.data(), member_ref->data());
-						member_ref->data<Object>()->construct(*target_ref.data<Object>(), memory_map);
+						memory_map.emplace(&target_ref.data(), &member_ref->data());
+						member_ref->data<Object>().construct(target_ref.data<Object>(), memory_map);
 						break;
 
 					default:
-						member_ref = new (member_ref) WeakReference(WeakReference::clone(target_ref));
-						memory_map.emplace(target_ref.data(), member_ref->data());
+						member_ref = std::construct_at(member_ref, copy_from, target_ref);
+						memory_map.emplace(&target_ref.data(), &member_ref->data());
 						break;
 					}
 				}
 				else {
-					member_ref = new (member_ref) WeakReference(WeakReference::share(target_ref));
-					memory_map.emplace(target_ref.data(), member_ref->data());
+					member_ref = std::construct_at(member_ref, target_ref);
+					memory_map.emplace(&target_ref.data(), &member_ref->data());
 				}
 			}
 			else {
-				new (member_ref) WeakReference(target_ref.flags(), i->second);
+				std::construct_at(member_ref, target_ref.flags(), *i->second);
 			}
 		}
 	}
@@ -168,101 +171,55 @@ void Object::mark() {
 	if (!marked_bit()) {
 		Data::mark();
 		if (data) {
-			for (size_t offset = 0; offset < metadata->size(); ++offset) {
-				data[offset].data()->mark();
+			for (auto& slot : std::span(data, metadata.size())) {
+				slot.data().mark();
 			}
 		}
 	}
 }
 
-Package::Package(PackageData *package) :
-	Data(FMT_PACKAGE),
-	data(package) {}
+Package::Package(PackageData& package) :
+    data(package) {}
 
-Function::Function() :
-	Data(FMT_FUNCTION) {}
+Function::Function() = default;
 
-Function::Function(const Function &other) :
-	Data(FMT_FUNCTION),
-	mapping(other.mapping) {}
+Function::Function(Mapping mapping) :
+    mapping(std::move(mapping)) {}
 
-Function::Signature::Signature(Module::Handle *handle, bool capture) :
-	handle(handle),
-	capture(capture ? new Capture : nullptr) {}
+Function::Function(int signature, Signature&& handle) :
+    mapping(signature, std::move(handle)) {}
 
-Function::Signature::Signature(Signature &&other) noexcept :
-	handle(other.handle),
-	capture(other.capture) {
-	other.capture = nullptr;
+Function::Function(const std::pair<int, Signature>& mapping) :
+    mapping(mapping) {}
+
+void Function::Stateless::call(int signature, Class* metadata, Cursor& cursor) {
+	cursor.call(handle(), signature, metadata);
 }
 
-Function::Signature::Signature(const Signature &other) :
-	handle(other.handle),
-	capture(other.capture ? new Function::Capture : nullptr) {
-	if (capture) {
-		for (auto &symbol : *other.capture) {
-			capture->emplace(symbol.first, WeakReference::share(symbol.second));
-		}
+void Function::Stateful::call(int signature, Class* metadata, Cursor& cursor) {
+
+	cursor.call(handle(), signature, metadata);
+
+	for (SymbolTable& symbols = cursor.symbols(); auto& item : _capture) {
+		symbols.emplace(item.first, item.second);
 	}
 }
 
-Function::Signature::~Signature() {
-	delete capture;
-}
+Function::Mapping::Mapping(int signature, Function::Signature&& handle) :
+    _signatures({{signature, std::move(handle)}}) {}
 
-Function::Mapping::Mapping() :
-	m_data(new SharedData) {}
+Function::Mapping::Mapping(const std::pair<int, Signature>& mapping) :
+    _signatures({mapping}) {}
 
-Function::Mapping::Mapping(Mapping &&other) noexcept :
-	m_data(other.m_data) {
-	other.m_data = nullptr;
-}
+bool Function::Mapping::operator==(const Mapping& other) const {
 
-Function::Mapping::Mapping(const Mapping &other) {
-	if (other.m_data->is_sharable()) {
-		m_data = other.m_data->share();
-	}
-	else {
-		m_data = other.m_data->detach();
-	}
-}
-
-Function::Mapping::~Mapping() {
-	if (m_data && !--m_data->refcount) {
-		delete m_data;
-	}
-}
-
-Function::Mapping &Function::Mapping::operator=(Mapping &&other) noexcept {
-	std::swap(m_data, other.m_data);
-	return *this;
-}
-
-Function::Mapping &Function::Mapping::operator=(const Mapping &other) {
-	if (UNLIKELY(&other == this)) {
-		return *this;
-	}
-	if (m_data && !--m_data->refcount) {
-		delete m_data;
-	}
-	if (other.m_data->is_sharable()) {
-		m_data = other.m_data->share();
-	}
-	else {
-		m_data = other.m_data->detach();
-	}
-	return *this;
-}
-
-bool Function::Mapping::operator==(const Mapping &other) const {
-
-	if (m_data->signatures.size() != other.m_data->signatures.size()) {
+	if (_signatures.size() != other._signatures.size()) {
 		return false;
 	}
 
-	for (auto it1 = m_data->signatures.begin(), it2 = other.m_data->signatures.begin();
-		 it1 != m_data->signatures.end() && it2 != other.m_data->signatures.end(); ++it1, ++it2) {
-		if (it1->first != it2->first || it1->second.handle != it2->second.handle) {
+	for (auto it1 = _signatures.begin(), it2 = other._signatures.begin();
+	    it1 != _signatures.end() && it2 != other._signatures.end(); ++it1, ++it2) {
+		if (it1->first != it2->first || &it1->second.handle() != &it2->second.handle()) {
 			return false;
 		}
 	}
@@ -270,15 +227,15 @@ bool Function::Mapping::operator==(const Mapping &other) const {
 	return true;
 }
 
-bool Function::Mapping::operator!=(const Mapping &other) const {
+bool Function::Mapping::operator!=(const Mapping& other) const {
 
-	if (m_data->signatures.size() != other.m_data->signatures.size()) {
+	if (_signatures.size() != other._signatures.size()) {
 		return true;
 	}
 
-	for (auto it1 = m_data->signatures.begin(), it2 = other.m_data->signatures.begin();
-		 it1 != m_data->signatures.end() && it2 != other.m_data->signatures.end(); ++it1, ++it2) {
-		if (it1->first != it2->first || it1->second.handle != it2->second.handle) {
+	for (auto it1 = _signatures.begin(), it2 = other._signatures.begin();
+	    it1 != _signatures.end() && it2 != other._signatures.end(); ++it1, ++it2) {
+		if (it1->first != it2->first || &it1->second.handle() != &it2->second.handle()) {
 			return true;
 		}
 	}
@@ -286,72 +243,55 @@ bool Function::Mapping::operator!=(const Mapping &other) const {
 	return false;
 }
 
-std::pair<Function::Mapping::iterator, bool> Function::Mapping::emplace(int signature,
-																				  const Signature &handle) {
-	if (m_data->is_shared()) {
-		m_data = m_data->detach();
-	}
-	if (handle.capture) {
-		m_data->sharable = false;
-	}
-	return m_data->signatures.emplace(signature, handle);
+std::pair<Function::Mapping::iterator, bool> Function::Mapping::emplace(int signature, Signature&& handle) {
+	return _signatures.emplace(signature, std::move(handle));
 }
 
-std::pair<Function::Mapping::iterator, bool> Function::Mapping::insert(const std::pair<int, Signature> &signature) {
-	if (m_data->is_shared()) {
-		m_data = m_data->detach();
-	}
-	if (signature.second.capture) {
-		m_data->sharable = false;
-	}
-	return m_data->signatures.insert(signature);
+std::pair<Function::Mapping::iterator, bool> Function::Mapping::insert(const std::pair<int, Signature>& signature) {
+	return _signatures.insert(signature);
 }
 
-Function::Mapping::iterator Function::Mapping::lower_bound(int signature) const {
-	return m_data->signatures.lower_bound(signature);
+Function::Mapping::const_iterator Function::Mapping::lower_bound(int signature) const {
+	return _signatures.lower_bound(signature);
 }
 
-Function::Mapping::iterator Function::Mapping::find(int signature) const {
-	return m_data->signatures.find(signature);
+Function::Mapping::const_iterator Function::Mapping::find(int signature) const {
+	return _signatures.find(signature);
 }
 
 Function::Mapping::const_iterator Function::Mapping::cbegin() const {
-	return m_data->signatures.cbegin();
+	return _signatures.cbegin();
 }
 
 Function::Mapping::const_iterator Function::Mapping::begin() const {
-	return m_data->signatures.begin();
+	return _signatures.begin();
 }
 
 Function::Mapping::iterator Function::Mapping::begin() {
-	return m_data->signatures.begin();
+	return _signatures.begin();
 }
 
 Function::Mapping::const_iterator Function::Mapping::cend() const {
-	return m_data->signatures.cend();
+	return _signatures.cend();
 }
 
 Function::Mapping::const_iterator Function::Mapping::end() const {
-	return m_data->signatures.end();
+	return _signatures.end();
 }
 
 Function::Mapping::iterator Function::Mapping::end() {
-	return m_data->signatures.end();
+	return _signatures.end();
 }
 
 bool Function::Mapping::empty() const {
-	return m_data->signatures.empty();
+	return _signatures.empty();
 }
 
 void Function::mark() {
 	if (!marked_bit()) {
 		Data::mark();
-		for (const auto &signature : mapping) {
-			if (const auto &capture = signature.second.capture) {
-				for (const auto &reference : *capture) {
-					reference.second.data()->mark();
-				}
-			}
+		for (auto& signature : mapping) {
+			signature.second.mark();
 		}
 	}
 }

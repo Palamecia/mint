@@ -4,7 +4,7 @@ add_executable(test-scheduler)
 
 target_sources(
 	test-scheduler
-	PRIVATE
+PRIVATE
 	destructor.cpp
 	inputstream.cpp
 	output.cpp
@@ -15,9 +15,10 @@ target_sources(
 
 target_link_libraries(
 	test-scheduler
-	GTest::Main
-	GTest::GTest
-	mint_library
+PRIVATE
+	libmint
+	GTest::gtest
+	GTest::gtest_main
 )
 
 gtest_discover_tests(test-scheduler)

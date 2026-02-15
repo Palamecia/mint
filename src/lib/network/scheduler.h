@@ -49,17 +49,16 @@ using SOCKET = int;
 #endif
 
 struct PollFd {
-	enum Event : std::uint8_t {
-		read_event = 0x01,
-		write_event = 0x02,
-		accept_event = 0x04,
-		error_event = 0x08,
-		close_event = 0x10
-	};
+	using Event = std::uint16_t;
+	static constexpr Event read_event = 0x0001;
+	static constexpr Event write_event = 0x0002;
+	static constexpr Event accept_event = 0x0004;
+	static constexpr Event error_event = 0x0008;
+	static constexpr Event close_event = 0x0010;
 
 	SOCKET fd;
-	short events;
-	short revents;
+	Event events;
+	Event revents;
 	handle_t handle;
 };
 

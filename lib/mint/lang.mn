@@ -170,7 +170,7 @@ def [g_lib = lib('libmint-mint')] isMain() {
  * **Example**:
  * ```mn
  * atExit(def (code) {
- *     print {'Exited with code %d\n' % code}
+ *     print('Exited with code %d\n' % code)
  * })
  * ```
  */

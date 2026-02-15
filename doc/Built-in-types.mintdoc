@@ -756,18 +756,16 @@ This type allow access to several [[variables|Variables]] with an iteration cont
 
 ```mn
 // Using an iterator literal
-i = (0, 1, 2)
+let i = (0, 1, 2)
 
 // Using a generator function
-i = myGenerator()
+let i = myGenerator()
 
 // Using a generator expression
-i = for let v in values {
-    valueFor(v)
-}
+let i = for let v in values => valueFor(v)
 
 // Using a range operator
-i = 0..5
+let i = 0..5
 ```
 
 > [!IMPORTANT]

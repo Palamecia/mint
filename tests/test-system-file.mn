@@ -8,7 +8,7 @@ class FileTest : Test.Case {
 		f = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
 		self.expectEqual('System.File', typeof f)
 		self.expectEqual(true, f.isOpen())
-		print (f) {'test'}
+		print(f, 'test')
 		f.close()
 
 		f = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'))

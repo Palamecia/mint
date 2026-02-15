@@ -225,11 +225,9 @@ R walk(Cursor& cursor, Walker& walker) {
 	case Node::Command::range_iterator_check:
 		return walker.on_range_iterator_check(cursor, static_cast<std::size_t>(cursor.next().as_parameter()));
 	case Node::Command::begin_generator_expression:
-		return walker.on_begin_generator_expression(cursor);
+		return walker.on_begin_generator_expression(cursor, static_cast<std::size_t>(cursor.next().as_parameter()));
 	case Node::Command::end_generator_expression:
 		return walker.on_end_generator_expression(cursor);
-	case Node::Command::yield_expression:
-		return walker.on_yield_expression(cursor);
 	case Node::Command::open_printer:
 		return walker.on_open_printer(cursor);
 	case Node::Command::close_printer:

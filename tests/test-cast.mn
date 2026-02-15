@@ -139,12 +139,12 @@ class TestCast : Test.Case {
 		self.expectEqual(string([/.*/]), array(/.*/))
 		self.expectEqual([2, 0], array({0 : 1, 2 : 3}))
 		self.expectEqual([0, 1, 2, 3], array((0, 1, 2, 3)))
-		self.expectArrayIsSame([self._testPackage], array(self._testPackage))
-		self.expectArrayIsSame([self._testFunction], array(self._testFunction))
-		self.expectArrayIsSame([self._testLibrary], array(self._testLibrary))
-		self.expectArrayIsSame([self._testLibobject], array(self._testLibobject))
+		self.expect(self.arrayIsSame, [self._testPackage], array(self._testPackage))
+		self.expect(self.arrayIsSame, [self._testFunction], array(self._testFunction))
+		self.expect(self.arrayIsSame, [self._testLibrary], array(self._testLibrary))
+		self.expect(self.arrayIsSame, [self._testLibobject], array(self._testLibobject))
 	}
-	
+
 	const def testToHash(self) {
 		self.expectEqual({}, hash(none))
 		self.expectEqual({null : none}, hash(null))
@@ -158,55 +158,82 @@ class TestCast : Test.Case {
 	}
 
 	const def testToIterator(self) {
-		self.expectIteratorEqual((), inOperator(none))
-		self.expectIteratorEqual((null,), inOperator(null))
-		self.expectIteratorEqual((false,), inOperator(false))
-		self.expectIteratorEqual((true,), inOperator(true))
-		self.expectIteratorEqual((7357,), inOperator(7357))
-		self.expectIteratorEqual(('t', 'e', 's', 't',), inOperator('test'))
-		self.expectIteratorCbEqual((/test/,), inOperator(/test/), string)
-		self.expectIteratorEqual(('a', 'b', 'c'), inOperator(['a', 'b', 'c']))
-		// self.expectIteratorCbEqual(((2, 'c'), (1, 'b'), (0, 'a')), inOperator({0 : 'a', 1 : 'b', 2 : 'c'}), array)
-		self.expectIteratorIsSame((self._testPackage,), inOperator(self._testPackage))
-		self.expectIteratorIsSame((self._testFunction,), inOperator(self._testFunction))
-		self.expectIteratorIsSame((self._testLibrary,), inOperator(self._testLibrary))
-		self.expectIteratorIsSame((self._testLibobject,), inOperator(self._testLibobject))
+		self.expect(self.iteratorEqual, (), inOperator(none))
+		self.expect(self.iteratorEqual, (null,), inOperator(null))
+		self.expect(self.iteratorEqual, (false,), inOperator(false))
+		self.expect(self.iteratorEqual, (true,), inOperator(true))
+		self.expect(self.iteratorEqual, (7357,), inOperator(7357))
+		self.expect(self.iteratorEqual, ('t', 'e', 's', 't',), inOperator('test'))
+		self.expect(self.iteratorCbEqual, (/test/,), inOperator(/test/), string)
+		self.expect(self.iteratorEqual, ('a', 'b', 'c'), inOperator(['a', 'b', 'c']))
+		// self.expect(self.iteratorCbEqual, ((2, 'c'), (1, 'b'), (0, 'a')), inOperator({0 : 'a', 1 : 'b', 2 : 'c'}), array)
+		self.expect(self.iteratorIsSame, (self._testPackage,), inOperator(self._testPackage))
+		self.expect(self.iteratorIsSame, (self._testFunction,), inOperator(self._testFunction))
+		self.expect(self.iteratorIsSame, (self._testLibrary,), inOperator(self._testLibrary))
+		self.expect(self.iteratorIsSame, (self._testLibobject,), inOperator(self._testLibobject))
 	}
 
-	- def expectArrayIsSame(self, expected, result) {
-		self.expectEqual(typeof expected, typeof result)
-		self.expectEqual(expected.size(), result.size())
+	- @def arrayIsSame(expected, result) {
+		if typeof expected != typeof result {
+			return false
+		}
+		if expected.size() != result.size() {
+			return false
+		}
 		for i in 0...expected.size() {
-			self.expectIsSame(expected[i], result[i])
+			if not (expected[i] is result[i]) {
+				return false
+			}
 		}
+		return true
 	}
 
-	- def expectIteratorEqual(self, expected, result) {
-		self.expectEqual(typeof expected, typeof result)
-		while not expected.isEmpty() {
-			self.expectEqual(false, result.isEmpty())
-			self.expectEqual(expected.next(), result.next())
+	- @def iteratorEqual(expected, result) {
+		if typeof expected != typeof result {
+			return false
 		}
-		self.expectEqual(true, result.isEmpty())
+		while not expected.isEmpty() {
+			if result.isEmpty() {
+				return false
+			}
+			if expected.next() != result.next() {
+				return false
+			}
+		}
+		return result.isEmpty()
 	}
 
-	- def expectIteratorCbEqual(self, expected, result, callback) {
-		self.expectEqual(typeof expected, typeof result)
-		while not expected.isEmpty() {
-			self.expectEqual(false, result.isEmpty())
-			self.expectEqual(typeof expected.value(), typeof result.value())
-			self.expectEqual(callback(expected.next()), callback(result.next()))
+	- @def iteratorCbEqual(expected, result, callback) {
+		if typeof expected != typeof result {
+			return false
 		}
-		self.expectEqual(true, result.isEmpty())
+		while not expected.isEmpty() {
+			if result.isEmpty() {
+				return false
+			}
+			if typeof expected.value() != typeof result.value() {
+				return false
+			}
+			if callback(expected.next()) != callback(result.next()) {
+				return false
+			}
+		}
+		return result.isEmpty()
 	}
 
-	- def expectIteratorIsSame(self, expected, result) {
-		self.expectEqual(typeof expected, typeof result)
-		while not expected.isEmpty() {
-			self.expectEqual(false, result.isEmpty())
-			self.expectIsSame(expected.next(), result.next())
+	- @def iteratorIsSame(expected, result) {
+		if typeof expected != typeof result {
+			return false
 		}
-		self.expectEqual(true, result.isEmpty())
+		while not expected.isEmpty() {
+			if result.isEmpty() {
+				return false
+			}
+			if not (expected.next() is result.next()) {
+				return false
+			}
+		}
+		return result.isEmpty()
 	}
 
 	- _testPackage = none

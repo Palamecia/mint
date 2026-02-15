@@ -78,8 +78,7 @@ variables:
       |[+-]?(0b)[0-1]+{{identifier_break}}
     )
 
-  scope_token: (?x:{{let_token}})
-  modifier_token: (?x:{{var_token}}|{{const_token}}|@|\$|%)
+  modifier_token: (?x:{{let_token}}|{{var_token}}|{{const_token}}|@|\$|%)
   member_modifier_token: (?x:{{final_token}}|{{override_token}})
   visibility_modifier_token: (?x:\#|~|\+|-)
 
@@ -251,7 +250,7 @@ contexts:
       scope: keyword.control.print.mn
       push:
         - print_meta_rule
-        - stmt_block_rule
+        - maybe_stmt_block_rule
         - print_rule
     - match: '{{break_token}}'
       scope: keyword.control.loop.mn
@@ -279,15 +278,17 @@ contexts:
           scope: variable.other.readwrite.mn
         - match: ','
           scope: punctuation.separator.comma.mn
-        - match: '=>'
+        - match: '=:'
           scope: keyword.operator.assignment.mn
-          set: expect_expr_rule
+          set:
+            - include: generator_expr_rule
+            - include: expect_expr_rule
         - match: '='
           scope: keyword.operator.assignment.mn
-          set: expect_expr_rule
+          set:
+            - include: generator_expr_rule
+            - include: expect_expr_rule
         - include: else_pop
-    - match: '{{scope_token}}'
-      scope: storage.modifier.mn
     - match: '{{modifier_token}}'
       scope: storage.modifier.mn
     - match: '{{def_token}}'
@@ -314,6 +315,31 @@ contexts:
           scope: punctuation.section.block.end.mn
           pop: true
         - include: stmt_rule
+    - include: else_error
+
+  maybe_stmt_block_rule:
+    - match: '\{'
+      scope: punctuation.section.block.begin.mn
+      set:
+        - meta_scope: meta.block.mn
+        - match: '\}'
+          scope: punctuation.section.block.end.mn
+          pop: true
+        - include: stmt_rule
+    - include: else_pop
+
+  generator_block_rule:
+    - match: '\{'
+      scope: punctuation.section.block.begin.mn
+      set:
+        - meta_scope: meta.block.mn
+        - match: '\}'
+          scope: punctuation.section.block.end.mn
+          pop: true
+        - include: stmt_rule
+    - match: '=>'
+      scope: punctuation.separator.mn
+      set: expect_expr_rule
     - include: else_error
 
   try_meta_rule:
@@ -597,12 +623,42 @@ contexts:
         - meta_scope: meta.sequence.mn
         - match: '\)'
           scope: punctuation.section.group.end.mn
-          pop: true
+          pop: true        
+        - match: '{{modifier_token}}'
+          scope: storage.modifier.mn
         - include: expr_rule
-    - match: '{{scope_token}}'
-      scope: storage.modifier.mn
     - match: '{{modifier_token}}'
       scope: storage.modifier.mn
+      set:
+        - match: '\('
+          scope: punctuation.section.group.begin.mn
+          push:
+            - meta_scope: meta.sequence.mn
+            - match: '\)'
+              scope: punctuation.section.group.end.mn
+              pop: true
+            - match: '{{symbol_token}}'
+              scope: variable.other.readwrite.mn
+            - match: ','
+              scope: punctuation.separator.comma.mn
+            - include: else_pop
+        - match: '{{modifier_token}}'
+          scope: storage.modifier.mn
+        - match: '{{symbol_token}}'
+          scope: variable.other.readwrite.mn
+          set:
+            - match: ','
+              scope: punctuation.separator.comma.mn
+            - match: '{{symbol_token}}'
+              scope: variable.other.readwrite.mn
+            - match: '{{in_token}}'
+              scope: keyword.operator.in.mn
+              set: expect_expr_rule
+            - include: else_pop
+        - match: '{{in_token}}'
+          scope: keyword.operator.in.mn
+          set: expect_expr_rule
+        - include: else_pop
     - match: '{{symbol_token}}'
       scope: variable.other.readwrite.mn
       set:
@@ -702,7 +758,7 @@ contexts:
         - include: string_content
 
   case_sep_rule:
-    - match: '\.'
+    - match: '(\.|\?\.)'
       scope: punctuation.accessor.mn
       set: case_path_rule
     - include: else_pop
@@ -774,9 +830,8 @@ contexts:
     - include: else_error      
 
   array_item_rule:
-    - include: stmt_expr_rule
     - include: expr_rule
-    - match: '\*'
+    - match: '(\*|\.\.\.)'
       scope: keyword.operator.unpack.mn
     - match: ','
       scope: punctuation.separator.comma.mn
@@ -791,7 +846,7 @@ contexts:
 
   iterator_item_rule:
     - include: expr_rule
-    - match: '\*'
+    - match: '(\*|\.\.\.)'
       scope: keyword.operator.unpack.mn
     - match: ','
       scope: punctuation.separator.comma.mn
@@ -804,48 +859,48 @@ contexts:
         - match: '\)'
           scope: punctuation.section.group.end.mn
           pop: true
+        - match: ','
+          scope: punctuation.separator.comma.mn
         - include: expr_rule
     - include: else_pop
 
   expect_expr_rule:
-    - match: '{{scope_token}}'
-      scope: storage.modifier.mn
     - match: '{{modifier_token}}'
       scope: storage.modifier.mn
     - include: expr_operand_rule
 
-  stmt_expr_rule:
+  generator_expr_rule:
     - match: '{{if_token}}'
       scope: keyword.control.if.mn
       push:
         - if_meta_rule
-        - stmt_block_rule
+        - generator_block_rule
         - cond_expr_rule
         - expect_expr_rule
     - match: '{{elif_token}}'
       scope: keyword.control.elif.mn
       push:
         - elif_meta_rule
-        - stmt_block_rule
+        - generator_block_rule
         - cond_expr_rule
         - expect_expr_rule
     - match: '{{else_token}}'
       scope: keyword.control.else.mn
       push:
         - else_meta_rule
-        - stmt_block_rule
+        - generator_block_rule
     - match: '{{while_token}}'
       scope: keyword.control.while.mn
       push:
         - while_meta_rule
-        - stmt_block_rule
+        - generator_block_rule
         - cond_expr_rule
         - expect_expr_rule
     - match: '{{for_token}}'
       scope: keyword.control.for.mn
       push:
         - for_meta_rule
-        - stmt_block_rule
+        - generator_block_rule
         - range_expr_rule
     - match: '{{switch_token}}'
       scope: keyword.control.switch.mn
@@ -862,12 +917,13 @@ contexts:
         - match: '\)'
           scope: punctuation.section.group.end.mn
           set: expr_operator_rule
-        - match: '\*'
+        - match: '(\*|\.\.\.)'
           scope: keyword.operator.unpack.mn
           set: iterator_desc_rule
         - match: ','
           scope: punctuation.separator.comma.mn
           set: iterator_desc_rule
+        - include: generator_expr_rule
         - include: expr_rule
     - match: '\$\{'
       scope: keyword.other.variable.begin.mn
@@ -913,7 +969,7 @@ contexts:
             - match: '\)'
               scope: punctuation.section.group.end.mn
               set: expr_operator_rule
-            - match: '\*'
+            - match: '(\*|\.\.\.)'
               scope: keyword.operator.unpack.mn
               set: iterator_desc_rule
             - match: ','
@@ -972,6 +1028,7 @@ contexts:
         - match: '\]'
           scope: punctuation.section.brackets.end.mn
           set: expr_operator_rule  
+        - include: generator_expr_rule
         - include: array_item_rule
         - include: else_error
 
@@ -983,12 +1040,13 @@ contexts:
         - match: '\)'
           scope: punctuation.section.group.end.mn
           set: expr_operator_rule
-        - match: '\*'
+        - match: '(\*|\.\.\.)'
           scope: keyword.operator.unpack.mn
           set: iterator_desc_rule
         - match: ','
           scope: punctuation.separator.comma.mn
           set: iterator_desc_rule
+        - include: generator_expr_rule
         - include: expr_rule
     - match: '\$\{'
       scope: keyword.other.variable.begin.mn
@@ -1034,7 +1092,7 @@ contexts:
             - match: '\)'
               scope: punctuation.section.group.end.mn
               set: expr_operator_rule
-            - match: '\*'
+            - match: '(\*|\.\.\.)'
               scope: keyword.operator.unpack.mn
               set: iterator_desc_rule
             - match: ','
@@ -1092,7 +1150,8 @@ contexts:
         - meta_scope: meta.array-literal.mn
         - match: '\]'
           scope: punctuation.section.brackets.end.mn
-          set: expr_operator_rule  
+          set: expr_operator_rule
+        - include: generator_expr_rule
         - include: array_item_rule
         - include: else_error
     - match: '\s*'
@@ -1102,7 +1161,7 @@ contexts:
     - include: postfix_operator_rule
     - include: binary_operator_rule
     - include: ternary_operator_rule
-    - match: '\.'
+    - match: '(\.|\?\.)'
       scope: punctuation.separator.mn
       push:
         - match: '\$\{'
@@ -1156,15 +1215,21 @@ contexts:
     - match: '{{is_token}}'
       scope: keyword.operator.is.mn
       set: expr_operand_rule
-    - match: '=>'
+    - match: '=:'
       scope: keyword.operator.assignment.mn
-      set: expr_operand_rule
-    - match: '=(?![=~])'
+      set:
+        - include: generator_expr_rule
+        - include: expr_operand_rule
+    - match: '=(?![=>~])'
       scope: keyword.operator.assignment.mn
-      set: expr_operand_rule
+      set:
+        - include: generator_expr_rule
+        - include: expr_operand_rule
     - match: ':='
       scope: keyword.operator.copy.mn
-      set: expr_operand_rule
+      set:
+        - include: generator_expr_rule
+        - include: expr_operand_rule
     - match: '%=|&=|\*=|\+=|-=|/=|\^=|\|=|<<=|>>='
       scope: keyword.operator.assignment.augmented.mn
       set: expr_operand_rule
@@ -1188,7 +1253,7 @@ contexts:
       set: expr_operand_rule
 
   ternary_operator_rule:
-    - match: '\?'
+    - match: '\?(?![\.])'
       scope: keyword.operator.ternary.mn
       push:
         - ternary_operator_expect_colon_rule
@@ -1217,10 +1282,11 @@ contexts:
             - match: '\)'
               scope: punctuation.section.group.end.mn
               pop: true
-            - match: '\*'
+            - match: '(\*|\.\.\.)'
               scope: keyword.operator.unpack.mn
             - match: ','
               scope: punctuation.separator.comma.mn
+            - include: generator_expr_rule
             - include: expr_rule
             - include: else_error
         - include: else_error
@@ -1236,10 +1302,11 @@ contexts:
             - match: '\)'
               scope: punctuation.section.group.end.mn
               pop: true
-            - match: '\*'
+            - match: '(\*|\.\.\.)'
               scope: keyword.operator.unpack.mn
             - match: ','
               scope: punctuation.separator.comma.mn
+            - include: generator_expr_rule
             - include: expr_rule
         - include: else_error
 

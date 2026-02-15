@@ -428,17 +428,12 @@ public:
 		range_iterator_check(cursor, offset);
 	}
 
-	static void on_begin_generator_expression(Cursor& cursor) {
-		cursor.begin_generator_expression();
+	static void on_begin_generator_expression(Cursor& cursor, std::size_t offset) {
+		cursor.begin_generator_expression(offset);
 	}
 
 	static void on_end_generator_expression(Cursor& cursor) {
 		cursor.end_generator_expression();
-	}
-
-	static void on_yield_expression(Cursor& cursor) {
-		cursor.yield_expression(cursor.stack().back());
-		cursor.stack().pop_back();
 	}
 
 	static void on_open_printer(Cursor& cursor) {

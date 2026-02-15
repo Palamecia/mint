@@ -354,11 +354,9 @@ class MintLspWorkspace {
 
         while not dirs.isEmpty() {
             let searchDir = System.Dir(dirs.join(System.FileSystem.Separator))
-            let existing = for name in names {
-                if searchDir.contains(name) {
+            let existing = for name in names => \
+                if searchDir.contains(name) => \
                     name
-                }
-            }
             if not existing.isEmpty() {
                 return existing.toArray()
             }

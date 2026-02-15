@@ -22,53 +22,25 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides a set of functions to perform operations on a range of
- * elements. The range of elements must implement the `in` operator.
+ * This module provides a set of functions to extand the `print` capabilities.
  */
 
 /**
- * This class provides access to the current printer.
+ * Prints `object` to the standard output, with a newline.
  */
-class Printer {
-    /**
-     * Creates a new instance pointing to the current printer.
-     */
-    const def new(self) {
-        if self.d_ptr = Printer.g_lib.call('mint_printer_current_handle') {
-            return self
-        }
-    }
-
-    /**
-     * Writes the content of `data` to the printer.
-     */
-    const def write(self, data) {
-        Printer.g_lib.call('mint_printer_write', self.d_ptr, data)
-    }
-
-    /// Global library handle.
-    - @g_lib = lib('libmint-mint')
-
-    /// Object data.
-    - final d_ptr = null
-}
-
-/**
- * Prints `str` to the standard output, with a newline.
- */
-def println(str) {
+def println(object) {
     print {
-        str
+        object
         '\n'
     }
 }
 
 /**
- * Prints `str` to the `printer`, with a newline.
+ * Prints `object` to the `printer`, with a newline.
  */
-def println(printer, str) {
+def println(printer, object) {
     print (printer) {
-        str
+        object
         '\n'
     }
 }

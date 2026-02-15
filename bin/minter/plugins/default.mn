@@ -216,22 +216,22 @@ class DefaultPlugin : MintLspPlugin {
 
     - final const def listDefinitions(self, document, context, symbol) {
         if let symbolDefinitions = self.findDefinitions(context, symbol.split('.')) {
-            return [for let definition in symbolDefinitions {{
+            return [for let definition in symbolDefinitions => {
                 'uri': System.Url.fromFilePath(document.getPath()).toString(),
                 'range': {
                     'start': { 'line': definition.get('line'), 'character': definition.get('character') },
                     'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
                 }
-            }}]
+            }]
         }
         if let symbolDefinitions = self.findDefinitions(context, [symbol]) {
-            return [for let definition in symbolDefinitions {{
+            return [for let definition in symbolDefinitions => {
                 'uri': System.Url.fromFilePath(document.getPath()).toString(),
                 'range': {
                     'start': { 'line': definition.get('line'), 'character': definition.get('character') },
                     'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
                 }
-            }}]
+            }]
         }
     }
 
@@ -466,9 +466,9 @@ class DefaultPlugin : MintLspPlugin {
             case DefaultPlugin.Parser.State.ExpectMemberDefinition:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    log.debug("Found method '%s' (line: %d, character: %d, owner: %s)", token, self.lineNumber - 1, offset - self.lineOffset, ([for let context in self.contexts { context['token'] }] + [self.context['token']]).join('.'))
+                    log.debug("Found method '%s' (line: %d, character: %d, owner: %s)", token, self.lineNumber - 1, offset - self.lineOffset, ([for let context in self.contexts => context['token']] + [self.context['token']]).join('.'))
                     self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Function, self.lineNumber - 1, offset - self.lineOffset))
-                    self.context['owner'] = [for let context in self.contexts { context['token'] }]
+                    self.context['owner'] = [for let context in self.contexts => context['token']]
                     break
                 default:
                     break
@@ -528,7 +528,7 @@ class DefaultPlugin : MintLspPlugin {
             case DefaultPlugin.Parser.State.ExpectSelfParameter:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    log.debug("Found parameter '%s' (line: %d, character: %d, type: %s)", token, self.lineNumber - 1, offset - self.lineOffset, [for let context in self.contexts { context['token'] }].join('.'))
+                    log.debug("Found parameter '%s' (line: %d, character: %d, type: %s)", token, self.lineNumber - 1, offset - self.lineOffset, [for let context in self.contexts => context['token']].join('.'))
                     self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     if not self.contexts.isEmpty() {
                         self.context['definition']['variables'][token]['type'] = self.contexts[-1].get('symbol')

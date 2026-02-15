@@ -38,9 +38,7 @@ Open it and write the following lines:
 ```mn
 #!/bin/mint
 
-print {
-    'hello world !\n'
-}
+print('hello world !\n')
 ```
 
 You can then run `mint helloworld.mn`.

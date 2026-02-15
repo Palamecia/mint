@@ -648,7 +648,13 @@ void DapDebugger::on_scopes(const DapRequestMessage& request, const JsonObject& 
 }
 
 void DapDebugger::on_variables(const DapRequestMessage& request, const JsonObject& arguments, Debugger& debugger) {
-	const auto& variables_reference = _variables[to_thread_id(*arguments.get_number("variablesReference"))];
+
+	const auto variables_reference_id = to_thread_id(*arguments.get_number("variablesReference"));
+	if (variables_reference_id >= _variables.size()) {
+		return;
+	}
+
+	const auto& variables_reference = _variables[variables_reference_id];
 	const auto [thread_id, frame_index] = from_stack_frame_id(variables_reference.frame_id);
 	if (const auto* thread = debugger.find_thread(thread_id)) {
 		auto variables = JsonArray();

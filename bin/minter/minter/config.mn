@@ -38,9 +38,7 @@ class MintLspConfig {
                     self.plugins << type()
                 }
             }
-            log.info("Loaded plugins: %s", [for plugin in self.plugins {
-                typeof plugin
-            }])
+            log.info("Loaded plugins: %s", [for plugin in self.plugins => typeof plugin])
             return self
         }
 
@@ -63,13 +61,10 @@ class MintLspConfig {
         }
 
         const def subSetHookCaller(const self, hookName, disabledPlugins) {
-            var plugins = for let plugin in self.plugins {
-                if plugin not in disabledPlugins {
-                    if defined plugin.${hookName} {
+            var plugins = for let plugin in self.plugins => \
+                if plugin not in disabledPlugins => \
+                    if defined plugin.${hookName} => \
                         plugin
-                    }
-                }
-            }
             return def [plugins, hookName] (config, workspace, document, ...) {
                 for plugin in plugins {
                     try {

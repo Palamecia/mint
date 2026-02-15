@@ -81,7 +81,7 @@ public:
 	ThreadList get_threads() const;
 	CursorDebugger* find_thread(Process::ThreadId id) const;
 	CursorDebugger& declare_thread(const Process& thread);
-	void remove_thread(const Process& thread);
+	void remove_thread(const CursorDebugger& cursor);
 
 	BreakpointList get_breakpoints() const;
 	Breakpoint get_breakpoint(Breakpoint::Id id) const;

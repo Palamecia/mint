@@ -100,6 +100,7 @@ public:
 	[[nodiscard]] bool is_in_range_loop() const;
 	[[nodiscard]] bool is_in_function() const;
 	[[nodiscard]] bool is_in_generator() const;
+	[[nodiscard]] bool is_in_generator_expression() const;
 
 	void prepare_continue();
 	void prepare_break();

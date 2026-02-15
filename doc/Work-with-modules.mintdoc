@@ -46,7 +46,7 @@ The module started with the mint interpreter is called the main module. This mod
 Once the main module's execution has finished, the interpreter stops with the `0` exit status. The execution of the main module can also be stopped immediately from anywhere (including other modules) by using the `exit` keyword. An optional expression can follow the keyword to set the interpreter exit status.
 
 > [!NOTE]
-> In interactive mode, there is no main module, but the `exit` keyword can still be used to stop the execution.
+> In REPL mode, there is no main module, but the `exit` keyword can still be used to stop the execution.
 
 ---
 

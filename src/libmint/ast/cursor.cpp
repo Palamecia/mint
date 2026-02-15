@@ -146,7 +146,7 @@ Cursor::Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent) :
     _stack(parent ? parent->_stack : GarbageCollector::instance().create_stack()),
     _current_context(g_pool.allocate()) {
 	std::construct_at(_current_context, module);
-	_current_context->symbols = std::make_unique<SymbolTable>(_ast.get().global_data());
+	_current_context->symbols = std::make_shared<SymbolTable>(_ast.get().global_data());
 
 	if (_parent) {
 		assert(_parent->_child == nullptr);
@@ -205,7 +205,7 @@ void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) 
 	_current_context->iptr = handle.offset;
 
 	if (handle.symbols) {
-		_current_context->symbols = std::make_unique<SymbolTable>(_ast.get().global_data(), metadata);
+		_current_context->symbols = std::make_shared<SymbolTable>(_ast.get().global_data(), metadata);
 		_current_context->symbols->reserve_fast(handle.fast_count);
 		_current_context->symbols->open_package(handle.package);
 	}
@@ -227,7 +227,7 @@ void Cursor::call(const Module& module, std::size_t pos, PackageData& package, C
 
 	_current_context = g_pool.allocate();
 	std::construct_at(_current_context, module);
-	_current_context->symbols = std::make_unique<SymbolTable>(_ast.get().global_data(), metadata);
+	_current_context->symbols = std::make_shared<SymbolTable>(_ast.get().global_data(), metadata);
 	_current_context->symbols->open_package(package);
 	_current_context->iptr = pos;
 }
@@ -291,18 +291,26 @@ void Cursor::destroy(SavedState* state) {
 	}
 }
 
-void Cursor::begin_generator_expression() {
-	_current_context->generator_expression.emplace_back(create_iterator(_ast));
-	_current_context->generator_expression.back().data<Iterator>().construct();
+void Cursor::begin_generator_expression(std::size_t offset) {
+
+	auto* expression_context = g_pool.allocate();
+	std::construct_at(expression_context, _current_context->module);
+	expression_context->iptr = _current_context->iptr;
+	expression_context->symbols = _current_context->symbols;
+
+	const std::size_t stack_base = _stack->size();
+	expression_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
+	    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
+	_stack->emplace_back(*expression_context->generator);
+	expression_context->generator->data<Iterator>().construct();
+
+	_current_context->iptr = offset;
+	_call_stack.emplace_back(_current_context);
+	_current_context = expression_context;
 }
 
 void Cursor::end_generator_expression() {
-	_stack->emplace_back(_current_context->generator_expression.back());
-	_current_context->generator_expression.pop_back();
-}
-
-void Cursor::yield_expression(const Reference& ref) {
-	iterator_yield(_current_context->generator_expression.back().data<Iterator>(), WeakReference(create_from, ref));
+	exit_call();
 }
 
 void Cursor::open_printer(std::unique_ptr<Printer>&& printer) {

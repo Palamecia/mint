@@ -419,7 +419,7 @@
               "name": "punctuation.definition.block.mn"
             },
             "2": {
-              "name": "keyword.mn"
+              "name": "keyword.control.conditional.mn"
             }
           }
         },
@@ -505,7 +505,10 @@
           },
           "patterns": [
             {
-              "include": "#desc_rule__1"
+              "include": "#comment"
+            },
+            {
+              "include": "#expr_rule"
             }
           ],
           "end": "(\\])",
@@ -524,7 +527,10 @@
           },
           "patterns": [
             {
-              "include": "#desc_rule__2"
+              "include": "#comment"
+            },
+            {
+              "include": "#expr_rule"
             }
           ],
           "end": "(\\))",
@@ -552,29 +558,9 @@
               "name": "punctuation.definition.block.mn"
             },
             "2": {
-              "name": "keyword.mn"
+              "name": "keyword.control.conditional.mn"
             }
           }
-        }
-      ]
-    },
-    "desc_rule__1": {
-      "patterns": [
-        {
-          "include": "#comment"
-        },
-        {
-          "include": "#expr_rule"
-        }
-      ]
-    },
-    "desc_rule__2": {
-      "patterns": [
-        {
-          "include": "#comment"
-        },
-        {
-          "include": "#expr_rule"
         }
       ]
     },
@@ -610,7 +596,13 @@
           },
           "patterns": [
             {
-              "include": "#expr_rule__2"
+              "include": "#comment"
+            },
+            {
+              "include": "#stmt_expr_rule"
+            },
+            {
+              "include": "#expr_rule"
             }
           ],
           "end": "(\\])\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
@@ -635,7 +627,13 @@
           },
           "patterns": [
             {
-              "include": "#expr_rule__3"
+              "include": "#comment"
+            },
+            {
+              "include": "#stmt_expr_rule"
+            },
+            {
+              "include": "#expr_rule"
             }
           ],
           "end": "(\\))\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
@@ -660,7 +658,10 @@
           },
           "patterns": [
             {
-              "include": "#expr_rule__4"
+              "include": "#comment"
+            },
+            {
+              "include": "#expr_rule"
             }
           ],
           "end": "(\\})\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
@@ -691,7 +692,7 @@
               "name": "punctuation.definition.block.mn"
             },
             "2": {
-              "name": "keyword.mn"
+              "name": "keyword.control.conditional.mn"
             }
           }
         },
@@ -769,7 +770,13 @@
           },
           "patterns": [
             {
-              "include": "#expr_rule__5"
+              "include": "#comment"
+            },
+            {
+              "include": "#stmt_expr_rule"
+            },
+            {
+              "include": "#expr_rule"
             }
           ],
           "end": "(\\))",
@@ -808,7 +815,13 @@
           },
           "patterns": [
             {
-              "include": "#expr_rule__6"
+              "include": "#comment"
+            },
+            {
+              "include": "#stmt_expr_rule"
+            },
+            {
+              "include": "#expr_rule"
             }
           ],
           "end": "(\\))\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
@@ -851,62 +864,6 @@
         }
       ]
     },
-    "expr_rule__1": {
-      "patterns": []
-    },
-    "expr_rule__2": {
-      "patterns": [
-        {
-          "include": "#comment"
-        },
-        {
-          "include": "#stmt_expr_rule"
-        },
-        {
-          "include": "#expr_rule"
-        }
-      ]
-    },
-    "expr_rule__3": {
-      "patterns": [
-        {
-          "include": "#comment"
-        },
-        {
-          "include": "#expr_rule"
-        }
-      ]
-    },
-    "expr_rule__4": {
-      "patterns": [
-        {
-          "include": "#comment"
-        },
-        {
-          "include": "#expr_rule"
-        }
-      ]
-    },
-    "expr_rule__5": {
-      "patterns": [
-        {
-          "include": "#comment"
-        },
-        {
-          "include": "#expr_rule"
-        }
-      ]
-    },
-    "expr_rule__6": {
-      "patterns": [
-        {
-          "include": "#comment"
-        },
-        {
-          "include": "#expr_rule"
-        }
-      ]
-    },
     "expr_stmt_rule": {
       "patterns": [
         {
@@ -937,7 +894,7 @@
               "name": "punctuation.definition.block.mn"
             },
             "2": {
-              "name": "keyword.mn"
+              "name": "keyword.control.conditional.mn"
             }
           }
         },
@@ -950,27 +907,27 @@
       "patterns": [
         {
           "match": "\\b(for)(?!\\S)",
-          "name": "keyword.mn"
+          "name": "keyword.control.loop.mn"
         },
         {
           "match": "\\b(if)(?!\\S)",
-          "name": "keyword.mn"
+          "name": "keyword.control.conditional.mn"
         },
         {
           "match": "\\b(elif)(?!\\S)",
-          "name": "keyword.mn"
+          "name": "keyword.control.conditional.mn"
         },
         {
           "match": "\\b(else)(?!\\S)",
-          "name": "keyword.mn"
+          "name": "keyword.control.conditional.mn"
         },
         {
           "match": "\\b(switch)(?!\\S)",
-          "name": "keyword.mn"
+          "name": "keyword.control.switch.mn"
         },
         {
           "match": "\\b(while)(?!\\S)",
-          "name": "keyword.mn"
+          "name": "keyword.control.loop.mn"
         }
       ]
     },

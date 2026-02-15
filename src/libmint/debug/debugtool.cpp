@@ -546,19 +546,15 @@ public:
 		return Node::Command::range_iterator_check;
 	}
 
-	Node::Command on_begin_generator_expression(Cursor& /*cursor*/) {
+	Node::Command on_begin_generator_expression(Cursor& /*cursor*/, std::size_t offset) {
 		_stream.get() << to_debug_string("BEGIN_GENERATOR_EXPRESSION");
+		_stream.get() << " " << to_debug_string(offset);
 		return Node::Command::begin_generator_expression;
 	}
 
 	Node::Command on_end_generator_expression(Cursor& /*cursor*/) {
 		_stream.get() << to_debug_string("END_GENERATOR_EXPRESSION");
 		return Node::Command::end_generator_expression;
-	}
-
-	Node::Command on_yield_expression(Cursor& /*cursor*/) {
-		_stream.get() << to_debug_string("YIELD_EXPRESSION");
-		return Node::Command::yield_expression;
 	}
 
 	Node::Command on_open_printer(Cursor& /*cursor*/) {

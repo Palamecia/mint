@@ -165,9 +165,8 @@ public:
 	void restore(std::unique_ptr<SavedState> state);
 	void destroy(SavedState* state);
 
-	void begin_generator_expression();
+	void begin_generator_expression(std::size_t offset);
 	void end_generator_expression();
-	void yield_expression(const Reference& ref);
 
 	void open_printer(std::unique_ptr<Printer>&& printer);
 	void close_printer();
@@ -197,12 +196,11 @@ protected:
 	struct Context {
 		explicit Context(const Module& module);
 
-		std::vector<StrongReference> generator_expression;
-		std::vector<std::unique_ptr<Printer>> printers;
-		std::unique_ptr<SymbolTable> symbols;
+		std::size_t iptr = 0;
+		std::shared_ptr<SymbolTable> symbols;
 		std::unique_ptr<WeakReference> generator;
 		std::reference_wrapper<const Module> module;
-		std::size_t iptr = 0;
+		std::vector<std::unique_ptr<Printer>> printers;
 	};
 
 	struct RetrievePoint {

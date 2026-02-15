@@ -127,7 +127,6 @@ union MINT_EXPORT Node {
 
 		begin_generator_expression,
 		end_generator_expression,
-		yield_expression,
 
 		open_printer,
 		close_printer,

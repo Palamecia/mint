@@ -163,8 +163,26 @@ package Test {
 		}
 
 		/**
+		 * Test for validity of `predicate` with given parameters. If a call to
+		 * `predicate` with the extra parameters forwarded returns `false`, the
+		 * test fails.
+		 */
+		const def expect(self, %predicate, ...) {
+			let args = [...va_args]
+			if not predicate(...args) {
+				print (System.IO) {
+					System.IO.magenta()
+					Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					"\tPredicate is false for: %s\n" % Test.Case.printValue(args)
+					System.IO.reset()
+				}
+				self.failuresCount++
+			}
+		}
+
+		/**
 		 * Test for equality between `expected` and `result`. If given values are not equal,
-		 * the test fail. If `message` is given, the message is printed on the standard output.
+		 * the test fails. If `message` is given, the message is printed on the standard output.
 		 */
 		const def expectEqual(self, %expected, %result, message = none) {
 			if expected != result {
@@ -182,7 +200,7 @@ package Test {
 
 		/**
 		 * Test for inequality between `expected` and `result`. If given values are equal,
-		 * the test fail. If `message` is given, the message is printed on the standard output.
+		 * the test fails. If `message` is given, the message is printed on the standard output.
 		 */
 		const def expectNotEqual(self, %expected, %result, message = none) {
 			if expected == result {
@@ -199,7 +217,7 @@ package Test {
 
 		/**
 		 * Test for address equality between `expected` and `result`. If given address are not
-		 * equal, the test fail. If `message` is given, the message is printed on the standard
+		 * equal, the test fails. If `message` is given, the message is printed on the standard
 		 * output.
 		 */
 		const def expectIsSame(self, %expected, %result, message = none) {
@@ -217,7 +235,7 @@ package Test {
 
 		/**
 		 * Test for address inequality between `expected` and `result`. If given address are
-		 * equal, the test fail. If `message` is given, the message is printed on the standard
+		 * equal, the test fails. If `message` is given, the message is printed on the standard
 		 * output.
 		 */
 		const def expectIsNotSame(self, %expected, %result, message = none) {
@@ -234,7 +252,7 @@ package Test {
 		}
 
 		/**
-		 * Test for defined `value`. If given value is not defined, the test fail.
+		 * Test for defined `value`. If given value is not defined, the test fails.
 		 * If `message` is given, the message is printed on the standard output.
 		 */
 		const def expectDefined(self, %value, message = none) {
@@ -251,7 +269,7 @@ package Test {
 		}
 
 		/**
-		 * Test for undefined `value`. If given value is defined, the test fail.
+		 * Test for undefined `value`. If given value is defined, the test fails.
 		 * If `message` is given, the message is printed on the standard output.
 		 */
 		const def expectNotDefined(self, %value, message = none) {

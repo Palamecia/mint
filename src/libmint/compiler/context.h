@@ -45,12 +45,12 @@ class ClassDescription;
 struct Block;
 
 struct Context {
-	enum class ResultTarget : std::uint8_t {
-		send_to_printer,
-		send_to_generator_expression
+	enum class MetaBlock : std::uint8_t {
+		printer,
+		generator_expression
 	};
 
-	std::stack<ResultTarget> result_targets;
+	std::stack<MetaBlock> meta_blocks;
 	std::stack<std::unique_ptr<ClassDescription>> classes;
 	std::list<std::unique_ptr<Block>> blocks;
 	std::unique_ptr<std::vector<const Symbol*>> condition_scoped_symbols;

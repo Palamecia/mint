@@ -102,15 +102,14 @@ const def configureLogger(verbose = 0, logFile = none) {
 
     var logFormatter = Logger.Formatter()
 
-    var logHandler => if logFile {
-        Logger.Handler(System.open(logFile, 'w'))
-    } else {
+    var logHandler =: (if logFile => \
+        Logger.Handler(System.open(logFile, 'w')) \
+    else => \
         Logger.Handler(type('__stderr_stream__', [], {
             'write': def (self, data) {
                 System.IO.writeError(data)
             }
-        })())
-    }
+        })()))
 
     if logHandler {
         logHandler.setFormatter(logFormatter)

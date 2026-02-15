@@ -21,13 +21,18 @@
  * IN THE SOFTWARE.
  */
 
+#include "mint/config.h"
 #include "mint/system/assert.h"
 #include <format>
 #include <string>
 
 #if defined(MINT_BUILD_TYPE_DEBUG)
 #if defined(MINT_OS_WINDOWS)
+
 #include <Windows.h>
+#include <crtdbg.h>
+#include <stringapiset.h>
+#include <winnls.h>
 
 std::wstring wchar_from_multi_byte(const std::string& str) {
 	const int length = MultiByteToWideChar(CP_UTF8, 0, str.data(), -1, nullptr, 0);
@@ -45,6 +50,7 @@ void __assert_x_fail(const char* __file, unsigned int __line, const char* __wher
 	    || (_CrtDbgBreak(), 0);
 }
 #else
+
 #include "mint/system/terminal.h"
 
 void __assert_x_fail(const char* __assertion, const char* __file, unsigned int __line, const char* __function,

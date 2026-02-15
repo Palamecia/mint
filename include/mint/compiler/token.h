@@ -95,6 +95,7 @@ enum class Token : std::uint8_t {
 	amp_equal_token,
 	pipe_equal_token,
 	caret_equal_token,
+	equal_colon_token,
 	equal_right_angled_token,
 	dbl_dot_token,
 	tpl_dot_token,

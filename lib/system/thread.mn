@@ -395,7 +395,7 @@ package System {
 	 * }, i, j).then(def (r) {
 	 *     return r + 5
 	 * }).then(def (r) {
-	 *     print { 'The result is %d\n' % (r / 2)}
+	 *     print('The result is %d\n' % (r / 2))
 	 * })
 	 * ```
 	 */

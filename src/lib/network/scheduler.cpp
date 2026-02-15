@@ -84,7 +84,7 @@ mint::WeakReference mint_scheduler_get_revents(mint::Cursor& /*cursor*/, const m
 mint::WeakReference mint_scheduler_poll(mint::Cursor& cursor, const mint::Reference& handles,
     const mint::Reference& timeout) {
 
-	std::vector<PollFd> fdset(std::from_range,
+	auto fdset = std::vector(std::from_range,
 	    std::views::transform(handles.data<mint::Array>().values, [](const auto& fd) {
 		    return *fd.template data<mint::LibObject<PollFd>>().ptr;
 	    }));
@@ -165,61 +165,40 @@ Scheduler::Error Scheduler::close_socket(SOCKET fd) {
 }
 
 bool Scheduler::is_socket_listening(SOCKET fd) const {
-
-	auto i = _sockets.find(fd);
-
-	if (i != _sockets.end()) {
+	if (auto i = _sockets.find(fd); i != _sockets.end()) {
 		return i->second.listening;
 	}
-
 	return false;
 }
 
 void Scheduler::set_socket_listening(SOCKET fd, bool listening) {
-
-	auto i = _sockets.find(fd);
-
-	if (i != _sockets.end()) {
+	if (auto i = _sockets.find(fd); i != _sockets.end()) {
 		i->second.listening = listening;
 	}
 }
 
 bool Scheduler::is_socket_blocking(SOCKET fd) const {
-
-	auto i = _sockets.find(fd);
-
-	if (i != _sockets.end()) {
+	if (auto i = _sockets.find(fd); i != _sockets.end()) {
 		return i->second.blocking;
 	}
-
 	return true;
 }
 
 void Scheduler::set_socket_blocking(SOCKET fd, bool blocking) {
-
-	auto i = _sockets.find(fd);
-
-	if (i != _sockets.end()) {
+	if (auto i = _sockets.find(fd); i != _sockets.end()) {
 		i->second.blocking = blocking;
 	}
 }
 
 bool Scheduler::is_socket_blocked(SOCKET fd) const {
-
-	auto i = _sockets.find(fd);
-
-	if (i != _sockets.end()) {
+	if (auto i = _sockets.find(fd); i != _sockets.end()) {
 		return i->second.blocked;
 	}
-
 	return false;
 }
 
 void Scheduler::set_socket_blocked(SOCKET fd, bool blocked) {
-
-	auto i = _sockets.find(fd);
-
-	if (i != _sockets.end()) {
+	if (auto i = _sockets.find(fd); i != _sockets.end()) {
 		i->second.blocked = blocked;
 	}
 }

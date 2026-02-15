@@ -81,16 +81,16 @@ void BuildContext::commit_line() {
 
 void BuildContext::commit_expr_result() {
 	Context& context = current_context();
-	if (context.result_targets.empty()) {
+	if (context.meta_blocks.empty()) {
 		push_node(Node::Command::unload_reference);
 	}
 	else {
-		switch (context.result_targets.top()) {
-		case Context::ResultTarget::send_to_printer:
+		switch (context.meta_blocks.top()) {
+		case Context::MetaBlock::printer:
 			push_node(Node::Command::print);
 			break;
-		case Context::ResultTarget::send_to_generator_expression:
-			push_node(Node::Command::yield_expression);
+		case Context::MetaBlock::generator_expression:
+			push_node(Node::Command::unload_reference);
 			break;
 		}
 	}
@@ -268,6 +268,14 @@ bool BuildContext::is_in_generator() const {
 		return def->generator;
 	}
 	return false;
+}
+
+bool BuildContext::is_in_generator_expression() const {
+	const auto& context = current_context();
+	if (context.meta_blocks.empty()) {
+		return false;
+	}
+	return context.meta_blocks.top() == Context::MetaBlock::generator_expression;
 }
 
 void BuildContext::prepare_continue() {
@@ -795,27 +803,35 @@ bool BuildContext::capture_all() {
 }
 
 void BuildContext::open_generator_expression() {
-	push_node(Node::Command::begin_generator_expression);
-	current_context().result_targets.push(Context::ResultTarget::send_to_generator_expression);
+	if (!is_in_generator_expression()) {
+		push_node(Node::Command::begin_generator_expression);
+		start_jump_forward();
+	}
+	current_context().meta_blocks.push(Context::MetaBlock::generator_expression);
 }
 
 void BuildContext::close_generator_expression() {
-	push_node(Node::Command::end_generator_expression);
-	current_context().result_targets.pop();
+	assert(current_context().meta_blocks.top() == Context::MetaBlock::generator_expression);
+	current_context().meta_blocks.pop();
+	if (!is_in_generator_expression()) {
+		push_node(Node::Command::end_generator_expression);
+		resolve_jump_forward();
+	}
 }
 
 void BuildContext::open_printer() {
 	push_node(Node::Command::open_printer);
-	current_context().result_targets.push(Context::ResultTarget::send_to_printer);
+	current_context().meta_blocks.push(Context::MetaBlock::printer);
 }
 
 void BuildContext::close_printer() {
+	assert(current_context().meta_blocks.top() == Context::MetaBlock::printer);
+	current_context().meta_blocks.pop();
 	push_node(Node::Command::close_printer);
-	current_context().result_targets.pop();
 }
 
 void BuildContext::force_printer() {
-	current_context().result_targets.push(Context::ResultTarget::send_to_printer);
+	current_context().meta_blocks.push(Context::MetaBlock::printer);
 }
 
 void BuildContext::start_range_loop() {

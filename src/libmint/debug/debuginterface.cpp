@@ -223,12 +223,12 @@ CursorDebugger& DebugInterface::declare_thread(const Process& thread) {
 	return *it->second;
 }
 
-void DebugInterface::remove_thread(const Process& thread) {
+void DebugInterface::remove_thread(const CursorDebugger& cursor) {
 
 	const std::unique_lock _(_config_mutex);
 
-	if (auto it = _threads.find(thread.get_thread_id()); it != _threads.end()) {
-		assert(&it->second->cursor() == &thread.cursor());
+	if (auto it = _threads.find(cursor.get_thread_id()); it != _threads.end()) {
+		assert(&it->second->cursor() == &cursor.cursor());
 		if (!it->second->close_cursor()) {
 			on_thread_exited(*it->second);
 			_threads.erase(it);

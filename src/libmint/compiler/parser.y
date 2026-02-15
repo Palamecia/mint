@@ -89,7 +89,7 @@ using namespace mint;
 %left pipe_token
 %left caret_token
 %left amp_token
-%right equal_token question_token colon_token colon_equal_token close_bracket_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token equal_right_angled_token
+%right equal_token question_token colon_token colon_equal_token equal_colon_token close_bracket_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token equal_right_angled_token
 %left dbl_dot_token tpl_dot_token
 %left dbl_equal_token exclamation_equal_token is_token equal_tilde_token exclamation_tilde_token tpl_equal_token exclamation_dbl_equal_token
 %left left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
@@ -204,19 +204,38 @@ stmt_rule:
 		context.bloc_jump_backward();
 		context.commit_line();
 	}
-	| print_rule stmt_bloc_rule {
+	| print_token open_parenthesis_token expr_rule print_stmt_sep_rule expr_rule close_parenthesis_token line_end_token {
+		context.commit_expr_result();
+		context.close_printer();
+		context.commit_line();
+	}
+	| print_token open_parenthesis_token expr_rule close_parenthesis_token line_end_token {
+		context.push_node(Node::Command::load_constant);
+		context.push_node(Compiler::make_number(1.));
+		context.open_printer();
+		context.commit_expr_result();
+		context.close_printer();
+		context.commit_line();
+	}
+	| print_token print_bloc_target_rule stmt_bloc_rule {
 		context.reset_scoped_symbols();
 		context.close_block();
 		context.close_printer();
 	}
 	| yield_token expr_rule line_end_token {
-		if (!context.is_in_function()) {
+		if (context.is_in_generator_expression()) {
+			context.push_node(Node::Command::yield);
+			context.commit_line();
+		}
+		else if (context.is_in_function()) {
+			context.set_generator();
+			context.push_node(Node::Command::yield);
+			context.commit_line();
+		}
+		else {
 			context.parse_error("unexpected 'yield' statement outside of function");
 			YYERROR;
 		}
-		context.set_generator();
-		context.push_node(Node::Command::yield);
-		context.commit_line();
 	}
 	| return_rule expr_rule line_end_token {
 		context.set_exit_point();
@@ -764,54 +783,54 @@ enum_item_rule:
 	};
 
 generator_expr_rule:
-	if_cond_expr_rule stmt_bloc_rule {
+	if_cond_generator_rule generator_stmt_bloc_rule {
 		context.reset_scoped_symbols();
 		context.resolve_jump_forward();
-		context.close_generator_expression();
 		context.close_block();
+		context.close_generator_expression();
 	}
-	| if_bloc_expr_rule else_rule stmt_bloc_rule {
+	| open_parenthesis_token if_generator_bloc_rule else_rule generator_stmt_bloc_rule close_parenthesis_token {
 		context.reset_scoped_symbols();
 		context.resolve_jump_forward();
-		context.close_generator_expression();
 		context.close_block();
+		context.close_generator_expression();
 	}
-	| if_bloc_expr_rule elif_bloc_rule {
+	| open_parenthesis_token if_generator_bloc_rule elif_generator_bloc_rule close_parenthesis_token {
 		context.resolve_jump_forward();
-		context.close_generator_expression();
 		context.close_block();
+		context.close_generator_expression();
 	}
-	| if_bloc_expr_rule elif_bloc_rule else_rule stmt_bloc_rule {
+	| open_parenthesis_token if_generator_bloc_rule elif_generator_bloc_rule else_rule generator_stmt_bloc_rule close_parenthesis_token {
 		context.reset_scoped_symbols();
 		context.resolve_jump_forward();
-		context.close_generator_expression();
 		context.close_block();
+		context.close_generator_expression();
 	}
-	| switch_cond_expr_rule open_brace_token case_list_rule close_brace_token {
+	| switch_cond_generator_rule open_brace_token case_list_rule close_brace_token {
 		context.reset_scoped_symbols();
 		context.push_node(Node::Command::jump);
 		context.start_jump_forward();
 		context.build_case_table();
 		context.resolve_jump_forward();
 		context.resolve_jump_forward();
-		context.close_generator_expression();
 		context.close_block();
+		context.close_generator_expression();
 	}
-	| while_cond_expr_rule stmt_bloc_rule {
+	| while_cond_generator_rule generator_stmt_bloc_rule {
 		context.reset_scoped_symbols();
 		context.push_node(Node::Command::jump);
 		context.resolve_jump_backward();
 		context.resolve_jump_forward();
-		context.close_generator_expression();
 		context.close_block();
+		context.close_generator_expression();
 	}
-	| for_cond_expr_rule stmt_bloc_rule {
+	| for_cond_generator_rule generator_stmt_bloc_rule {
 		context.reset_scoped_symbols();
 		context.push_node(Node::Command::jump);
 		context.resolve_jump_backward();
 		context.resolve_jump_forward();
-		context.close_generator_expression();
 		context.close_block();
+		context.close_generator_expression();
 	};
 
 try_rule:
@@ -842,13 +861,13 @@ try_bloc_rule:
 		context.reset_scoped_symbols();
 	};
 
-if_bloc_expr_rule:
-	if_cond_expr_rule stmt_bloc_rule {
+if_bloc_rule:
+	if_cond_rule stmt_bloc_rule {
 		context.reset_scoped_symbols();
 	};
 
-if_bloc_rule:
-	if_cond_rule stmt_bloc_rule {
+if_generator_bloc_rule:
+	if_cond_generator_rule generator_stmt_bloc_rule {
 		context.reset_scoped_symbols();
 	};
 
@@ -864,15 +883,32 @@ elif_bloc_rule:
 		context.resolve_jump_forward();
 	};
 
+elif_generator_bloc_rule:
+	elif_cond_rule generator_stmt_bloc_rule {
+		context.reset_scoped_symbols();
+		context.shift_jump_forward();
+		context.resolve_jump_forward();
+	}
+	| elif_generator_bloc_rule elif_cond_rule generator_stmt_bloc_rule {
+		context.reset_scoped_symbols();
+		context.shift_jump_forward();
+		context.resolve_jump_forward();
+	};
+
 stmt_bloc_rule:
     open_brace_token stmt_list_rule close_brace_token
 	| open_brace_token yield_token expr_rule close_brace_token {
-		if (!context.is_in_function()) {
+		if (context.is_in_generator_expression()) {
+			context.push_node(Node::Command::yield);
+		}
+		else if (context.is_in_function()) {
+			context.set_generator();
+			context.push_node(Node::Command::yield);
+		}
+		else {	
 			context.parse_error("unexpected 'yield' statement outside of function");
 			YYERROR;
 		}
-		context.set_generator();
-		context.push_node(Node::Command::yield);
 	}
 	| open_brace_token return_rule expr_rule close_brace_token {
 		context.set_exit_point();
@@ -888,19 +924,12 @@ stmt_bloc_rule:
 	}
 	| open_brace_token close_brace_token;
 
-if_cond_expr_rule:
-	if_expr_rule expr_rule {
-		context.resolve_condition();
-		context.push_node(Node::Command::zero_jump);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::if_type);
+generator_stmt_bloc_rule:
+	equal_right_angled_token expr_rule {
+		context.push_node(Node::Command::yield);
 	}
-	| if_expr_rule find_rule {
-		context.resolve_condition();
-		context.push_node(Node::Command::zero_jump);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::if_type);
-	};
+	| equal_right_angled_token generator_expr_rule
+	| stmt_bloc_rule;
 
 if_cond_rule:
 	if_rule expr_rule {
@@ -910,6 +939,20 @@ if_cond_rule:
 		context.open_block(BuildContext::BlockType::if_type);
 	}
 	| if_rule find_rule {
+		context.resolve_condition();
+		context.push_node(Node::Command::zero_jump);
+		context.start_jump_forward();
+		context.open_block(BuildContext::BlockType::if_type);
+	};
+
+if_cond_generator_rule:
+	if_generator_rule expr_rule {
+		context.resolve_condition();
+		context.push_node(Node::Command::zero_jump);
+		context.start_jump_forward();
+		context.open_block(BuildContext::BlockType::if_type);
+	}
+	| if_generator_rule find_rule {
 		context.resolve_condition();
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
@@ -932,14 +975,14 @@ elif_cond_rule:
 		context.open_block(BuildContext::BlockType::elif_type);
 	};
 
-if_expr_rule:
+if_rule:
     if_token {
-		context.open_generator_expression();
 		context.start_condition();
 	};
 
-if_rule:
+if_generator_rule:
     if_token {
+		context.open_generator_expression();
 		context.start_condition();
 	};
 
@@ -963,14 +1006,14 @@ else_rule:
 		context.open_block(BuildContext::BlockType::else_type);
 	};
 
-switch_cond_expr_rule:
-	switch_expr_rule expr_rule {
+switch_cond_rule:
+	switch_rule expr_rule {
 		context.resolve_condition();
 		context.open_block(BuildContext::BlockType::switch_type);
 	};
 
-switch_cond_rule:
-	switch_rule expr_rule {
+switch_cond_generator_rule:
+	switch_expr_rule expr_rule {
 		context.resolve_condition();
 		context.open_block(BuildContext::BlockType::switch_type);
 	};
@@ -1152,46 +1195,52 @@ case_list_rule:
 	| default_rule colon_token stmt_list_rule
 	| case_list_rule default_rule colon_token stmt_list_rule
 	| case_label_rule equal_right_angled_token expr_rule line_end_token {
-	    context.commit_expr_result();
+		if (context.is_in_generator_expression()) {
+			context.push_node(Node::Command::yield);
+		}
+		else {
+			context.commit_expr_result();
+		}
 		context.prepare_break();
 		context.push_node(Node::Command::jump);
 		context.bloc_jump_forward();
 		context.commit_line();
 	}
 	| case_list_rule case_label_rule equal_right_angled_token expr_rule line_end_token {
-	    context.commit_expr_result();
+	    if (context.is_in_generator_expression()) {
+			context.push_node(Node::Command::yield);
+		}
+		else {
+			context.commit_expr_result();
+		}
 		context.prepare_break();
 		context.push_node(Node::Command::jump);
 		context.bloc_jump_forward();
 		context.commit_line();
 	}
 	| default_rule equal_right_angled_token expr_rule line_end_token {
-	    context.commit_expr_result();
+	    if (context.is_in_generator_expression()) {
+			context.push_node(Node::Command::yield);
+		}
+		else {
+			context.commit_expr_result();
+		}
 		context.prepare_break();
 		context.push_node(Node::Command::jump);
 		context.bloc_jump_forward();
 		context.commit_line();
 	}
 	| case_list_rule default_rule equal_right_angled_token expr_rule line_end_token {
-	    context.commit_expr_result();
+	    if (context.is_in_generator_expression()) {
+			context.push_node(Node::Command::yield);
+		}
+		else {
+			context.commit_expr_result();
+		}
 		context.prepare_break();
 		context.push_node(Node::Command::jump);
 		context.bloc_jump_forward();
 		context.commit_line();
-	};
-
-while_cond_expr_rule:
-	while_expr_rule expr_rule {
-		context.resolve_condition();
-		context.push_node(Node::Command::zero_jump);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::conditional_loop_type);
-	}
-	| while_expr_rule find_rule {
-		context.resolve_condition();
-		context.push_node(Node::Command::zero_jump);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::conditional_loop_type);
 	};
 
 while_cond_rule:
@@ -1202,6 +1251,20 @@ while_cond_rule:
 		context.open_block(BuildContext::BlockType::conditional_loop_type);
 	}
 	| while_rule find_rule {
+		context.resolve_condition();
+		context.push_node(Node::Command::zero_jump);
+		context.start_jump_forward();
+		context.open_block(BuildContext::BlockType::conditional_loop_type);
+	};
+
+while_cond_generator_rule:
+	while_expr_rule expr_rule {
+		context.resolve_condition();
+		context.push_node(Node::Command::zero_jump);
+		context.start_jump_forward();
+		context.open_block(BuildContext::BlockType::conditional_loop_type);
+	}
+	| while_expr_rule find_rule {
 		context.resolve_condition();
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
@@ -1248,38 +1311,6 @@ find_init_rule:
 		context.push_node(Node::Command::find_init);
 	};
 
-for_cond_expr_rule:
-    for_expr_rule open_parenthesis_token range_init_rule range_next_rule range_cond_rule close_parenthesis_token {
-		context.resolve_condition();
-		context.open_block(BuildContext::BlockType::custom_range_loop_type);
-	}
-	| for_iterator_in_expr_rule expr_rule {
-		context.push_node(Node::Command::in_operator);
-		context.push_node(Node::Command::range_init);
-		context.resolve_condition();
-		context.push_node(Node::Command::jump);
-		context.start_jump_forward();
-		context.start_jump_backward();
-		context.push_node(Node::Command::range_next);
-		context.resolve_jump_forward();
-		context.push_node(Node::Command::range_iterator_check);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::range_loop_type);
-	}
-	| for_in_expr_rule expr_rule {
-		context.push_node(Node::Command::in_operator);
-		context.push_node(Node::Command::range_init);
-		context.resolve_condition();
-		context.push_node(Node::Command::jump);
-		context.start_jump_forward();
-		context.start_jump_backward();
-		context.push_node(Node::Command::range_next);
-		context.resolve_jump_forward();
-		context.push_node(Node::Command::range_check);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::range_loop_type);
-	};
-
 for_cond_rule:
     for_rule open_parenthesis_token range_init_rule range_next_rule range_cond_rule close_parenthesis_token {
 		context.resolve_condition();
@@ -1299,6 +1330,38 @@ for_cond_rule:
 		context.open_block(BuildContext::BlockType::range_loop_type);
 	}
 	| for_in_rule expr_rule {
+		context.push_node(Node::Command::in_operator);
+		context.push_node(Node::Command::range_init);
+		context.resolve_condition();
+		context.push_node(Node::Command::jump);
+		context.start_jump_forward();
+		context.start_jump_backward();
+		context.push_node(Node::Command::range_next);
+		context.resolve_jump_forward();
+		context.push_node(Node::Command::range_check);
+		context.start_jump_forward();
+		context.open_block(BuildContext::BlockType::range_loop_type);
+	};
+
+for_cond_generator_rule:
+    for_expr_rule open_parenthesis_token range_init_rule range_next_rule range_cond_rule close_parenthesis_token {
+		context.resolve_condition();
+		context.open_block(BuildContext::BlockType::custom_range_loop_type);
+	}
+	| for_iterator_in_expr_rule expr_rule {
+		context.push_node(Node::Command::in_operator);
+		context.push_node(Node::Command::range_init);
+		context.resolve_condition();
+		context.push_node(Node::Command::jump);
+		context.start_jump_forward();
+		context.start_jump_backward();
+		context.push_node(Node::Command::range_next);
+		context.resolve_jump_forward();
+		context.push_node(Node::Command::range_iterator_check);
+		context.start_jump_forward();
+		context.open_block(BuildContext::BlockType::range_loop_type);
+	}
+	| for_in_expr_rule expr_rule {
 		context.push_node(Node::Command::in_operator);
 		context.push_node(Node::Command::range_init);
 		context.resolve_condition();
@@ -1616,14 +1679,19 @@ create_ident_iterator_end_rule:
 		context.resolve_call();
 	};
 
-print_rule:
-    print_token {
-		context.push_node(Node::Command::load_constant);
-		context.push_node(Compiler::make_number(1.));
+print_stmt_sep_rule:
+	comma_token {
+		context.open_printer();
+	};
+
+print_bloc_target_rule:
+	open_parenthesis_token expr_rule close_parenthesis_token {
 		context.open_printer();
 		context.open_block(BuildContext::BlockType::print_type);
 	}
-	| print_token open_parenthesis_token expr_rule close_parenthesis_token {
+	| {
+		context.push_node(Node::Command::load_constant);
+		context.push_node(Compiler::make_number(1.));
 		context.open_printer();
 		context.open_block(BuildContext::BlockType::print_type);
 	};
@@ -1641,7 +1709,7 @@ expr_rule:
 	| expr_rule colon_equal_token expr_rule {
 		context.push_node(Node::Command::copy_operator);
 	}
-	| expr_rule equal_right_angled_token {
+	| expr_rule equal_colon_token {
 	    context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
 		context.add_to_call();
@@ -1862,6 +1930,7 @@ expr_rule:
 		context.resolve_call();
 	}
 	| open_parenthesis_token expr_rule close_parenthesis_token
+	| open_parenthesis_token generator_expr_rule close_parenthesis_token
 	| open_parenthesis_token iterator_item_rule iterator_end_rule close_parenthesis_token
 	| start_array_rule empty_lines_rule array_item_list_rule empty_lines_rule stop_array_rule
 	| start_array_rule empty_lines_rule array_item_list_rule stop_array_rule
@@ -1958,6 +2027,9 @@ call_arg_rule:
 		context.add_to_call();
 	}
 	| def_arrow_rule {
+	    context.add_to_call();
+	}
+	| generator_expr_rule {
 	    context.add_to_call();
 	}
 	| asterisk_token expr_rule {

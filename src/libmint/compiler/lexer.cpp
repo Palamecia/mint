@@ -115,6 +115,7 @@ const std::map<std::string, int> Lexer::operators {
     {"<<", parser::token::dbl_left_angled_token},
     {"<<=", parser::token::dbl_left_angled_equal_token},
     {"<=", parser::token::left_angled_equal_token},
+    {"=:", parser::token::equal_colon_token},
     {"=", parser::token::equal_token},
     {"==", parser::token::dbl_equal_token},
     {"===", parser::token::tpl_equal_token},
@@ -464,6 +465,7 @@ mint::Token mint::token_from_local_id(int id) {
 	TOKEN_CAST(amp_equal_token)
 	TOKEN_CAST(pipe_equal_token)
 	TOKEN_CAST(caret_equal_token)
+	TOKEN_CAST(equal_colon_token)
 	TOKEN_CAST(equal_right_angled_token)
 	TOKEN_CAST(dbl_dot_token)
 	TOKEN_CAST(tpl_dot_token)

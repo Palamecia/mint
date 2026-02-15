@@ -6,7 +6,7 @@ Mint is an object-oriented scripting language. The file extension for a mint scr
 
 ## Running mint
 
-Mint can be run in interactive mode by simply launching mint without any arguments:
+Mint can be run in REPL mode by simply launching mint without any arguments:
 
 ```shell
 mint

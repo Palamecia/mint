@@ -595,8 +595,9 @@ bool Scheduler::schedule(Process& thread) {
 			if (!thread.debug(*handle)) {
 
 				lock_processor();
-				handle->debug(handle->declare_thread(thread));
-				handle->remove_thread(thread);
+				auto cursor = handle->declare_thread(thread);
+				handle->debug(cursor);
+				handle->remove_thread(cursor);
 				unlock_processor();
 
 				finalize_process(thread);
@@ -605,8 +606,9 @@ bool Scheduler::schedule(Process& thread) {
 		}
 
 		lock_processor();
-		handle->debug(handle->declare_thread(thread));
-		handle->remove_thread(thread);
+		auto cursor = handle->declare_thread(thread);
+		handle->debug(cursor);
+		handle->remove_thread(cursor);
 		unlock_processor();
 	}
 	else {

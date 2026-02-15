@@ -8,7 +8,7 @@ Control structures allow you to execute different parts of a script depending on
 * [[Exception handling control structures|Control structures#Exception handling control structures]]: These allow you to execute parts of a script to handle errors.
 
 > [!CAUTION]
-> Inserting a new line before the `{` that starts the statement block is a syntax error. The block must follow immediately. This prevents some invalid states in the interactive mode.
+> Inserting a new line before the `{` that starts the statement block is a syntax error. The block must follow immediately. This prevents some invalid states in the REPL mode.
 
 ## Conditional control structures
 
@@ -78,7 +78,7 @@ if value > 10 {
 ```
 
 > [!CAUTION]
-> Inserting a new line between the `}` and the `elif` or `else` keyword is a syntax error. The next statement must follow immediately. This prevents some invalid states in the interactive mode.
+> Inserting a new line between the `}` and the `elif` or `else` keyword is a syntax error. The next statement must follow immediately. This prevents some invalid states in the REPL mode.
 
 ### The switch statement
 
@@ -329,15 +329,15 @@ for (pos = str.indexOf(c), pos = str.indexOf(c, pos + 1), defined pos) {
 
 ## Generator expressions
 
-Each conditional or loop control structure can be preceded by a [[move assignment|Arithmetic-operations#move-assignment]] or a [[copy assignment|Arithmetic-operations#copy-assignment]] operation to create a generator expression. In this case, the result of each statement in the structure's block will be yielded to an iterator, which will then be used as the right side of the operation. This is the same behavior as if the control structure were in a [[generator function|Function-definition#result]] with a `yield` keyword before each line.
+Each conditional or loop control structure can be preceded by a [[move assignment|Arithmetic-operations#move-assignment]] or a [[copy assignment|Arithmetic-operations#copy-assignment]] operation to create a generator expression. In this case, the result of each statement in the structure's block can be yielded to an iterator, which will then be used as the right side of the operation. This is the same behavior as if the control structure were in a [[generator function|Function-definition#result]].
 
 **Example**:
 
 ```mn
 let foo = for let i in myList {
-    func1(i)
-    func2(i)
-    func3(i)
+    yield func1(i)
+    yield func2(i)
+    yield func3(i)
 }
 
 // Is equivalent to
@@ -351,15 +351,29 @@ let foo = def [...] {
 } ()
 ```
 
-The assignment operator can be replaced by a `=>` operator to assigne only the first yielded result to the variable.
+The control structure's block can also be replaced with a call to the `=>` opérator. The expression on the right side of the operator will then be yielded to the iteraor.
 
 **Example**:
 
 ```mn
-let foo => if test() {
-    func1()
+let foo = for let i in myList => valueFor(i)
+
+// Is equivalent to
+
+let foo = for let i in myList {
+    yield valueFor(i)
+}
+```
+
+The assignment operator can be replaced by a `=:` operator to assigne only the first yielded result to the variable.
+
+**Example**:
+
+```mn
+let foo =: if test() {
+    yield func1()
 } else {
-    func2()
+    yield func2()
 }
 ```
 
@@ -377,7 +391,29 @@ let foo = [
 
 ### The print statement
 
-The print statement allows you to send each value returned by a part of the script to the standard output.
+The print statement allows you to send a value to the standard output.
+
+It is introduced by the `print` keyword followed by an expression between a `(` and a `)`. The result of this expression is sent to the standard output.
+
+**Example**:
+
+```mn
+print('Hello world!')  // Prints 'Hello world!' to the standard output
+}
+```
+
+The value can also be sent to a custom output.
+
+A custom output description is provided by an expression giving the custom output object. This expression must follow the opening `(` and is followed by a `,` operator. If the value returned is a [[number|Built-in types#number]] or a [[string|Built-in types#string]], a minimal file printer is created with the given file descriptor or file path. Otherwise, the `write` method of the object is called with the value to perform the print.
+
+```mn
+print(obj, 'Hello world!')  // // Equivalent to obj.write('Hello world!')
+}
+```
+
+### The print bloc statement
+
+The print statement also allows you to send each value returned by a part of the script to the standard output.
 
 It is introduced by the `print` keyword. The statement opens a block of script. Each value obtained in this block is sent to the standard output.
 
@@ -396,7 +432,7 @@ print {
 > [!IMPORTANT]
 > A custom conversion mechanism is used to convert the value to a string printable on the output. To ensure the format of the value, it is recommended to perform the conversion to string explicitly.
 
-### The parametrized print statement
+### The parametrized print bloc statement
 
 The parametrized print statement allows you to send each value returned by a part of the script to a custom output.
 
@@ -470,7 +506,7 @@ try {
 ```
 
 > [!CAUTION]
-> Inserting a new line between the `}` and the `catch` keyword is a syntax error. The catch statement must follow immediately. This prevents some invalid states in the interactive mode.
+> Inserting a new line between the `}` and the `catch` keyword is a syntax error. The catch statement must follow immediately. This prevents some invalid states in the REPL mode.
 
 ---
 

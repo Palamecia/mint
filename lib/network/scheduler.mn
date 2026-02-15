@@ -151,9 +151,7 @@ package Network {
 		 * {Network.Scheduler.PollDescriptor.getEvents} are updated.
 		 */
 		@const def poll(fdset, timeout) {
-			var handleSet = [for let fd in fdset {
-				fd.getHandle()
-			}]
+			var handleSet = [for let fd in fdset => fd.getHandle()]
 			return Network.Scheduler.g_lib.call('mint_scheduler_poll', handleSet, timeout)
 		}
 

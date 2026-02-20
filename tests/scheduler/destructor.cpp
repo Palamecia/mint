@@ -33,13 +33,13 @@ TEST(destructor, is_destructor) {
 	    });
 
 	const auto object = scheduler.invoke(test_class);
-	ASSERT_EQ(mint::Data::object_format, object.data().format());
+	ASSERT_EQ(mint::Data::Format::object, object.data().format());
 
 	mint::Class::MemberInfo* member = object.data<mint::Object>().metadata.find_operator(mint::Class::delete_operator);
 	ASSERT_NE(nullptr, member);
 
 	const auto& member_ref = mint::Class::MemberInfo::get(*member, object.data<mint::Object>().data);
-	ASSERT_EQ(mint::Data::function_format, member_ref.data().format());
+	ASSERT_EQ(mint::Data::Format::function, member_ref.data().format());
 
 	auto destructor = mint::Destructor(&object.data<mint::Object>(), member_ref, member->owner, *thread);
 	EXPECT_TRUE(is_destructor(destructor));

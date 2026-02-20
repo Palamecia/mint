@@ -110,7 +110,12 @@ public:
 	WeakReference invoke(const Reference& object, Class::Operator op, Args... args);
 	WeakReference invoke(const Reference& object, Class::Operator op, std::vector<WeakReference>& parameters);
 
-	std::future<WeakReference> create_async(std::unique_ptr<Cursor>&& cursor);
+	template<class... Args>
+	WeakReference invoke(const Reference& object, const Symbol& method, Class::MemberInfo& info, Args... args);
+	WeakReference invoke(const Reference& object, const Symbol& method, Class::MemberInfo& info,
+	    std::vector<WeakReference>& parameters);
+
+	std::future<WeakReference> create_async_thread(std::unique_ptr<Cursor>&& cursor);
 	Process::ThreadId create_thread(std::unique_ptr<Cursor>&& cursor);
 	Process* find_thread(Process::ThreadId id) const;
 	void join_thread(Process::ThreadId id);
@@ -184,6 +189,14 @@ WeakReference Scheduler::invoke(const Reference& object, Class::Operator op, Arg
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);
 	return invoke(object, op, parameters);
+}
+
+template<class... Args>
+WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, Class::MemberInfo& info, Args... args) {
+	std::vector<WeakReference> parameters;
+	parameters.reserve(sizeof...(args));
+	(parameters.emplace_back(std::forward<Args>(args)), ...);
+	return invoke(object, method, info, parameters);
 }
 
 }

@@ -267,7 +267,7 @@ mint::WeakReference mint_datastream_get(mint::Cursor& cursor, const mint::Refere
 
 	for (std::intmax_t index = 0; index < mint::to_signed_integer(cursor, count); ++index) {
 		mint::WeakReference item = array_get_item(data.data<mint::Array>(), index);
-		if (mint::is_instance_of(item, mint::Class::object)) {
+		if (mint::is_instance_of(item, mint::Class::Metatype::object)) {
 			auto& object = item.data<mint::Object>();
 			if (object.metadata.full_name() == symbols::int8) {
 				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::int8_t>>().ptr);
@@ -321,23 +321,24 @@ mint::WeakReference mint_datastream_get(mint::Cursor& /*cursor*/, const mint::Re
 	auto* buffer_data = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data();
 
 	switch (data.data().format()) {
-	case mint::Data::none_format:
-	case mint::Data::null_format:
-	case mint::Data::package_format:
-	case mint::Data::function_format:
+	case mint::Data::Format::none:
+	case mint::Data::Format::null:
+	case mint::Data::Format::package:
+	case mint::Data::Format::function:
+	case mint::Data::Format::coroutine:
 		break;
 
-	case mint::Data::number_format:
+	case mint::Data::Format::number:
 		copy_from_buffer(buffer_data, &data.data<mint::Number>().value);
 		break;
 
-	case mint::Data::boolean_format:
+	case mint::Data::Format::boolean:
 		copy_from_buffer(buffer_data, &data.data<mint::Boolean>().value);
 		break;
 
-	case mint::Data::object_format:
+	case mint::Data::Format::object:
 		switch (auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
-		case mint::Class::object:
+		case mint::Class::Metatype::object:
 			if (object.metadata.full_name() == symbols::int8) {
 				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::int8_t>>().ptr);
 				break;
@@ -372,16 +373,16 @@ mint::WeakReference mint_datastream_get(mint::Cursor& /*cursor*/, const mint::Re
 			}
 			break;
 
-		case mint::Class::string:
+		case mint::Class::Metatype::string:
 			data.data<mint::String>().str = std::bit_cast<char*>(buffer_data);
 			break;
 
-		case mint::Class::regex:
-		case mint::Class::array:
-		case mint::Class::hash:
-		case mint::Class::iterator:
-		case mint::Class::library:
-		case mint::Class::libobject:
+		case mint::Class::Metatype::regex:
+		case mint::Class::Metatype::array:
+		case mint::Class::Metatype::hash:
+		case mint::Class::Metatype::iterator:
+		case mint::Class::Metatype::library:
+		case mint::Class::Metatype::libobject:
 			break;
 		}
 		break;
@@ -418,25 +419,26 @@ mint::WeakReference mint_datastream_read(mint::Cursor& /*cursor*/, const mint::R
 	auto& buffer_object = *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
 	switch (data.data().format()) {
-	case mint::Data::none_format:
-	case mint::Data::null_format:
-	case mint::Data::package_format:
-	case mint::Data::function_format:
+	case mint::Data::Format::none:
+	case mint::Data::Format::null:
+	case mint::Data::Format::package:
+	case mint::Data::Format::function:
+	case mint::Data::Format::coroutine:
 		break;
 
-	case mint::Data::number_format:
+	case mint::Data::Format::number:
 		copy_from_buffer(buffer_object.data(), &data.data<mint::Number>().value);
 		buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(mint::Number::value)));
 		break;
 
-	case mint::Data::boolean_format:
+	case mint::Data::Format::boolean:
 		copy_from_buffer(buffer_object.data(), &data.data<mint::Boolean>().value);
 		buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(mint::Boolean::value)));
 		break;
 
-	case mint::Data::object_format:
+	case mint::Data::Format::object:
 		switch (auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
-		case mint::Class::object:
+		case mint::Class::Metatype::object:
 			if (object.metadata.full_name() == symbols::int8) {
 				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::int8_t>>().ptr);
 				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::int8_t)));
@@ -479,18 +481,18 @@ mint::WeakReference mint_datastream_read(mint::Cursor& /*cursor*/, const mint::R
 			}
 			break;
 
-		case mint::Class::string:
+		case mint::Class::Metatype::string:
 			data.data<mint::String>().str = std::bit_cast<char*>(buffer_object.data());
 			buffer_object.erase(buffer_object.begin(),
 			    std::next(buffer_object.begin(), static_cast<std::ptrdiff_t>(data.data<mint::String>().str.size()) + 1));
 			break;
 
-		case mint::Class::regex:
-		case mint::Class::array:
-		case mint::Class::hash:
-		case mint::Class::iterator:
-		case mint::Class::library:
-		case mint::Class::libobject:
+		case mint::Class::Metatype::regex:
+		case mint::Class::Metatype::array:
+		case mint::Class::Metatype::hash:
+		case mint::Class::Metatype::iterator:
+		case mint::Class::Metatype::library:
+		case mint::Class::Metatype::libobject:
 			break;
 		}
 		break;
@@ -505,27 +507,28 @@ mint::WeakReference mint_datastream_write(mint::Cursor& /*cursor*/, const mint::
 	auto& buffer_object = *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
 	switch (data.data().format()) {
-	case mint::Data::none_format:
+	case mint::Data::Format::none:
+	case mint::Data::Format::coroutine:
 		break;
 
-	case mint::Data::null_format:
-	case mint::Data::package_format:
-	case mint::Data::function_format:
+	case mint::Data::Format::null:
+	case mint::Data::Format::package:
+	case mint::Data::Format::function:
 		buffer_object.append_range(to_string(data));
 		buffer_object.push_back(0);
 		break;
 
-	case mint::Data::number_format:
+	case mint::Data::Format::number:
 		copy_to_buffer(buffer_object, &data.data<mint::Number>().value);
 		break;
 
-	case mint::Data::boolean_format:
+	case mint::Data::Format::boolean:
 		copy_to_buffer(buffer_object, &data.data<mint::Boolean>().value);
 		break;
 
-	case mint::Data::object_format:
+	case mint::Data::Format::object:
 		switch (auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
-		case mint::Class::object:
+		case mint::Class::Metatype::object:
 			if (object.metadata.full_name() == symbols::data_stream) {
 				buffer_object.append_range(*get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr);
 				break;
@@ -564,17 +567,17 @@ mint::WeakReference mint_datastream_write(mint::Cursor& /*cursor*/, const mint::
 			}
 			break;
 
-		case mint::Class::string:
+		case mint::Class::Metatype::string:
 			buffer_object.append_range(data.data<mint::String>().str);
 			buffer_object.push_back(0);
 			break;
 
-		case mint::Class::regex:
-		case mint::Class::array:
-		case mint::Class::hash:
-		case mint::Class::iterator:
-		case mint::Class::library:
-		case mint::Class::libobject:
+		case mint::Class::Metatype::regex:
+		case mint::Class::Metatype::array:
+		case mint::Class::Metatype::hash:
+		case mint::Class::Metatype::iterator:
+		case mint::Class::Metatype::library:
+		case mint::Class::Metatype::libobject:
 			buffer_object.append_range(to_string(data));
 			buffer_object.push_back(0);
 			break;

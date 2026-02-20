@@ -89,7 +89,8 @@ void AbstractSyntaxTree::cleanup_metadata() {
 std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const Class& type, int signature,
     BuiltinMethod method) {
 
-	BuiltinModuleInfo& module = builtin_module(-type.metatype());
+	const auto builtin_index = static_cast<int>(type.metatype());
+	BuiltinModuleInfo& module = builtin_module(-builtin_index);
 
 	const std::size_t offset = module.module->next_node_offset() + 2;
 	const std::size_t index = _builtin_methods.size();
@@ -109,7 +110,8 @@ std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const 
 std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const Class& type, int signature,
     const std::string& method) {
 
-	const BuiltinModuleInfo& module = builtin_module(-type.metatype());
+	const auto builtin_index = static_cast<int>(type.metatype());
+	const BuiltinModuleInfo& module = builtin_module(-builtin_index);
 	const std::size_t offset = module.module->end() + 3;
 
 	auto compiler = Compiler(*this);

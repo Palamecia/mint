@@ -1,5 +1,6 @@
 load test.case
 load system.thread
+load mint.coroutine
 
 class ThreadTest : Test.Case {
 	const def testMutexType(self) {
@@ -37,11 +38,48 @@ class ThreadTest : Test.Case {
 		self.expectEqual(100, v)
 	}
 
-	const def testAsync(self) {
-		var f = System.async(def {
+	const def testSpawn(self) {
+		let f = System.spawn(def {
 			return 42
 		})
-		self.expectEqual('System.Future', typeof f)
+		self.expectEqual('System.Promise', typeof f)
 		self.expectEqual(42, f.get())
+	}
+
+	const def testSpawnMethod(self) {
+		class ThreadTestSpawnMethod {
+			const def run(self) {
+				return 42
+			}
+		}
+		let o = ThreadTestSpawnMethod()
+		let f = System.spawnMethod(o, o.run)
+		self.expectEqual('System.Promise', typeof f)
+		self.expectEqual(42, f.get())
+	}
+
+	const def testSpawnAsync(self) {
+		let f = System.spawnAsync(async def {
+			return 42
+		}())
+		self.expectEqual('System.Promise', typeof f)
+		self.expectEqual(42, f.get())
+	}
+
+	const def testSpawnImediateAsync(self) {
+		let f = System.spawnAsync(42)
+		self.expectEqual('System.Promise', typeof f)
+		self.expectEqual(42, f.get())
+	}
+
+	const def testSpawnAwait(self) {
+		let f = spawn(async def {
+			let p = System.spawn(def {
+				return 42
+			})
+			return await p
+		}())
+		self.expectEqual('number', typeof f)
+		self.expectEqual(42, f)
 	}
 }

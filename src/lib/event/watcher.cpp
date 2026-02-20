@@ -55,7 +55,7 @@ mint::WeakReference mint_watcher_poll(mint::Cursor& cursor, const mint::Referenc
 		    return to_handle(mint::get_member_ignore_visibility(ast, item, symbols::handle));
 	    }));
 
-	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::none_format)
+	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
 	                          ? INFINITE
 	                          : mint::to_integer<DWORD>(cursor, timeout);
 
@@ -78,7 +78,7 @@ mint::WeakReference mint_watcher_poll(mint::Cursor& cursor, const mint::Referenc
 		    };
 	    }));
 
-	const int time_ms = is_instance_of(timeout, mint::Data::none_format) ? -1 : to_integer<int>(cursor, timeout);
+	const int time_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
 
 	poll(fdset.data(), fdset.size(), time_ms);
 

@@ -6,6 +6,7 @@ target_sources(
 	mint-test
 PRIVATE
 	case.cpp
+	errorcatcher.cpp
 	suite.cpp
 )
 

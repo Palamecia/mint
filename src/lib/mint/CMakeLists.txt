@@ -6,6 +6,7 @@ target_sources(
 	mint-mint
 PRIVATE
 	assembly.cpp
+	coroutine.cpp
 	evalresultprinter.cpp
 	evalresultprinter.h
 	function.cpp

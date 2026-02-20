@@ -23,10 +23,10 @@ TEST(scheduler, invoke_function) {
             return a + b
         }
     )");
-	ASSERT_EQ(mint::Data::function_format, fn.data().format());
+	ASSERT_EQ(mint::Data::Format::function, fn.data().format());
 
 	const auto result = scheduler.invoke(fn, mint::create_signed_number(2), mint::create_signed_number(2));
-	ASSERT_EQ(mint::Data::number_format, result.data().format());
+	ASSERT_EQ(mint::Data::Format::number, result.data().format());
 	EXPECT_EQ(4, result.data<mint::Number>().value);
 }
 
@@ -40,7 +40,7 @@ TEST(scheduler, invoke_new) {
 	mint::Class& test_class = mint::create_class(ast, "__test_class__", {});
 
 	const auto object = scheduler.invoke(test_class);
-	ASSERT_EQ(mint::Data::object_format, object.data().format());
+	ASSERT_EQ(mint::Data::Format::object, object.data().format());
 }
 
 TEST(scheduler, invoke_method) {
@@ -73,17 +73,17 @@ TEST(scheduler, invoke_method) {
 	    });
 
 	const auto object = scheduler.invoke(test_class, mint::create_signed_number(42));
-	ASSERT_EQ(mint::Data::object_format, object.data().format());
+	ASSERT_EQ(mint::Data::Format::object, object.data().format());
 
 	{
 		const auto result = scheduler.invoke(object, mint::Symbol("getSelf"));
-		ASSERT_EQ(mint::Data::object_format, result.data().format());
+		ASSERT_EQ(mint::Data::Format::object, result.data().format());
 		EXPECT_EQ(&object.data(), &result.data());
 	}
 
 	{
 		const auto result = scheduler.invoke(object, mint::Symbol("getValue"));
-		ASSERT_EQ(mint::Data::number_format, result.data().format());
+		ASSERT_EQ(mint::Data::Format::number, result.data().format());
 		EXPECT_EQ(42, result.data<mint::Number>().value);
 	}
 }
@@ -113,11 +113,11 @@ TEST(scheduler, invoke_operator) {
 	    });
 
 	const auto object = scheduler.invoke(test_class, mint::create_number(2));
-	ASSERT_EQ(mint::Data::object_format, object.data().format());
+	ASSERT_EQ(mint::Data::Format::object, object.data().format());
 
 	{
 		const auto result = scheduler.invoke(object, mint::Class::add_operator, mint::create_number(2));
-		ASSERT_EQ(mint::Data::number_format, result.data().format());
+		ASSERT_EQ(mint::Data::Format::number, result.data().format());
 		EXPECT_EQ(4, result.data<mint::Number>().value);
 	}
 }

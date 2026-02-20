@@ -33,6 +33,7 @@
 #include "mint/memory/symboltable.h"
 
 #include <array>
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <ranges>
@@ -72,7 +73,7 @@ public:
 
 	[[nodiscard]] auto classes() {
 		return std::views::filter(_symbols, [](auto& item) {
-			return item.second.data().format() == Data::object_format
+			return item.second.data().format() == Data::Format::object
 			       && item.second.template data<Object>().data == nullptr;
 		}) | std::views::transform([](auto& item) -> std::pair<Symbol, std::reference_wrapper<Class>> {
 			return {item.first, item.second.template data<Object>().metadata};
@@ -119,10 +120,11 @@ SymbolTable& PackageData::symbols() {
 
 template<class BuiltinClass>
 BuiltinClass& GlobalData::builtin(Class::Metatype type) {
-	if (auto* instance = static_cast<BuiltinClass*>(_builtin[type].get())) {
+	const auto builtin_index = static_cast<std::size_t>(type);
+	if (auto* instance = static_cast<BuiltinClass*>(_builtin[builtin_index].get())) {
 		return *instance;
 	}
-	return *static_cast<BuiltinClass*>((_builtin[type] = std::make_unique<BuiltinClass>(ast())).get());
+	return *static_cast<BuiltinClass*>((_builtin[builtin_index] = std::make_unique<BuiltinClass>(ast())).get());
 }
 
 Reference& GlobalData::none_ref() {

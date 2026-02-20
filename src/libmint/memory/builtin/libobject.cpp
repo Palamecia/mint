@@ -29,10 +29,10 @@
 using namespace mint;
 
 LibObjectClass& LibObjectClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<LibObjectClass>(Class::libobject);
+	return ast.global_data().builtin<LibObjectClass>(Class::Metatype::libobject);
 }
 
 LibObjectClass::LibObjectClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "libobject", Class::libobject) {
+    Class(ast.global_data(), "libobject", Class::Metatype::libobject) {
 	create_builtin_member(delete_operator);
 }

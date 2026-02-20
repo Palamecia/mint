@@ -24,7 +24,7 @@
 #include "mint/system/error.h"
 #include "mint/system/pipe.h"
 #include "mint/system/terminal.h"
-#include "mint/system/mintruntimeerror.hpp"
+#include "mint/system/mintruntimeerror.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -103,6 +103,10 @@ void mint::remove_error_callback(int id) {
 	const std::unique_lock _(g_error.callback_mutex);
 
 	g_error.callbacks.erase(id);
+}
+
+std::function<void(void)> mint::get_exit_callback() {
+	return g_error.exit_callback;
 }
 
 void mint::set_exit_callback(const std::function<void(void)>& callback) {

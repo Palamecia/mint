@@ -161,7 +161,7 @@ protected:
 	int get() override {
 		if (_buffer.empty()) {
 			const auto result = _scheduler.get().invoke(_self, symbols::read_char);
-			if (is_instance_of(result, mint::Data::none_format)) {
+			if (is_instance_of(result, mint::Data::Format::none)) {
 				_good = false;
 				return EOF;
 			}

@@ -106,6 +106,411 @@ class TestGenerator : Test.Case {
         self.expect(self.iteratorEqual, (0, 1, 2, 3, 4, 5), gen().next())
     }
 
+    const def testRaiseBeforeFirstYield(self) {
+        def gen() {
+            raise "boom"
+            yield 1
+        }
+        try {
+            for let x in gen() {}
+            self.fail()
+        } catch e {
+            self.expectEqual("boom", e)
+        }
+    }
+
+    const def testRaiseAfterFirstYield(self) {
+        def gen() {
+            yield 1
+            raise "boom"
+        }
+        let values = []
+        try {
+            for let x in gen() {
+                values.push(x)
+            }
+            self.fail()
+        } catch e {
+            self.expectEqual("boom", e)
+        }
+        self.expectEqual([1], values)
+    }
+
+    const def testCatchInsideGenerator(self) {
+        def gen() {
+            try {
+                raise "err"
+            } catch e {
+                yield "handled"
+            }
+        }
+        let result = []
+        for let x in gen() {
+            result.push(x)
+        }
+        self.expectEqual(["handled"], result)
+    }
+
+    const def testRaiseInsideLoopInGenerator(self) {
+        def gen() {
+            for let i in (1, 2, 3) {
+                if i == 2 {
+                    raise "bad"
+                }
+                yield i
+            }
+        }
+        let values = []
+        try {
+            for let x in gen() {
+                values.push(x)
+            }
+            self.fail()
+        } catch e {
+            self.expectEqual("bad", e)
+        }
+        self.expectEqual([1], values)
+    }
+
+    const def testCatchOutsideGenerator(self) {
+        def gen() {
+            yield 1
+            raise "fail"
+        }
+        let values = []
+        try {
+            for let x in gen() {
+                values.push(x)
+            }
+        } catch e {
+            values.push("caught")
+        }
+        self.expectEqual([1, "caught"], values)
+    }
+
+    const def testNestedGeneratorRaise(self) {
+        def inner() {
+            yield 1
+            raise "inner_error"
+        }
+        def [...] outer() {
+            for let x in inner() {
+                yield x
+            }
+        }
+        let values = []
+        try {
+            for let x in outer() {
+                values.push(x)
+            }
+            self.fail()
+        }
+        self.expectEqual([1], values)
+    }
+
+    const def testRaiseAfterYieldInTryBlock(self) {
+        def gen() {
+            try {
+                yield 1
+                raise "boom"
+            } catch e {
+                yield 2
+            }
+        }
+        let result = []
+        for let x in gen() {
+            result.push(x)
+        }
+        self.expectEqual([1,2], result)
+    }
+
+    const def testYieldInsideCatchAfterSuspension(self) {
+        def gen() {
+            try {
+                yield 1
+                raise "err"
+            } catch e {
+                yield 2
+                yield 3
+            }
+        }
+        let result = []
+        for let x in gen() {
+            result.push(x)
+        }
+        self.expectEqual([1,2,3], result)
+    }
+
+    const def testRaiseInsideGeneratorExpression(self) {
+        let g = for let i in (1, 2, 3) {
+            if i == 2 {
+                raise "bad"
+            }
+            yield i
+        }
+        let values = []
+        try {
+            for let x in g {
+                values.push(x)
+            }
+            self.fail()
+        }
+        self.expectEqual([1], values)
+    }
+
+    const def testRaiseInDeeplyNestedControlFlow(self) {
+        def gen() {
+            for let i in (1, 2, 3) {
+                while true {
+                    if i == 2 {
+                        raise "boom"
+                    }
+                    yield i
+                    break
+                }
+            }
+        }
+        let values = []
+        try {
+            for let x in gen() {
+                values.push(x)
+            }
+            self.fail()
+        }
+        self.expectEqual([1], values)
+    }
+
+    const def testGeneratorCleanupAfterException(self) {
+        let flag = 0
+        def [...] gen() {
+            try {
+                yield 1
+                raise "x"
+            } catch e {
+                flag = 42
+                raise e
+            }
+        }
+        try {
+            for let x in gen() {}
+            self.fail()
+        }
+        self.expectEqual(42, flag)
+    }
+
+    const def testMostImportantDiagnostic(self) {
+        def gen() {
+            let x = 10
+            try {
+                yield x
+                raise "err"
+            } catch e {
+                yield x + 1
+            }
+        }
+        let result = []
+        for let v in gen() {
+            result.push(v)
+        }
+        self.expectEqual([10,11], result)
+    }
+
+    const def testGeneratorCatchesItsOwnException(self) {
+        def gen() {
+            try {
+                yield 1
+                raise "boom"
+            } catch e {
+                yield 2
+            }
+        }
+        let result = []
+        try {
+            for let x in gen() {
+                result.push(x)
+            }
+        } catch e {
+            result.push("caller")
+        }
+        self.expectEqual([1,2], result)
+    }
+
+    const def testGeneratorDoesNotCatch(self) {
+        def gen() {
+            yield 1
+            raise "boom"
+        }
+        let result = []
+        try {
+            for let x in gen() {
+                result.push(x)
+            }
+        } catch e {
+            result.push("caller")
+        }
+        self.expectEqual([1,"caller"], result)
+    }
+
+    const def testGeneratorCatchesThenReraises(self) {
+        def gen() {
+            try {
+                yield 1
+                raise "boom"
+            } catch e {
+                yield 2
+                raise e
+            }
+        }
+        let result = []
+        try {
+            for let x in gen() {
+                result.push(x)
+            }
+        } catch e {
+            result.push("caller")
+        }
+        self.expectEqual([1,2,"caller"], result)
+    }
+
+    const def testCallerHasTryInsideLoopBody(self) {
+        def gen() {
+            yield 1
+            raise "boom"
+        }
+        let result = []
+        try {
+            for let x in gen() {
+                try {
+                    result.push(x)
+                } catch e {
+                    result.push("inner")
+                }
+            }
+        }
+        self.expectEqual([1], result)
+    }
+
+    const def testCallerHasTryWrappingEachNext(self) {
+        def gen() {
+            yield 1
+            raise "boom"
+        }
+        let g = gen()
+        let result = []
+        try {
+            result.push(g.value())
+            result.push(g.next())
+        } catch e {
+            result.push("caught")
+        }
+        self.expectEqual([1,"caught"], result)
+    }
+
+    const def testBothHaveNestedTryCatch(self) {
+        def gen() {
+            try {
+                yield 1
+                try {
+                    raise "boom"
+                } catch e {
+                    yield 2
+                }
+            } catch e {
+                yield 999
+            }
+        }
+        let result = []
+        try {
+            for let x in gen() {
+                result.push(x)
+            }
+        } catch e {
+            result.push("caller")
+        }
+        self.expectEqual([1,2], result)
+    }
+
+    const def testGeneratorHasOuterCatchCallerAlsoHasCatch(self) {
+        def gen() {
+            try {
+                yield 1
+                raise "boom"
+            } catch e {
+                raise "rethrow"
+            }
+        }
+        let result = []
+        try {
+            for let x in gen() {
+                result.push(x)
+            }
+        } catch e {
+            result.push(e)
+        }
+        self.expectEqual([1,"rethrow"], result)
+    }
+
+    const def testExceptionAfterFinalYield(self) {
+        def gen() {
+            yield 1
+            return none
+            raise "boom"
+        }
+        let result = []
+        try {
+            for let x in gen() {
+                result.push(x)
+            }
+        } catch e {
+            result.push("caller")
+        }
+        self.expectEqual([1, none], result)
+    }
+
+    const def testGeneratorSuspendedInsideTry(self) {
+        def gen() {
+            try {
+                yield 1
+                yield 2
+                raise "boom"
+            } catch e {
+                yield 3
+            }
+        }
+        let result = []
+        try {
+            for let x in gen() {
+                result.push(x)
+            }
+        } catch e {
+            result.push("caller")
+        }
+        self.expectEqual([1,2,3], result)
+    }
+
+    const def testTheRealRuntimeKiller(self) {
+        def gen() {
+            try {
+                yield 1
+                raise "boom"
+            } catch e {
+                yield 2
+            }
+        }
+        let result = []
+        try {
+            for let x in gen() {
+                result.push(x)
+                if x == 2 {
+                    raise "caller_error"
+                }
+            }
+        } catch e {
+            result.push(e)
+        }
+        self.expectEqual([1,2,"caller_error"], result)
+    }
+
 	- @def iteratorEqual(expected, result) {
 		if typeof expected != typeof result {
 			return false

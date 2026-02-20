@@ -106,7 +106,7 @@ std::optional<mint::WeakReference> SymbolEvaluator::get_symbol_reference(mint::S
 std::optional<mint::WeakReference> SymbolEvaluator::get_member_reference(const mint::Reference& reference,
     const mint::Symbol& member) {
 	switch (reference.data().format()) {
-	case mint::Data::package_format:
+	case mint::Data::Format::package:
 		for (mint::PackageData* package_data = &reference.data<mint::Package>().data; package_data != nullptr;
 		    package_data = package_data->get_owner_package()) {
 			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
@@ -115,7 +115,7 @@ std::optional<mint::WeakReference> SymbolEvaluator::get_member_reference(const m
 		}
 		break;
 
-	case mint::Data::object_format:
+	case mint::Data::Format::object:
 		{
 			auto& object = reference.data<mint::Object>();
 			if (auto* info = object.metadata.find_member(member)) {

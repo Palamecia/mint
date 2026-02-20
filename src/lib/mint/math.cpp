@@ -39,7 +39,7 @@ mint::WeakReference mint_math_sin(mint::Cursor& cursor, const mint::Reference& v
 }
 
 mint::WeakReference mint_math_sin_cos(mint::Cursor& cursor, const mint::Reference& value) {
-	return mint::create_iterator_from(cursor.ast(), mint::create_number(sin(to_number(cursor, value))),
+	return mint::create_iterator_from(cursor, mint::create_number(sin(to_number(cursor, value))),
 	    mint::create_number(cos(to_number(cursor, value))));
 }
 
@@ -94,7 +94,7 @@ mint::WeakReference mint_math_exp(mint::Cursor& cursor, const mint::Reference& v
 
 mint::WeakReference mint_math_frexp(mint::Cursor& cursor, const mint::Reference& value) {
 	int exponent = 0;
-	return mint::create_iterator_from(cursor.ast(), mint::create_number(frexp(to_number(cursor, value), &exponent)),
+	return mint::create_iterator_from(cursor, mint::create_number(frexp(to_number(cursor, value), &exponent)),
 	    mint::create_signed_number(exponent));
 }
 
@@ -114,7 +114,7 @@ mint::WeakReference mint_math_log10(mint::Cursor& cursor, const mint::Reference&
 mint::WeakReference mint_math_modf(mint::Cursor& cursor, const mint::Reference& value) {
 	double intpart = 0.;
 	const auto fractional = modf(to_number(cursor, value), &intpart);
-	return mint::create_iterator_from(cursor.ast(), mint::create_number(intpart), mint::create_number(fractional));
+	return mint::create_iterator_from(cursor, mint::create_number(intpart), mint::create_number(fractional));
 }
 
 mint::WeakReference mint_math_exp2(mint::Cursor& cursor, const mint::Reference& value) {
@@ -220,7 +220,7 @@ mint::WeakReference mint_math_remainder(mint::Cursor& cursor, const mint::Refere
 mint::WeakReference mint_math_remquo(mint::Cursor& cursor, const mint::Reference& x_value,
     const mint::Reference& y_value) {
 	int quot = 0;
-	return mint::create_iterator_from(cursor.ast(),
+	return mint::create_iterator_from(cursor,
 	    mint::create_number(remquo(to_number(cursor, x_value), to_number(cursor, y_value), &quot)),
 	    mint::create_signed_number(quot));
 }

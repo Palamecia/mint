@@ -340,6 +340,10 @@
     "function_rule": {
       "patterns": [
         {
+          "match": "\\b(async)\\b(?!\\$)",
+          "name": "storage.type.async.mn"
+        },
+        {
           "match": "\\b(def)(?!\\S)\\s*([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)",
           "captures": {
             "1": {
@@ -450,6 +454,10 @@
         {
           "match": "(\\bvar(?!\\S)|\\bconst(?!\\S)|@|\\$|%)",
           "name": "storage.type.mn"
+        },
+        {
+          "match": "\\b(async)\\b(?!\\$)",
+          "name": "storage.type.async.mn"
         },
         {
           "match": "\\b(def)(?!\\S)\\s*(in(?!\\S)|:=|\\|\\||&&|\\||\\^|&|==|!=|<<|>>|<=|>=|<|>|\\+\\+|--|\\*\\*|/|%|!|~|\\+|-|\\*|\\(\\)|\\[\\]=|\\[\\]|\\.\\.\\.|\\.\\.)",
@@ -697,6 +705,10 @@
           }
         },
         {
+          "match": "\\b(async)\\b(?!\\$)",
+          "name": "storage.type.async.mn"
+        },
+        {
           "match": "\\b(def)\\b(?!\\$)",
           "name": "storage.type.function.mn"
         },
@@ -707,6 +719,10 @@
         {
           "match": "(\\bdefined(?!\\S)|\\btypeof(?!\\S)|\\bmembersof(?!\\S)|\\bnot(?!\\S)|!(?!=)|~|--|\\+\\+|-|\\+)",
           "name": "keyword.operator.mn"
+        },
+        {
+          "match": "(\\bawait(?!\\S))",
+          "name": "keyword.control.flow.mn"
         },
         {
           "match": "(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)",

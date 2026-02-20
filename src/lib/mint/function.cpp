@@ -52,7 +52,7 @@ std::string get_member_name(mint::Class::MemberInfo& infos) {
 
 mint::WeakReference mint_get_member_info(mint::Cursor& cursor, const mint::Reference& object,
     const mint::Reference& member) {
-	if (is_instance_of(object, mint::Data::object_format)) {
+	if (is_instance_of(object, mint::Data::Format::object)) {
 		if (mint::Class::MemberInfo* infos = find_member_info(object.data<mint::Object>(), member)) {
 			return create_c_object(cursor.ast(), infos);
 		}

@@ -21,21 +21,40 @@
  * IN THE SOFTWARE.
  */
 
+#include "mint/memory/builtin/iterator.h"
+#include "mint/memory/builtin/libobject.h"
+#include "mint/memory/data.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/reference.h"
 
+#include <algorithm>
+#include <cerrno>
+#include <cstdio>
 #include <filesystem>
 #include <cstdint>
 #include <array>
+#include <iterator>
+#include <string>
+#include <vector>
 
 #ifdef MINT_OS_WINDOWS
 #include <Windows.h>
+#include <fileapi.h>
+#include <handleapi.h>
+#include <minwindef.h>
+#include <synchapi.h>
+#include <winbase.h>
+#include <winnt.h>
 #else
+#include <fcntl.h>
+#include <poll.h>
+#include <stdio_ext.h>
 #include <sys/file.h>
 #include <sys/inotify.h>
-#include <stdio_ext.h>
+#include <sys/poll.h>
 #include <unistd.h>
-#include <poll.h>
 #endif
 
 namespace {
@@ -88,15 +107,15 @@ bool reset_event(int event_fd) {
 
 	std::size_t len = 0;
 	bool reseted = false;
-	std::uint8_t read_buffer[BUFSIZ];
+	auto read_buffer = std::array<std::uint8_t, BUFSIZ>();
 
-	while (ssize_t count = read(event_fd, read_buffer, sizeof(read_buffer))) {
+	while (const auto count = read(event_fd, read_buffer.data(), read_buffer.size())) {
 
 		if (count < 0) {
 			break;
 		}
 
-		for (std::uint8_t* ptr = read_buffer; ptr < read_buffer + count; ptr += len) {
+		for (std::uint8_t* ptr = read_buffer.data(); ptr < read_buffer.data() + count; ptr += len) {
 			const inotify_event* event = reinterpret_cast<inotify_event*>(ptr);
 			reseted = reseted || (event->mask != 0);
 			len = sizeof(inotify_event) + event->len;
@@ -157,16 +176,16 @@ mint::WeakReference mint_file_create(mint::Cursor& cursor, const mint::Reference
 		notify_filter |= FILE_NOTIFY_CHANGE_ATTRIBUTES;
 	}
 
-	std::string mode_str = to_string(mode);
+	const auto mode_str = to_string(mode);
 	if (mint_sflags(mode_str.c_str(), &desired_access, &creation_disposition)) {
-		std::wstring path_str = std::filesystem::path(to_string(path)).generic_wstring();
+		const auto path_str = std::filesystem::path(to_string(path)).generic_wstring();
 		HANDLE fd = CreateFileW(path_str.c_str(), desired_access, desired_access, nullptr, creation_disposition,
 		    FILE_ATTRIBUTE_NORMAL, nullptr);
 		if (fd != INVALID_HANDLE_VALUE) {
-			iterator_yield(handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), fd));
+			iterator_yield(cursor, handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), fd));
 			HANDLE fe = FindFirstChangeNotificationW(path_str.c_str(), TRUE, notify_filter);
 			if (fe != INVALID_HANDLE_VALUE) {
-				iterator_yield(handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), fe));
+				iterator_yield(cursor, handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), fe));
 			}
 		}
 	}
@@ -186,15 +205,15 @@ mint::WeakReference mint_file_create(mint::Cursor& cursor, const mint::Reference
 		watch_flags |= IN_ATTRIB;
 	}
 
-	std::string mode_str = to_string(mode);
+	const auto mode_str = to_string(mode);
 	if (mint_sflags(mode_str.c_str(), &open_flags)) {
-		std::string path_str = to_string(path);
-		if (int fd = open(path_str.c_str(), open_flags | O_NONBLOCK); fd != -1) {
-			iterator_yield(handles.data<mint::Iterator>(), create_handle(cursor.ast(), fd));
-			int fe = inotify_init1(IN_NONBLOCK);
+		const auto path_str = to_string(path);
+		if (const auto fd = open(path_str.c_str(), open_flags | O_NONBLOCK); fd != -1) {
+			iterator_yield(cursor, handles.data<mint::Iterator>(), create_handle(cursor.ast(), fd));
+			const auto fe = inotify_init1(IN_NONBLOCK);
 			if (fe != -1) {
 				if (inotify_add_watch(fe, path_str.c_str(), watch_flags)) {
-					iterator_yield(handles.data<mint::Iterator>(), create_handle(cursor.ast(), fe));
+					iterator_yield(cursor, handles.data<mint::Iterator>(), create_handle(cursor.ast(), fe));
 				}
 			}
 		}
@@ -265,7 +284,7 @@ mint::WeakReference mint_file_write(mint::Cursor& /*cursor*/, const mint::Refere
 mint::WeakReference mint_file_wait(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 
-	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::none_format)
+	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
 	                          ? INFINITE
 	                          : mint::to_integer<DWORD>(cursor, timeout);
 
@@ -281,9 +300,9 @@ mint::WeakReference mint_file_wait(mint::Cursor& cursor, const mint::Reference& 
 	    .events = POLLIN,
 	};
 
-	const int time_ms = is_instance_of(timeout, mint::Data::none_format) ? -1 : to_integer<int>(cursor, timeout);
+	const int time_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
 
-	if (int ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
+	if (const auto ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
 		return mint::create_boolean(reset_event(fds.fd));
 	}
 

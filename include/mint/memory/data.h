@@ -40,14 +40,15 @@ struct MemoryInfo {
 class MINT_EXPORT Data {
 	friend class GarbageCollector;
 public:
-	enum Format : std::uint8_t {
-		none_format,
-		null_format,
-		number_format,
-		boolean_format,
-		object_format,
-		package_format,
-		function_format
+	enum class Format : std::uint8_t {
+		none,
+		null,
+		number,
+		boolean,
+		object,
+		package,
+		function,
+		coroutine
 	};
 
 	Data();
@@ -74,7 +75,7 @@ class MINT_EXPORT None : public Data {
 	friend class GlobalData;
 public:
 	[[nodiscard]] Format format() const override {
-		return none_format;
+		return Format::none;
 	}
 };
 
@@ -82,7 +83,7 @@ class MINT_EXPORT Null : public Data {
 	friend class GlobalData;
 public:
 	[[nodiscard]] Format format() const override {
-		return null_format;
+		return Format::null;
 	}
 };
 

@@ -49,7 +49,7 @@ using namespace mint;
 namespace {
 
 std::tuple<bool, int> function_signature_mismatch(const Function& expected, const Reference& value) {
-	if (is_instance_of(value, Data::function_format)) {
+	if (is_instance_of(value, Data::Format::function)) {
 		const Function::Mapping& mapping = value.data<Function>().mapping;
 		for (const auto& [signature, _] : expected.mapping) {
 			if (mapping.find(signature) == mapping.end()) [[unlikely]] {
@@ -57,7 +57,7 @@ std::tuple<bool, int> function_signature_mismatch(const Function& expected, cons
 			}
 		}
 	}
-	else if (is_instance_of(value, Data::object_format)) {
+	else if (is_instance_of(value, Data::Format::object)) {
 		if (const Class::MemberInfo* member = value.data<Object>().metadata.find_operator(Class::call_operator)) {
 			return function_signature_mismatch(expected, member->value);
 		}
@@ -274,7 +274,7 @@ bool ClassDescription::update_member(const Symbol& name, const Reference& value)
 			return false;
 		}
 
-		if ((member.data().format() == Data::function_format) && (value.data().format() == Data::function_format)) {
+		if ((member.data().format() == Data::Format::function) && (value.data().format() == Data::Format::function)) {
 			return std::ranges::all_of(value.data<Function>().mapping, [&member](const auto& signature) {
 				return member.data<Function>().mapping.insert(signature).second;
 			});
@@ -443,7 +443,7 @@ Class::MemberInfo* mint::ClassDescription::update_member_info(const Symbol& symb
 			    _metadata->full_name());
 		}
 		for (const Reference& base_member : member_override->second) {
-			if (is_instance_of(base_member, Data::function_format)) {
+			if (is_instance_of(base_member, Data::Format::function)) {
 				if (auto [mismatch, signature] = function_signature_mismatch(base_member.data<Function>(), value);
 				    mismatch) [[unlikely]] {
 					error("member '{}' is marked override but is missing signature '()'({}) for class '{}'",

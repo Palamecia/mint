@@ -99,6 +99,8 @@ public:
 	[[nodiscard]] bool is_in_switch() const;
 	[[nodiscard]] bool is_in_range_loop() const;
 	[[nodiscard]] bool is_in_function() const;
+	[[nodiscard]] bool is_in_nested_function() const;
+	[[nodiscard]] bool is_in_async_function() const;
 	[[nodiscard]] bool is_in_generator() const;
 	[[nodiscard]] bool is_in_generator_expression() const;
 
@@ -128,6 +130,7 @@ public:
 	void resolve_jump_backward();
 
 	void start_definition();
+	void start_async_definition();
 	bool add_parameter(const std::string& symbol, Reference::Flags flags = Reference::default_flags);
 	bool set_variadic();
 	void set_generator();

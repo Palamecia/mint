@@ -140,7 +140,7 @@ PUBLIC
 	FILE_SET memory TYPE HEADERS
 	BASE_DIRS ${MINT_INCLUDE_DIR}
 	FILES
-	${MINT_INCLUDE_DIR}/mint/memory/algorithm.hpp
+	${MINT_INCLUDE_DIR}/mint/memory/algorithm.h
 	${MINT_INCLUDE_DIR}/mint/memory/casttool.h
 	${MINT_INCLUDE_DIR}/mint/memory/class.h
 	${MINT_INCLUDE_DIR}/mint/memory/classtool.h
@@ -148,7 +148,7 @@ PUBLIC
 	${MINT_INCLUDE_DIR}/mint/memory/functiontool.h
 	${MINT_INCLUDE_DIR}/mint/memory/garbagecollector.h
 	${MINT_INCLUDE_DIR}/mint/memory/globaldata.h
-	${MINT_INCLUDE_DIR}/mint/memory/memorypool.hpp
+	${MINT_INCLUDE_DIR}/mint/memory/memorypool.h
 	${MINT_INCLUDE_DIR}/mint/memory/memorytool.h
 	${MINT_INCLUDE_DIR}/mint/memory/object.h
 	${MINT_INCLUDE_DIR}/mint/memory/objectprinter.h
@@ -228,10 +228,10 @@ PUBLIC
 	${MINT_INCLUDE_DIR}/mint/system/error.h
 	${MINT_INCLUDE_DIR}/mint/system/filestream.h
 	${MINT_INCLUDE_DIR}/mint/system/filesystem.h
-	${MINT_INCLUDE_DIR}/mint/system/mintruntimeerror.hpp
+	${MINT_INCLUDE_DIR}/mint/system/mintruntimeerror.h
 	${MINT_INCLUDE_DIR}/mint/system/pipe.h
 	${MINT_INCLUDE_DIR}/mint/system/plugin.h
-	${MINT_INCLUDE_DIR}/mint/system/poolallocator.hpp
+	${MINT_INCLUDE_DIR}/mint/system/poolallocator.h
 	${MINT_INCLUDE_DIR}/mint/system/stdio.h
 	${MINT_INCLUDE_DIR}/mint/system/string.h
 	${MINT_INCLUDE_DIR}/mint/system/terminal.h

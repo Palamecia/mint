@@ -24,20 +24,33 @@
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/casttool.h"
+#include "mint/memory/data.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/memorytool.h"
 #include "mint/memory/reference.h"
 #include "mint/system/terminal.h"
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cstdint>
+#include <cstdio>
 #include <iterator>
 #include <memory>
 #include <vector>
 
 #ifdef MINT_OS_WINDOWS
 #include <Windows.h>
+#include <corecrt_io.h>
+#include <fileapi.h>
+#include <handleapi.h>
 #include <io.h>
+#include <minwinbase.h>
+#include <minwindef.h>
+#include <namedpipeapi.h>
+#include <processenv.h>
+#include <rpcdce.h>
+#include <synchapi.h>
+#include <winbase.h>
 #else
 #include <sys/poll.h>
 #include <sys/file.h>
@@ -58,7 +71,7 @@ mint::WeakReference mint_pipe_create(mint::Cursor& cursor) {
 
 	if (CreatePipe(std::next(pipe.data(), 0), std::next(pipe.data(), 1), &pipe_attributes, 0) != 0) {
 		if ((pipe[0] != INVALID_HANDLE_VALUE) && (pipe[1] != INVALID_HANDLE_VALUE)) {
-			return mint::create_iterator_from(cursor.ast(), mint::create_handle(cursor.ast(), pipe[0]),
+			return mint::create_iterator_from(cursor, mint::create_handle(cursor.ast(), pipe[0]),
 			    mint::create_handle(cursor.ast(), pipe[1]));
 		}
 	}
@@ -67,7 +80,7 @@ mint::WeakReference mint_pipe_create(mint::Cursor& cursor) {
 
 	if (pipe2(fd.data(), O_NONBLOCK) == 0) {
 		if ((fd[0] != -1) && (fd[1] != -1)) {
-			return mint::create_iterator_from(cursor.ast(), mint::create_handle(cursor.ast(), fd[0]),
+			return mint::create_iterator_from(cursor, mint::create_handle(cursor.ast(), fd[0]),
 			    mint::create_handle(cursor.ast(), fd[1]));
 		}
 	}
@@ -138,7 +151,7 @@ mint::WeakReference mint_pipe_write(mint::Cursor& /*cursor*/, const mint::Refere
 mint::WeakReference mint_pipe_wait(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 	mint::handle_t h = to_handle(handle);
-	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::none_format)
+	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
 	                          ? INFINITE
 	                          : mint::to_integer<DWORD>(cursor, timeout);
 
@@ -149,7 +162,7 @@ mint::WeakReference mint_pipe_wait(mint::Cursor& cursor, const mint::Reference& 
 	    .events = POLLIN,
 	};
 
-	const int time_ms = is_instance_of(timeout, mint::Data::none_format) ? -1 : to_integer<int>(cursor, timeout);
+	const int time_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
 
 	if (int ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
 		return mint::create_boolean(true);
@@ -180,29 +193,29 @@ mint::WeakReference mint_system_pipe_create(mint::Cursor& cursor, const mint::Re
 	};
 
 	if (handle_t handle = to_handle(mint::to_integer<int>(cursor, fd_read)); handle != INVALID_HANDLE_VALUE) {
-		iterator_yield(handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
+		iterator_yield(cursor, handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
 	}
 	else {
-		iterator_yield(handles.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, handles.data<mint::Iterator>(), mint::create_none());
 	}
 	if (handle_t handle = to_handle(mint::to_integer<int>(cursor, fd_write)); handle != INVALID_HANDLE_VALUE) {
-		iterator_yield(handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
+		iterator_yield(cursor, handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
 	}
 	else {
-		iterator_yield(handles.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, handles.data<mint::Iterator>(), mint::create_none());
 	}
 #else
 	if (auto handle = to_integer<mint::handle_t>(cursor, fd_read); handle != -1) {
-		iterator_yield(handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
+		iterator_yield(cursor, handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
 	}
 	else {
-		iterator_yield(handles.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, handles.data<mint::Iterator>(), mint::create_none());
 	}
 	if (auto handle = to_integer<mint::handle_t>(cursor, fd_write); handle != -1) {
-		iterator_yield(handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
+		iterator_yield(cursor, handles.data<mint::Iterator>(), mint::create_handle(cursor.ast(), handle));
 	}
 	else {
-		iterator_yield(handles.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, handles.data<mint::Iterator>(), mint::create_none());
 	}
 #endif
 
@@ -262,7 +275,7 @@ mint::WeakReference mint_system_pipe_wait(mint::Cursor& cursor, const mint::Refe
     mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 	mint::handle_t h = to_handle(handle);
-	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::none_format)
+	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
 	                          ? INFINITE
 	                          : mint::to_integer<DWORD>(cursor, timeout);
 
@@ -273,7 +286,7 @@ mint::WeakReference mint_system_pipe_wait(mint::Cursor& cursor, const mint::Refe
 	    .events = POLLIN,
 	};
 
-	const int time_ms = is_instance_of(timeout, mint::Data::none_format) ? -1 : to_integer<int>(cursor, timeout);
+	const int time_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
 
 	if (int ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
 		return mint::create_boolean(true);

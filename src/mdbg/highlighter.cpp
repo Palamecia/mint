@@ -76,17 +76,18 @@ protected:
 	    std::string::size_type /*offset*/) override {
 		if (const auto* reference = find_defined_symbol(context, token)) {
 			switch (reference->data().format()) {
-			case mint::Data::none_format:
-			case mint::Data::null_format:
-			case mint::Data::number_format:
-			case mint::Data::boolean_format:
+			case mint::Data::Format::none:
+			case mint::Data::Format::null:
+			case mint::Data::Format::number:
+			case mint::Data::Format::boolean:
 				set_style(Style::constant);
 				break;
-			case mint::Data::function_format:
+			case mint::Data::Format::function:
+			case mint::Data::Format::coroutine:
 				set_style(Style::function);
 				break;
-			case mint::Data::object_format:
-				if (mint::is_instance_of(*reference, mint::Class::object)
+			case mint::Data::Format::object:
+				if (mint::is_instance_of(*reference, mint::Class::Metatype::object)
 				    && mint::is_class(reference->data<mint::Object>())) {
 					set_style(Style::user_type);
 				}
@@ -94,7 +95,7 @@ protected:
 					set_style(Style::constant);
 				}
 				break;
-			case mint::Data::package_format:
+			case mint::Data::Format::package:
 				set_style(Style::user_type);
 				break;
 			}
@@ -113,6 +114,7 @@ protected:
 		case mint::Token::line_end_token:
 			return true;
 		case mint::Token::assert_token:
+		case mint::Token::async_token:
 		case mint::Token::class_token:
 		case mint::Token::const_token:
 		case mint::Token::def_token:
@@ -182,6 +184,7 @@ protected:
 		case mint::Token::tilde_token:
 			set_style(Style::operator_keyword);
 			break;
+		case mint::Token::await_token:
 		case mint::Token::break_token:
 		case mint::Token::case_token:
 		case mint::Token::catch_token:

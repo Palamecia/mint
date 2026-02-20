@@ -24,7 +24,7 @@
 #ifndef MINT_MEMORY_MEMORYPOOL_HPP
 #define MINT_MEMORY_MEMORYPOOL_HPP
 
-#include "mint/system/poolallocator.hpp"
+#include "mint/system/poolallocator.h"
 #include "mint/system/assert.h"
 #include <cassert>
 #include <concepts>

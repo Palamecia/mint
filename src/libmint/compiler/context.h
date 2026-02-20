@@ -71,11 +71,12 @@ struct Definition : public Context {
 	std::size_t retrieve_point_count = 0;
 	Reference* function = nullptr;
 	std::unique_ptr<Branch> capture;
-	bool capture_all = false;
-	bool with_fast = true;
-	bool variadic = false;
-	bool generator = false;
-	bool returned = false;
+	bool capture_all: 1 = false;
+	bool with_fast: 1 = true;
+	bool variadic: 1 = false;
+	bool generator: 1 = false;
+	bool async: 1 = false;
+	bool returned: 1 = false;
 };
 
 std::size_t find_fast_symbol_index(const Definition& def, const Symbol& symbol);

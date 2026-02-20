@@ -20,10 +20,10 @@ TEST(casttool, to_number) {
 	EXPECT_EQ(0b1010, mint::to_number(process->cursor(), mint::create_string(scheduler.ast(), "0b1010")));
 	EXPECT_EQ(0, mint::to_number(process->cursor(), mint::create_string(scheduler.ast(), "test")));
 
-	const auto it = mint::create_iterator_from(scheduler.ast(), mint::create_number(7357), mint::create_number(7356));
+	const auto it = mint::create_iterator_from(process->cursor(), mint::create_number(7357), mint::create_number(7356));
 
 	EXPECT_EQ(7357, to_number(process->cursor(), it));
-	EXPECT_EQ(7357, to_number(process->cursor(), *iterator_next(it.data<mint::Iterator>())));
+	EXPECT_EQ(7357, to_number(process->cursor(), *iterator_next(process->cursor(), it.data<mint::Iterator>())));
 	EXPECT_EQ(7356, to_number(process->cursor(), it));
 }
 
@@ -38,8 +38,8 @@ TEST(casttool, to_boolean) {
 	EXPECT_EQ(true, to_boolean(mint::create_boolean(true)));
 	EXPECT_EQ(false, to_boolean(mint::create_boolean(false)));
 
-	EXPECT_EQ(true, to_boolean(mint::create_iterator_from(scheduler.ast(), mint::create_none())));
-	EXPECT_EQ(false, to_boolean(mint::create_iterator_from(scheduler.ast())));
+	EXPECT_EQ(true, to_boolean(mint::create_iterator_from(process->cursor(), mint::create_none())));
+	EXPECT_EQ(false, to_boolean(mint::create_iterator_from(process->cursor())));
 }
 
 TEST(casttool, to_char) {
@@ -87,10 +87,10 @@ TEST(casttool, to_string) {
 	            {mint::create_string(scheduler.ast(), "key1"), mint::create_string(scheduler.ast(), "value1")},
 	        })));
 
-	const auto it = mint::create_iterator_from(scheduler.ast(), mint::create_string(scheduler.ast(), "test1"),
+	const auto it = mint::create_iterator_from(process->cursor(), mint::create_string(scheduler.ast(), "test1"),
 	    mint::create_string(scheduler.ast(), "test2"));
 	EXPECT_EQ("test1", to_string(it));
-	EXPECT_EQ("test1", to_string(*iterator_next(it.data<mint::Iterator>())));
+	EXPECT_EQ("test1", to_string(*iterator_next(process->cursor(), it.data<mint::Iterator>())));
 	EXPECT_EQ("test2", to_string(it));
 }
 

@@ -211,7 +211,7 @@ mint::WeakReference mint_timer_wait(mint::Cursor& cursor, const mint::Reference&
 
 #ifdef MINT_OS_WINDOWS
 
-	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::none_format)
+	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
 	                          ? INFINITE
 	                          : mint::to_integer<DWORD>(cursor, timeout);
 
@@ -227,7 +227,7 @@ mint::WeakReference mint_timer_wait(mint::Cursor& cursor, const mint::Reference&
 	    .events = POLLIN,
 	};
 
-	const int time_ms = is_instance_of(timeout, mint::Data::none_format) ? -1 : to_integer<int>(cursor, timeout);
+	const int time_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
 
 	if (int ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
 		std::uint64_t value = 0;

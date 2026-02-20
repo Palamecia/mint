@@ -50,15 +50,15 @@ namespace {
 
 std::string reference_value(const AbstractSyntaxTree& ast, const Reference& reference) {
 	switch (reference.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		return MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_DARK) "none");
-	case Data::null_format:
+	case Data::Format::null:
 		return MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_DARK) "null");
-	case Data::package_format:
+	case Data::Format::package:
 		return std::format(MINT_TERM_STR(
 		                       MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "package:" MINT_TERM_OPT(MINT_TERM_RESET) " {}"),
 		    reference.data<Package>().data.full_name());
-	case Data::function_format:
+	case Data::Format::function:
 		return std::format(MINT_TERM_STR(
 		                       MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "function:" MINT_TERM_OPT(MINT_TERM_RESET) " {}"),
 		    std::views::transform(reference.data<Function>().mapping,
@@ -69,9 +69,11 @@ std::string reference_value(const AbstractSyntaxTree& ast, const Reference& refe
 			            std::to_string(infos->line_number(item.second.handle().offset)));
 		        })
 		        | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
-	case Data::object_format:
+	case Data::Format::coroutine:
+		return MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "coroutine" MINT_TERM_OPT(MINT_TERM_RESET));
+	case Data::Format::object:
 		switch (reference.data<Object>().metadata.metatype()) {
-		case Class::object:
+		case Class::Metatype::object:
 			if (mint::is_class(reference.data<Object>())) {
 				return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "class:" MINT_TERM_OPT(
 				                       MINT_TERM_RESET) " {}"),
@@ -80,25 +82,25 @@ std::string reference_value(const AbstractSyntaxTree& ast, const Reference& refe
 			return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "object:" MINT_TERM_OPT(
 			                       MINT_TERM_RESET) " {} " MINT_TERM_OPT(MINT_TERM_DARK) "({})"),
 			    reference.data<Object>().metadata.full_name(), to_string(&reference.data()));
-		case Class::string:
+		case Class::Metatype::string:
 			return MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_YELLOW) "'" + to_string(reference) + "'");
-		case Class::regex:
+		case Class::Metatype::regex:
 			return MINT_TERM_STDSTR(MINT_TERM_OPT(MINT_TERM_FG_RED) + to_string(reference));
-		case Class::array:
+		case Class::Metatype::array:
 			return std::format("[ {} ]", std::views::transform(reference.data<Array>().values,
 			                                 [&ast](const auto& item) {
 				                                 return reference_value(ast, item);
 			                                 })
 			                                 | std::views::join_with(std::string(", "))
 			                                 | std::ranges::to<std::string>());
-		case Class::hash:
+		case Class::Metatype::hash:
 			return std::format("{{ {} }}",
 			    std::views::transform(reference.data<Hash>().values,
 			        [&ast](const auto& item) {
 				        return reference_value(ast, item.first) + ": " + reference_value(ast, item.second);
 			        })
 			        | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			if (auto item = iterator_get(reference.data<Iterator>())) {
 				return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "iterator:" MINT_TERM_OPT(
 				                       MINT_TERM_RESET) " {}"),
@@ -106,11 +108,11 @@ std::string reference_value(const AbstractSyntaxTree& ast, const Reference& refe
 			}
 			return MINT_TERM_STR(
 			    MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "iterator:" MINT_TERM_OPT(MINT_TERM_FG_YELLOW) " empty");
-		case Class::library:
+		case Class::Metatype::library:
 			return std::format(MINT_TERM_STR(
 			                       MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "library:" MINT_TERM_OPT(MINT_TERM_RESET) " {}"),
 			    reference.data<Library>().plugin->get_path().generic_string());
-		case Class::libobject:
+		case Class::Metatype::libobject:
 			return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "libobject:" MINT_TERM_OPT(
 			                       MINT_TERM_RESET) " {}"),
 			    to_string(&reference.data()));

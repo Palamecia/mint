@@ -52,7 +52,7 @@ class ClassDescription;
 class MINT_EXPORT Class : public MemoryRoot {
 	friend class ClassDescription;
 public:
-	enum Metatype : std::uint8_t {
+	enum class Metatype : std::uint8_t {
 		object,
 		string,
 		regex,
@@ -63,7 +63,7 @@ public:
 		libobject
 	};
 
-	static constexpr const std::size_t builtin_class_count = libobject + 1;
+	static constexpr const std::size_t builtin_class_count = static_cast<std::size_t>(Metatype::libobject) + 1;
 
 	enum Operator : std::uint8_t {
 		new_operator,
@@ -115,7 +115,7 @@ public:
 		WeakReference value;
 	};
 
-	Class(PackageData& package, std::string name, Metatype metatype = object);
+	Class(PackageData& package, std::string name, Metatype metatype = Metatype::object);
 	Class(Class&&) = delete;
 	Class(const Class&) = delete;
 	~Class() override;
@@ -151,7 +151,7 @@ public:
 
 	[[nodiscard]] auto classes() {
 		return std::views::filter(_globals, [](auto& item) {
-			return item.second->value.data().format() == Data::object_format
+			return item.second->value.data().format() == Data::Format::object
 			       && item.second->value.template data<Object>().data == nullptr;
 		}) | std::views::transform([](auto& item) -> std::pair<Symbol, std::reference_wrapper<MemberInfo>> {
 			return {item.first, *item.second};

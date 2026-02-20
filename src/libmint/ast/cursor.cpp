@@ -28,8 +28,10 @@
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/debug/debuginfo.h"
 #include "mint/debug/lineinfo.h"
-#include "mint/memory/functiontool.h"
+#include "mint/memory/data.h"
 #include "mint/memory/garbagecollector.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/symboltable.h"
 #include "mint/scheduler/scheduler.h"
@@ -37,7 +39,7 @@
 #include "mint/memory/globaldata.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/system/assert.h"
-#include "mint/system/poolallocator.hpp"
+#include "mint/system/poolallocator.h"
 #include "threadentrypoint.h"
 #include <algorithm>
 #include <cassert>
@@ -140,11 +142,12 @@ void Cursor::WaitingCallStack::mark() {
 }
 
 Cursor::Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent) :
+    _stack(parent ? parent->_stack : GarbageCollector::instance().create_stack()),
+    _current_context(g_pool.allocate()),
     _ast(ast),
     _parent(parent),
-    _child(nullptr),
-    _stack(parent ? parent->_stack : GarbageCollector::instance().create_stack()),
-    _current_context(g_pool.allocate()) {
+    _child(nullptr) {
+
 	std::construct_at(_current_context, module);
 	_current_context->symbols = std::make_shared<SymbolTable>(_ast.get().global_data());
 
@@ -196,28 +199,60 @@ void Cursor::jmp(std::size_t pos) {
 	_current_context->iptr = pos;
 }
 
+bool Cursor::call_in_progress() const {
+	if (&_current_context->module.get() != &ThreadEntryPoint::instance()) {
+		return !_call_stack.empty();
+	}
+	return false;
+}
+
+void Cursor::call_generator_expression(std::size_t offset) {
+
+	auto* expression_context = g_pool.allocate();
+	std::construct_at(expression_context, _current_context->module);
+	expression_context->iptr = _current_context->iptr;
+	expression_context->symbols = _current_context->symbols;
+
+	const std::size_t stack_base = _stack->size();
+	expression_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
+	    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
+	_stack->emplace_back(*expression_context->generator);
+	expression_context->generator->data<Iterator>().construct();
+
+	_current_context->iptr = offset;
+	_call_stack.emplace_back(_current_context);
+	_current_context = expression_context;
+}
+
 void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) {
 
-	_call_stack.emplace_back(_current_context);
+	const auto stack_base = _stack->size() - static_cast<std::size_t>(signature >= 0 ? signature : (~signature) + 1);
 
-	_current_context = g_pool.allocate();
-	std::construct_at(_current_context, handle.module);
-	_current_context->iptr = handle.offset;
+	auto* call_context = g_pool.allocate();
+	std::construct_at(call_context, handle.module);
+	call_context->iptr = handle.offset;
 
 	if (handle.symbols) {
-		_current_context->symbols = std::make_shared<SymbolTable>(_ast.get().global_data(), metadata);
-		_current_context->symbols->reserve_fast(handle.fast_count);
-		_current_context->symbols->open_package(handle.package);
+		call_context->symbols = std::make_shared<SymbolTable>(_ast.get().global_data(), metadata);
+		call_context->symbols->reserve_fast(handle.fast_count);
+		call_context->symbols->open_package(handle.package);
 	}
 
 	if (handle.generator) {
-		const std::size_t stack_base = _stack->size()
-		                               - static_cast<std::size_t>(signature >= 0 ? signature : (~signature) + 1);
-		_current_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
+		call_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
 		    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
-		_stack->emplace(std::next(_stack->begin(), static_cast<std::vector<WeakReference>::difference_type>(stack_base)),
-		    *_current_context->generator);
-		_current_context->generator->data<Iterator>().construct();
+		_stack->emplace(std::next(_stack->begin(), static_cast<std::ptrdiff_t>(stack_base)), *call_context->generator);
+		call_context->generator->data<Iterator>().construct();
+	}
+
+	if (handle.async) {
+		auto coroutine = make_weak_reference<Coroutine>(Reference::default_flags,
+		    std::make_unique<SavedState>(*this, call_context), handle.generator ? stack_base + 1 : stack_base);
+		_stack->emplace_back(std::move(coroutine));
+	}
+	else {
+		_call_stack.emplace_back(_current_context);
+		_current_context = call_context;
 	}
 }
 
@@ -239,21 +274,26 @@ void Cursor::exit_call() {
 	_call_stack.pop_back();
 }
 
-bool Cursor::call_in_progress() const {
-
-	if (&_current_context->module.get() != &ThreadEntryPoint::instance()) {
-		return !_call_stack.empty();
-	}
-
-	return false;
-}
-
 bool Cursor::is_in_builtin() const {
 	return _current_context->symbols == nullptr;
 }
 
 bool Cursor::is_in_generator() const {
 	return _current_context->generator != nullptr;
+}
+
+std::unique_ptr<SavedState> Cursor::suspend(std::unique_ptr<SavedState> state) {
+
+	auto previous_state = std::make_unique<SavedState>(*this, _current_context);
+	_current_context = state->context;
+
+	while (!state->retrieve_points.empty()) {
+		_retrieve_points.push(state->retrieve_points.top());
+		state->retrieve_points.pop();
+	}
+
+	state->context = nullptr;
+	return previous_state;
 }
 
 std::unique_ptr<SavedState> Cursor::interrupt() {
@@ -289,28 +329,6 @@ void Cursor::destroy(SavedState* state) {
 		std::destroy_at(state->context);
 		g_pool.deallocate(state->context);
 	}
-}
-
-void Cursor::begin_generator_expression(std::size_t offset) {
-
-	auto* expression_context = g_pool.allocate();
-	std::construct_at(expression_context, _current_context->module);
-	expression_context->iptr = _current_context->iptr;
-	expression_context->symbols = _current_context->symbols;
-
-	const std::size_t stack_base = _stack->size();
-	expression_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
-	    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
-	_stack->emplace_back(*expression_context->generator);
-	expression_context->generator->data<Iterator>().construct();
-
-	_current_context->iptr = offset;
-	_call_stack.emplace_back(_current_context);
-	_current_context = expression_context;
-}
-
-void Cursor::end_generator_expression() {
-	exit_call();
 }
 
 void Cursor::open_printer(std::unique_ptr<Printer>&& printer) {
@@ -360,6 +378,7 @@ void Cursor::set_retrieve_point(std::size_t offset) {
 	    .call_stack_size = _call_stack.size(),
 	    .waiting_calls_count = _waiting_calls.size(),
 	    .retrieve_offset = offset,
+	    .current_context = _current_context,
 	});
 }
 
@@ -381,11 +400,17 @@ void Cursor::raise(WeakReference&& exception) {
 			exit_call();
 		}
 
+		while (state.current_context != _current_context) {
+			assert(is_instance_of(_stack->back(), Data::Format::coroutine));
+			_stack->back().data<Coroutine>().raise(*this);
+		}
+
+		assert(state.current_context == _current_context);
 		_stack->resize(state.stack_size);
 		_stack->emplace_back(std::move(exception));
 		jmp(state.retrieve_offset);
 
-		unset_retrieve_point();
+		_retrieve_points.pop();
 	}
 	else if (_parent) {
 		throw MintException(*_parent, std::move(exception));

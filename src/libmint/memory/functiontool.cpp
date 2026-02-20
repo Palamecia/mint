@@ -273,24 +273,24 @@ WeakReference mint::create_iterator(FromExclusiveRange from_exclusive_range, Abs
 	return ref;
 }
 
-WeakReference mint::create_iterator_over(AbstractSyntaxTree& ast, const Reference& ref) {
+WeakReference mint::create_iterator_over(Cursor& cursor, const Reference& ref) {
 
-	if (is_instance_of(ref, Class::iterator)) {
+	if (is_instance_of(ref, Class::Metatype::iterator)) {
 		return ref;
 	}
 
-	auto iterator = make_weak_reference<Iterator>(create_flags, ast, ref);
+	auto iterator = make_weak_reference<Iterator>(create_flags, cursor, ref);
 	iterator.data<Iterator>().construct();
 	return iterator;
 }
 
-WeakReference mint::create_iterator_over(AbstractSyntaxTree& ast, Reference&& ref) {
+WeakReference mint::create_iterator_over(Cursor& cursor, Reference&& ref) {
 
-	if (is_instance_of(ref, Class::iterator)) {
+	if (is_instance_of(ref, Class::Metatype::iterator)) {
 		return std::move(ref);
 	}
 
-	auto iterator = make_weak_reference<Iterator>(create_flags, ast, std::move(ref));
+	auto iterator = make_weak_reference<Iterator>(create_flags, cursor, std::move(ref));
 	iterator.data<Iterator>().construct();
 	return iterator;
 }
@@ -329,7 +329,7 @@ WeakReference mint::get_member_ignore_visibility(AbstractSyntaxTree& ast, const 
     const Symbol& member) {
 
 	switch (reference.data().format()) {
-	case Data::package_format:
+	case Data::Format::package:
 		for (PackageData* package_data = &reference.data<Package>().data; package_data != nullptr;
 		    package_data = package_data->get_owner_package()) {
 			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
@@ -338,7 +338,7 @@ WeakReference mint::get_member_ignore_visibility(AbstractSyntaxTree& ast, const 
 		}
 		break;
 
-	case Data::object_format:
+	case Data::Format::object:
 		{
 			auto& object = reference.data<Object>();
 
@@ -399,7 +399,7 @@ WeakReference mint::get_global_ignore_visibility(Object& object, const Symbol& g
 WeakReference mint::find_enum_value(Object& object, double value) {
 	for (auto [symbol, info] : object.metadata.globals()) {
 		auto& value_ref = info.get().value;
-		if (is_instance_of(value_ref, Data::number_format) && value_ref.data<Number>().value == value) {
+		if (is_instance_of(value_ref, Data::Format::number) && value_ref.data<Number>().value == value) {
 			return value_ref;
 		}
 	}

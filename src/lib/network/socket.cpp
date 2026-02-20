@@ -279,11 +279,11 @@ mint::WeakReference mint_socket_get_option_number(mint::Cursor& cursor, const mi
 	int option_value = 0;
 
 	if (mint::get_socket_option(socket_fd, option_id, &option_value)) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(option_value));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(option_value));
 	}
 	else {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
 	}
 
 	return result;
@@ -313,11 +313,11 @@ mint::WeakReference mint_socket_get_option_boolean(mint::Cursor& cursor, const m
 	mint::sockopt_bool option_value = mint::sockopt_false;
 
 	if (mint::get_socket_option(socket_fd, option_id, &option_value)) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_boolean(option_value != mint::sockopt_false));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_boolean(option_value != mint::sockopt_false));
 	}
 	else {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
 	}
 
 	return result;
@@ -347,11 +347,12 @@ mint::WeakReference mint_socket_get_option_linger(mint::Cursor& cursor, const mi
 	auto option_value = std::make_unique<linger>();
 
 	if (mint::get_socket_option(socket_fd, option_id, option_value.get())) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_c_object(cursor.ast(), option_value.release()));
+		iterator_yield(cursor, result.data<mint::Iterator>(),
+		    mint::create_c_object(cursor.ast(), option_value.release()));
 	}
 	else {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
 	}
 
 	return result;
@@ -381,11 +382,12 @@ mint::WeakReference mint_socket_get_option_timeval(mint::Cursor& cursor, const m
 	auto option_value = std::make_unique<timeval>();
 
 	if (mint::get_socket_option(socket_fd, option_id, option_value.get())) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_c_object(cursor.ast(), option_value.release()));
+		iterator_yield(cursor, result.data<mint::Iterator>(),
+		    mint::create_c_object(cursor.ast(), option_value.release()));
 	}
 	else {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
 	}
 
 	return result;
@@ -420,17 +422,20 @@ mint::WeakReference mint_socket_finalize_connection(mint::FunctionHelper& helper
 
 	switch (error) {
 	case 0:
-		iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_success).share());
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+		    io_status.member(mint::symbols::io_success).share());
 		break;
 	case EALREADY:
 	case EINPROGRESS:
 	case EWOULDBLOCK:
-		iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_would_block).share());
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+		    io_status.member(mint::symbols::io_would_block).share());
 		Scheduler::instance().set_socket_blocked(socket_fd, true);
 		break;
 	default:
-		iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_error).share());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(error));
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+		    io_status.member(mint::symbols::io_error).share());
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(error));
 		break;
 	}
 
@@ -451,21 +456,25 @@ mint::WeakReference mint_socket_shutdown(mint::FunctionHelper& helper, const min
 	    helper.reference(mint::symbols::network).member(mint::symbols::end_point).member(mint::symbols::io_status);
 
 	if (::shutdown(socket_fd, how) == 0) {
-		iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_success).share());
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+		    io_status.member(mint::symbols::io_success).share());
 	}
 	else {
 		switch (const int error = errno_from_io_last_error()) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
-			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_would_block).share());
+			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+			    io_status.member(mint::symbols::io_would_block).share());
 			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 		case ENOTCONN:
-			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_closed).share());
+			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+			    io_status.member(mint::symbols::io_closed).share());
 			break;
 		default:
-			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_error).share());
-			iterator_yield(result.data<mint::Iterator>(), mint::create_number(error));
+			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+			    io_status.member(mint::symbols::io_error).share());
+			iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(error));
 			break;
 		}
 	}

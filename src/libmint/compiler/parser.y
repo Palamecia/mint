@@ -40,6 +40,7 @@ using namespace mint;
 %parse-param {mint::BuildContext& context}
 
 %token assert_token
+%token async_token
 %token break_token
 %token case_token
 %token catch_token
@@ -96,7 +97,7 @@ using namespace mint;
 %left dbl_left_angled_token dbl_right_angled_token
 %left plus_token minus_token
 %left asterisk_token slash_token percent_token
-%right prefix_dbl_plus_token prefix_dbl_minus_token prefix_plus_token prefix_minus_token exclamation_token tilde_token typeof_token membersof_token defined_token
+%right prefix_dbl_plus_token prefix_dbl_minus_token prefix_plus_token prefix_minus_token exclamation_token tilde_token await_token typeof_token membersof_token defined_token
 %left dbl_plus_token dbl_minus_token dbl_asterisk_token
 %left dot_token question_dot_token open_parenthesis_token close_parenthesis_token open_bracket_token close_bracket_token open_brace_token close_brace_token
 
@@ -240,10 +241,21 @@ stmt_rule:
 	| return_rule expr_rule line_end_token {
 		context.set_exit_point();
 		if (context.is_in_generator()) {
-		    context.push_node(Node::Command::yield_exit_generator);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::yield);
+				context.push_node(Node::Command::exit_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::yield_exit_generator);
+			}
 		}
 		else {
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::exit_call);
+			}
 		}
 		context.commit_line();
 	}
@@ -288,34 +300,64 @@ stmt_rule:
 	}
 	| modifier_rule def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::exit_generator);
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
 		}
 		else if (!context.has_returned()) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(Compiler::make_none());
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
 		}
+		const auto flags = context.is_in_nested_function()
+							? Reference::const_address | context.retrieve_modifiers()
+							: Reference::global | Reference::const_address | context.retrieve_modifiers();
 		context.resolve_jump_forward();
 		context.push_node(Node::Command::declare_function);
 		context.push_node($4.c_str());
-		context.push_node(Reference::global | Reference::const_address | context.retrieve_modifiers());
+		context.push_node(flags);
 		context.save_definition();
 		context.push_node(Node::Command::function_overload);
 		context.push_node(Node::Command::unload_reference);
 	}
 	| def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::exit_generator);
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
 		}
 		else if (!context.has_returned()) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(Compiler::make_none());
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
 		}
+		const auto flags = context.is_in_nested_function()
+							? Reference::const_address
+							: Reference::global | Reference::const_address;
 		context.resolve_jump_forward();
 		context.push_node(Node::Command::declare_function);
 		context.push_node($3.c_str());
-		context.push_node(Reference::global | Reference::const_address);
+		context.push_node(flags);
 		context.save_definition();
 		context.push_node(Node::Command::function_overload);
 		context.push_node(Node::Command::unload_reference);
@@ -329,6 +371,8 @@ stmt_rule:
 
 module_name_rule:
     assert_token { $$ = $1; }
+    | async_token { $$ = $1; }
+    | await_token { $$ = $1; }
 	| break_token { $$ = $1; }
 	| case_token { $$ = $1; }
 	| catch_token { $$ = $1; }
@@ -510,12 +554,24 @@ desc_rule:
 	}
 	| member_desc_rule equal_token def_start_rule def_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::exit_generator);
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
 		}
 		else if (!context.has_returned()) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(Compiler::make_none());
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
 		}
 		context.resolve_jump_forward();
 
@@ -525,12 +581,24 @@ desc_rule:
 	}
 	| member_desc_rule plus_equal_token def_start_rule def_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::exit_generator);
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
 		}
 		else if (!context.has_returned()) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(Compiler::make_none());
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
 		}
 		context.resolve_jump_forward();
 
@@ -540,12 +608,51 @@ desc_rule:
 	}
 	| def_start_rule symbol_token def_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::exit_generator);
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
 		}
 		else if (!context.has_returned()) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(Compiler::make_none());
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
+		}
+		context.resolve_jump_forward();
+
+		if (!context.update_member(Reference::default_flags, Symbol($2), context.retrieve_definition())) {
+			YYERROR;
+		}
+	}
+	| def_start_rule await_token def_args_rule stmt_bloc_rule {
+		if (context.is_in_generator()) {
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
+		}
+		else if (!context.has_returned()) {
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
 		}
 		context.resolve_jump_forward();
 
@@ -555,12 +662,24 @@ desc_rule:
 	}
 	| def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::exit_generator);
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
 		}
 		else if (!context.has_returned()) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(Compiler::make_none());
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
 		}
 		context.resolve_jump_forward();
 
@@ -570,12 +689,51 @@ desc_rule:
 	}
 	| desc_modifier_rule def_start_rule symbol_token def_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::exit_generator);
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
 		}
 		else if (!context.has_returned()) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(Compiler::make_none());
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
+		}
+		context.resolve_jump_forward();
+
+		if (!context.update_member(context.retrieve_modifiers(), Symbol($3), context.retrieve_definition())) {
+			YYERROR;
+		}
+	}
+	| desc_modifier_rule def_start_rule await_token def_args_rule stmt_bloc_rule {
+		if (context.is_in_generator()) {
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
+		}
+		else if (!context.has_returned()) {
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
 		}
 		context.resolve_jump_forward();
 
@@ -585,12 +743,24 @@ desc_rule:
 	}
 	| desc_modifier_rule def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::exit_generator);
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
 		}
 		else if (!context.has_returned()) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(Compiler::make_none());
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
 		}
 		context.resolve_jump_forward();
 
@@ -913,11 +1083,26 @@ stmt_bloc_rule:
 	| open_brace_token return_rule expr_rule close_brace_token {
 		context.set_exit_point();
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::yield_exit_generator);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::yield);
+				context.push_node(Node::Command::exit_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::yield_exit_generator);
+			}
 		}
 		else {
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::exit_call);
+			}
 		}
+	}
+	| open_brace_token raise_token expr_rule close_brace_token {
+		context.reset_scoped_symbols_until(BuildContext::BlockType::try_type);
+		context.push_node(Node::Command::raise);
 	}
 	| open_brace_token expr_rule close_brace_token {
 		context.commit_expr_result();
@@ -1820,6 +2005,15 @@ expr_rule:
 	| minus_token expr_rule %prec prefix_minus_token {
 		context.push_node(Node::Command::neg_operator);
 	}
+	| await_token expr_rule {
+		if (context.is_in_async_function()) {
+			context.push_node(Node::Command::await);
+		}
+		else {
+			context.parse_error("unexpected 'await' statement outside of async function");
+			YYERROR;
+		}
+	}
 	| typeof_token expr_rule {
 		context.push_node(Node::Command::typeof_operator);
 	}
@@ -2044,24 +2238,48 @@ call_arg_rule:
 def_rule:
 	def_start_rule def_capture_rule def_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::exit_generator);
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
 		}
 		else if (!context.has_returned()) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(Compiler::make_none());
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
 		}
 		context.resolve_jump_forward();
 		context.save_definition();
 	}
 	| def_start_rule def_capture_rule def_no_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
-			context.push_node(Node::Command::exit_generator);
+			if (!context.is_in_async_function()) {
+				context.push_node(Node::Command::exit_generator);
+			}
+			else if (!context.has_returned()) {
+				context.push_node(Node::Command::exit_coroutine);
+			}
 		}
 		else if (!context.has_returned()) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(Compiler::make_none());
-			context.push_node(Node::Command::exit_call);
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::load_constant);
+				context.push_node(Compiler::make_none());
+				context.push_node(Node::Command::exit_call);
+			}
 		}
 		context.resolve_jump_forward();
 		context.save_definition();
@@ -2070,7 +2288,12 @@ def_rule:
 def_arrow_rule:
     def_start_rule def_capture_rule def_args_rule def_arrow_stmt_rule {
 	    context.set_exit_point();
-		context.push_node(Node::Command::exit_call);
+		if (context.is_in_async_function()) {
+			context.push_node(Node::Command::resume_coroutine);
+		}
+		else {
+			context.push_node(Node::Command::exit_call);
+		}
 		context.resolve_jump_forward();
 		context.save_definition();
 	};
@@ -2080,6 +2303,11 @@ def_start_rule:
 		context.push_node(Node::Command::jump);
 		context.start_jump_forward();
 		context.start_definition();
+	}
+	| async_token def_token {
+		context.push_node(Node::Command::jump);
+		context.start_jump_forward();
+		context.start_async_definition();
 	};
 
 def_capture_rule:

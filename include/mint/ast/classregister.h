@@ -156,7 +156,7 @@ private:
 bool ClassRegister::is_slot(const Reference& member) {
 	return ((member.flags() & (Reference::const_address | Reference::const_value))
 	           != (Reference::const_address | Reference::const_value))
-	       || member.data().format() == Data::none_format;
+	       || member.data().format() == Data::Format::none;
 }
 
 const AbstractSyntaxTree& ClassRegister::ast() const {

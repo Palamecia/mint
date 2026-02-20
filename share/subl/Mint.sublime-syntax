@@ -13,7 +13,7 @@ variables:
 
   keyword_token: |-
     (?x:
-      and|assert|break|case|catch|class|const|continue|def|default|
+      and|assert|async|await|break|case|catch|class|const|continue|def|default|
       defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|
       none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|
       while|xor|yield|var
@@ -29,6 +29,8 @@ variables:
   symbol_token: (?:(?!{{keyword_token}}){{identifier}})
 
   assert_token: assert{{identifier_break}}
+  async_token: async{{identifier_break}}
+  await_token: await{{identifier_break}}
   break_token: break{{identifier_break}}
   case_token: case{{identifier_break}}
   catch_token: catch{{identifier_break}}
@@ -291,6 +293,8 @@ contexts:
         - include: else_pop
     - match: '{{modifier_token}}'
       scope: storage.modifier.mn
+    - match: '{{async_token}}'
+      scope: storage.type.async.mn
     - match: '{{def_token}}'
       scope: storage.type.function.mn
       push:
@@ -473,6 +477,8 @@ contexts:
     - include: enum_desc_rule
 
   member_desc_rule:
+    - match: '{{async_token}}'
+      scope: storage.type.async.mn
     - match: '{{def_token}}'
       scope: storage.type.function.mn
       push:
@@ -489,6 +495,8 @@ contexts:
         - match: '\+='
           scope: keyword.operator.assignment.mn
           set:
+            - match: '{{async_token}}'
+              scope: storage.type.async.mn
             - match: '{{def_token}}'
               set:
                 - def_meta_rule
@@ -544,6 +552,8 @@ contexts:
             - include: string_rule
             - include: else_error
         - include: else_error
+    - match: '{{async_token}}'
+      scope: storage.type.async.mn
     - match: '{{def_token}}'
       set:
         - def_meta_rule
@@ -952,6 +962,8 @@ contexts:
     - match: '{{number_token}}'
       scope: constant.numeric.mn
       push: expr_operator_rule
+    - match: '{{async_token}}'
+      scope: storage.type.async.mn
     - match: '{{def_token}}'
       scope: storage.type.function.mn
       push:
@@ -1075,6 +1087,8 @@ contexts:
     - match: '{{number_token}}'
       scope: constant.numeric.mn
       set: expr_operator_rule
+    - match: '{{async_token}}'
+      scope: storage.type.async.mn
     - match: '{{def_token}}'
       scope: storage.type.function.mn
       set:
@@ -1207,6 +1221,8 @@ contexts:
       scope: keyword.operator.arithmetic.mn
     - match: (?:defined|typeof|membersof){{identifier_break}}
       scope: keyword.operator.mn
+    - match: '{{await_token}}'
+      scope: keyword.control.flow.mn
 
   binary_operator_rule:
     - match: '&&|\|\||and{{identifier_break}}|or{{identifier_break}}|xor{{identifier_break}}'

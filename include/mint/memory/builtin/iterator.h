@@ -30,6 +30,7 @@
 #include "mint/memory/reference.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 #include <iterator>
 #include <memory>
@@ -69,9 +70,9 @@ class MINT_EXPORT Iterator : public Object {
 	friend class GarbageCollector;
 public:
 	explicit Iterator(AbstractSyntaxTree& ast);
+	Iterator(Cursor& cursor, const Reference& ref);
+	Iterator(Cursor& cursor, Reference&& ref);
 	Iterator(AbstractSyntaxTree& ast, std::size_t capacity);
-	Iterator(AbstractSyntaxTree& ast, const Reference& ref);
-	Iterator(AbstractSyntaxTree& ast, Reference&& ref);
 	Iterator(AbstractSyntaxTree& ast, std::unique_ptr<mint::internal::IteratorData>&& data);
 	Iterator(FromGenerator /*from_generator*/, AbstractSyntaxTree& ast, std::size_t stack_size);
 	Iterator(FromInclusiveRange /*from_inclusive_range*/, AbstractSyntaxTree& ast, double begin, double end);
@@ -193,9 +194,15 @@ public:
 		[[nodiscard]] reference back();
 	};
 
+	enum class ResumeKind : std::uint8_t {
+		next,
+		close,
+		raise
+	};
+
 	class MINT_EXPORT Context {
 	public:
-		enum Type : std::uint8_t {
+		enum class Type : std::uint8_t {
 			items,
 			range,
 			generator
@@ -262,10 +269,10 @@ public:
 		[[nodiscard]] std::size_t capacity() const;
 		void reserve(std::size_t capacity);
 
-		void yield(value_type&& value);
-		void next();
+		void yield(Cursor& cursor, value_type&& value, Iterator::ResumeKind resume_kind = Iterator::ResumeKind::next);
+		void next(Cursor& cursor);
 
-		void finalize();
+		void finalize(Cursor& cursor);
 		void clear();
 
 	private:
@@ -279,9 +286,10 @@ private:
 };
 
 MINT_EXPORT void iterator_new(Cursor& cursor, std::size_t length);
-MINT_EXPORT void iterator_yield(Iterator& iterator, Reference&& item);
+MINT_EXPORT void iterator_yield(Cursor& cursor, Iterator& iterator, Reference&& item);
+MINT_EXPORT void iterator_return(Cursor& cursor, Iterator& iterator, Reference&& item);
 MINT_EXPORT std::optional<WeakReference> iterator_get(Iterator& iterator);
-MINT_EXPORT std::optional<WeakReference> iterator_next(Iterator& iterator);
+MINT_EXPORT std::optional<WeakReference> iterator_next(Cursor& cursor, Iterator& iterator);
 
 }
 

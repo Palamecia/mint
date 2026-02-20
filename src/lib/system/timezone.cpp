@@ -82,11 +82,11 @@ std::chrono::minutes to_offset(mint::Cursor& cursor, const mint::Reference& offs
 template<class Duration, class TimePoint>
 std::chrono::zoned_time<Duration> to_zoned_time(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     TimePoint time_point) {
-	if (mint::is_instance_of(zoneinfo, mint::Class::libobject)) {
+	if (mint::is_instance_of(zoneinfo, mint::Class::Metatype::libobject)) {
 		return std::chrono::zoned_time<Duration>(zoneinfo.data<mint::LibObject<std::chrono::time_zone>>().ptr,
 		    time_point);
 	}
-	if (mint::is_instance_of(zoneinfo, mint::Data::number_format)) {
+	if (mint::is_instance_of(zoneinfo, mint::Data::Format::number)) {
 		return std::chrono::zoned_time<Duration>(time_point - to_offset(cursor, zoneinfo));
 	}
 	return {};
@@ -106,10 +106,10 @@ mint::WeakReference mint_timezone_locate(mint::Cursor& cursor, const mint::Refer
 }
 
 mint::WeakReference mint_timezone_get_name(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	if (mint::is_instance_of(d_ptr, mint::Class::libobject)) {
+	if (mint::is_instance_of(d_ptr, mint::Class::Metatype::libobject)) {
 		return mint::create_string(cursor.ast(), d_ptr.data<mint::LibObject<std::chrono::time_zone>>().ptr->name());
 	}
-	if (mint::is_instance_of(d_ptr, mint::Data::number_format)) {
+	if (mint::is_instance_of(d_ptr, mint::Data::Format::number)) {
 		const auto offset = to_offset(cursor, d_ptr);
 		const auto hours_offset = std::chrono::floor<std::chrono::hours>(offset);
 		const auto minutes_offset = std::chrono::minutes(offset - hours_offset);
@@ -121,12 +121,13 @@ mint::WeakReference mint_timezone_get_name(mint::Cursor& cursor, const mint::Ref
 
 mint::WeakReference mint_timezone_match(mint::Cursor& cursor, const mint::Reference& self,
     const mint::Reference& other) {
-	if (mint::is_instance_of(self, mint::Class::libobject) && mint::is_instance_of(other, mint::Class::libobject)) {
+	if (mint::is_instance_of(self, mint::Class::Metatype::libobject)
+	    && mint::is_instance_of(other, mint::Class::Metatype::libobject)) {
 		return mint::create_boolean(*self.data<mint::LibObject<std::chrono::time_zone>>().ptr
 		                            == *other.data<mint::LibObject<std::chrono::time_zone>>().ptr);
 	}
-	if (mint::is_instance_of(self, mint::Data::number_format)
-	    && mint::is_instance_of(other, mint::Data::number_format)) {
+	if (mint::is_instance_of(self, mint::Data::Format::number)
+	    && mint::is_instance_of(other, mint::Data::Format::number)) {
 		return mint::create_boolean(to_offset(cursor, self) == to_offset(cursor, other));
 	}
 	return mint::create_boolean(false);
@@ -158,14 +159,14 @@ mint::WeakReference mint_timezone_seconds_since_epoch(mint::Cursor& cursor, cons
 	    + std::chrono::minutes(mint::to_integer<int>(cursor, min))
 	    + std::chrono::seconds(mint::to_integer<int>(cursor, sec)));
 
-	if (mint::is_instance_of(zoneinfo, mint::Class::libobject)) {
+	if (mint::is_instance_of(zoneinfo, mint::Class::Metatype::libobject)) {
 		const auto date_time =
 		    std::chrono::zoned_time<std::chrono::seconds>(zoneinfo.data<mint::LibObject<std::chrono::time_zone>>().ptr,
 		        std::chrono::local_days(date) + time.to_duration())
 		        .get_sys_time();
 		return mint::create_signed_number(date_time.time_since_epoch().count());
 	}
-	if (mint::is_instance_of(zoneinfo, mint::Data::number_format)) {
+	if (mint::is_instance_of(zoneinfo, mint::Data::Format::number)) {
 		const auto offset = to_offset(cursor, zoneinfo);
 		const auto date_time = std::chrono::sys_time<std::chrono::seconds>(
 		    std::chrono::sys_days(date) + time.to_duration() - offset);
@@ -190,14 +191,14 @@ mint::WeakReference mint_timezone_milliseconds_since_epoch(mint::Cursor& cursor,
 	    + std::chrono::seconds(mint::to_integer<int>(cursor, sec))
 	    + std::chrono::milliseconds(mint::to_integer<int>(cursor, msec)));
 
-	if (mint::is_instance_of(zoneinfo, mint::Class::libobject)) {
+	if (mint::is_instance_of(zoneinfo, mint::Class::Metatype::libobject)) {
 		const auto date_time = std::chrono::zoned_time<std::chrono::milliseconds>(
 		    zoneinfo.data<mint::LibObject<std::chrono::time_zone>>().ptr,
 		    std::chrono::local_days(date) + time.to_duration())
 		                           .get_sys_time();
 		return mint::create_signed_number(date_time.time_since_epoch().count());
 	}
-	if (mint::is_instance_of(zoneinfo, mint::Data::number_format)) {
+	if (mint::is_instance_of(zoneinfo, mint::Data::Format::number)) {
 		const auto offset = to_offset(cursor, zoneinfo);
 		const auto date_time = std::chrono::sys_time<std::chrono::milliseconds>(
 		    std::chrono::sys_days(date) + time.to_duration() - offset);
@@ -221,7 +222,7 @@ mint::WeakReference mint_timezone_time_from_time_point(mint::Cursor& cursor, con
 	const auto time = std::chrono::hh_mm_ss<std::chrono::milliseconds>(
 	    std::chrono::local_time(zoned_time.get_local_time() - days).time_since_epoch());
 
-	return create_iterator_from(cursor.ast(), mint::create_signed_number(static_cast<int>(date.year())),
+	return create_iterator_from(cursor, mint::create_signed_number(static_cast<int>(date.year())),
 	    mint::create_signed_number(static_cast<unsigned>(date.month())),
 	    mint::create_signed_number(static_cast<unsigned>(date.day())), mint::create_signed_number(time.hours().count()),
 	    mint::create_signed_number(time.minutes().count()), mint::create_signed_number(time.seconds().count()),
@@ -243,7 +244,7 @@ mint::WeakReference mint_timezone_time_from_seconds(mint::Cursor& cursor, const 
 	const auto time = std::chrono::hh_mm_ss<std::chrono::seconds>(
 	    std::chrono::local_time(zoned_time.get_local_time() - days).time_since_epoch());
 
-	return create_iterator_from(cursor.ast(), mint::create_signed_number(static_cast<int>(date.year())),
+	return create_iterator_from(cursor, mint::create_signed_number(static_cast<int>(date.year())),
 	    mint::create_signed_number(static_cast<unsigned>(date.month())),
 	    mint::create_signed_number(static_cast<unsigned>(date.day())), mint::create_signed_number(time.hours().count()),
 	    mint::create_signed_number(time.minutes().count()), mint::create_signed_number(time.seconds().count()));
@@ -265,7 +266,7 @@ mint::WeakReference mint_timezone_time_from_milliseconds(mint::Cursor& cursor, c
 	const auto time = std::chrono::hh_mm_ss<std::chrono::milliseconds>(
 	    std::chrono::local_time(zoned_time.get_local_time() - days).time_since_epoch());
 
-	return create_iterator_from(cursor.ast(), mint::create_signed_number(static_cast<int>(date.year())),
+	return create_iterator_from(cursor, mint::create_signed_number(static_cast<int>(date.year())),
 	    mint::create_signed_number(static_cast<unsigned>(date.month())),
 	    mint::create_signed_number(static_cast<unsigned>(date.day())), mint::create_signed_number(time.hours().count()),
 	    mint::create_signed_number(time.minutes().count()), mint::create_signed_number(time.seconds().count()),

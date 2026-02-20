@@ -25,6 +25,7 @@
 #define MINT_MEMORY_ALGORITHM_HPP
 
 #include "mint/ast/classregister.h"
+#include "mint/ast/cursor.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/library.h"
@@ -49,37 +50,37 @@ struct Overloaded : Ts... {
 template<class R, class Visitor>
 R visit(Visitor&& visitor, const Reference& reference) {
 	switch (reference.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		return std::invoke(std::forward<Visitor>(visitor), reference.data<None>());
-	case Data::null_format:
+	case Data::Format::null:
 		return std::invoke(std::forward<Visitor>(visitor), reference.data<Null>());
-	case Data::number_format:
+	case Data::Format::number:
 		return std::invoke(std::forward<Visitor>(visitor), reference.data<Number>());
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return std::invoke(std::forward<Visitor>(visitor), reference.data<Boolean>());
-	case Data::object_format:
+	case Data::Format::object:
 		switch (reference.data<Object>().metadata.metatype()) {
-		case Class::object:
+		case Class::Metatype::object:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data<Object>());
-		case Class::string:
+		case Class::Metatype::string:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data<String>());
-		case Class::regex:
+		case Class::Metatype::regex:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data<Regex>());
-		case Class::array:
+		case Class::Metatype::array:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data<Array>());
-		case Class::hash:
+		case Class::Metatype::hash:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data<Hash>());
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data<Iterator>());
-		case Class::library:
+		case Class::Metatype::library:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data<Library>());
-		case Class::libobject:
+		case Class::Metatype::libobject:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data());
 		}
 		return std::invoke(std::forward<Visitor>(visitor), reference.data<Object>());
-	case Data::package_format:
+	case Data::Format::package:
 		return std::invoke(std::forward<Visitor>(visitor), reference.data<Package>());
-	case Data::function_format:
+	case Data::Format::function:
 		return std::invoke(std::forward<Visitor>(visitor), reference.data<Function>());
 	}
 	if constexpr (!std::is_same_v<void, R>) {
@@ -88,37 +89,39 @@ R visit(Visitor&& visitor, const Reference& reference) {
 }
 
 template<class Function>
-void for_each(AbstractSyntaxTree& ast, const Reference& ref, Function function) {
+void for_each(Cursor& cursor, const Reference& ref, Function function) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		break;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			for (const auto& item : views::utf8(ref.data<String>().str)) {
-				auto substr = make_weak_reference<String>(Reference::const_address | Reference::const_value, ast, item);
+				auto substr = make_weak_reference<String>(Reference::const_address | Reference::const_value,
+				    cursor.ast(), item);
 				substr.data<String>().construct();
 				function(std::move(substr));
 			}
 			break;
-		case Class::array:
+		case Class::Metatype::array:
 			for (auto& item : ref.data<Array>().values) {
 				function(std::forward<Reference>(item));
 			}
 			break;
-		case Class::hash:
+		case Class::Metatype::hash:
 			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value, ast);
-				iterator_yield(element.data<Iterator>(), hash_get_key(item));
-				iterator_yield(element.data<Iterator>(), hash_get_value(item));
+				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value,
+				    cursor.ast());
+				iterator_yield(cursor, element.data<Iterator>(), hash_get_key(item));
+				iterator_yield(cursor, element.data<Iterator>(), hash_get_value(item));
 				element.data<Iterator>().construct();
 				function(std::move(element));
 			}
 			break;
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			while (!ref.data<Iterator>().ctx.empty()) {
 				function(ref.data<Iterator>().ctx.get());
-				ref.data<Iterator>().ctx.next();
+				ref.data<Iterator>().ctx.next(cursor);
 			}
 			break;
 		default:
@@ -132,45 +135,47 @@ void for_each(AbstractSyntaxTree& ast, const Reference& ref, Function function) 
 }
 
 template<class Function>
-bool for_each_if(AbstractSyntaxTree& ast, const Reference& ref, Function function) {
+bool for_each_if(Cursor& cursor, const Reference& ref, Function function) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		break;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			for (const auto& item : views::utf8(ref.data<String>().str)) {
-				auto substr = make_weak_reference<String>(Reference::const_address | Reference::const_value, ast, item);
+				auto substr = make_weak_reference<String>(Reference::const_address | Reference::const_value,
+				    cursor.ast(), item);
 				substr.data<String>().construct();
 				if (!function(std::move(substr))) [[unlikely]] {
 					return false;
 				}
 			}
 			break;
-		case Class::array:
+		case Class::Metatype::array:
 			for (auto& item : ref.data<Array>().values) {
 				if (!function(std::forward<Reference>(item))) [[unlikely]] {
 					return false;
 				}
 			}
 			break;
-		case Class::hash:
+		case Class::Metatype::hash:
 			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value, ast);
-				iterator_yield(element.data<Iterator>(), hash_get_key(item));
-				iterator_yield(element.data<Iterator>(), hash_get_value(item));
+				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value,
+				    cursor.ast());
+				iterator_yield(cursor, element.data<Iterator>(), hash_get_key(item));
+				iterator_yield(cursor, element.data<Iterator>(), hash_get_value(item));
 				element.data<Iterator>().construct();
 				if (!function(std::move(element))) [[unlikely]] {
 					return false;
 				}
 			}
 			break;
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			while (!ref.data<Iterator>().ctx.empty()) {
 				if (!function(ref.data<Iterator>().ctx.get())) [[unlikely]] {
 					return false;
 				}
-				ref.data<Iterator>().ctx.next();
+				ref.data<Iterator>().ctx.next(cursor);
 			}
 			break;
 		default:

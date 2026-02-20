@@ -25,7 +25,7 @@
 
 #include "mint/ast/module.h"
 #include "mint/debug/debuginfo.h"
-#include "mint/memory/algorithm.hpp"
+#include "mint/memory/algorithm.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/libobject.h"
@@ -164,7 +164,7 @@ std::string reference_value(const mint::Reference& reference) {
 	        },
 	        [](mint::Data& object) -> std::string {
 		        if (mint::is_instance_of(mint::WeakReference(mint::Reference::default_flags, object),
-		                mint::Class::libobject)) {
+		                mint::Class::Metatype::libobject)) {
 			        return object_value(object);
 		        }
 		        return "unknown";

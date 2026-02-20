@@ -74,7 +74,7 @@ Destructor::~Destructor() {}
 
 void Destructor::setup() {
 	auto _ = ProcessorLocker();
-	assert(_member.data().format() == Data::function_format);
+	assert(_member.data().format() == Data::Format::function);
 	cursor().stack().emplace_back(Reference::default_flags, *_object);
 	cursor().waiting_calls().emplace(_member, _owner);
 	call_member_operator(cursor(), 0);

@@ -40,7 +40,7 @@
 using namespace mint;
 
 HashClass& HashClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<HashClass>(Class::hash);
+	return ast.global_data().builtin<HashClass>(Class::Metatype::hash);
 }
 
 Hash::Hash(AbstractSyntaxTree& ast) :
@@ -83,7 +83,7 @@ void Hash::mark() {
 }
 
 HashClass::HashClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "hash", Class::hash) {
+    Class(ast.global_data(), "hash", Class::Metatype::hash) {
 
 	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
@@ -179,7 +179,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 	}));
 
 	create_builtin_member(in_operator, ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
-		cursor.stack().back() = create_iterator_over(cursor.ast(), cursor.stack().back());
+		cursor.stack().back() = create_iterator_over(cursor, cursor.stack().back());
 	}));
 
 	create_builtin_member(in_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {

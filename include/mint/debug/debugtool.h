@@ -38,6 +38,7 @@ namespace mint {
 
 class Array;
 class Boolean;
+class Coroutine;
 class Cursor;
 class Function;
 class Hash;
@@ -67,6 +68,7 @@ std::string to_debug_string(Cursor& cursor, const Hash& hash);
 std::string to_debug_string(Cursor& cursor, const Iterator& iterator);
 std::string to_debug_string(const Package& package);
 std::string to_debug_string(Cursor& cursor, const Function& function);
+std::string to_debug_string(Cursor& cursor, const Coroutine& coroutine);
 std::string to_debug_string(Cursor& cursor, const Reference& constant);
 
 }

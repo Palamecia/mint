@@ -19,7 +19,7 @@ TEST(array, join) {
 	                                                       });
 
 	const auto result = scheduler.invoke(array, mint::Symbol("join"), mint::create_string(scheduler.ast(), ", "));
-	ASSERT_EQ(mint::Data::object_format, result.data().format());
-	ASSERT_EQ(mint::Class::string, result.data<mint::Object>().metadata.metatype());
+	ASSERT_EQ(mint::Data::Format::object, result.data().format());
+	ASSERT_EQ(mint::Class::Metatype::string, result.data<mint::Object>().metadata.metatype());
 	EXPECT_EQ("a, b, c", result.data<mint::String>().str);
 }

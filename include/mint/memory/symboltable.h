@@ -127,7 +127,7 @@ void SymbolTable::reserve_fast(std::size_t count) {
 }
 
 WeakReference& SymbolTable::setup_fast(const Symbol& name, std::size_t index, Reference::Flags flags) {
-	assert(_fasts[index] == nullptr || _fasts[index]->data().format() == Data::none_format);
+	assert(_fasts[index] == nullptr || _fasts[index]->data().format() == Data::Format::none);
 	return create_fast_reference(flags, name, index);
 }
 

@@ -138,7 +138,7 @@ void Completer::find_context_symbols_helper(PackageData* pack, ClassDescription*
     const std::string& token, std::string::size_type offset) {
 
 	if (member) {
-		if (member->data().format() == Data::object_format) {
+		if (member->data().format() == Data::Format::object) {
 			for (const auto& [symbol, _] : member->data<Object>().metadata.members()) {
 				if (token_match(symbol.str(), token)) {
 					_completions.push_back({

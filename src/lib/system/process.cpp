@@ -117,7 +117,7 @@ mint::WeakReference mint_process_list(mint::Cursor& cursor) {
 
 	if (HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0); snap != INVALID_HANDLE_VALUE) {
 		for (BOOL found = Process32First(snap, &pe); found; found = Process32Next(snap, &pe)) {
-			iterator_yield(result.data<mint::Iterator>(), mint::create_number(pe.th32ProcessID));
+			iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(pe.th32ProcessID));
 		}
 		CloseHandle(snap);
 	}
@@ -130,7 +130,7 @@ mint::WeakReference mint_process_list(mint::Cursor& cursor) {
 			auto pid = static_cast<pid_t>(strtol(process->d_name, &error, 10));
 
 			if (!*error) {
-				mint::iterator_yield(result.data<mint::Iterator>(), mint::create_number(pid));
+				mint::iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(pid));
 			}
 		}
 
@@ -162,7 +162,7 @@ mint::WeakReference mint_process_get_handle(mint::Cursor& cursor, const mint::Re
 }
 
 mint::WeakReference mint_process_get_pid(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
-	if (handle.data().format() != mint::Data::none_format) {
+	if (handle.data().format() != mint::Data::Format::none) {
 #ifdef MINT_OS_WINDOWS
 		return mint::create_number(GetProcessId(to_handle(handle)));
 #else
@@ -174,7 +174,7 @@ mint::WeakReference mint_process_get_pid(mint::Cursor& /*cursor*/, const mint::R
 
 mint::WeakReference mint_process_close_handle(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
-	if (handle.data().format() != mint::Data::none_format) {
+	if (handle.data().format() != mint::Data::Format::none) {
 		CloseHandle(to_handle(handle));
 	}
 #else
@@ -217,12 +217,12 @@ mint::WeakReference mint_process_start(mint::Cursor& cursor, const mint::Referen
 		command << L" " << escape(utf8_to_windows(to_string(array_get_item(argv))));
 	}
 
-	if (working_directory.data().format() != mint::Data::none_format) {
+	if (working_directory.data().format() != mint::Data::Format::none) {
 		const auto working_directory_str = utf8_to_windows(to_string(working_directory));
 		process_working_directory = _wcsdup(working_directory_str.c_str());
 	}
 
-	if (environment.data().format() != mint::Data::none_format) {
+	if (environment.data().format() != mint::Data::Format::none) {
 		process_environment = new wchar_t*[environment.data<mint::Hash>().values.size() + 1];
 		creation_flags |= CREATE_UNICODE_ENVIRONMENT;
 		std::size_t var_pos = 0;
@@ -236,7 +236,7 @@ mint::WeakReference mint_process_start(mint::Cursor& cursor, const mint::Referen
 		process_environment[var_pos] = nullptr;
 	}
 
-	if (pipes.data().format() != mint::Data::none_format) {
+	if (pipes.data().format() != mint::Data::Format::none) {
 
 		auto get_pipe_handle = [](const mint::Reference& pipes, intmax_t pipe, intmax_t handle) {
 			return to_handle(
@@ -263,12 +263,12 @@ mint::WeakReference mint_process_start(mint::Cursor& cursor, const mint::Referen
 
 	if (CreateProcessW(nullptr, const_cast<wchar_t*>(command_line.data()), nullptr, nullptr, false, creation_flags,
 	        process_environment, process_working_directory, &startup_info, &process_info)) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_handle(cursor.ast(), process_info.hProcess));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_handle(cursor.ast(), process_info.hProcess));
 		CloseHandle(process_info.hThread);
 	}
 	else {
-		iterator_yield(result.data<mint::Iterator>(),
+		iterator_yield(cursor, result.data<mint::Iterator>(),
 		    mint::create_number(mint::errno_from_error_code(mint::last_error_code())));
 	}
 #else
@@ -288,12 +288,12 @@ mint::WeakReference mint_process_start(mint::Cursor& cursor, const mint::Referen
 
 		args.push_back(nullptr);
 
-		if (working_directory.data().format() != mint::Data::none_format) {
+		if (working_directory.data().format() != mint::Data::Format::none) {
 			std::string working_directory_str = to_string(working_directory);
 			chdir(working_directory_str.data());
 		}
 
-		if (pipes.data().format() != mint::Data::none_format) {
+		if (pipes.data().format() != mint::Data::Format::none) {
 
 			const auto stdin_pipe = array_get_item(pipes.data<mint::Array>(), STDIN_FILENO);
 			const auto stdout_pipe = array_get_item(pipes.data<mint::Array>(), STDOUT_FILENO);
@@ -313,7 +313,7 @@ mint::WeakReference mint_process_start(mint::Cursor& cursor, const mint::Referen
 			}
 		}
 
-		if (environment.data().format() != mint::Data::none_format) {
+		if (environment.data().format() != mint::Data::Format::none) {
 
 			auto envp = std::vector<char*>(std::from_range,
 			    std::views::transform(environment.data<mint::Hash>().values, [](auto& var) -> char* {
@@ -333,11 +333,11 @@ mint::WeakReference mint_process_start(mint::Cursor& cursor, const mint::Referen
 	}
 
 	if (pid != -1) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_handle(cursor.ast(), pid));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_handle(cursor.ast(), pid));
 	}
 	else {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno));
 	}
 #endif
 
@@ -357,7 +357,7 @@ mint::WeakReference mint_process_getcmdline(mint::Cursor& cursor, const mint::Re
 
 		for (int argn = 0; argn < argc; ++argn) {
 			if (results.data<mint::Iterator>().ctx.empty()) {
-				iterator_yield(results.data<mint::Iterator>(),
+				iterator_yield(cursor, results.data<mint::Iterator>(),
 				    mint::create_string(cursor.ast(), windows_to_utf8(argv[argn])));
 			}
 			else {
@@ -365,7 +365,7 @@ mint::WeakReference mint_process_getcmdline(mint::Cursor& cursor, const mint::Re
 			}
 		}
 
-		iterator_yield(results.data<mint::Iterator>(), std::move(args));
+		iterator_yield(cursor, results.data<mint::Iterator>(), std::move(args));
 	}
 
 	return results;
@@ -383,7 +383,7 @@ mint::WeakReference mint_process_getcmdline(mint::Cursor& cursor, const mint::Re
 
 	while (getdelim(&buffer, &buffer_length, 0, cmdline) != -1) {
 		if (results.data<mint::Iterator>().ctx.empty()) {
-			iterator_yield(results.data<mint::Iterator>(),
+			iterator_yield(cursor, results.data<mint::Iterator>(),
 			    create_string(cursor.ast(), std::string(buffer, buffer_length)));
 		}
 		else {
@@ -392,7 +392,7 @@ mint::WeakReference mint_process_getcmdline(mint::Cursor& cursor, const mint::Re
 		}
 	}
 
-	iterator_yield(results.data<mint::Iterator>(), std::move(args));
+	iterator_yield(cursor, results.data<mint::Iterator>(), std::move(args));
 	std::fclose(cmdline);
 	std::free(buffer);
 

@@ -26,7 +26,7 @@
 
 #include "mint/config.h"
 #include "mint/memory/data.h"
-#include "mint/memory/memorypool.hpp"
+#include "mint/memory/memorypool.h"
 #include "mint/memory/garbagecollector.h"
 #include <concepts>
 #include <cstdint>

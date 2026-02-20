@@ -129,7 +129,7 @@ void RangeIteratorData::mark() {
 }
 
 Iterator::Context::Type RangeIteratorData::get_type() const {
-	return Iterator::Context::range;
+	return Iterator::Context::Type::range;
 }
 
 Iterator::Context::value_type& RangeIteratorData::get() {
@@ -144,16 +144,17 @@ void RangeIteratorData::reserve(std::size_t /*capacity*/) {
 	assert(false);
 }
 
-void RangeIteratorData::yield(Iterator::Context::value_type&& value) {
+void RangeIteratorData::yield(Cursor& /*cursor*/, Iterator::Context::value_type&& value,
+    Iterator::ResumeKind /*resume_kind*/) {
 	const auto consumer = WeakReference(std::move(value));
 	assert(false);
 }
 
-void RangeIteratorData::next() {
+void RangeIteratorData::next(Cursor& /*cursor*/) {
 	_head = creat_item(_func.get().inc(_head.data<Number>().value));
 }
 
-void RangeIteratorData::finalize() {}
+void RangeIteratorData::finalize(Cursor& /*cursor*/) {}
 
 void RangeIteratorData::clear() {
 	_head = _tail;

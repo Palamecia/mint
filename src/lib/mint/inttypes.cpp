@@ -72,17 +72,17 @@ public:
 	static number_t* create(mint::Cursor& cursor, mint::Reference& value) {
 
 		switch (value.data().format()) {
-		case mint::Data::none_format:
-		case mint::Data::null_format:
+		case mint::Data::Format::none:
+		case mint::Data::Format::null:
 			return new number_t(0);
-		case mint::Data::number_format:
-		case mint::Data::boolean_format:
+		case mint::Data::Format::number:
+		case mint::Data::Format::boolean:
 			return new number_t(to_integer<number_t>(cursor, value));
-		case mint::Data::object_format:
+		case mint::Data::Format::object:
 			switch (value.data<mint::Object>().metadata.metatype()) {
-			case mint::Class::string:
+			case mint::Class::Metatype::string:
 				return new number_t(mint::to_integer<number_t>(to_string(value)));
-			case mint::Class::object:
+			case mint::Class::Metatype::object:
 				if (mint::is_instance_of(value, symbols::int8)) {
 					return new number_t(
 					    static_cast<number_t>(*get_d_ptr(value).data<mint::LibObject<std::int8_t>>().ptr));

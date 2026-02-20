@@ -1,4 +1,5 @@
 /**
+ * @license
  * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,28 +20,14 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides coroutine support.
  */
 
-#ifndef EVALRESULTPRINTER_H
-#define EVALRESULTPRINTER_H
-
-#include "mint/ast/cursor.h"
-#include "mint/ast/printer.h"
-#include "mint/memory/reference.h"
-#include <functional>
-#include <vector>
-
-class EvalResultPrinter : public mint::Printer {
-public:
-	EvalResultPrinter(mint::Cursor& cursor);
-
-	void print(const mint::Reference& reference) override;
-
-	[[nodiscard]] mint::WeakReference result();
-
-private:
-	std::reference_wrapper<mint::Cursor> _cursor;
-	std::vector<mint::WeakReference> _results;
-};
-
-#endif // EVALRESULTPRINTER_H
+/**
+ * Execute `coroutine` without event loop and return the result.
+ */
+def [g_lib = lib('libmint-mint')] spawn(%coroutine) {
+    return g_lib.call('mint_coroutine_call', coroutine)
+}

@@ -665,7 +665,7 @@ void DapDebugger::on_variables(const DapRequestMessage& request, const JsonObjec
 						continue;
 					}
 					auto& reference = mint::Class::MemberInfo::get(member.get(), *object);
-					if (is_instance_of(reference, mint::Data::object_format)
+					if (is_instance_of(reference, mint::Data::Format::object)
 					    && !reference.data<mint::Object>().metadata.slots().empty()) {
 						variables.push_back(JsonObject {
 						    {"name", JsonString(symbol.str())},
@@ -688,7 +688,7 @@ void DapDebugger::on_variables(const DapRequestMessage& request, const JsonObjec
 			}
 			else {
 				for (const auto& [symbol, reference] : *symbols) {
-					if (is_instance_of(reference, mint::Data::object_format)
+					if (is_instance_of(reference, mint::Data::Format::object)
 					    && !reference.data<mint::Object>().metadata.slots().empty()) {
 						variables.push_back(JsonObject {
 						    {"name", JsonString(symbol.str())},

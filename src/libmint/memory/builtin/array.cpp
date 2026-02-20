@@ -28,7 +28,7 @@
 #include "mint/memory/reference.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/functiontool.h"
-#include "mint/memory/algorithm.hpp"
+#include "mint/memory/algorithm.h"
 #include "mint/memory/casttool.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
@@ -59,7 +59,7 @@ inline Array::values_type::const_iterator array_next(const Array& array, std::si
 }
 
 ArrayClass& ArrayClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<ArrayClass>(Class::array);
+	return ast.global_data().builtin<ArrayClass>(Class::Metatype::array);
 }
 
 Array::Array(AbstractSyntaxTree& ast) :
@@ -101,7 +101,7 @@ void Array::mark() {
 }
 
 ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "array", Class::array) {
+    Class(ast.global_data(), "array", Class::Metatype::array) {
 
 	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
@@ -198,6 +198,16 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
+	create_builtin_member("push", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+		const auto base = get_stack_base(cursor);
+		const auto& other = load_from_stack(cursor, base);
+		const auto& self = load_from_stack(cursor, base - 1);
+
+		array_append(self.data<Array>(), other);
+
+		cursor.stack().pop_back();
+	}));
+
 	create_builtin_member(band_operator, ast.create_builtin_method(*this, 2, R"""(
 		def (const self, const other) {
 			var store = {}
@@ -218,13 +228,13 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		const auto& index = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
 
-		if ((index.data().format() != Data::object_format)
-		    || (index.data<Object>().metadata.metatype() != Class::iterator)) {
+		if ((index.data().format() != Data::Format::object)
+		    || (index.data<Object>().metadata.metatype() != Class::Metatype::iterator)) {
 			const auto index_value = to_signed_integer(cursor, index);
 			cursor.stack().pop_back();
 			cursor.stack().back() = array_get_item(self.data<Array>(), index_value);
 		}
-		else if (index.data<Iterator>().ctx.get_type() == Iterator::Context::range) {
+		else if (index.data<Iterator>().ctx.get_type() == Iterator::Context::Type::range) {
 
 			auto range = index.data<Iterator>().ctx.view();
 			std::size_t begin_index = array_index(self.data<Array>(), to_signed_integer(cursor, range.front()));
@@ -248,7 +258,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 
 			WeakReference result = create_array(cursor.ast());
 
-			while (std::optional<WeakReference>&& item = iterator_next(index.data<Iterator>())) {
+			while (std::optional<WeakReference>&& item = iterator_next(cursor, index.data<Iterator>())) {
 				result.data<Array>().values.emplace_back(array_get_item(
 				    self.data<Array>().values[array_index(self.data<Array>(), to_signed_integer(cursor, *item))]));
 			}
@@ -264,8 +274,8 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		Reference& index = load_from_stack(cursor, base - 1);
 		Reference& self = load_from_stack(cursor, base - 2);
 
-		if ((index.data().format() != Data::object_format)
-		    || (index.data<Object>().metadata.metatype() != Class::iterator)) {
+		if ((index.data().format() != Data::Format::object)
+		    || (index.data<Object>().metadata.metatype() != Class::Metatype::iterator)) {
 			Reference&& result = array_get_item(self.data<Array>(), to_signed_integer(cursor, index));
 			result.move_data(value);
 			cursor.stack().pop_back();
@@ -273,7 +283,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			cursor.stack().pop_back();
 			cursor.stack().emplace_back(std::move(result));
 		}
-		else if (index.data<Iterator>().ctx.get_type() == Iterator::Context::range) {
+		else if (index.data<Iterator>().ctx.get_type() == Iterator::Context::Type::range) {
 
 			auto range = index.data<Iterator>().ctx.view();
 			std::size_t begin_index = array_index(self.data<Array>(), to_signed_integer(cursor, range.front()));
@@ -284,7 +294,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 				std::swap(begin_index, end_index);
 			}
 
-			for_each(cursor.ast(), value, [&self, &begin_index, &end_index](const Reference& ref) {
+			for_each(cursor, value, [&self, &begin_index, &end_index](const Reference& ref) {
 				if (begin_index <= end_index) {
 					self.data<Array>().values[begin_index++].move_data(ref);
 				}
@@ -304,12 +314,12 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 
 			std::size_t offset = 0;
 
-			for_each(cursor.ast(), value, [&cursor, &self, &offset, &index](const Reference& ref) {
+			for_each(cursor, value, [&cursor, &self, &offset, &index](const Reference& ref) {
 				if (!index.data<Iterator>().ctx.empty()) {
 					offset = array_index(self.data<Array>(),
 					    to_signed_integer(cursor, index.data<Iterator>().ctx.get()));
 					self.data<Array>().values[offset++].move_data(ref);
-					index.data<Iterator>().ctx.next();
+					index.data<Iterator>().ctx.next(cursor);
 				}
 				else {
 					self.data<Array>().values.insert(array_next(self.data<Array>(), offset++), array_item(ref));
@@ -321,7 +331,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			while (!index.data<Iterator>().ctx.empty()) {
 				to_remove.insert(
 				    array_index(self.data<Array>(), to_signed_integer(cursor, index.data<Iterator>().ctx.get())));
-				index.data<Iterator>().ctx.next();
+				index.data<Iterator>().ctx.next(cursor);
 			}
 
 			for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {
@@ -346,7 +356,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 	}));
 
 	create_builtin_member(in_operator, ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
-		cursor.stack().back() = create_iterator_over(cursor.ast(), cursor.stack().back());
+		cursor.stack().back() = create_iterator_over(cursor, cursor.stack().back());
 	}));
 
 	create_builtin_member(in_operator, ast.create_builtin_method(*this, 2, R"""(
@@ -380,12 +390,12 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		const auto& index = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
 
-		if ((index.data().format() != Data::object_format)
-		    || (index.data<Object>().metadata.metatype() != Class::iterator)) {
+		if ((index.data().format() != Data::Format::object)
+		    || (index.data<Object>().metadata.metatype() != Class::Metatype::iterator)) {
 			self.data<Array>().values.erase(
 			    array_next(self.data<Array>(), array_index(self.data<Array>(), to_signed_integer(cursor, index))));
 		}
-		else if (index.data<Iterator>().ctx.get_type() == Iterator::Context::range) {
+		else if (index.data<Iterator>().ctx.get_type() == Iterator::Context::Type::range) {
 
 			auto range = index.data<Iterator>().ctx.view();
 			std::size_t begin_index = array_index(self.data<Array>(), to_signed_integer(cursor, range.front()));
@@ -405,7 +415,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			while (!index.data<Iterator>().ctx.empty()) {
 				to_remove.insert(
 				    array_index(self.data<Array>(), to_signed_integer(cursor, index.data<Iterator>().ctx.get())));
-				index.data<Iterator>().ctx.next();
+				index.data<Iterator>().ctx.next(cursor);
 			}
 
 			for (auto i = to_remove.rbegin(); i != to_remove.rend(); ++i) {
@@ -414,6 +424,13 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		}
 
 		cursor.stack().pop_back();
+	}));
+
+	create_builtin_member("pop", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+		const Reference& self = cursor.stack().back();
+		auto item = std::move(self.data<Array>().values.back());
+		self.data<Array>().values.pop_back();
+		cursor.stack().back() = std::move(item);
 	}));
 
 	create_builtin_member("clear", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {

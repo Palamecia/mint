@@ -25,7 +25,7 @@
 #include "mint/config.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/iterator.h"
-#include "mint/memory/algorithm.hpp"
+#include "mint/memory/algorithm.h"
 #include "mint/memory/casttool.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
@@ -85,7 +85,7 @@ void string_format(Cursor& cursor, std::string& dest, const std::string& format,
 				continue;
 			}
 
-			std::optional<WeakReference> argv = iterator_next(args);
+			std::optional<WeakReference> argv = iterator_next(cursor, args);
 			StringFormatFlags flags = 0;
 			bool handled = false;
 
@@ -130,7 +130,7 @@ void string_format(Cursor& cursor, std::string& dest, const std::string& format,
 						error("incomplete format '{}'", format);
 					}
 					field_width = to_signed_integer(cursor, *argv);
-					argv = iterator_next(args);
+					argv = iterator_next(cursor, args);
 					if (field_width < 0) {
 						field_width = -field_width;
 						flags |= string_left;
@@ -156,7 +156,7 @@ void string_format(Cursor& cursor, std::string& dest, const std::string& format,
 							error("incomplete format '{}'", format);
 						}
 						precision = to_signed_integer(cursor, *argv);
-						argv = iterator_next(args);
+						argv = iterator_next(cursor, args);
 					}
 					precision = std::max(precision, std::intmax_t {0});
 				}
@@ -276,7 +276,7 @@ void string_format(Cursor& cursor, std::string& dest, const std::string& format,
 }
 
 StringClass& StringClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<StringClass>(Class::string);
+	return ast.global_data().builtin<StringClass>(Class::Metatype::string);
 }
 
 String::String(AbstractSyntaxTree& ast) :
@@ -313,7 +313,7 @@ String& String::operator=(const String& other) {
 }
 
 StringClass::StringClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "string", Class::string) {
+    Class(ast.global_data(), "string", Class::Metatype::string) {
 
 	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
@@ -386,12 +386,12 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		std::string result;
 
-		if (is_instance_of(values, Class::iterator)) {
+		if (is_instance_of(values, Class::Metatype::iterator)) {
 			string_format(cursor, result, self.data<String>().str, values.data<Iterator>());
 		}
 		else {
 			auto it = create_iterator(cursor.ast());
-			iterator_yield(it.data<Iterator>(), std::move(values));
+			iterator_yield(cursor, it.data<Iterator>(), std::move(values));
 			string_format(cursor, result, self.data<String>().str, it.data<Iterator>());
 		}
 
@@ -503,13 +503,13 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const auto& self = load_from_stack(cursor, base - 1);
 		WeakReference result = create_string(cursor.ast());
 
-		if ((index.data().format() != Data::object_format)
-		    || (index.data<Object>().metadata.metatype() != Class::iterator)) {
+		if ((index.data().format() != Data::Format::object)
+		    || (index.data<Object>().metadata.metatype() != Class::Metatype::iterator)) {
 			std::string& string_ref = self.data<String>().str;
 			auto offset = string_index(string_ref, to_signed_integer(cursor, index));
 			result.data<String>().str = *(utf8iterator(string_ref.begin()) + offset);
 		}
-		else if (index.data<Iterator>().ctx.get_type() == Iterator::Context::range) {
+		else if (index.data<Iterator>().ctx.get_type() == Iterator::Context::Type::range) {
 
 			const std::string& string_ref = self.data<String>().str;
 			auto range = index.data<Iterator>().ctx.view();
@@ -531,7 +531,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 		else {
 			std::string& string_ref = self.data<String>().str;
-			while (std::optional<WeakReference>&& item = iterator_next(index.data<Iterator>())) {
+			while (std::optional<WeakReference>&& item = iterator_next(cursor, index.data<Iterator>())) {
 				result.data<String>().str += *(
 				    utf8iterator(string_ref.begin()) + string_index(string_ref, to_signed_integer(cursor, *item)));
 			}
@@ -549,8 +549,8 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		auto& index = load_from_stack(cursor, base - 1);
 		const auto& self = load_from_stack(cursor, base - 2);
 
-		if ((index.data().format() != Data::object_format)
-		    || (index.data<Object>().metadata.metatype() != Class::iterator)) {
+		if ((index.data().format() != Data::Format::object)
+		    || (index.data<Object>().metadata.metatype() != Class::Metatype::iterator)) {
 			std::string& string_ref = self.data<String>().str;
 			auto offset = string_index(string_ref, to_signed_integer(cursor, index));
 			auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
@@ -562,7 +562,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			cursor.stack().pop_back();
 			cursor.stack().emplace_back(std::forward<Reference>(value));
 		}
-		else if (index.data<Iterator>().ctx.get_type() == Iterator::Context::range) {
+		else if (index.data<Iterator>().ctx.get_type() == Iterator::Context::Type::range) {
 
 			std::string& string_ref = self.data<String>().str;
 			auto range = index.data<Iterator>().ctx.view();
@@ -588,13 +588,13 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			std::size_t offset = 0;
 			std::string& string_ref = self.data<String>().str;
 
-			for_each(cursor.ast(), value, [&cursor, &string_ref, &offset, &index](const Reference& ref) {
+			for_each(cursor, value, [&cursor, &string_ref, &offset, &index](const Reference& ref) {
 				if (!index.data<Iterator>().ctx.empty()) {
 					offset = utf8_code_point_index_to_byte_index(string_ref,
 					    string_index(string_ref, to_signed_integer(cursor, index.data<Iterator>().ctx.get())));
 					const auto utf8_length = utf8_code_point_length(static_cast<byte_t>(string_ref.at(offset)));
 					string_ref.replace(offset, utf8_length, to_string(ref));
-					index.data<Iterator>().ctx.next();
+					index.data<Iterator>().ctx.next(cursor);
 					offset += utf8_length;
 				}
 				else {
@@ -611,7 +611,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 				    string_index(string_ref, to_signed_integer(cursor, index.data<Iterator>().ctx.get())));
 				const auto utf8_length = utf8_code_point_length(static_cast<byte_t>(string_ref.at(offset)));
 				to_remove.insert({offset, utf8_length});
-				index.data<Iterator>().ctx.next();
+				index.data<Iterator>().ctx.next(cursor);
 			}
 
 			for (const auto& i : std::views::reverse(to_remove)) {
@@ -639,7 +639,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 	}));
 
 	create_builtin_member(in_operator, ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
-		cursor.stack().back() = create_iterator_over(cursor.ast(), cursor.stack().back());
+		cursor.stack().back() = create_iterator_over(cursor, cursor.stack().back());
 	}));
 
 	create_builtin_member(in_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
@@ -698,7 +698,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		const auto utf8_start = utf8_code_point_index_to_byte_index(self.data<String>().str,
 		    to_signed_integer(cursor, from));
-		const auto utf8_length = length.data().format() != Data::none_format
+		const auto utf8_length = length.data().format() != Data::Format::none
 		                             ? utf8_substring_byte_count(self.data<String>().str, utf8_start,
 		                                   to_signed_integer(cursor, length))
 		                             : std::string::npos;
@@ -721,7 +721,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 			std::string str = self.data<String>().str;
 
-			if (is_instance_of(pattern, Class::regex)) {
+			if (is_instance_of(pattern, Class::Metatype::regex)) {
 				str = regex_replace(str, to_regex(pattern), after);
 			}
 			else {
@@ -738,7 +738,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 		else {
 
-			if (is_instance_of(pattern, Class::regex)) {
+			if (is_instance_of(pattern, Class::Metatype::regex)) {
 				self.data<String>().str = regex_replace(self.data<String>().str, to_regex(pattern), after);
 			}
 			else {
@@ -794,7 +794,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const auto& self = load_from_stack(cursor, base - 1);
 		bool result = false;
 
-		if (is_instance_of(other, Class::regex)) {
+		if (is_instance_of(other, Class::Metatype::regex)) {
 			result = regex_search(self.data<String>().str, to_regex(other));
 		}
 		else {
@@ -812,7 +812,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const auto& self = load_from_stack(cursor, base - 1);
 
 		auto pos = std::string::npos;
-		if (is_instance_of(other, Class::regex)) {
+		if (is_instance_of(other, Class::Metatype::regex)) {
 			std::smatch match;
 			if (regex_search(self.data<String>().str, match, to_regex(other))) {
 				pos = static_cast<decltype(pos)>(match.position(0));
@@ -842,7 +842,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		auto start = utf8_code_point_index_to_byte_index(self.data<String>().str,
 		    static_cast<std::size_t>(to_number(cursor, from)));
 		if (start != std::string::npos) {
-			if (is_instance_of(other, Class::regex)) {
+			if (is_instance_of(other, Class::Metatype::regex)) {
 				const auto expr = to_regex(other);
 				auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(), expr);
 				auto end = std::sregex_iterator();
@@ -875,7 +875,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const auto& self = load_from_stack(cursor, base - 1);
 
 		auto pos = std::string::npos;
-		if (is_instance_of(other, Class::regex)) {
+		if (is_instance_of(other, Class::Metatype::regex)) {
 			const auto expr = to_regex(other);
 			auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(), expr);
 			auto end = std::sregex_iterator();
@@ -907,7 +907,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		auto start = utf8_code_point_index_to_byte_index(self.data<String>().str,
 		    static_cast<std::size_t>(to_number(cursor, from)));
 		if (start != std::string::npos) {
-			if (is_instance_of(other, Class::regex)) {
+			if (is_instance_of(other, Class::Metatype::regex)) {
 				const auto expr = to_regex(other);
 				auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(), expr);
 				auto end = std::sregex_iterator();
@@ -939,7 +939,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const auto& self = load_from_stack(cursor, base - 1);
 		bool result = false;
 
-		if (is_instance_of(other, Class::regex)) {
+		if (is_instance_of(other, Class::Metatype::regex)) {
 			std::smatch match;
 			if (regex_search(self.data<String>().str, match, to_regex(other))) {
 				result = match.position(0) == 0;
@@ -963,7 +963,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const auto& self = load_from_stack(cursor, base - 1);
 		bool result = false;
 
-		if (is_instance_of(other, Class::regex)) {
+		if (is_instance_of(other, Class::Metatype::regex)) {
 			result = false;
 			const auto expr = to_regex(other);
 			auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(), expr);

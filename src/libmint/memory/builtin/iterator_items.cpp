@@ -23,7 +23,7 @@
 
 #include "iterator_items.h"
 #include "iterator_p.h"
-#include "mint/ast/classregister.h"
+#include "mint/ast/cursor.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
@@ -87,40 +87,41 @@ ItemsIteratorData::ItemsIteratorData(std::size_t capacity) :
 	_data = g_allocator.allocate(_capacity);
 }
 
-ItemsIteratorData::ItemsIteratorData(AbstractSyntaxTree& ast, const Reference& ref) {
+ItemsIteratorData::ItemsIteratorData(Cursor& cursor, const Reference& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		_capacity = 1;
 		_data = g_allocator.allocate(_capacity);
 		break;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			_capacity = ref.data<String>().str.size();
 			_data = g_allocator.allocate(_capacity);
 			for (const auto& item : views::utf8(ref.data<String>().str)) {
-				std::construct_at(_data + _size++, create_string(ast, item));
+				std::construct_at(_data + _size++, create_string(cursor.ast(), item));
 			}
 			break;
-		case Class::array:
+		case Class::Metatype::array:
 			_capacity = ref.data<Array>().values.size();
 			_data = g_allocator.allocate(_capacity);
 			for (auto& item : ref.data<Array>().values) {
 				std::construct_at(_data + _size++, array_get_item(item));
 			}
 			break;
-		case Class::hash:
+		case Class::Metatype::hash:
 			_capacity = ref.data<Hash>().values.size();
 			_data = g_allocator.allocate(_capacity);
 			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value, ast, 2);
-				element.data<Iterator>().ctx.yield(hash_get_key(item));
-				element.data<Iterator>().ctx.yield(hash_get_value(item));
+				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value,
+				    cursor.ast(), 2);
+				element.data<Iterator>().ctx.yield(cursor, hash_get_key(item));
+				element.data<Iterator>().ctx.yield(cursor, hash_get_value(item));
 				element.data<Iterator>().construct();
 				std::construct_at(_data + _size++, element);
 			}
 			break;
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			_capacity = ref.data<Iterator>().ctx.size();
 			_data = g_allocator.allocate(_capacity);
 			for (const Reference& item : ref.data<Iterator>().ctx) {
@@ -142,40 +143,41 @@ ItemsIteratorData::ItemsIteratorData(AbstractSyntaxTree& ast, const Reference& r
 	}
 }
 
-ItemsIteratorData::ItemsIteratorData(AbstractSyntaxTree& ast, Reference&& ref) {
+ItemsIteratorData::ItemsIteratorData(Cursor& cursor, Reference&& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		_capacity = 1;
 		_data = g_allocator.allocate(_capacity);
 		break;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			_capacity = ref.data<String>().str.size();
 			_data = g_allocator.allocate(_capacity);
 			for (const auto& item : views::utf8(ref.data<String>().str)) {
-				std::construct_at(_data + _size++, create_string(ast, item));
+				std::construct_at(_data + _size++, create_string(cursor.ast(), item));
 			}
 			break;
-		case Class::array:
+		case Class::Metatype::array:
 			_capacity = ref.data<Array>().values.size();
 			_data = g_allocator.allocate(_capacity);
 			for (auto& item : ref.data<Array>().values) {
 				std::construct_at(_data + _size++, array_get_item(item));
 			}
 			break;
-		case Class::hash:
+		case Class::Metatype::hash:
 			_capacity = ref.data<Hash>().values.size();
 			_data = g_allocator.allocate(_capacity);
 			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value, ast, 2);
-				element.data<Iterator>().ctx.yield(hash_get_key(item));
-				element.data<Iterator>().ctx.yield(hash_get_value(item));
+				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value,
+				    cursor.ast(), 2);
+				element.data<Iterator>().ctx.yield(cursor, hash_get_key(item));
+				element.data<Iterator>().ctx.yield(cursor, hash_get_value(item));
 				element.data<Iterator>().construct();
 				std::construct_at(_data + _size++, element);
 			}
 			break;
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			_capacity = ref.data<Iterator>().ctx.size();
 			_data = g_allocator.allocate(_capacity);
 			for (const Reference& item : ref.data<Iterator>().ctx) {
@@ -237,7 +239,7 @@ void ItemsIteratorData::mark() {
 }
 
 Iterator::Context::Type ItemsIteratorData::get_type() const {
-	return Iterator::Context::items;
+	return Iterator::Context::Type::items;
 }
 
 Iterator::Context::value_type& ItemsIteratorData::get() {
@@ -266,7 +268,8 @@ void ItemsIteratorData::reserve(std::size_t capacity) {
 	}
 }
 
-void ItemsIteratorData::yield(Iterator::Context::value_type&& value) {
+void ItemsIteratorData::yield(Cursor& /*cursor*/, Iterator::Context::value_type&& value,
+    Iterator::ResumeKind /*resume_kind*/) {
 	if (_size >= _capacity) {
 		increase_size();
 	}
@@ -274,14 +277,14 @@ void ItemsIteratorData::yield(Iterator::Context::value_type&& value) {
 	++_size;
 }
 
-void ItemsIteratorData::next() {
+void ItemsIteratorData::next(Cursor& /*cursor*/) {
 	assert(_size != 0);
 	std::destroy_at(_data + _pos);
 	_pos = (_pos + 1) % _capacity;
 	--_size;
 }
 
-void ItemsIteratorData::finalize() {}
+void ItemsIteratorData::finalize(Cursor& /*cursor*/) {}
 
 void ItemsIteratorData::clear() {
 	for (std::size_t i = 0; i < _size; ++i) {

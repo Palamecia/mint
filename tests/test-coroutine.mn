@@ -1,0 +1,549 @@
+load test.case
+load test.errorcatcher
+load mint.coroutine
+
+class TestCoroutine : Test.Case {
+    const def testSimpleWait(self) {
+        async def f() {
+            return 5
+        }
+        async def [...] g() {
+            let x = await f()
+            return x + 1
+        }
+        self.expectEqual(6, spawn(g()))
+    }
+
+    const def testNestedWait(self) {
+        async def a() { return 1 }
+        async def [...] b() { return await a() }
+        async def [...] c() { return await b() }
+        self.expectEqual(1, spawn(c()))
+    }
+
+    const def testWithParameter(self) {
+        async def f(seed) {
+            return seed + 4
+        }
+        self.expectEqual(6, spawn(f(2)))
+    }
+
+    const def testGenerator(self) {
+        async def f() {
+            yield none
+            return 42
+        }
+        let result = spawn(f())
+        self.expectEqual('iterator', typeof result)
+        self.expectNotDefined(result.next())
+        self.expectEqual(42, result.next())
+    }
+
+    const def testGeneratorOnly(self) {
+        async def f() {
+            yield 1
+            yield 2
+            yield 3
+        }
+        let result = spawn(f())
+        self.expectEqual('iterator', typeof result)
+        self.expectEqual(1, result.next())
+        self.expectEqual(2, result.next())
+        self.expectEqual(3, result.next())
+        self.expectEqual(true, result.isEmpty())
+    }
+    
+    const def testAwaitNestedGenerator(self) {
+        async def f() {
+            yield none
+            return 42
+        }
+        async def [...] g() {
+            return await f()
+        }
+        let result = spawn(f())
+        self.expectEqual('iterator', typeof result)
+        self.expectNotDefined(result.next())
+        self.expectEqual(42, result.next())
+    }
+
+    const def testAwaitNestedGeneratorOnly(self) {
+        async def f() {
+            yield 1
+            yield 2
+            yield 3
+        }
+        async def [...] g() {
+            return await f()
+        }
+        let result = spawn(f())
+        self.expectEqual('iterator', typeof result)
+        self.expectEqual(1, result.next())
+        self.expectEqual(2, result.next())
+        self.expectEqual(3, result.next())
+        self.expectEqual(true, result.isEmpty())
+    }
+
+    /*const def testAwaitNestedGeneratorWithOperation(self) {
+        async def f() {
+            yield 1
+            return 2
+        }
+        async def [...] g() {
+            for let i in await f() {
+                yield i + 1
+            }
+        }
+        let result = spawn(f())
+        self.expectEqual('iterator', typeof result)
+        self.expectEqual(2, result.next())
+        self.expectEqual(3, result.next())
+        self.expectEqual(true, result.isEmpty())
+    }*/
+
+    const def testDeepAwaitChain(self) {
+        async def leaf() {
+            return 1
+        }
+        async def [...] level2() {
+            let x = await leaf()
+            return x + 1
+        }
+        async def [...] level1() {
+            let y = await level2()
+            return y + 1
+        }
+        async def [...] root() {
+            return await level1()
+        }
+        self.expectEqual(3, spawn(root()))
+    }
+
+    const def testAwaitInsideLoop(self) {
+        async def inc(x) {
+            return x + 1
+        }
+        async def [...] test() {
+            let sum = 0
+            for let i in (1, 2, 3) {
+                sum = sum + await inc(i)
+            }
+            return sum
+        }
+        self.expectEqual(9, spawn(test()))
+    }
+
+    const def testAwaitInsideConditionalBranch(self) {
+        async def value(x) {
+            return x * 2
+        }
+        async def [...] test(flag) {
+            if flag {
+                return await value(5)
+            } else {
+                return await value(10)
+            }
+        }
+        self.expectEqual(10, spawn(test(true)))
+        self.expectEqual(20, spawn(test(false)))
+    }
+
+    const def testAwaitExpressionEvaluationOrder(self) {
+        async def a() { return 2 }
+        async def b() { return 3 }
+        async def [...] test() {
+            let x = 1 + await a() * await b()
+            return x
+        }
+        self.expectEqual(1 + 2 * 3, spawn(test()))
+    }
+
+    const def testAwaitInNestedBlocks(self) {
+        async def inner() {
+            return 5
+        }
+        async def [...] outer() {
+            if true {
+                if true {
+                    return await inner()
+                }
+            }
+        }
+        self.expectEqual(5, spawn(outer()))
+    }
+
+    const def testExceptionPropagationThroughAwait(self) {
+        async def boom() {
+            raise "error"
+        }
+        async def [...] test() {
+            try {
+                await boom()
+            } catch e {
+                return "caught"
+            }
+        }
+        self.expectEqual("caught", spawn(test()))
+    }
+
+    const def testExceptionBubblingAcrossMultipleLevels(self) {
+        async def fail() {
+            raise "x"
+        }
+        async def [...] middle() {
+            await fail()
+        }
+        async def [...] top() {
+            try {
+                await middle()
+            } catch e {
+                return "ok"
+            }
+        }
+        self.expectEqual("ok", spawn(top()))
+    }
+
+    const def testDoubleAwaitOnSameCoroutine(self) {
+        async def simple() {
+            return 10
+        }
+        let c = simple()
+        self.expectEqual(10, spawn(c))
+        try {
+            let catcher = Test.ErrorCatcher()
+            spawn(c)
+            self.fail()
+        } catch e {
+            self.expectEqual("cannot reuse already awaited coroutine", e.toString())
+        }
+    }
+
+    const def testAwaitInsideGeneratorExpression(self) {
+        async def inc(x) {
+            return x + 1
+        }
+        async def [...] test() {
+            let g = for let i in (1, 2, 3) => await inc(i)
+            let sum = 0
+            for let v in g {
+                sum = sum + v
+            }
+            return sum
+        }
+        self.expectEqual(9, spawn(test()))
+    }
+
+    const def testVariableCaptureAcrossSuspension(self) {
+        async def test() {
+            let x = 5
+            let y = await (async def [...]() { return x + 1 })()
+            x = 100
+            return y
+        }
+        self.expectEqual(6, spawn(test()))
+    }
+
+    const def testMassiveSuspensionDepth(self) {
+        async def [...] chain(n) {
+            if n == 0 {
+                return 0
+            }
+            return 1 + await chain(n - 1)
+        }
+        self.expectEqual(50, spawn(chain(50)))
+    }
+
+    const def testAwaitInSwitch(self) {
+        async def get(x) {
+            return x * 2
+        }
+        async def [...] test(v) {
+            let r =: switch v {
+                case 1 => await get(1)
+                case 2 => await get(2)
+                default => 0
+            }
+            return r
+        }
+        self.expectEqual(2, spawn(test(1)))
+        self.expectEqual(4, spawn(test(2)))
+    }
+
+    const def testAwaitInWhileLoopWithMutation(self) {
+        async def next_val(x) {
+            return x + 1
+        }
+        async def [...] test() {
+            let i = 0
+            while i < 3 {
+                i = await next_val(i)
+            }
+            return i
+        }
+        self.expectEqual(3, spawn(test()))
+    }
+
+    const def testTheMostImportantHiddenBug(self) {
+        async def test() {
+            let x = 1
+            let y = await (async def [...]() {
+                return x + 1
+            })()
+            return x + y
+        }
+        self.expectEqual(3, spawn(test()))
+    }
+
+    const def testStress(self) {
+        async def [...] inner(x) {
+            if x % 2 == 0 {
+                return x
+            }
+            return await inner(x - 1)
+        }
+        async def [...] test() {
+            let sum = 0
+            for let i in (1, 2, 3, 4, 5) {
+                sum = sum + await inner(i)
+            }
+            return sum
+        }
+        self.expectEqual(2 + 2 + 4 + 4, spawn(test()))
+    }
+
+    const def testInnerCatchPreventsPropagation(self) {
+        async def child() {
+            try {
+                raise "boom"
+            } catch e {
+                return "handled"
+            }
+        }
+        async def [...] parent() {
+            return await child()
+        }
+        self.expectEqual("handled", spawn(parent()))
+    }
+
+    const def testRethrowFromInnerCoroutine(self) {
+        async def child() {
+            try {
+                raise "boom"
+            } catch e {
+                raise "rethrow"
+            }
+        }
+        async def [...] parent() {
+            try {
+                await child()
+                return "bad"
+            } catch e {
+                return e
+            }
+        }
+        self.expectEqual("rethrow", spawn(parent()))
+    }
+
+    const def testAwaitInsideCatchBlock(self) {
+        async def fail() {
+            raise "boom"
+        }
+        async def recover() {
+            return "recovered"
+        }
+        async def [...] test() {
+            try {
+                await fail()
+            } catch e {
+                return await recover()
+            }
+        }
+        self.expectEqual("recovered", spawn(test()))
+    }
+
+    const def testExceptionAfterAwaitResumesCorrectly(self) {
+        async def ok() {
+            return 1
+        }
+        async def [...] test() {
+            let x = await ok()
+            raise "after"
+        }
+        async def [...] wrapper() {
+            try {
+                await test()
+            } catch e {
+                return e
+            }
+        }
+        self.expectEqual("after", spawn(wrapper()))
+    }
+
+    const def testMultipleAwaitsWithFailureInSecond(self) {
+        async def ok() { return 1 }
+        async def fail() { raise "boom" }
+        async def [...] test() {
+            await ok()
+            await fail()
+            return "bad"
+        }
+        async def [...] wrapper() {
+            try {
+                await test()
+            } catch e {
+                return "caught"
+            }
+        }
+        self.expectEqual("caught", spawn(wrapper()))
+    }
+
+    const def testNestedTryCatchAcrossAwaitBoundaries(self) {
+        async def fail() {
+            raise "boom"
+        }
+        async def [...] test() {
+            try {
+                try {
+                    await fail()
+                } catch e1 {
+                    raise "inner"
+                }
+            } catch e2 {
+                return e2
+            }
+        }
+        self.expectEqual("inner", spawn(test()))
+    }
+
+    const def testExceptionValueIntegrity(self) {
+        async def fail() {
+            raise "boom"
+        }
+        async def [...] test() {
+            try {
+                await fail()
+            } catch e {
+                return e
+            }
+        }
+        self.expectEqual("boom", spawn(test()))
+    }
+
+    const def testDeepRecursiveAwaitPropagation(self) {
+        async def [...] chain(n) {
+            if n == 0 {
+                raise "end"
+            }
+            await chain(n - 1)
+        }
+        async def [...] test() {
+            try {
+                await chain(10)
+            } catch e {
+                return e
+            }
+        }
+        self.expectEqual("end", spawn(test()))
+    }
+
+    const def testVariablePreservationAfterException(self) {
+        async def fail() {
+            raise "boom"
+        }
+        async def [...] test() {
+            let x = 5
+            try {
+                await fail()
+            } catch e {
+                return x
+            }
+        }
+        self.expectEqual(5, spawn(test()))
+    }
+
+    const def testAwaitInsideFinallyBlock(self) {
+        async def fail() {
+            raise "boom"
+        }
+        async def [...] test() {
+            try {
+                await fail()
+            }
+            return "cleanup"
+        }
+        self.expectEqual("cleanup", spawn(test()))
+    }
+
+    const def testExceptionInsideFinally(self) {
+        async def fail() {
+            raise "first"
+        }
+        async def [...] test() {
+            try {
+                await fail()
+            }
+            raise "second"
+        }
+        async def [...] wrapper() {
+            try {
+                await test()
+            } catch e {
+                return e
+            }
+        }
+        self.expectEqual("second", spawn(wrapper()))
+    }
+
+    const def testCallerThrowsAfterAwaitedException(self) {
+        async def fail() {
+            raise "boom"
+        }
+        async def [...] test() {
+            try {
+                await fail()
+            } catch e {
+                raise "caller_error"
+            }
+        }
+        async def [...] wrapper() {
+            try {
+                await test()
+            } catch e {
+                return e
+            }
+        }
+        self.expectEqual("caller_error", spawn(wrapper()))
+    }
+
+    const def testConcurrentAwaitIsolation(self) {
+        async def fail() {
+            raise "boom"
+        }
+        async def ok() {
+            return 1
+        }
+        async def [...] test() {
+            try {
+                await fail()
+            } catch e {
+                return await ok()
+            }
+        }
+        self.expectEqual(1, spawn(test()))
+    }
+
+    const def testUltimateExceptionDiagnostic(self) {
+        async def fail() {
+            raise "boom"
+        }
+        async def [...] test() {
+            let x = 10
+            try {
+                await fail()
+            } catch e {
+                return x + 1
+            }
+        }
+        self.expectEqual(11, spawn(test()))
+    }
+}

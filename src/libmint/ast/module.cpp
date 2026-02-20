@@ -69,7 +69,6 @@ Module::Handle& Module::make_handle(PackageData& package, std::size_t offset) {
 	    .offset = offset,
 	    .package = package,
 	    .fast_count = 0,
-	    .generator = false,
 	    .symbols = true,
 	}));
 }
@@ -80,8 +79,6 @@ Module::Handle& Module::make_builtin_handle(PackageData& package, std::size_t of
 	    .offset = offset,
 	    .package = package,
 	    .fast_count = 0,
-	    .generator = false,
-	    .symbols = false,
 	}));
 }
 

@@ -41,7 +41,7 @@
 #include "mint/system/error.h"
 #include "mint/system/filestream.h"
 #include "mint/system/filesystem.h"
-#include "mint/system/mintruntimeerror.hpp"
+#include "mint/system/mintruntimeerror.h"
 #include "mint/system/terminal.h"
 
 #include "bracematcher.h"
@@ -191,7 +191,7 @@ void Process::parse_argument(const std::string& arg) {
 		va_args.data<Iterator>().construct();
 		args = _cursor->symbols().emplace("va_args", std::move(va_args)).first;
 	}
-	iterator_yield(args->second.data<Iterator>(), create_string(_cursor->ast(), arg));
+	iterator_yield(*_cursor, args->second.data<Iterator>(), create_string(_cursor->ast(), arg));
 }
 
 void Process::setup() {

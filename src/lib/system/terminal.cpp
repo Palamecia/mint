@@ -223,16 +223,17 @@ mint::WeakReference mint_terminal_set_completion_generator(mint::FunctionHelper&
 		std::optional<std::vector<mint::Completion>> operator()(std::string_view str, std::string_view::size_type pos) {
 			auto result = _scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().ast(), str),
 			    mint::create_unsigned_number(pos));
-			if (mint::is_instance_of(result, mint::Data::none_format)) {
+			if (mint::is_instance_of(result, mint::Data::Format::none)) {
 				return std::nullopt;
 			}
 			auto results = std::vector<mint::Completion>();
-			auto it = mint::create_iterator_over(_scheduler.get().ast(), result);
-			while (std::optional<mint::WeakReference> item = mint::iterator_next(it.data<mint::Iterator>())) {
-				if (std::optional<mint::WeakReference> token = iterator_next(item->data<mint::Iterator>())) {
+			auto& cursor = mint::Scheduler::current_process()->cursor();
+			auto it = mint::create_iterator_over(cursor, result);
+			while (std::optional<mint::WeakReference> item = mint::iterator_next(cursor, it.data<mint::Iterator>())) {
+				if (std::optional<mint::WeakReference> token = iterator_next(cursor, item->data<mint::Iterator>())) {
 					results.push_back({
 					    .offset = to_integer<std::string::size_type>(mint::Scheduler::current_process()->cursor(),
-					        iterator_next(item->data<mint::Iterator>())
+					        iterator_next(cursor, item->data<mint::Iterator>())
 					            .value_or(mint::create_unsigned_number(std::string_view::npos))),
 					    .token = to_string(token.value()),
 					});
@@ -263,14 +264,15 @@ mint::WeakReference mint_terminal_set_brace_matcher(mint::FunctionHelper& helper
 
 			std::pair<std::string_view::size_type, bool> operator()(std::string_view str,
 			    std::string_view::size_type pos) {
-				auto result = mint::create_iterator_over(_scheduler.get().ast(),
+				auto& cursor = mint::Scheduler::current_process()->cursor();
+				auto result = mint::create_iterator_over(cursor,
 				    _scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().ast(), str),
 				        mint::create_unsigned_number(pos)));
 				const auto offset = to_integer<std::string_view::size_type>(mint::Scheduler::current_process()->cursor(),
-				    mint::iterator_next(result.data<mint::Iterator>())
+				    mint::iterator_next(cursor, result.data<mint::Iterator>())
 				        .value_or(mint::create_unsigned_number(std::string_view::npos)));
 				const bool balanced = to_boolean(
-				    mint::iterator_next(result.data<mint::Iterator>()).value_or(mint::create_boolean(false)));
+				    mint::iterator_next(cursor, result.data<mint::Iterator>()).value_or(mint::create_boolean(false)));
 				return {offset, balanced};
 			}
 		private:
@@ -340,16 +342,16 @@ mint::WeakReference mint_terminal_read(mint::Cursor& cursor, const mint::Referen
 mint::WeakReference mint_terminal_write(mint::Cursor& cursor, const mint::Reference& data) {
 	try {
 		if (is_instance_of(data, symbols::data_stream)) {
-			return create_iterator_from(cursor.ast(),
+			return create_iterator_from(cursor,
 			    mint::create_unsigned_number(
 			        write_to_term(stdout, *get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)),
 			    mint::create_none());
 		}
-		return create_iterator_from(cursor.ast(), mint::create_unsigned_number(write_to_term(stdout, to_string(data))),
+		return create_iterator_from(cursor, mint::create_unsigned_number(write_to_term(stdout, to_string(data))),
 		    mint::create_none());
 	}
 	catch (std::system_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_signed_number(EOF),
+		return create_iterator_from(cursor, mint::create_signed_number(EOF),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
@@ -357,16 +359,16 @@ mint::WeakReference mint_terminal_write(mint::Cursor& cursor, const mint::Refere
 mint::WeakReference mint_terminal_write_error(mint::Cursor& cursor, const mint::Reference& data) {
 	try {
 		if (is_instance_of(data, symbols::data_stream)) {
-			return create_iterator_from(cursor.ast(),
+			return create_iterator_from(cursor,
 			    mint::create_unsigned_number(
 			        write_to_term(stderr, *get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)),
 			    mint::create_none());
 		}
-		return create_iterator_from(cursor.ast(), mint::create_unsigned_number(write_to_term(stderr, to_string(data))),
+		return create_iterator_from(cursor, mint::create_unsigned_number(write_to_term(stderr, to_string(data))),
 		    mint::create_none());
 	}
 	catch (std::system_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_signed_number(EOF),
+		return create_iterator_from(cursor, mint::create_signed_number(EOF),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
@@ -382,7 +384,7 @@ mint::WeakReference mint_terminal_get_stdin_handle(mint::Cursor& cursor) {
 mint::WeakReference mint_terminal_wait(mint::Cursor& cursor, const mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 	mint::handle_t handle = GetStdHandle(STD_INPUT_HANDLE);
-	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::none_format)
+	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
 	                          ? INFINITE
 	                          : mint::to_integer<DWORD>(cursor, timeout);
 
@@ -393,7 +395,7 @@ mint::WeakReference mint_terminal_wait(mint::Cursor& cursor, const mint::Referen
 	    .events = POLLIN,
 	};
 
-	const int time_ms = is_instance_of(timeout, mint::Data::none_format) ? -1 : to_integer<int>(cursor, timeout);
+	const int time_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
 
 	if (const auto ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
 		return mint::create_boolean(true);

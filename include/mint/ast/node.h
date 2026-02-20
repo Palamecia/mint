@@ -142,6 +142,10 @@ union MINT_EXPORT Node {
 		unset_retrieve_point,
 		raise,
 
+		await,
+		exit_coroutine,
+		resume_coroutine,
+
 		yield,
 		exit_generator,
 		yield_exit_generator,

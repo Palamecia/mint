@@ -24,26 +24,31 @@
 #ifndef MINT_MEMORY_OBJECT_H
 #define MINT_MEMORY_OBJECT_H
 
+#include "mint/ast/savedstate.h"
 #include "mint/config.h"
 #include "mint/ast/symbol.h"
 #include "mint/ast/module.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/memorypool.hpp"
+#include "mint/memory/memorypool.h"
 
+#include <cassert>
 #include <concepts>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace mint {
 
 class Class;
 class Cursor;
 class PackageData;
+class SymbolTable;
 
 class MINT_EXPORT Number : public Data {
 	template<typename Type>
@@ -56,7 +61,7 @@ public:
 	explicit Number(std::uintmax_t value);
 
 	[[nodiscard]] Format format() const override {
-		return number_format;
+		return Format::number;
 	}
 
 	double value;
@@ -74,7 +79,7 @@ public:
 	explicit Boolean(bool value);
 
 	[[nodiscard]] Format format() const override {
-		return boolean_format;
+		return Format::boolean;
 	}
 
 	bool value;
@@ -97,7 +102,7 @@ public:
 	Object& operator=(const Object&) = delete;
 
 	[[nodiscard]] Format format() const override {
-		return object_format;
+		return Format::object;
 	}
 
 	Class& metadata;
@@ -130,7 +135,7 @@ public:
 	Package& operator=(Package&&) = delete;
 
 	[[nodiscard]] Format format() const override {
-		return package_format;
+		return Format::package;
 	}
 
 	PackageData& data;
@@ -297,7 +302,7 @@ public:
 	Function(const std::pair<int, Function::Signature>& mapping);
 
 	[[nodiscard]] Format format() const override {
-		return function_format;
+		return Format::function;
 	}
 
 	Mapping mapping;
@@ -307,6 +312,40 @@ public:
 private:
 	static LocalPool<Function> g_pool;
 };
+
+class MINT_EXPORT Coroutine : public Data {
+	template<typename Type>
+	friend class LocalPool;
+	friend class GarbageCollector;
+public:
+	Coroutine(std::unique_ptr<SavedState>&& state, std::size_t stack_size);
+
+	[[nodiscard]] Format format() const override {
+		return Format::coroutine;
+	}
+
+	[[nodiscard]] inline SymbolTable& symbols();
+
+	void call(Cursor& cursor, WeakReference&& self);
+	void await(Cursor& cursor, WeakReference&& self);
+	void resume(Cursor& cursor, WeakReference&& value);
+	void raise(Cursor& cursor);
+
+	void mark() override;
+
+private:
+	static LocalPool<Coroutine> g_pool;
+
+	std::unique_ptr<SavedState> _state;
+
+	std::vector<mint::WeakReference> _stored_stack;
+	std::size_t _stack_size;
+};
+
+SymbolTable& Coroutine::symbols() {
+	assert(_state && _state->context && _state->context->symbols);
+	return *_state->context->symbols;
+}
 
 }
 

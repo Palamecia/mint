@@ -215,23 +215,23 @@ TEST(memorytool, iterator_next) {
 	mint::Scheduler scheduler({});
 	auto process = scheduler.enable_testing();
 
-	const auto it = mint::create_iterator_from(scheduler.ast(), mint::create_number(0), mint::create_number(1));
+	const auto it = mint::create_iterator_from(process->cursor(), mint::create_number(0), mint::create_number(1));
 
 	{
 		ASSERT_TRUE(iterator_get(it.data<mint::Iterator>()));
-		auto item = std::move(*iterator_next(it.data<mint::Iterator>()));
-		ASSERT_EQ(mint::Data::number_format, item.data().format());
+		auto item = std::move(*iterator_next(process->cursor(), it.data<mint::Iterator>()));
+		ASSERT_EQ(mint::Data::Format::number, item.data().format());
 		EXPECT_EQ(0., item.data<mint::Number>().value);
 	}
 
 	{
 		ASSERT_TRUE(iterator_get(it.data<mint::Iterator>()));
-		auto item = std::move(*iterator_next(it.data<mint::Iterator>()));
-		ASSERT_EQ(mint::Data::number_format, item.data().format());
+		auto item = std::move(*iterator_next(process->cursor(), it.data<mint::Iterator>()));
+		ASSERT_EQ(mint::Data::Format::number, item.data().format());
 		EXPECT_EQ(1., item.data<mint::Number>().value);
 	}
 
-	EXPECT_FALSE(iterator_next(it.data<mint::Iterator>()));
+	EXPECT_FALSE(iterator_next(process->cursor(), it.data<mint::Iterator>()));
 }
 
 TEST(memorytool, regex_match) {

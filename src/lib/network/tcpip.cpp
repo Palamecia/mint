@@ -67,23 +67,23 @@ mint::WeakReference mint_tcp_ip_socket_open(mint::Cursor& cursor, const mint::Re
 		socket_fd = Scheduler::instance().open_socket(AF_INET6, SOCK_STREAM, 0);
 		break;
 	default:
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(EOPNOTSUPP));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(EOPNOTSUPP));
 		return result;
 	}
 
 	if (socket_fd != INVALID_SOCKET) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_unsigned_number(socket_fd));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_unsigned_number(socket_fd));
 		if (mint::set_socket_option(socket_fd, SO_REUSEADDR, mint::sockopt_true)) {
-			iterator_yield(result.data<mint::Iterator>(), mint::create_none());
+			iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
 		}
 		else {
-			iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno));
+			iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno));
 		}
 	}
 	else {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
 	}
 
 	return result;
@@ -112,26 +112,31 @@ mint::WeakReference mint_tcp_ip_socket_send(mint::FunctionHelper& helper, const 
 		switch (const int error = errno_from_io_last_error()) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
-			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_would_block).share());
+			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+			    io_status.member(mint::symbols::io_would_block).share());
 			Scheduler::instance().set_socket_blocked(socket_fd, true);
 			break;
 
 		case EPIPE:
-			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_closed).share());
+			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+			    io_status.member(mint::symbols::io_closed).share());
 			break;
 
 		default:
-			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_error).share());
-			iterator_yield(result.data<mint::Iterator>(), mint::create_number(error));
+			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+			    io_status.member(mint::symbols::io_error).share());
+			iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(error));
 			break;
 		}
 		break;
 	case 0:
-		iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_closed).share());
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+		    io_status.member(mint::symbols::io_closed).share());
 		break;
 	default:
-		iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_success).share());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_signed_number(count));
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+		    io_status.member(mint::symbols::io_success).share());
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_signed_number(count));
 		break;
 	}
 
@@ -163,33 +168,39 @@ mint::WeakReference mint_tcp_ip_socket_recv(mint::FunctionHelper& helper, const 
 			switch (const int error = errno_from_io_last_error()) {
 			case EINPROGRESS:
 			case EWOULDBLOCK:
-				iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_would_block).share());
+				iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+				    io_status.member(mint::symbols::io_would_block).share());
 				Scheduler::instance().set_socket_blocked(socket_fd, true);
 				break;
 
 			case EPIPE:
-				iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_closed).share());
+				iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+				    io_status.member(mint::symbols::io_closed).share());
 				break;
 
 			default:
-				iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_error).share());
-				iterator_yield(result.data<mint::Iterator>(), mint::create_number(error));
+				iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+				    io_status.member(mint::symbols::io_error).share());
+				iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(error));
 				break;
 			}
 			break;
 		case 0:
-			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_closed).share());
+			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+			    io_status.member(mint::symbols::io_closed).share());
 			break;
 		default:
-			iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_success).share());
+			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+			    io_status.member(mint::symbols::io_success).share());
 			std::copy_n(local_buffer.get(), count, std::back_inserter(*buf));
 			break;
 		}
 #ifdef MINT_OS_UNIX
 	}
 	else {
-		iterator_yield(result.data<mint::Iterator>(), io_status.member(mint::symbols::io_error).share());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno));
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
+		    io_status.member(mint::symbols::io_error).share());
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(errno));
 	}
 #endif
 
@@ -227,11 +238,11 @@ mint::WeakReference mint_socket_get_tcp_option_number(mint::Cursor& cursor, cons
 	int option_value = 0;
 
 	if (mint::get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(option_value));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(option_value));
 	}
 	else {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
 	}
 
 	return result;
@@ -261,11 +272,11 @@ mint::WeakReference mint_socket_get_tcp_option_boolean(mint::Cursor& cursor, con
 	mint::sockopt_bool option_value = mint::sockopt_false;
 
 	if (mint::get_socket_option(socket_fd, IPPROTO_TCP, option_id, &option_value)) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_boolean(option_value != mint::sockopt_false));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_boolean(option_value != mint::sockopt_false));
 	}
 	else {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
 	}
 
 	return result;

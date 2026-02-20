@@ -34,6 +34,8 @@
 const std::map<std::string, int> Lexer::keywords {
     {"and", parser::token::dbl_amp_token},
     {"assert", parser::token::assert_token},
+    {"async", parser::token::async_token},
+    {"await", parser::token::await_token},
     {"break", parser::token::break_token},
     {"case", parser::token::case_token},
     {"catch", parser::token::catch_token},
@@ -402,6 +404,8 @@ mint::Token mint::token_from_local_id(int id) {
 
 	BEGIN_TOKEN_CAST(id)
 	TOKEN_CAST(assert_token)
+	TOKEN_CAST(async_token)
+	TOKEN_CAST(await_token)
 	TOKEN_CAST(break_token)
 	TOKEN_CAST(case_token)
 	TOKEN_CAST(catch_token)

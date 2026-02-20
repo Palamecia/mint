@@ -130,7 +130,7 @@ mint::WeakReference mint_lang_get_object_locals(mint::Cursor& cursor, const mint
 
 	mint::WeakReference result = mint::create_hash(cursor.ast());
 
-	if (mint::is_instance_of(object, mint::Data::object_format)) {
+	if (mint::is_instance_of(object, mint::Data::Format::object)) {
 		for (const auto& [symbol, member] : object.data<mint::Object>().metadata.members()) {
 			if (!(member.get().value.flags() & mint::Reference::visibility_mask)) {
 				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
@@ -147,7 +147,7 @@ mint::WeakReference mint_lang_get_object_globals(mint::Cursor& cursor, const min
 	mint::WeakReference result = mint::create_hash(cursor.ast());
 
 	switch (object.data().format()) {
-	case mint::Data::object_format:
+	case mint::Data::Format::object:
 		for (const auto& [symbol, member] : object.data<mint::Object>().metadata.globals()) {
 			if (!(member.get().value.flags() & mint::Reference::visibility_mask)) {
 				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
@@ -155,7 +155,7 @@ mint::WeakReference mint_lang_get_object_globals(mint::Cursor& cursor, const min
 			}
 		}
 		break;
-	case mint::Data::package_format:
+	case mint::Data::Format::package:
 		for (const auto& [symbol, member] : object.data<mint::Package>().data.symbols()) {
 			hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()), member);
 		}
@@ -183,7 +183,7 @@ mint::WeakReference mint_lang_get_object_types(mint::Cursor& cursor, const mint:
 	mint::WeakReference result = mint::create_hash(cursor.ast());
 
 	switch (object.data().format()) {
-	case mint::Data::object_format:
+	case mint::Data::Format::object:
 		for (const auto& [symbol, type] : object.data<mint::Object>().metadata.classes()) {
 			if (!(type.get().value.flags() & mint::Reference::visibility_mask)) {
 				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
@@ -191,7 +191,7 @@ mint::WeakReference mint_lang_get_object_types(mint::Cursor& cursor, const mint:
 			}
 		}
 		break;
-	case mint::Data::package_format:
+	case mint::Data::Format::package:
 		for (const auto& [symbol, type] : object.data<mint::Package>().data.classes()) {
 			hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
 			    mint::create_alias(type));
@@ -249,7 +249,7 @@ mint::WeakReference mint_at_error(mint::FunctionHelper& helper, const mint::Refe
 			if (const mint::Process* process = mint::Scheduler::current_process()) {
 				for (const mint::LineInfo& info : process->cursor().dump()) {
 					array_append(backtrace.data<mint::Array>(),
-					    array_item(create_iterator_from(_scheduler.get().ast(),
+					    array_item(create_iterator_from(process->cursor(),
 					        mint::create_string(_scheduler.get().ast(), info.module_name()),
 					        mint::create_unsigned_number(info.line_number()))));
 				}
@@ -300,7 +300,7 @@ mint::WeakReference mint_lang_eval(mint::FunctionHelper& helper, const mint::Ref
 			process->cursor().symbols().emplace(mint::Symbol(to_string(symbol.first)), symbol.second);
 		}
 
-		auto printer = std::make_unique<EvalResultPrinter>(process->cursor().ast());
+		auto printer = std::make_unique<EvalResultPrinter>(process->cursor());
 		auto& printer_ref = *printer;
 		process->cursor().open_printer(std::move(printer));
 		mint::unlock_processor();
@@ -342,10 +342,10 @@ MINT_RAW_FUNCTION(mint_lang_backtrace, 1, cursor) {
 	cursor.exit_call();
 	cursor.exit_call();
 
-	if (is_instance_of(thread_id, mint::Data::none_format)) {
+	if (is_instance_of(thread_id, mint::Data::Format::none)) {
 		for (const mint::LineInfo& info : cursor.dump()) {
 			array_append(result.data<mint::Array>(),
-			    array_item(create_iterator_from(cursor.ast(), mint::create_string(cursor.ast(), info.module_name()),
+			    array_item(create_iterator_from(cursor, mint::create_string(cursor.ast(), info.module_name()),
 			        mint::create_unsigned_number(info.line_number()))));
 		}
 	}
@@ -353,7 +353,7 @@ MINT_RAW_FUNCTION(mint_lang_backtrace, 1, cursor) {
 		if (const auto* thread = scheduler->find_thread(mint::to_integer<mint::Process::ThreadId>(cursor, thread_id))) {
 			for (const mint::LineInfo& info : thread->cursor().dump()) {
 				array_append(result.data<mint::Array>(),
-				    array_item(create_iterator_from(cursor.ast(), mint::create_string(cursor.ast(), info.module_name()),
+				    array_item(create_iterator_from(cursor, mint::create_string(cursor.ast(), info.module_name()),
 				        mint::create_unsigned_number(info.line_number()))));
 			}
 		}

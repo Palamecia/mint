@@ -3,6 +3,7 @@
 
 #include "iterator_items.h"
 #include "iterator_p.h"
+#include "mint/ast/cursor.h"
 #include "mint/ast/savedstate.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/reference.h"
@@ -28,18 +29,19 @@ public:
 
 	[[nodiscard]] mint::Iterator::Context::Type get_type() const override;
 
-	void yield(mint::Iterator::Context::value_type&& value) override;
-	void next() override;
+	void yield(mint::Cursor& cursor, mint::Iterator::Context::value_type&& value,
+	    Iterator::ResumeKind resume_kind) override;
+	void next(mint::Cursor& cursor) override;
 
-	void finalize() override;
+	void finalize(mint::Cursor& cursor) override;
 
 private:
-	enum ExecutionMode : std::uint8_t {
+	enum class ExecutionMode : std::uint8_t {
 		single_pass,
 		interruptible
 	};
 
-	ExecutionMode _execution_mode = interruptible;
+	ExecutionMode _execution_mode = ExecutionMode::interruptible;
 	std::unique_ptr<mint::SavedState> _state;
 
 	std::vector<mint::WeakReference> _stored_stack;

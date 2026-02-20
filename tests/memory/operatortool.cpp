@@ -24,8 +24,8 @@ TEST(operatortool, call_overload) {
 	EXPECT_TRUE(mint::call_overload(cursor, "+", 1));
 	WAIT_FOR_RESULT(cursor);
 
-	EXPECT_EQ(mint::Data::object_format, cursor.stack().back().data().format());
-	EXPECT_EQ(mint::Class::string, cursor.stack().back().data<mint::Object>().metadata.metatype());
+	EXPECT_EQ(mint::Data::Format::object, cursor.stack().back().data().format());
+	EXPECT_EQ(mint::Class::Metatype::string, cursor.stack().back().data<mint::Object>().metadata.metatype());
 	EXPECT_EQ("foobar", cursor.stack().back().data<mint::String>().str);
 	cursor.stack().clear();
 

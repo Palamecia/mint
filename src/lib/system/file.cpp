@@ -53,13 +53,13 @@ mint::WeakReference file_time_to_date(const std::filesystem::file_time_type& tim
 
 mint::WeakReference mint_file_read_symlink(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_string(cursor.ast(),
 		        std::filesystem::read_symlink(std::filesystem::absolute(to_string(path))).generic_string()),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
@@ -68,10 +68,10 @@ mint::WeakReference mint_file_birth_time(mint::Cursor& cursor, const mint::Refer
 	try {
 		const std::filesystem::file_time_type time = mint::FileSystem::birth_time(
 		    std::filesystem::absolute(to_string(path)));
-		return create_iterator_from(cursor.ast(), file_time_to_date(time), mint::create_none());
+		return create_iterator_from(cursor, file_time_to_date(time), mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
@@ -80,10 +80,10 @@ mint::WeakReference mint_file_last_read_time(mint::Cursor& cursor, const mint::R
 	try {
 		const std::filesystem::file_time_type time = mint::FileSystem::last_read_time(
 		    std::filesystem::absolute(to_string(path)));
-		return create_iterator_from(cursor.ast(), file_time_to_date(time), mint::create_none());
+		return create_iterator_from(cursor, file_time_to_date(time), mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
@@ -92,193 +92,193 @@ mint::WeakReference mint_file_last_write_time(mint::Cursor& cursor, const mint::
 	try {
 		const std::filesystem::file_time_type time = std::filesystem::last_write_time(
 		    std::filesystem::absolute(to_string(path)));
-		return create_iterator_from(cursor.ast(), file_time_to_date(time), mint::create_none());
+		return create_iterator_from(cursor, file_time_to_date(time), mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_exists(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(std::filesystem::exists(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_size(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_unsigned_number(std::filesystem::file_size(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_is_root(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(mint::FileSystem::is_root(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_is_regular_file(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(std::filesystem::is_regular_file(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_is_directory(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(std::filesystem::is_directory(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_is_symlink(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(std::filesystem::is_symlink(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_is_bundle(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(mint::FileSystem::is_bundle(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_is_readable(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(mint::FileSystem::check_file_access(std::filesystem::absolute(to_string(path)),
 		        mint::FileSystem::readable_flag)),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_is_writable(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(mint::FileSystem::check_file_access(std::filesystem::absolute(to_string(path)),
 		        mint::FileSystem::writable_flag)),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_is_executable(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(mint::FileSystem::check_file_access(std::filesystem::absolute(to_string(path)),
 		        mint::FileSystem::executable_flag)),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_is_hidden(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(mint::FileSystem::is_hidden(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_owner(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_string(cursor.ast(), mint::FileSystem::owner(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_owner_id(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_signed_number(mint::FileSystem::owner_id(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_group(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_string(cursor.ast(), mint::FileSystem::group(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
 
 mint::WeakReference mint_file_group_id(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_signed_number(mint::FileSystem::group_id(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
@@ -286,13 +286,13 @@ mint::WeakReference mint_file_group_id(mint::Cursor& cursor, const mint::Referen
 mint::WeakReference mint_file_permission(mint::Cursor& cursor, const mint::Reference& path,
     mint::Reference& permissions) {
 	try {
-		return create_iterator_from(cursor.ast(),
+		return create_iterator_from(cursor,
 		    mint::create_boolean(mint::FileSystem::check_file_permissions(to_string(path),
 		        mint::to_integer<mint::FileSystem::Permissions>(cursor, permissions))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor.ast(), mint::create_none(),
+		return create_iterator_from(cursor, mint::create_none(),
 		    mint::create_number(mint::errno_from_error_code(error.code())));
 	}
 }
@@ -350,9 +350,9 @@ mint::WeakReference mint_file_remove(mint::Cursor& /*cursor*/, const mint::Refer
 mint::WeakReference mint_file_fopen(mint::Cursor& cursor, const mint::Reference& path, const mint::Reference& mode) {
 	try {
 		if (FILE* file = mint::open_file(mint::to_string(path), mint::to_string(mode).c_str())) {
-			return create_iterator_from(cursor.ast(), mint::create_c_object(cursor.ast(), file), mint::create_none());
+			return create_iterator_from(cursor, mint::create_c_object(cursor.ast(), file), mint::create_none());
 		}
-		return create_iterator_from(cursor.ast(), mint::create_null(), mint::create_number(errno));
+		return create_iterator_from(cursor, mint::create_null(), mint::create_number(errno));
 	}
 	catch (const std::filesystem::filesystem_error& error) {
 		return mint::create_number(mint::errno_from_error_code(error.code()));
@@ -380,7 +380,7 @@ mint::WeakReference mint_file_fileno(mint::Cursor& /*cursor*/, const mint::Refer
 
 mint::WeakReference mint_file_ftell(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 	const auto pos = ftell(d_ptr.data<mint::LibObject<FILE>>().ptr);
-	return mint::create_iterator_from(cursor.ast(), mint::create_number(pos),
+	return mint::create_iterator_from(cursor, mint::create_number(pos),
 	    (pos == -1L) ? mint::create_number(errno) : mint::create_none());
 }
 
@@ -447,7 +447,7 @@ mint::WeakReference mint_file_fwrite(mint::Cursor& cursor, const mint::Reference
 	const std::string str = to_string(value);
 
 	const auto amount = fwrite(str.data(), sizeof(char), str.size(), stream);
-	return mint::create_iterator_from(cursor.ast(), mint::create_number(static_cast<double>(amount)),
+	return mint::create_iterator_from(cursor, mint::create_number(static_cast<double>(amount)),
 	    (amount < str.size()) ? mint::create_number(errno) : mint::create_none());
 }
 
@@ -483,7 +483,7 @@ mint::WeakReference mint_file_fwrite_binary(mint::Cursor& cursor, const mint::Re
 
 	const auto amount = fwrite(bytearray->data(), sizeof(std::uint8_t), bytearray->size(), stream);
 
-	return create_iterator_from(cursor.ast(), mint::create_number(static_cast<double>(amount)),
+	return create_iterator_from(cursor, mint::create_number(static_cast<double>(amount)),
 	    (amount < bytearray->size()) ? mint::create_number(errno) : mint::create_none());
 }
 

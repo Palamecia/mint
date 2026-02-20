@@ -12,11 +12,11 @@ PRIVATE
 	errno.cpp
 	file.cpp
 	filesystem.cpp
-	future.cpp
 	locale.cpp
 	mutex.cpp
 	os.cpp
 	process.cpp
+	promise.cpp
 	terminal.cpp
 	thread.cpp
 	timezone.cpp

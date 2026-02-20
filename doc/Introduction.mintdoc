@@ -21,7 +21,7 @@ mint ./my-script.mn arg1 arg2 arg3
 It's also possible to run a script inline with the `--exec` option:
 
 ```shell
-mint --exec "print { 'Hello world !\n' }"
+mint --exec "print('Hello world !\n')"
 ```
 
 ## Syntax

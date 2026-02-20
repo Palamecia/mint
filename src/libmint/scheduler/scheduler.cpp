@@ -293,6 +293,40 @@ WeakReference Scheduler::invoke(const Reference& object, Class::Operator op, std
 	return result;
 }
 
+WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, Class::MemberInfo& info,
+    std::vector<WeakReference>& parameters) {
+
+	if (g_current.process.empty()) {
+		return {};
+	}
+
+	Cursor& cursor = g_current.process.back().get().cursor();
+	auto process = Process(cursor.make_thread());
+
+	try {
+
+		Cursor& callback_cursor = process.cursor();
+
+		callback_cursor.stack().emplace_back(object);
+		init_member_call(callback_cursor, method, info);
+		std::ranges::move(parameters, std::back_inserter(callback_cursor.stack()));
+		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
+
+		unlock_processor();
+		schedule(process);
+		lock_processor();
+	}
+	catch (MintException& raised) {
+		finalize_process(process);
+		lock_processor();
+		create_exception(raised.take_exception());
+	}
+
+	WeakReference result = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
+	return result;
+}
+
 class Future : public Process {
 public:
 	struct ResultHandle {
@@ -319,7 +353,7 @@ private:
 	ResultHandle* _handle = nullptr;
 };
 
-std::future<WeakReference> Scheduler::create_async(std::unique_ptr<Cursor>&& cursor) {
+std::future<WeakReference> Scheduler::create_async_thread(std::unique_ptr<Cursor>&& cursor) {
 	auto future = std::make_unique<Future>(std::move(cursor));
 	_thread_pool.start(*future);
 	return std::async(

@@ -35,7 +35,7 @@
 #include "mint/memory/garbagecollector.h"
 #include "mint/memory/memorytool.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/algorithm.hpp"
+#include "mint/memory/algorithm.h"
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
 #include "mint/system/error.h"
@@ -48,24 +48,24 @@
 using namespace mint;
 
 IteratorClass& IteratorClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<IteratorClass>(Class::iterator);
+	return ast.global_data().builtin<IteratorClass>(Class::Metatype::iterator);
 }
 
 Iterator::Iterator(AbstractSyntaxTree& ast) :
     Object(IteratorClass::instance(ast)),
     ctx(std::make_unique<mint::internal::ItemsIteratorData>()) {}
 
+Iterator::Iterator(Cursor& cursor, const Reference& ref) :
+    Object(IteratorClass::instance(cursor.ast())),
+    ctx(std::make_unique<mint::internal::ItemsIteratorData>(cursor, ref)) {}
+
+Iterator::Iterator(Cursor& cursor, Reference&& ref) :
+    Object(IteratorClass::instance(cursor.ast())),
+    ctx(std::make_unique<mint::internal::ItemsIteratorData>(cursor, std::move(ref))) {}
+
 Iterator::Iterator(AbstractSyntaxTree& ast, std::size_t capacity) :
     Object(IteratorClass::instance(ast)),
     ctx(std::make_unique<mint::internal::ItemsIteratorData>(capacity)) {}
-
-Iterator::Iterator(AbstractSyntaxTree& ast, const Reference& ref) :
-    Object(IteratorClass::instance(ast)),
-    ctx(std::make_unique<mint::internal::ItemsIteratorData>(ast, ref)) {}
-
-Iterator::Iterator(AbstractSyntaxTree& ast, Reference&& ref) :
-    Object(IteratorClass::instance(ast)),
-    ctx(std::make_unique<mint::internal::ItemsIteratorData>(ast, std::move(ref))) {}
 
 Iterator::Iterator(AbstractSyntaxTree& ast, std::unique_ptr<mint::internal::IteratorData>&& data) :
     Object(IteratorClass::instance(ast)),
@@ -106,7 +106,7 @@ void Iterator::mark() {
 }
 
 IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "iterator", Class::iterator) {
+    Class(ast.global_data(), "iterator", Class::Metatype::iterator) {
 
 	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
@@ -116,9 +116,9 @@ IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
 		auto it = self.data<Iterator>().ctx.begin();
 		const auto end = self.data<Iterator>().ctx.end();
 
-		for_each_if(cursor.ast(), other, [&it, &end](const Reference& item) -> bool {
+		for_each_if(cursor, other, [&it, &end](const Reference& item) -> bool {
 			if (it != end) {
-				if ((it->flags() & Reference::const_address) && (it->data().format() != Data::none_format))
+				if ((it->flags() & Reference::const_address) && (it->data().format() != Data::Format::none))
 				    [[unlikely]] {
 					error("invalid modification of constant reference");
 				}
@@ -141,7 +141,7 @@ IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
 			cursor.stack().back() = WeakReference(create_from, self.data<Iterator>().ctx.get());
 			// The next call can interrupt the current context,
 			// so the value must be pushed first
-			self.data<Iterator>().ctx.next();
+			self.data<Iterator>().ctx.next(cursor);
 		}
 		else {
 			cursor.stack().back() = create_none();
@@ -334,12 +334,12 @@ Iterator::Context::pointer Iterator::Context::iterator::operator->() const {
 }
 
 Iterator::Context::iterator Iterator::Context::iterator::operator++(int) {
-	_data->next();
+	_data->next(Scheduler::current_process()->cursor());
 	return Iterator::Context::iterator {_data};
 }
 
 Iterator::Context::iterator& Iterator::Context::iterator::operator++() {
-	_data->next();
+	_data->next(Scheduler::current_process()->cursor());
 	return *this;
 }
 
@@ -423,16 +423,16 @@ void Iterator::Context::reserve(std::size_t capacity) {
 	_data->reserve(capacity);
 }
 
-void Iterator::Context::yield(value_type&& value) {
-	_data->yield(std::move(value));
+void Iterator::Context::yield(Cursor& cursor, value_type&& value, Iterator::ResumeKind resume_kind) {
+	_data->yield(cursor, std::move(value), resume_kind);
 }
 
-void Iterator::Context::next() {
-	_data->next();
+void Iterator::Context::next(Cursor& cursor) {
+	_data->next(cursor);
 }
 
-void Iterator::Context::finalize() {
-	_data->finalize();
+void Iterator::Context::finalize(Cursor& cursor) {
+	_data->finalize(cursor);
 }
 
 void Iterator::Context::clear() {
@@ -454,33 +454,34 @@ void mint::iterator_new(Cursor& cursor, std::size_t length) {
 	    static_cast<std::vector<WeakReference>::difference_type>(length + call.extra_argument_count()));
 	const auto to = stack.end();
 	for (auto it = from; it != to; ++it) {
-		iterator_yield(self, std::move(*it));
+		iterator_yield(cursor, self, std::move(*it));
 	}
 
 	stack.erase(from, to);
 	stack.emplace_back(std::move(call.function()));
 }
 
-void mint::iterator_yield(Iterator& iterator, Reference&& item) {
-	iterator.ctx.yield(std::move(item));
+void mint::iterator_yield(Cursor& cursor, Iterator& iterator, Reference&& item) {
+	iterator.ctx.yield(cursor, std::move(item), Iterator::ResumeKind::next);
+}
+
+void mint::iterator_return(Cursor& cursor, Iterator& iterator, Reference&& item) {
+	iterator.ctx.yield(cursor, std::move(item), Iterator::ResumeKind::close);
+	cursor.exit_call();
 }
 
 std::optional<WeakReference> mint::iterator_get(Iterator& iterator) {
-
 	if (!iterator.ctx.empty()) {
 		return iterator.ctx.get();
 	}
-
 	return std::nullopt;
 }
 
-std::optional<WeakReference> mint::iterator_next(Iterator& iterator) {
-
+std::optional<WeakReference> mint::iterator_next(Cursor& cursor, Iterator& iterator) {
 	if (!iterator.ctx.empty()) {
 		std::optional<WeakReference> item(iterator.ctx.get());
-		iterator.ctx.next();
+		iterator.ctx.next(cursor);
 		return item;
 	}
-
 	return std::nullopt;
 }

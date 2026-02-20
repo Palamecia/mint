@@ -76,146 +76,152 @@ std::string number_to_char(std::intmax_t number) {
 
 double mint::to_number(Cursor& cursor, const Reference& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		error("invalid use of none value in an operation");
-	case Data::null_format:
+	case Data::Format::null:
 		cursor.raise(ref);
 		break;
-	case Data::number_format:
+	case Data::Format::number:
 		return ref.data<Number>().value;
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return ref.data<Boolean>().value;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			try {
 				return to_signed_number(ref.data<String>().str);
 			}
 			catch (std::exception&) {
 				return 0;
 			}
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
 			return to_number(cursor, create_none());
 		default:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_number(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+				return to_number(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
 			}
 			error("invalid conversion from '{}' to 'number'", type_name(ref));
 		}
 		break;
-	case Data::package_format:
+	case Data::Format::package:
 		error("invalid conversion from 'package' to 'number'");
-	case Data::function_format:
+	case Data::Format::function:
 		error("invalid conversion from 'function' to 'number'");
+	case Data::Format::coroutine:
+		error("invalid conversion from 'coroutine' to 'number'");
 	}
 	return 0;
 }
 
 double mint::to_number(Cursor& cursor, Reference&& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		error("invalid use of none value in an operation");
-	case Data::null_format:
+	case Data::Format::null:
 		cursor.raise(std::move(ref));
 		break;
-	case Data::number_format:
+	case Data::Format::number:
 		return ref.data<Number>().value;
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return ref.data<Boolean>().value;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			try {
 				return to_signed_number(ref.data<String>().str);
 			}
 			catch (std::exception&) {
 				return 0;
 			}
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
 			return to_number(cursor, create_none());
 		default:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_number(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+				return to_number(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
 			}
 			error("invalid conversion from '{}' to 'number'", type_name(ref));
 		}
 		break;
-	case Data::package_format:
+	case Data::Format::package:
 		error("invalid conversion from 'package' to 'number'");
-	case Data::function_format:
+	case Data::Format::function:
 		error("invalid conversion from 'function' to 'number'");
+	case Data::Format::coroutine:
+		error("invalid conversion from 'coroutine' to 'number'");
 	}
 	return 0;
 }
 
 std::intmax_t mint::to_signed_integer(Cursor& cursor, const Reference& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		error("invalid use of none value in an operation");
-	case Data::null_format:
+	case Data::Format::null:
 		cursor.raise(ref);
 		break;
-	case Data::number_format:
+	case Data::Format::number:
 		return to_signed_integer(ref.data<Number>().value);
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return ref.data<Boolean>().value;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			try {
 				return to_signed_integer(ref.data<String>().str);
 			}
 			catch (std::exception&) {
 				return 0;
 			}
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_signed_integer(cursor, *item);
 			}
 			return to_signed_integer(cursor, create_none());
 		default:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_signed_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+				return to_signed_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
 			}
 			error("invalid conversion from '{}' to 'number'", type_name(ref));
 		}
 		break;
-	case Data::package_format:
+	case Data::Format::package:
 		error("invalid conversion from 'package' to 'number'");
-	case Data::function_format:
+	case Data::Format::function:
 		error("invalid conversion from 'function' to 'number'");
+	case Data::Format::coroutine:
+		error("invalid conversion from 'coroutine' to 'number'");
 	}
 	return 0;
 }
 
 std::intmax_t mint::to_signed_integer(Cursor& cursor, Reference&& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		error("invalid use of none value in an operation");
-	case Data::null_format:
+	case Data::Format::null:
 		cursor.raise(std::move(ref));
 		break;
-	case Data::number_format:
+	case Data::Format::number:
 		return to_signed_integer(ref.data<Number>().value);
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return ref.data<Boolean>().value;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			return to_signed_integer(ref.data<String>().str);
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			try {
 				if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 					return to_signed_integer(cursor, *item);
@@ -226,124 +232,130 @@ std::intmax_t mint::to_signed_integer(Cursor& cursor, Reference&& ref) {
 				return 0;
 			}
 		default:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_signed_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+				return to_signed_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
 			}
 			error("invalid conversion from '{}' to 'number'", type_name(ref));
 		}
 		break;
-	case Data::package_format:
+	case Data::Format::package:
 		error("invalid conversion from 'package' to 'number'");
-	case Data::function_format:
+	case Data::Format::function:
 		error("invalid conversion from 'function' to 'number'");
+	case Data::Format::coroutine:
+		error("invalid conversion from 'coroutine' to 'number'");
 	}
 	return 0;
 }
 
 std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, const Reference& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		error("invalid use of none value in an operation");
-	case Data::null_format:
+	case Data::Format::null:
 		cursor.raise(ref);
 		break;
-	case Data::number_format:
+	case Data::Format::number:
 		return to_unsigned_integer(ref.data<Number>().value);
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return ref.data<Boolean>().value;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			try {
 				return to_unsigned_integer(ref.data<String>().str);
 			}
 			catch (std::exception&) {
 				return 0;
 			}
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_unsigned_integer(cursor, *item);
 			}
 			return to_unsigned_integer(cursor, create_none());
 		default:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_unsigned_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+				return to_unsigned_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
 			}
 			error("invalid conversion from '{}' to 'number'", type_name(ref));
 		}
 		break;
-	case Data::package_format:
+	case Data::Format::package:
 		error("invalid conversion from 'package' to 'number'");
-	case Data::function_format:
+	case Data::Format::function:
 		error("invalid conversion from 'function' to 'number'");
+	case Data::Format::coroutine:
+		error("invalid conversion from 'coroutine' to 'number'");
 	}
 	return 0;
 }
 
 std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, Reference&& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		error("invalid use of none value in an operation");
-	case Data::null_format:
+	case Data::Format::null:
 		cursor.raise(std::move(ref));
 		break;
-	case Data::number_format:
+	case Data::Format::number:
 		return to_unsigned_integer(ref.data<Number>().value);
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return ref.data<Boolean>().value;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			try {
 				return to_unsigned_integer(ref.data<String>().str);
 			}
 			catch (std::exception&) {
 				return 0;
 			}
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_unsigned_integer(cursor, *item);
 			}
 			return to_unsigned_integer(cursor, create_none());
 		default:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_unsigned_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number));
+				return to_unsigned_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
 			}
 			error("invalid conversion from '{}' to 'number'", type_name(ref));
 		}
 		break;
-	case Data::package_format:
+	case Data::Format::package:
 		error("invalid conversion from 'package' to 'number'");
-	case Data::function_format:
+	case Data::Format::function:
 		error("invalid conversion from 'function' to 'number'");
+	case Data::Format::coroutine:
+		error("invalid conversion from 'coroutine' to 'number'");
 	}
 	return 0;
 }
 
 bool mint::to_boolean(const Reference& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
-	case Data::null_format:
+	case Data::Format::none:
+	case Data::Format::null:
 		return false;
-	case Data::number_format:
+	case Data::Format::number:
 		return ref.data<Number>().value != 0.;
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return ref.data<Boolean>().value;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			return !ref.data<Iterator>().ctx.empty();
 		default:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_boolean)) {
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_boolean)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_boolean(scheduler->invoke(ref, builtin_symbols::to_boolean));
+				return to_boolean(scheduler->invoke(ref, builtin_symbols::to_boolean, *method));
 			}
 			break;
 		}
@@ -356,38 +368,40 @@ bool mint::to_boolean(const Reference& ref) {
 
 std::string mint::to_char(const Reference& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
-	case Data::null_format:
+	case Data::Format::none:
+	case Data::Format::null:
 		return {};
-	case Data::number_format:
+	case Data::Format::number:
 		return number_to_char(to_signed_integer(ref.data<Number>().value));
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return ref.data<Boolean>().value ? "y" : "n";
-	case Data::object_format:
-		if (ref.data<Object>().metadata.metatype() == Class::string) {
+	case Data::Format::object:
+		if (ref.data<Object>().metadata.metatype() == Class::Metatype::string) {
 			return *const_utf8iterator(ref.data<String>().str.begin());
 		}
-		if (ref.data<Object>().metadata.find_member(builtin_symbols::to_string)) {
+		if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_string)) {
 			auto* scheduler = Scheduler::instance();
 			assert_x(scheduler, __func__, "execution should be done using a scheduler");
-			return to_string(scheduler->invoke(ref, builtin_symbols::to_string));
+			return to_string(scheduler->invoke(ref, builtin_symbols::to_string, *method));
 		}
 		error("invalid conversion from '{}' to 'character'", type_name(ref));
-	case Data::package_format:
+	case Data::Format::package:
 		error("invalid conversion from 'package' to 'character'");
-	case Data::function_format:
+	case Data::Format::function:
 		error("invalid conversion from 'function' to 'character'");
+	case Data::Format::coroutine:
+		error("invalid conversion from 'coroutine' to 'character'");
 	}
 	return {};
 }
 
 std::string mint::to_string(const Reference& ref) {
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		return {};
-	case Data::null_format:
+	case Data::Format::null:
 		return "(null)";
-	case Data::number_format:
+	case Data::Format::number:
 		{
 			double intpart = 0.;
 			const auto fracpart = modf(ref.data<Number>().value, &intpart);
@@ -396,63 +410,65 @@ std::string mint::to_string(const Reference& ref) {
 			}
 			return mint::to_string(to_signed_integer(intpart));
 		}
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return ref.data<Boolean>().value ? "true" : "false";
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			return ref.data<String>().str;
-		case Class::regex:
+		case Class::Metatype::regex:
 			return ref.data<Regex>().initializer;
-		case Class::array:
+		case Class::Metatype::array:
 			return std::format("[{}]", std::views::transform(ref.data<Array>().values,
 			                               [](auto& item) {
 				                               return to_string(item);
 			                               })
 			                               | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
-		case Class::hash:
+		case Class::Metatype::hash:
 			return std::format("{{{}}}", std::views::transform(ref.data<Hash>().values,
 			                                 [](auto& item) {
 				                                 return to_string(item.first) + " : " + to_string(item.second);
 			                                 })
 			                                 | std::views::join_with(std::string(", "))
 			                                 | std::ranges::to<std::string>());
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			if (auto item = iterator_get(ref.data<Iterator>())) {
 				return to_string(*item);
 			}
 			return to_string(create_none());
-		case Class::object:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_string)) {
+		case Class::Metatype::object:
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_string)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_string(scheduler->invoke(ref, builtin_symbols::to_string));
+				return to_string(scheduler->invoke(ref, builtin_symbols::to_string, *method));
 			}
 			return is_object(ref.data<Object>()) ? "(object)" : "(class)";
-		case Class::library:
+		case Class::Metatype::library:
 			return "(library)";
-		case Class::libobject:
+		case Class::Metatype::libobject:
 			return "(libobject)";
 		}
-	case Data::package_format:
+	case Data::Format::package:
 		return "(package)";
-	case Data::function_format:
+	case Data::Format::function:
 		return "(function)";
+	case Data::Format::coroutine:
+		return "(coroutine)";
 	}
 	return {};
 }
 
 std::regex mint::to_regex(const Reference& ref) {
 	switch (ref.data().format()) {
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::regex:
+		case Class::Metatype::regex:
 			return ref.data<Regex>().expr;
 		default:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_regex)) {
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_regex)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_regex(scheduler->invoke(ref, builtin_symbols::to_regex));
+				return to_regex(scheduler->invoke(ref, builtin_symbols::to_regex, *method));
 			}
 			break;
 		}
@@ -472,33 +488,33 @@ std::regex mint::to_regex(const Reference& ref) {
 Array::values_type mint::to_array(const Reference& ref) {
 	Array::values_type result;
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		return result;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::array:
+		case Class::Metatype::array:
 			result.reserve(ref.data<Array>().values.size());
 			std::ranges::transform(ref.data<Array>().values, std::back_inserter(result), [](auto& item) {
 				return array_get_item(item);
 			});
 			return result;
-		case Class::hash:
+		case Class::Metatype::hash:
 			result.reserve(ref.data<Hash>().values.size());
 			std::ranges::transform(ref.data<Hash>().values, std::back_inserter(result), [](const auto& item) {
 				return hash_get_key(item);
 			});
 			return result;
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			result.reserve(ref.data<Iterator>().ctx.size());
 			std::ranges::transform(ref.data<Iterator>().ctx, std::back_inserter(result), [](const Reference& item) {
 				return array_item(item);
 			});
 			return result;
 		default:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_array)) {
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_array)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_array(scheduler->invoke(ref, builtin_symbols::to_array));
+				return to_array(scheduler->invoke(ref, builtin_symbols::to_array, *method));
 			}
 			break;
 		}
@@ -512,31 +528,31 @@ Array::values_type mint::to_array(const Reference& ref) {
 Hash::values_type mint::to_hash(const Reference& ref) {
 	Hash::values_type result;
 	switch (ref.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		return result;
-	case Data::object_format:
+	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
-		case Class::array:
+		case Class::Metatype::array:
 			for (std::size_t i = 0; i < ref.data<Array>().values.size(); ++i) {
 				constexpr auto flags = Reference::const_address | Reference::const_value | Reference::temporary;
 				result.emplace(make_weak_reference<Number>(flags, i), array_get_item(ref.data<Array>().values.at(i)));
 			}
 			return result;
-		case Class::hash:
+		case Class::Metatype::hash:
 			for (auto& item : ref.data<Hash>().values) {
 				result.emplace(hash_get_key(item), hash_get_value(item));
 			}
 			return result;
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			for (const Reference& item : ref.data<Iterator>().ctx) {
 				result.emplace(hash_key(item), WeakReference());
 			}
 			return result;
 		default:
-			if (ref.data<Object>().metadata.find_member(builtin_symbols::to_hash)) {
+			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_hash)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
-				return to_hash(scheduler->invoke(ref, builtin_symbols::to_hash));
+				return to_hash(scheduler->invoke(ref, builtin_symbols::to_hash, *method));
 			}
 			break;
 		}

@@ -248,11 +248,11 @@ package System {
 	}
 
 	/**
-	 * This class represents the result of an asynchronous operation.
+	 * This class represents the state of an asynchronous operation.
 	 */
-	class Future {
+	class Promise {
 		/**
-		 * Creates a new future for the result of the `func` function.
+		 * Creates a new promise for the result of the `func` function.
 		 */
 		const def new(self, %func) {
 			self.function = func
@@ -260,7 +260,7 @@ package System {
 		}
 
 		/**
-		 * Creates a new future for the result of the `member` method of `object`.
+		 * Creates a new promise for the result of the `member` method of `object`.
 		 */
 		const def new(self, object, %member) {
 			self.object = object
@@ -278,14 +278,36 @@ package System {
 		const def start(self, ...) {
 			if defined self.function and self.d_ptr is null {
 				if defined self.object {
-					self.d_ptr = System.Future.g_lib.call('mint_future_start_member', self.object, self.function, va_args)
+					self.d_ptr = System.Promise.g_lib.call('mint_promise_start_member', self.object, self.function, va_args)
 				} else {
-					self.d_ptr = System.Future.g_lib.call('mint_future_start', self.function, va_args)
+					self.d_ptr = System.Promise.g_lib.call('mint_promise_start', self.function, va_args)
 				}
 				if defined self.d_ptr {
-					self.d_ptr.delete = def [g_lib = System.Future.g_lib] (self) {
-						g_lib.call('mint_future_wait', self)
-						g_lib.call('mint_future_delete', self)
+					self.d_ptr.delete = def [g_lib = System.Promise.g_lib] (self) {
+						g_lib.call('mint_promise_wait', self)
+						g_lib.call('mint_promise_delete', self)
+					}
+					return true
+				} else {
+					self.d_ptr = null
+				}
+			}
+			return false
+		}
+
+		/**
+		 * Starts the associated coroutine in a new thread.
+		 * 
+		 * Returns `true` if the thread was effectively started; otherwise returs
+		 * `false`. The object must not be already running a joinable thread.
+		 */
+		const def spawn(self) {
+			if defined self.function and not defined self.object and self.d_ptr is null {
+				self.d_ptr = System.Promise.g_lib.call('mint_promise_spawn', self.function)
+				if defined self.d_ptr {
+					self.d_ptr.delete = def [g_lib = System.Promise.g_lib] (self) {
+						g_lib.call('mint_promise_wait', self)
+						g_lib.call('mint_promise_delete', self)
 					}
 					return true
 				} else {
@@ -304,7 +326,7 @@ package System {
 		 */
 		const def wait(self, time) {
 			if self.d_ptr {
-				return System.Future.g_lib.call('mint_future_wait_for', self.d_ptr, time)
+				return System.Promise.g_lib.call('mint_promise_wait_for', self.d_ptr, time)
 			}
 			return false
 		}
@@ -316,7 +338,7 @@ package System {
 		 */
 		const def wait(self) {
 			if self.d_ptr {
-				System.Future.g_lib.call('mint_future_wait', self.d_ptr)
+				System.Promise.g_lib.call('mint_promise_wait', self.d_ptr)
 			}
 		}
 
@@ -326,7 +348,7 @@ package System {
 		 */
 		const def isValid(self) {
 			if self.d_ptr {
-				return System.Future.g_lib.call('mint_future_is_valid', self.d_ptr)
+				return System.Promise.g_lib.call('mint_promise_is_valid', self.d_ptr)
 			}
 			return false
 		}
@@ -339,9 +361,9 @@ package System {
 		 * method's call, the object will not be valid anymore.
 		 */
 		const def get(self) {
-			if self.d_ptr and System.Future.g_lib.call('mint_future_is_valid', self.d_ptr) {
-				System.Future.g_lib.call('mint_future_wait', self.d_ptr)
-				return System.Future.g_lib.call('mint_future_get', self.d_ptr)
+			if self.d_ptr and System.Promise.g_lib.call('mint_promise_is_valid', self.d_ptr) {
+				System.Promise.g_lib.call('mint_promise_wait', self.d_ptr)
+				return System.Promise.g_lib.call('mint_promise_get', self.d_ptr)
 			}
 		}
 
@@ -390,7 +412,7 @@ package System {
 	 * 
 	 * Example:
 	 * ```mn
-	 * System.Promise(def (a, b) {
+	 * System.Future(def (a, b) {
 	 *     return a + b
 	 * }, i, j).then(def (r) {
 	 *     return r + 5
@@ -399,35 +421,35 @@ package System {
 	 * })
 	 * ```
 	 */
-	class Promise {
+	class Future {
 		/**
-		 * Creates a new promise that will execute the `func` function with the
+		 * Creates a new future that will execute the `func` function with the
 		 * given parameters asynchronously. If the execution of the function can
 		 * not be started; `none` is returned.
 		 */
 		const def new(self, %func, ...) {
-			self.state = System.Promise.State.Pending
-			self.future = System.asyncMethod(self, System.Promise.resolve, func, *va_args)
-			if defined self.future {
+			self.state = System.Future.State.Pending
+			self.promise = System.spawnMethod(self, System.Future.resolve, func, *va_args)
+			if defined self.promise {
 				return self
 			}
 		}
 
 		/**
-		 * Chains a new promise to be executed once the current result is known.
+		 * Chains a new future to be executed once the current result is known.
 		 * 
 		 * The `onFulfilled` parameter must be a function taking one parameter
-		 * that will be called with the promise's result on success (i.e. the
+		 * that will be called with the future's result on success (i.e. the
 		 * value was obtained with `return`).
 		 * 
 		 * The `onRejected` parameter can be a function taking one parameter
-		 * that will be called with the promise's result on error (i.e. the
+		 * that will be called with the future's result on error (i.e. the
 		 * value was obtained with `raise`).
 		 * 
-		 * The created promise is returned by the method to be chained.
+		 * The created future is returned by the method to be chained.
 		 */
 		const def then(self, %onFulfilled, %onRejected = none) {
-			return System.Promise(Callback(self, System.Promise.continuation), onFulfilled, onRejected)
+			return System.Future(Callback(self, System.Future.continuation), onFulfilled, onRejected)
 		}
 
 		/**
@@ -435,7 +457,7 @@ package System {
 		 * to be called on error.
 		 */
 		const def except(self, %onRejected) {
-			return System.Promise(Callback(self, System.Promise.continuation), none, onRejected)
+			return System.Future(Callback(self, System.Future.continuation), none, onRejected)
 		}
 
 		/**
@@ -443,46 +465,46 @@ package System {
 		 * to be called on success or error.
 		 */
 		const def finally(self, %onComplet) {
-			return System.Promise(Callback(self, System.Promise.continuation), onComplet, onComplet)
+			return System.Future(Callback(self, System.Future.continuation), onComplet, onComplet)
 		}
 
 		/**
-		 * Performs the resolution of the promise's function. Once resolved, the
-		 * promise will be either in the {System.Promise.State.Fullfiled} state
+		 * Performs the resolution of the future's function. Once resolved, the
+		 * future will be either in the {System.Future.State.Fullfiled} state
 		 * and {@see value} will contains the function's result, or in the
-		 * {System.Promise.State.Rejected} state and {@see value} will contains
+		 * {System.Future.State.Rejected} state and {@see value} will contains
 		 * the function's exception.
 		 */
 		- final const def resolve(self, %func, ...) {
 			try {
 				self.value = func(*va_args)
-				self.state = System.Promise.State.Fullfiled
+				self.state = System.Future.State.Fullfiled
 			} catch error {
 				self.value = error
-				self.state = System.Promise.State.Rejected
+				self.state = System.Future.State.Rejected
 			}
 			return self.value
 		}
 
 		/**
-		 * Performs the resolution of a chained promise. If `self` is in the
-		 * {System.Promise.State.Fullfiled} state, the `onFulfilled` parameter
-		 * is called with the promise's result; if `self` is in the
-		 * {System.Promise.State.Rejected} state, the `onRejected` parameter
-		 * is called with the promise's error. If the required parameter is set
+		 * Performs the resolution of a chained future. If `self` is in the
+		 * {System.Future.State.Fullfiled} state, the `onFulfilled` parameter
+		 * is called with the future's result; if `self` is in the
+		 * {System.Future.State.Rejected} state, the `onRejected` parameter
+		 * is called with the future's error. If the required parameter is set
 		 * to `none`, the value (result or error) is returned; otherwise the
 		 * returned value is the result of the function call.
 		 */
 		- final const def continuation(self, %onFulfilled, %onRejected) {
 			var value = self.getValue()
 			switch self.state {
-			case is System.Promise.State.Fullfiled:
+			case is System.Future.State.Fullfiled:
 				if defined onFulfilled {
 					return onFulfilled(value)
 				} else {
 					return value
 				}
-			case is System.Promise.State.Rejected:
+			case is System.Future.State.Rejected:
 				if defined onRejected {
 					return onRejected(value)
 				} else {
@@ -498,11 +520,11 @@ package System {
 			if defined self.value {
 				return self.value
 			}
-			return self.future.get()
+			return self.promise.get()
 		}
 
 		/**
-		 * This enum describes the state of the promise.
+		 * This enum describes the state of the future.
 		 */
 		- enum State {
 			/// Initial state, neither fulfilled nor rejected.
@@ -519,33 +541,45 @@ package System {
 		/// Internal value.
 		- final value = none
 
-		/// Internal future.
-		- final future = null
+		/// Internal promise.
+		- final promise = null
 	}
 
 	/**
-	 * Returns an instance of {System.Future} for the result of the given `func`
+	 * Returns an instance of {System.Promise} for the result of the given `func`
 	 * function. The extra parameters passed to this function are forwarded to the
-	 * called function. The future object is started by this function. If the
-	 * future failed to start, `none` is returned instead.
+	 * called function. The promise object is started by this function. If the
+	 * promise failed to start, `none` is returned instead.
 	 */
-	def async(%func, ...) {
-		var future = System.Future(func)
-		if future.start(*va_args) {
-			return future
+	def spawn(%func, ...) {
+		var promise = System.Promise(func)
+		if promise.start(*va_args) {
+			return promise
 		}
 	}
 
 	/**
-	 * Returns an instance of {System.Future} for the result of the given `func`
+	 * Returns an instance of {System.Promise} for the result of the given `func`
 	 * method called on the `self`object. The extra parameters passed to this
-	 * function are forwarded to the called method. The future object is started
-	 * by this function. If the future failed to start, `none` is returned instead.
+	 * function are forwarded to the called method. The promise object is started
+	 * by this function. If the promise failed to start, `none` is returned instead.
 	 */
-	def asyncMethod(self, %func, ...) {
-		var future = System.Future(self, func)
-		if future.start(*va_args) {
-			return future
+	def spawnMethod(self, %func, ...) {
+		var promise = System.Promise(self, func)
+		if promise.start(*va_args) {
+			return promise
+		}
+	}
+
+	/**
+	 * Returns an instance of {System.Promise} for the result of the given `coroutine`
+	 * coroutine. The promise object is started by this function. If the promise
+	 * failed to start, `none` is returned instead.
+	 */
+	def spawnAsync(%coroutine) {
+		var promise = System.Promise(coroutine)
+		if promise.spawn() {
+			return promise
 		}
 	}
 

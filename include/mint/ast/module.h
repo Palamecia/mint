@@ -79,8 +79,9 @@ public:
 		std::size_t offset;
 		PackageData& package;
 		std::size_t fast_count;
-		bool generator;
-		bool symbols;
+		bool symbols: 1 = false;
+		bool generator: 1 = false;
+		bool async: 1 = false;
 	};
 
 	Module();

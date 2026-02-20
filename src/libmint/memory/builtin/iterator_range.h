@@ -2,6 +2,7 @@
 #define LIBMINT_MEMORY_BUILTIN_ITERATOR_RANGE_H
 
 #include "iterator_p.h"
+#include "mint/ast/cursor.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/reference.h"
 #include <cstddef>
@@ -64,10 +65,11 @@ public:
 	[[nodiscard]] std::size_t capacity() const override;
 	void reserve(std::size_t capacity) override;
 
-	void yield(mint::Iterator::Context::value_type&& value) override;
-	void next() override;
+	void yield(mint::Cursor& cursor, mint::Iterator::Context::value_type&& value,
+	    Iterator::ResumeKind resume_kind) override;
+	void next(mint::Cursor& cursor) override;
 
-	void finalize() override;
+	void finalize(mint::Cursor& cursor) override;
 	void clear() override;
 };
 

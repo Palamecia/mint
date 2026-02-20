@@ -40,7 +40,7 @@
 using namespace mint;
 
 LibraryClass& LibraryClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<LibraryClass>(Class::library);
+	return ast.global_data().builtin<LibraryClass>(Class::Metatype::library);
 }
 
 Library::Library(AbstractSyntaxTree& ast) :
@@ -70,7 +70,7 @@ Library& Library::operator=(const Library& other) {
 Library::~Library() {}
 
 LibraryClass::LibraryClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "lib", Class::library) {
+    Class(ast.global_data(), "lib", Class::Metatype::library) {
 
 	create_builtin_member(new_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);

@@ -25,7 +25,9 @@
 #include "mint/ast/symbol.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
+#include "mint/memory/data.h"
 #include "mint/memory/functiontool.h"
+#include "mint/memory/object.h"
 #include "mint/memory/operatortool.h"
 #include "mint/memory/memorytool.h"
 #include "mint/memory/casttool.h"
@@ -40,7 +42,7 @@
 
 namespace {
 
-mint::WeakReference mint_future_start_member(mint::FunctionHelper& helper, const mint::Reference& object,
+mint::WeakReference mint_promise_start_member(mint::FunctionHelper& helper, const mint::Reference& object,
     const mint::Reference& method, const mint::Reference& args) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
@@ -60,34 +62,50 @@ mint::WeakReference mint_future_start_member(mint::FunctionHelper& helper, const
 
 	mint::call_member_operator(*thread_cursor, signature);
 	return mint::create_c_object(helper.cursor().ast(),
-	    new std::future<mint::WeakReference>(scheduler.create_async(std::move(thread_cursor))));
+	    new std::future<mint::WeakReference>(scheduler.create_async_thread(std::move(thread_cursor))));
 }
 
-mint::WeakReference mint_future_start(mint::FunctionHelper& helper, const mint::Reference& func,
+mint::WeakReference mint_promise_start(mint::FunctionHelper& helper, const mint::Reference& func,
     const mint::Reference& args) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
 	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
 	const auto signature = static_cast<int>(args.data<mint::Iterator>().ctx.size());
 
-	thread_cursor->waiting_calls().emplace(std::move(func));
+	thread_cursor->waiting_calls().emplace(func);
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_operator(*thread_cursor, signature);
 	return create_c_object(helper.cursor().ast(),
-	    new std::future<mint::WeakReference>(scheduler.create_async(std::move(thread_cursor))));
+	    new std::future<mint::WeakReference>(scheduler.create_async_thread(std::move(thread_cursor))));
 }
 
-mint::WeakReference mint_future_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+mint::WeakReference mint_promise_spawn(mint::FunctionHelper& helper, const mint::Reference& coroutine) {
+
+	mint::Scheduler& scheduler = helper.scheduler();
+	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
+
+	if (mint::is_instance_of(coroutine, mint::Data::Format::coroutine)) {
+		coroutine.data<mint::Coroutine>().call(*thread_cursor, mint::WeakReference(coroutine));
+	}
+	else {
+		thread_cursor->stack().emplace_back(coroutine);
+	}
+
+	return create_c_object(helper.cursor().ast(),
+	    new std::future<mint::WeakReference>(scheduler.create_async_thread(std::move(thread_cursor))));
+}
+
+mint::WeakReference mint_promise_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	delete d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr;
 	return {};
 }
 
-mint::WeakReference mint_future_wait_for(mint::Cursor& cursor, const mint::Reference& d_ptr,
+mint::WeakReference mint_promise_wait_for(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& time) {
-	if (auto* future = d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr; future->valid()) {
+	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr; promise->valid()) {
 		mint::unlock_processor();
-		switch (future->wait_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)))) {
+		switch (promise->wait_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)))) {
 		case std::future_status::deferred:
 		case std::future_status::timeout:
 			mint::lock_processor();
@@ -100,29 +118,30 @@ mint::WeakReference mint_future_wait_for(mint::Cursor& cursor, const mint::Refer
 	return mint::create_boolean(true);
 }
 
-mint::WeakReference mint_future_wait(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	if (auto* future = d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr; future->valid()) {
+mint::WeakReference mint_promise_wait(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr; promise->valid()) {
 		mint::unlock_processor();
-		future->wait();
+		promise->wait();
 		mint::lock_processor();
 	}
 	return {};
 }
 
-mint::WeakReference mint_future_is_valid(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+mint::WeakReference mint_promise_is_valid(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	return mint::create_boolean(d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr->valid());
 }
 
-mint::WeakReference mint_future_get(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+mint::WeakReference mint_promise_get(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	return d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr->get();
 }
 
 }
 
-MINT_EXPORT_FUNCTION(mint_future_start_member, 3)
-MINT_EXPORT_FUNCTION(mint_future_start, 2)
-MINT_EXPORT_FUNCTION(mint_future_delete, 1)
-MINT_EXPORT_FUNCTION(mint_future_wait_for, 2)
-MINT_EXPORT_FUNCTION(mint_future_wait, 1)
-MINT_EXPORT_FUNCTION(mint_future_is_valid, 1)
-MINT_EXPORT_FUNCTION(mint_future_get, 1)
+MINT_EXPORT_FUNCTION(mint_promise_start_member, 3)
+MINT_EXPORT_FUNCTION(mint_promise_start, 2)
+MINT_EXPORT_FUNCTION(mint_promise_spawn, 1)
+MINT_EXPORT_FUNCTION(mint_promise_delete, 1)
+MINT_EXPORT_FUNCTION(mint_promise_wait_for, 2)
+MINT_EXPORT_FUNCTION(mint_promise_wait, 1)
+MINT_EXPORT_FUNCTION(mint_promise_is_valid, 1)
+MINT_EXPORT_FUNCTION(mint_promise_get, 1)

@@ -250,6 +250,12 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_unset_retrieve_point(cursor);
 	case Node::Command::raise:
 		return walker.on_raise(cursor);
+	case Node::Command::await:
+		return walker.on_await(cursor);
+	case Node::Command::exit_coroutine:
+		return walker.on_exit_coroutine(cursor);
+	case Node::Command::resume_coroutine:
+		return walker.on_resume_coroutine(cursor);
 	case Node::Command::yield:
 		return walker.on_yield(cursor);
 	case Node::Command::exit_generator:

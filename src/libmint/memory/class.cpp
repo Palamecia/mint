@@ -189,7 +189,7 @@ ClassDescription& Class::get_description() const {
 }
 
 Class::MemberInfo* Class::find_class(const Symbol& name) const {
-	if (auto it = _members.find(name); it != _members.end() && is_instance_of(it->second->value, Data::object_format)
+	if (auto it = _members.find(name); it != _members.end() && is_instance_of(it->second->value, Data::Format::object)
 	                                   && is_class(it->second->value.data<Object>())) {
 		return it->second.get();
 	}

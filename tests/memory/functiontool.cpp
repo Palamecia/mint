@@ -21,7 +21,7 @@ TEST(functiontool, create_number) {
 	auto process = scheduler.enable_testing();
 	const auto ref = mint::create_number(7357);
 
-	ASSERT_EQ(mint::Data::number_format, ref.data().format());
+	ASSERT_EQ(mint::Data::Format::number, ref.data().format());
 	EXPECT_EQ(7357, ref.data<mint::Number>().value);
 }
 
@@ -31,7 +31,7 @@ TEST(functiontool, create_boolean) {
 	auto process = scheduler.enable_testing();
 	const auto ref = mint::create_boolean(true);
 
-	ASSERT_EQ(mint::Data::boolean_format, ref.data().format());
+	ASSERT_EQ(mint::Data::Format::boolean, ref.data().format());
 	EXPECT_EQ(true, ref.data<mint::Boolean>().value);
 }
 
@@ -41,8 +41,8 @@ TEST(functiontool, create_string) {
 	auto process = scheduler.enable_testing();
 	const auto ref = mint::create_string(scheduler.ast(), "test");
 
-	ASSERT_EQ(mint::Data::object_format, ref.data().format());
-	ASSERT_EQ(mint::Class::string, ref.data<mint::Object>().metadata.metatype());
+	ASSERT_EQ(mint::Data::Format::object, ref.data().format());
+	ASSERT_EQ(mint::Class::Metatype::string, ref.data<mint::Object>().metadata.metatype());
 	EXPECT_EQ("test", ref.data<mint::String>().str);
 	EXPECT_TRUE(is_object(ref.data<mint::Object>()));
 }

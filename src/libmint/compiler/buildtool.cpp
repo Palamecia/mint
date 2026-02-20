@@ -263,6 +263,14 @@ bool BuildContext::is_in_function() const {
 	return !_definitions.empty();
 }
 
+bool BuildContext::is_in_nested_function() const {
+	return _definitions.size() >= 2;
+}
+
+bool BuildContext::is_in_async_function() const {
+	return !_definitions.empty() && _definitions.top()->async;
+}
+
 bool BuildContext::is_in_generator() const {
 	if (const Definition* def = current_definition()) {
 		return def->generator;
@@ -492,6 +500,14 @@ void BuildContext::start_definition() {
 	}));
 }
 
+void BuildContext::start_async_definition() {
+	_definitions.push(std::make_unique<Definition>(Definition {
+	    .begin_offset = _branch.get().next_node_offset(),
+	    .function = _data.module->make_constant<Function>(),
+	    .async = true,
+	}));
+}
+
 bool BuildContext::add_parameter(const std::string& symbol, Reference::Flags flags) {
 
 	Definition* def = current_definition();
@@ -551,7 +567,7 @@ void BuildContext::set_exit_point() {
 
 bool BuildContext::save_parameters() {
 
-	Definition* def = current_definition();
+	auto* def = current_definition();
 	assert(def);
 
 	if (def->variadic && def->parameters.empty()) {
@@ -584,7 +600,7 @@ bool BuildContext::save_parameters() {
 
 bool BuildContext::add_definition_signature() {
 
-	Definition* def = current_definition();
+	auto* def = current_definition();
 	assert(def);
 
 	if (def->variadic) {
@@ -613,6 +629,7 @@ void BuildContext::save_definition() {
 	for (auto& signature : def->function->data<Function>().mapping) {
 		signature.second.handle().fast_count = def->fast_symbol_count;
 		signature.second.handle().generator = def->generator;
+		signature.second.handle().async = def->async;
 	}
 
 	push_node(Node::Command::load_constant);
@@ -637,6 +654,7 @@ Function& BuildContext::retrieve_definition() {
 	for (auto& signature : data.mapping) {
 		signature.second.handle().fast_count = def->fast_symbol_count;
 		signature.second.handle().generator = def->generator;
+		signature.second.handle().async = def->async;
 	}
 
 	assert(def->blocks.empty());

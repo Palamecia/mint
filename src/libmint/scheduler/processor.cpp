@@ -114,7 +114,7 @@ public:
 
 	static void on_load_defined_member(Cursor& cursor, const Symbol& symbol) {
 		const auto& object = cursor.stack().back();
-		if (!is_instance_of(object, Data::none_format)) {
+		if (!is_instance_of(object, Data::Format::none)) {
 			auto [member, _] = get_member(cursor, object, symbol);
 			reduce_member(cursor, std::move(member));
 		}
@@ -122,7 +122,7 @@ public:
 
 	static void on_load_defined_operator(Cursor& cursor, Class::Operator op) {
 		const auto& object = cursor.stack().back();
-		if (!is_instance_of(object, Data::none_format)) {
+		if (!is_instance_of(object, Data::Format::none)) {
 			auto [member, _] = get_operator(cursor, object, op);
 			reduce_member(cursor, std::move(member));
 		}
@@ -131,7 +131,7 @@ public:
 	static void on_load_defined_var_member(Cursor& cursor) {
 		Symbol&& symbol = var_symbol(cursor);
 		const auto& object = cursor.stack().back();
-		if (!is_instance_of(object, Data::none_format)) {
+		if (!is_instance_of(object, Data::Format::none)) {
 			auto [member, _] = get_member(cursor, object, symbol);
 			reduce_member(cursor, std::move(member));
 		}
@@ -429,11 +429,12 @@ public:
 	}
 
 	static void on_begin_generator_expression(Cursor& cursor, std::size_t offset) {
-		cursor.begin_generator_expression(offset);
+		cursor.call_generator_expression(offset);
 	}
 
 	static void on_end_generator_expression(Cursor& cursor) {
-		cursor.end_generator_expression();
+		assert(cursor.is_in_generator());
+		cursor.exit_call();
 	}
 
 	static void on_open_printer(Cursor& cursor) {
@@ -495,10 +496,44 @@ public:
 		cursor.raise(std::move(exception));
 	}
 
+	static void on_await(Cursor& cursor) {
+		auto object = cursor.stack().back();
+		switch (object.data().format()) {
+		case Data::Format::object:
+			if (auto* method = object.data<Object>().metadata.find_member(builtin_symbols::await_method)) {
+				init_member_call(cursor, builtin_symbols::await_method, *method);
+				call_member_operator(cursor, 0);
+			}
+			break;
+		case Data::Format::coroutine:
+			cursor.stack().pop_back();
+			object.data<Coroutine>().await(cursor, std::move(object));
+			break;
+		default:
+			break;
+		}
+	}
+
+	static void on_exit_coroutine(Cursor& cursor) {
+		assert(is_instance_of(cursor.stack().back(), Data::Format::coroutine));
+		cursor.stack().pop_back();
+		cursor.exit_call();
+	}
+
+	static void on_resume_coroutine(Cursor& cursor) {
+
+		auto result = std::move(cursor.stack().back());
+		cursor.stack().pop_back();
+
+		auto& coroutine = cursor.stack().back();
+		assert(is_instance_of(coroutine, Data::Format::coroutine));
+		coroutine.data<Coroutine>().resume(cursor, std::move(result));
+	}
+
 	static void on_yield(Cursor& cursor) {
 		const auto item = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
-		iterator_yield(cursor.generator().data<Iterator>(), WeakReference(create_from, item));
+		iterator_yield(cursor, cursor.generator().data<Iterator>(), WeakReference(create_from, item));
 	}
 
 	static void on_exit_generator(Cursor& cursor) {
@@ -508,13 +543,12 @@ public:
 	static void on_yield_exit_generator(Cursor& cursor) {
 		const auto item = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
-		iterator_yield(cursor.generator().data<Iterator>(), WeakReference(create_from, item));
-		cursor.exit_call();
+		iterator_return(cursor, cursor.generator().data<Iterator>(), WeakReference(create_from, item));
 	}
 
 	static void on_init_capture(Cursor& cursor) {
 		auto& function = cursor.stack().back();
-		assert(is_instance_of(function, Data::function_format));
+		assert(is_instance_of(function, Data::Format::function));
 		cursor.stack().back() = WeakReference(copy_from, function.flags() | Reference::temporary, function.data());
 	}
 
@@ -560,7 +594,7 @@ public:
 
 	static void on_init_defined_member_call(Cursor& cursor, const Symbol& symbol, std::size_t offset) {
 		const auto& object = cursor.stack().back();
-		if (!is_instance_of(object, Data::none_format)) {
+		if (!is_instance_of(object, Data::Format::none)) {
 			init_member_call(cursor, symbol);
 		}
 		else {
@@ -570,7 +604,7 @@ public:
 
 	static void on_init_defined_operator_call(Cursor& cursor, Class::Operator op, std::size_t offset) {
 		const auto& object = cursor.stack().back();
-		if (!is_instance_of(object, Data::none_format)) {
+		if (!is_instance_of(object, Data::Format::none)) {
 			init_operator_call(cursor, op);
 		}
 		else {
@@ -581,7 +615,7 @@ public:
 	static void on_init_defined_var_member_call(Cursor& cursor, std::size_t offset) {
 		const auto symbol = var_symbol(cursor);
 		const auto& object = cursor.stack().back();
-		if (!is_instance_of(object, Data::none_format)) {
+		if (!is_instance_of(object, Data::Format::none)) {
 			init_member_call(cursor, symbol);
 		}
 		else {

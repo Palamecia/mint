@@ -68,24 +68,25 @@ bool Highlighter::on_symbol_token(const std::vector<std::string>& context, const
     [[maybe_unused]] std::string::size_type offset) {
 	if (const auto* reference = find_defined_symbol(context, token)) {
 		switch (reference->data().format()) {
-		case Data::none_format:
-		case Data::null_format:
-		case Data::number_format:
-		case Data::boolean_format:
+		case Data::Format::none:
+		case Data::Format::null:
+		case Data::Format::number:
+		case Data::Format::boolean:
 			set_style(Style::constant);
 			break;
-		case Data::function_format:
+		case Data::Format::function:
+		case Data::Format::coroutine:
 			set_style(Style::function);
 			break;
-		case Data::object_format:
-			if (is_instance_of(*reference, Class::object) && is_class(reference->data<Object>())) {
+		case Data::Format::object:
+			if (is_instance_of(*reference, Class::Metatype::object) && is_class(reference->data<Object>())) {
 				set_style(Style::user_type);
 			}
 			else {
 				set_style(Style::constant);
 			}
 			break;
-		case Data::package_format:
+		case Data::Format::package:
 			set_style(Style::user_type);
 			break;
 		}
@@ -102,6 +103,7 @@ bool Highlighter::on_symbol_token(const std::vector<std::string>& context, const
 bool Highlighter::on_token(Token type, const std::string& token, std::string::size_type offset) {
 	switch (type) {
 	case mint::Token::assert_token:
+	case mint::Token::async_token:
 	case mint::Token::class_token:
 	case mint::Token::const_token:
 	case mint::Token::def_token:
@@ -171,6 +173,7 @@ bool Highlighter::on_token(Token type, const std::string& token, std::string::si
 	case mint::Token::tilde_token:
 		set_style(Style::operator_keyword);
 		break;
+	case mint::Token::await_token:
 	case mint::Token::break_token:
 	case mint::Token::case_token:
 	case mint::Token::catch_token:

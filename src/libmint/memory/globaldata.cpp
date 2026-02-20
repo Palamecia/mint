@@ -105,7 +105,7 @@ void PackageData::register_class(ClassRegister::Id id) {
 }
 
 Class* PackageData::find_class(const Symbol& name) const {
-	if (auto it = _symbols.find(name); it != _symbols.end() && it->second.data().format() == Data::object_format
+	if (auto it = _symbols.find(name); it != _symbols.end() && it->second.data().format() == Data::Format::object
 	                                   && is_class(it->second.data<Object>())) {
 		return &it->second.data<Object>().metadata;
 	}

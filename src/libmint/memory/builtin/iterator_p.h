@@ -1,6 +1,7 @@
 #ifndef ITERATOR_HPP
 #define ITERATOR_HPP
 
+#include "mint/ast/cursor.h"
 #include "mint/memory/builtin/iterator.h"
 #include <cstddef>
 #include <memory>
@@ -48,10 +49,11 @@ public:
 	[[nodiscard]] virtual std::size_t capacity() const = 0;
 	virtual void reserve(std::size_t capacity) = 0;
 
-	virtual void yield(mint::Iterator::Context::value_type&& value) = 0;
-	virtual void next() = 0;
+	virtual void yield(mint::Cursor& cursor, mint::Iterator::Context::value_type&& value,
+	    Iterator::ResumeKind resume_kind) = 0;
+	virtual void next(mint::Cursor& cursor) = 0;
 
-	virtual void finalize() = 0;
+	virtual void finalize(mint::Cursor& cursor) = 0;
 	virtual void clear() = 0;
 };
 

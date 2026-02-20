@@ -184,6 +184,7 @@ static const Symbol delete_method("delete");
 static const Symbol clone_method("clone");
 static const Symbol write_method("write");
 static const Symbol show_method("show");
+static const Symbol await_method("await");
 static const Symbol to_number("toNumber");
 static const Symbol to_boolean("toBoolean");
 static const Symbol to_string("toString");

@@ -41,6 +41,10 @@ class LexicalHandler {
 	enum Token {
 		/// The token is an `assert` keyword.
 		Assert
+		/// The token is an `async` keyword.
+		Async
+		/// The token is an `await` keyword.
+		Await
 		/// The token is a `break` keyword.
 		Break
 		/// The token is a `case` keyword.

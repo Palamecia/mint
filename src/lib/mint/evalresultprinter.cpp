@@ -23,13 +23,14 @@
 
 #include "evalresultprinter.h"
 
+#include "mint/ast/cursor.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/functiontool.h"
 #include <utility>
 
-EvalResultPrinter::EvalResultPrinter(mint::AbstractSyntaxTree& ast) :
-    _ast(ast) {}
+EvalResultPrinter::EvalResultPrinter(mint::Cursor& cursor) :
+    _cursor(cursor) {}
 
 void EvalResultPrinter::print(const mint::Reference& reference) {
 	_results.emplace_back(mint::create_from, reference);
@@ -47,10 +48,10 @@ mint::WeakReference EvalResultPrinter::result() {
 		break;
 	}
 
-	mint::WeakReference reference = mint::create_iterator(_ast);
+	mint::WeakReference reference = mint::create_iterator(_cursor.get().ast());
 
 	for (mint::Reference& item : _results) {
-		mint::iterator_yield(reference.data<mint::Iterator>(), std::move(item));
+		mint::iterator_yield(_cursor, reference.data<mint::Iterator>(), std::move(item));
 	}
 
 	return reference;

@@ -264,13 +264,13 @@ MINT_EXPORT WeakReference create_iterator(FromInclusiveRange from_inclusive_rang
 MINT_EXPORT WeakReference create_iterator(FromExclusiveRange from_exclusive_range, AbstractSyntaxTree& ast,
     double begin, double end);
 
-MINT_EXPORT WeakReference create_iterator_over(AbstractSyntaxTree& ast, const Reference& ref);
-MINT_EXPORT WeakReference create_iterator_over(AbstractSyntaxTree& ast, Reference&& ref);
+MINT_EXPORT WeakReference create_iterator_over(Cursor& cursor, const Reference& ref);
+MINT_EXPORT WeakReference create_iterator_over(Cursor& cursor, Reference&& ref);
 
 template<std::derived_from<Reference>... Items>
-WeakReference create_iterator_from(AbstractSyntaxTree& ast, Items... items) {
-	WeakReference ref = make_weak_reference<Iterator>(create_flags, ast, sizeof...(items));
-	(iterator_yield(ref.data<Iterator>(), std::forward<Items>(items)), ...);
+WeakReference create_iterator_from(Cursor& cursor, Items... items) {
+	WeakReference ref = make_weak_reference<Iterator>(create_flags, cursor.ast(), sizeof...(items));
+	(iterator_yield(cursor, ref.data<Iterator>(), std::forward<Items>(items)), ...);
 	ref.data<Iterator>().construct();
 	return ref;
 }

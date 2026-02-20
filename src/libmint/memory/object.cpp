@@ -22,6 +22,7 @@
  */
 
 #include "mint/memory/object.h"
+#include "mint/ast/savedstate.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
@@ -35,13 +36,16 @@
 #include "mint/memory/symboltable.h"
 #include "mint/system/error.h"
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
 #include <memory>
+#include <ranges>
 #include <span>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 using namespace mint;
 
@@ -109,37 +113,37 @@ void Object::construct(const Object& other, std::unordered_map<const Data*, Data
 				if ((target_ref.flags() & (Reference::const_address | Reference::const_value))
 				    != (Reference::const_address | Reference::const_value)) {
 					switch (target_ref.data().format()) {
-					case Data::object_format:
+					case Data::Format::object:
 						switch (target_ref.data<Object>().metadata.metatype()) {
-						case Class::object:
+						case Class::Metatype::object:
 							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Object>,
 							    target_ref.data<Object>().metadata);
 							break;
-						case Class::string:
+						case Class::Metatype::string:
 							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<String>,
 							    target_ref.data<String>());
 							break;
-						case Class::regex:
+						case Class::Metatype::regex:
 							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Regex>,
 							    target_ref.data<Regex>());
 							break;
-						case Class::array:
+						case Class::Metatype::array:
 							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Array>,
 							    target_ref.data<Array>());
 							break;
-						case Class::hash:
+						case Class::Metatype::hash:
 							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Hash>,
 							    target_ref.data<Hash>());
 							break;
-						case Class::iterator:
+						case Class::Metatype::iterator:
 							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Iterator>,
 							    target_ref.data<Iterator>());
 							break;
-						case Class::library:
+						case Class::Metatype::library:
 							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Library>,
 							    target_ref.data<Library>());
 							break;
-						case Class::libobject:
+						case Class::Metatype::libobject:
 							member_ref = std::construct_at(member_ref, WeakReference(copy_from, target_ref));
 							memory_map.emplace(&target_ref.data(), &member_ref->data());
 							continue;
@@ -200,7 +204,8 @@ void Function::Stateful::call(int signature, Class* metadata, Cursor& cursor) {
 
 	cursor.call(handle(), signature, metadata);
 
-	for (SymbolTable& symbols = cursor.symbols(); auto& item : _capture) {
+	for (SymbolTable& symbols = handle().async ? cursor.stack().back().data<Coroutine>().symbols() : cursor.symbols();
+	    auto& item : _capture) {
 		symbols.emplace(item.first, item.second);
 	}
 }
@@ -293,5 +298,73 @@ void Function::mark() {
 		for (auto& signature : mapping) {
 			signature.second.mark();
 		}
+	}
+}
+
+Coroutine::Coroutine(std::unique_ptr<SavedState>&& state, std::size_t stack_size) :
+    _state(std::move(state)),
+    _stored_stack(std::from_range,
+        std::views::drop(_state->cursor.get().stack(), static_cast<std::ptrdiff_t>(stack_size))),
+    _stack_size(stack_size) {
+	_state->cursor.get().stack().resize(stack_size);
+}
+
+void Coroutine::call(Cursor& cursor, WeakReference&& self) {
+
+	if (!_state) {
+		error("cannot reuse already awaited coroutine");
+	}
+
+	_stack_size = cursor.stack().size();
+	cursor.stack().emplace_back(std::move(self));
+	cursor.stack().append_range(std::move(_stored_stack));
+	_stored_stack.clear();
+	cursor.restore(std::move(_state));
+}
+
+void Coroutine::await(Cursor& cursor, WeakReference&& self) {
+
+	auto stored_stack = std::vector(std::from_range,
+	    std::views::drop(cursor.stack(), static_cast<std::ptrdiff_t>(_stack_size)));
+
+	cursor.stack().resize(_stack_size);
+	cursor.stack().emplace_back(std::move(self));
+	cursor.stack().append_range(std::move(_stored_stack));
+	_state = cursor.suspend(std::move(_state));
+
+	std::swap(_stored_stack, stored_stack);
+}
+
+void Coroutine::resume(Cursor& cursor, WeakReference&& value) {
+	if (_state) {
+		_stored_stack.append_range(std::views::drop(cursor.stack(), static_cast<std::ptrdiff_t>(_stack_size)));
+		cursor.stack().resize(_stack_size);
+		cursor.exit_call();
+		cursor.restore(std::move(_state));
+	}
+	else {
+		cursor.stack().resize(_stack_size);
+		cursor.exit_call();
+	}
+	cursor.stack().emplace_back(std::move(value));
+}
+
+void Coroutine::raise(Cursor& cursor) {
+	if (_state) {
+		_stored_stack.append_range(std::views::drop(cursor.stack(), static_cast<std::ptrdiff_t>(_stack_size)));
+		cursor.stack().resize(_stack_size);
+		cursor.exit_call();
+		cursor.restore(std::move(_state));
+	}
+	else {
+		cursor.stack().resize(_stack_size);
+		cursor.exit_call();
+	}
+}
+
+void Coroutine::mark() {
+	Data::mark();
+	for (const Reference& item : _stored_stack) {
+		item.data().mark();
 	}
 }

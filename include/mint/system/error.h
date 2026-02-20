@@ -43,6 +43,7 @@ MINT_EXPORT int add_error_callback(const std::function<void(const std::string&)>
 MINT_EXPORT void call_error_callbacks(const std::string& message);
 MINT_EXPORT void remove_error_callback(int id);
 
+MINT_EXPORT std::function<void(void)> get_exit_callback();
 MINT_EXPORT void set_exit_callback(const std::function<void(void)>& callback);
 MINT_EXPORT void call_exit_callback();
 

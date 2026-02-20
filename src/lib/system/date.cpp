@@ -815,7 +815,7 @@ mint::WeakReference mint_date_equals(mint::Cursor& /*cursor*/, const mint::Refer
 mint::WeakReference mint_parse_iso_date(mint::Cursor& cursor, const mint::Reference& date) {
 	try {
 		const auto [timezone, timepoint] = parse_iso_date(mint::to_string(date));
-		return mint::create_iterator_from(cursor.ast(),
+		return mint::create_iterator_from(cursor,
 		    mint::create_c_object(cursor.ast(), new std::chrono::sys_time<std::chrono::milliseconds>(timepoint)),
 		    mint::create_string(cursor.ast(), timezone));
 	}

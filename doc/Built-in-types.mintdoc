@@ -1,6 +1,6 @@
 # Built-in types
 
-Mint support 13 built-in types:
+Mint support 14 built-in types:
 
 * 2 special types:
   * [`none`](#none)
@@ -14,9 +14,10 @@ Mint support 13 built-in types:
   * [`array`](#array)
   * [`hash`](#hash)
   * [`iterator`](#iterator)
-* 2 block types:
+* 3 block types:
   * [`package`](#package)
   * [`function`](#function)
+  * [`coroutine`](#coroutine)
 * 2 binding types:
   * [`library`](#library)
   * [`libobject`](#libobject)
@@ -50,8 +51,8 @@ Unlike the `none` and `null` types, it is possible to create as many instances o
 **Example**:
 
 ```mn
-foo = true
-bar = true
+let foo = true
+let bar = true
 foo := false // foo now gives false, bar still gives true
 ```
 
@@ -247,7 +248,7 @@ The `index` parameter can either be a [number](#number) or an [iterator](#iterat
 **Example**:
 
 ```mn
-str = 'looking for this word'
+let str = 'looking for this word'
 str[12..15] // gives 'this'
 ```
 
@@ -262,7 +263,7 @@ The `index` parameter can either be a [number](#number) or an [iterator](#iterat
 **Example**:
 
 ```mn
-str = 'replace this word'
+let str = 'replace this word'
 str[8..11] = 'that' // str now gives 'replace that word'
 ```
 
@@ -279,7 +280,7 @@ The `index` parameter should be a [number](#number).
 **Example**:
 
 ```mn
-str = 'insert this word'
+let str = 'insert this word'
 str.insert(12, 'new ') // str now gives 'insert this new word'
 ```
 
@@ -441,9 +442,9 @@ This type represent an ordered list of values. It can be created by a list of ex
 **Example**:
 
 ```mn
-a = [1, 2, 3]
-b = ['a', ['b', 'c']]
-c = ['mint', 5, false]
+let a = [1, 2, 3]
+let b = ['a', ['b', 'c']]
+let c = ['mint', 5, false]
 ```
 
 For an extendible version of this type see [[container.list]].
@@ -514,7 +515,7 @@ The `index` parameter can either be a [number](#number) or an [iterator](#iterat
 **Example**:
 
 ```mn
-a = [1, 2, 3, 4, 5]
+let a = [1, 2, 3, 4, 5]
 a[1..3] // gives [2, 3, 4]
 ```
 
@@ -529,7 +530,7 @@ The `index` parameter can either be a [number](#number) or an [iterator](#iterat
 **Example**:
 
 ```mn
-a = [1, 2, 3, 4, 5]
+let a = [1, 2, 3, 4, 5]
 a[0] = 0         // a now gives [0, 2, 3, 4, 5]
 a[1..3] = [2, 4] // a now gives [0, 2, 4, 5]
 ```
@@ -547,11 +548,31 @@ The `index` parameter should be a [number](#number).
 **Example**:
 
 ```mn
-a = [1, 2, 3, 4, 5]
+let a = [1, 2, 3, 4, 5]
 a.insert(0, 0)   // a now gives [0, 1, 2, 3, 4, 5]
 ```
 
 Returns `self`.
+
+### array.push
+
+`def push(self, item)`
+
+Adds the the `item` element at the end of the array and returns `self`.
+
+### array.remove
+
+`def remove(self, index)`
+
+Remove the elements at the specified `index` in the array. If `index` is negative, the position is relative to the end of the array.
+
+The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This method can then be used with a range to remove a sub-set of elements between two positions.
+
+### array.pop
+
+`def pop(self)`
+
+Removes the last element of the array and returns that element.
 
 ### array.clear
 
@@ -623,14 +644,6 @@ Returns the index corresponding to the element `other` if contained in `self`; o
 
 See [array.contains](#arraycontains).
 
-### array.remove
-
-`def remove(self, index)`
-
-Remove the elements at the specified `index` in the array. If `index` is negative, the position is relative to the end of the array.
-
-The `index` parameter can either be a [number](#number) or an [iterator](#iterator). This method can then be used with a range to remove a sub-set of elements between two positions.
-
 ### array.size
 
 `def size(self)`
@@ -644,9 +657,9 @@ This type represent an associative list of values. It can be created by a list o
 **Example**:
 
 ```mn
-a = {1 : 'foo', 2 : 'bar'}
-b = {'foo' : 1, 'bar' : [2, 3]}
-c = {'foo' : 1, 2 : 'bar'}
+let a = {1 : 'foo', 2 : 'bar'}
+let b = {'foo' : 1, 'bar' : [2, 3]}
+let c = {'foo' : 1, 2 : 'bar'}
 ```
 
 For an extendible version of this type see [[container.map]].
@@ -776,7 +789,7 @@ Iterators are intended to be used in a loop to iterate over values. To create a 
 **Example**:
 
 ```mn
-iterator = 1..5
+let iterator = 1..5
 for let value in iterator {
     process(value)
 }
@@ -904,15 +917,15 @@ Only 3 operators are applicable to a function:
 **Example**:
 
 ```mn
-min = def (a, b) {
+let min = def (a, b) {
     return a < b ? a : b
 }
 
-bound = def (min, val, max) {
+let bound = def (min, val, max) {
     return min < val ? (max > val ? val : max) : min
 }
 
-limit = min + bound
+let limit = min + bound
 ```
 
 * The `()` operator call the function. A list of expressions can be passed between the `(` and `)` operators as parameters. This operator gives the result of the function or `none` if the function does not return a value.
@@ -920,7 +933,7 @@ limit = min + bound
 **Example**:
 
 ```mn
-f = def (a, b) {
+let f = def (a, b) {
     return a + b
 }
 
@@ -937,6 +950,12 @@ limit[2] // gives a function equivalent to min
 
 > [!NOTE]
 > A [[variable|Variables]] name can be inserted after the `def` keyword to create a [[global variable|Variables#access-modifiers]] storing this function.
+
+## coroutine
+
+This type store a resumable state of an asynchronous function.
+
+No operation is applicable to coroutines.
 
 ## library
 
@@ -979,7 +998,7 @@ This member is an optional callback to use when the object is deleted. It allow 
 **Example**:
 
 ```mn
-testLib = lib('test_lib')
+let testLib = lib('test_lib')
 obj = testLib.call('create_object', 1)
 obj.delete = def [testLib] (self) {
    testLib.call('free_object', self)

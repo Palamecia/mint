@@ -21,26 +21,22 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef EVALRESULTPRINTER_H
-#define EVALRESULTPRINTER_H
-
 #include "mint/ast/cursor.h"
-#include "mint/ast/printer.h"
+#include "mint/memory/data.h"
+#include "mint/memory/functiontool.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
-#include <functional>
-#include <vector>
 
-class EvalResultPrinter : public mint::Printer {
-public:
-	EvalResultPrinter(mint::Cursor& cursor);
+MINT_RAW_FUNCTION(mint_coroutine_call, 1, cursor) {
 
-	void print(const mint::Reference& reference) override;
+	auto coroutine = cursor.stack().back();
+	cursor.stack().pop_back();
 
-	[[nodiscard]] mint::WeakReference result();
-
-private:
-	std::reference_wrapper<mint::Cursor> _cursor;
-	std::vector<mint::WeakReference> _results;
-};
-
-#endif // EVALRESULTPRINTER_H
+	if (mint::is_instance_of(coroutine, mint::Data::Format::coroutine)) {
+		coroutine.data<mint::Coroutine>().call(cursor, mint::WeakReference(coroutine));
+	}
+	else {
+		cursor.stack().emplace_back(mint::create_none());
+	}
+}

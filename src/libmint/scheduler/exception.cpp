@@ -52,7 +52,7 @@ void Exception::setup() {
 
 	auto _ = ProcessorLocker();
 
-	if (is_instance_of(_reference, Data::object_format)) {
+	if (is_instance_of(_reference, Data::Format::object)) {
 
 		auto& object = _reference.data<Object>();
 		auto& metadata = object.metadata;
@@ -60,7 +60,7 @@ void Exception::setup() {
 		if (WeakReference* data = object.data) {
 			if (auto* member = metadata.find_member(builtin_symbols::show_method)) {
 				WeakReference handler = Class::MemberInfo::get(*member, data);
-				if (is_instance_of(handler, Data::function_format)) {
+				if (is_instance_of(handler, Data::Format::function)) {
 					auto* scheduler = Scheduler::instance();
 					assert_x(scheduler, __func__, "execution should be done using a scheduler");
 					call_error_callbacks(to_string(scheduler->invoke(_reference, Symbol("toString"))));

@@ -32,7 +32,7 @@
 #include "mint/memory/garbagecollector.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/symboltable.h"
-#include "mint/system/poolallocator.hpp"
+#include "mint/system/poolallocator.h"
 
 #include <cassert>
 #include <cstddef>
@@ -40,7 +40,6 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <type_traits>
 #include <utility>
 #include <vector>
 #include <stack>
@@ -146,7 +145,7 @@ public:
 	Cursor& operator=(const Cursor& other) = delete;
 
 	std::unique_ptr<Cursor> make_thread();
-	bool is_thread() const;
+	[[nodiscard]] bool is_thread() const;
 
 	[[nodiscard]] inline const AbstractSyntaxTree& ast() const;
 	[[nodiscard]] inline AbstractSyntaxTree& ast();
@@ -154,19 +153,19 @@ public:
 
 	inline const Node& next();
 	void jmp(std::size_t pos);
+
+	[[nodiscard]] bool call_in_progress() const;
+	void call_generator_expression(std::size_t offset);
 	void call(const Module::Handle& handle, int signature, Class* metadata = nullptr);
 	void call(const Module& module, std::size_t pos, PackageData& package, Class* metadata = nullptr);
 	void exit_call();
-	[[nodiscard]] bool call_in_progress() const;
 
 	[[nodiscard]] bool is_in_builtin() const;
 	[[nodiscard]] bool is_in_generator() const;
+	std::unique_ptr<SavedState> suspend(std::unique_ptr<SavedState> state);
 	std::unique_ptr<SavedState> interrupt();
 	void restore(std::unique_ptr<SavedState> state);
 	void destroy(SavedState* state);
-
-	void begin_generator_expression(std::size_t offset);
-	void end_generator_expression();
 
 	void open_printer(std::unique_ptr<Printer>&& printer);
 	void close_printer();
@@ -208,21 +207,22 @@ protected:
 		std::size_t call_stack_size;
 		std::size_t waiting_calls_count;
 		std::size_t retrieve_offset;
+		Context* current_context;
 	};
 
 private:
 	using retrieve_point_stack_t = std::stack<RetrievePoint, std::vector<RetrievePoint>>;
 	static PoolAllocator<Context> g_pool;
 
+	std::vector<WeakReference>* _stack;
+	Context* _current_context;
+
 	std::reference_wrapper<AbstractSyntaxTree> _ast;
 	Cursor* _parent;
 	Cursor* _child;
 
-	std::vector<WeakReference>* _stack;
 	WaitingCallStack _waiting_calls;
 	std::vector<Context*> _call_stack;
-	Context* _current_context;
-
 	retrieve_point_stack_t _retrieve_points;
 };
 

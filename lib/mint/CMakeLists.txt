@@ -4,6 +4,7 @@ add_custom_target(${PROJECT_NAME}
 	SOURCES
 	assembly.mn
 	commandlineparser.mn
+	coroutine.mn
 	enum.mn
 	function.mn
 	garbagecollector.mn

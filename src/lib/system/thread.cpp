@@ -79,11 +79,11 @@ mint::WeakReference mint_thread_start_member(mint::FunctionHelper& helper, const
 	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
 	try {
 		const auto thread_id = scheduler.create_thread(std::move(thread_cursor));
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(thread_id));
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(thread_id));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(error.code().value()));
 	}
 	return result;
 }
@@ -102,11 +102,11 @@ mint::WeakReference mint_thread_start(mint::FunctionHelper& helper, const mint::
 	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
 	try {
 		const auto thread_id = scheduler.create_thread(std::move(thread_cursor));
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(thread_id));
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(thread_id));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_none());
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(error.code().value()));
 	}
 	return result;
 }

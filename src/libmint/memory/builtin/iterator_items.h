@@ -2,6 +2,7 @@
 #define LIBMINT_MEMORY_BUILTIN_ITERATOR_ITEMS_H
 
 #include "iterator_p.h"
+#include "mint/ast/cursor.h"
 #include "mint/ast/module.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/reference.h"
@@ -43,8 +44,8 @@ class ItemsIteratorData : public IteratorData {
 public:
 	ItemsIteratorData();
 	ItemsIteratorData(std::size_t capacity);
-	ItemsIteratorData(AbstractSyntaxTree& ast, const mint::Reference& ref);
-	ItemsIteratorData(AbstractSyntaxTree& ast, mint::Reference&& ref);
+	ItemsIteratorData(Cursor& cursor, const mint::Reference& ref);
+	ItemsIteratorData(Cursor& cursor, mint::Reference&& ref);
 	ItemsIteratorData(ItemsIteratorData&& other) noexcept;
 	ItemsIteratorData(const ItemsIteratorData& other);
 	~ItemsIteratorData() override;
@@ -64,10 +65,11 @@ public:
 	[[nodiscard]] std::size_t capacity() const override;
 	void reserve(std::size_t capacity) override;
 
-	void yield(mint::Iterator::Context::value_type&& value) override;
-	void next() override;
+	void yield(mint::Cursor& cursor, mint::Iterator::Context::value_type&& value,
+	    Iterator::ResumeKind resume_kind) override;
+	void next(mint::Cursor& cursor) override;
 
-	void finalize() override;
+	void finalize(mint::Cursor& cursor) override;
 	void clear() override;
 
 private:

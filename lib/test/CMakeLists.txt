@@ -3,6 +3,7 @@ project(module-test)
 add_custom_target(${PROJECT_NAME}
 	SOURCES
 	case.mn
+	errorcatcher.mn
 	suite.mn
 )
 

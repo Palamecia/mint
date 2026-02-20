@@ -38,7 +38,7 @@
 #include "mint/memory/memorytool.h"
 #include "mint/memory/object.h"
 #include "mint/scheduler/process.h"
-#include "mint/system/mintruntimeerror.hpp"
+#include "mint/system/mintruntimeerror.h"
 #include "mint/system/terminal.h"
 #include "symbolevaluator.h"
 
@@ -369,7 +369,7 @@ void InteractiveDebugger::init_list(CommandRunner::Command& command) {
 			if (evaluator.parse(stream)) {
 				if (const auto& parent = evaluator.get_reference()) {
 					switch (parent->data().format()) {
-					case mint::Data::object_format:
+					case mint::Data::Format::object:
 						if (mint::is_object(parent->data<mint::Object>())) {
 							for (auto [symbol, member] : parent->data<mint::Object>().metadata.members()) {
 								if (slots_only && member.get().offset == mint::Class::MemberInfo::invalid_offset) {
@@ -388,7 +388,7 @@ void InteractiveDebugger::init_list(CommandRunner::Command& command) {
 							}
 						}
 						break;
-					case mint::Data::package_format:
+					case mint::Data::Format::package:
 						for (auto& [symbol, reference] : parent->data<mint::Package>().data.symbols()) {
 							print_debug_trace("{} ({}) : {}", symbol.str(), type_name(reference),
 							    reference_value(reference));

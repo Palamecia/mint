@@ -618,6 +618,21 @@ public:
 		return Node::Command::raise;
 	}
 
+	Node::Command on_await(Cursor& /*cursor*/) {
+		_stream.get() << to_debug_string("AWAIT");
+		return Node::Command::await;
+	}
+
+	Node::Command on_exit_coroutine(Cursor& /*cursor*/) {
+		_stream.get() << to_debug_string("EXIT_COROUTINE");
+		return Node::Command::exit_coroutine;
+	}
+
+	Node::Command on_resume_coroutine(Cursor& /*cursor*/) {
+		_stream.get() << to_debug_string("RESUME_COROUTINE");
+		return Node::Command::resume_coroutine;
+	}
+
 	Node::Command on_yield(Cursor& /*cursor*/) {
 		_stream.get() << to_debug_string("YIELD");
 		return Node::Command::yield;
@@ -912,35 +927,41 @@ std::string mint::to_debug_string(Cursor& cursor, const Function& function) {
 	                                         | std::ranges::to<std::string>());
 }
 
+std::string mint::to_debug_string(Cursor& /*cursor*/, const Coroutine& /*coroutine*/) {
+	return std::format("(coroutine)");
+}
+
 std::string mint::to_debug_string(Cursor& cursor, const Reference& constant) {
 	switch (constant.data().format()) {
-	case Data::none_format:
+	case Data::Format::none:
 		return "none";
-	case Data::null_format:
+	case Data::Format::null:
 		return "null";
-	case Data::number_format:
+	case Data::Format::number:
 		return to_debug_string(constant.data<Number>());
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return to_debug_string(constant.data<Boolean>());
-	case Data::object_format:
+	case Data::Format::object:
 		switch (constant.data<Object>().metadata.metatype()) {
-		case Class::string:
+		case Class::Metatype::string:
 			return to_debug_string(constant.data<String>());
-		case Class::regex:
+		case Class::Metatype::regex:
 			return constant.data<Regex>().initializer;
-		case Class::array:
+		case Class::Metatype::array:
 			return to_debug_string(cursor, constant.data<Array>());
-		case Class::hash:
+		case Class::Metatype::hash:
 			return to_debug_string(cursor, constant.data<Hash>());
-		case Class::iterator:
+		case Class::Metatype::iterator:
 			return to_debug_string(cursor, constant.data<Iterator>());
 		default:
 			return mint::to_string(&constant.data());
 		}
-	case Data::package_format:
+	case Data::Format::package:
 		return to_debug_string(constant.data<Package>());
-	case Data::function_format:
+	case Data::Format::function:
 		return to_debug_string(cursor, constant.data<Function>());
+	case Data::Format::coroutine:
+		return to_debug_string(cursor, constant.data<Coroutine>());
 	}
 	return {};
 }

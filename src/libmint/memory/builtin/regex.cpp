@@ -41,20 +41,20 @@ using namespace mint;
 
 namespace {
 
-WeakReference sub_match_to_iterator(AbstractSyntaxTree& ast, const std::string& str, const std::smatch& match,
+WeakReference sub_match_to_iterator(Cursor& cursor, const std::string& str, const std::smatch& match,
     std::size_t index) {
 	const auto match_str = match[index].str();
-	return create_iterator_from(ast, create_string(ast, match_str),
+	return create_iterator_from(cursor, create_string(cursor.ast(), match_str),
 	    create_unsigned_number(utf8_byte_index_to_code_point_index(str, match.position(index))),
 	    create_unsigned_number(utf8_code_point_count(match_str)));
 }
 
-WeakReference match_to_iterator(AbstractSyntaxTree& ast, const std::string& str, const std::smatch& match) {
+WeakReference match_to_iterator(Cursor& cursor, const std::string& str, const std::smatch& match) {
 
-	WeakReference result = create_iterator(ast);
+	WeakReference result = create_iterator(cursor.ast());
 
 	for (std::size_t index = 0; index < match.size(); ++index) {
-		iterator_yield(result.data<Iterator>(), sub_match_to_iterator(ast, str, match, index));
+		iterator_yield(cursor, result.data<Iterator>(), sub_match_to_iterator(cursor, str, match, index));
 	}
 
 	return result;
@@ -63,7 +63,7 @@ WeakReference match_to_iterator(AbstractSyntaxTree& ast, const std::string& str,
 }
 
 RegexClass& RegexClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<RegexClass>(Class::regex);
+	return ast.global_data().builtin<RegexClass>(Class::Metatype::regex);
 }
 
 Regex::Regex(AbstractSyntaxTree& ast) :
@@ -92,7 +92,7 @@ Regex& Regex::operator=(const Regex& other) {
 }
 
 RegexClass::RegexClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "regex", Class::regex) {
+    Class(ast.global_data(), "regex", Class::Metatype::regex) {
 
 	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
@@ -100,8 +100,8 @@ RegexClass::RegexClass(AbstractSyntaxTree& ast) :
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
 
-		if ((other.data().format() == Data::object_format)
-		    && (other.data<Object>().metadata.metatype() == Class::regex)) {
+		if ((other.data().format() == Data::Format::object)
+		    && (other.data<Object>().metadata.metatype() == Class::Metatype::regex)) {
 			self.data<Regex>().initializer = other.data<Regex>().initializer;
 		}
 		else {
@@ -148,7 +148,7 @@ RegexClass::RegexClass(AbstractSyntaxTree& ast) :
 		if (regex_match(s, match, self.data<Regex>().expr)) {
 			cursor.stack().pop_back();
 			cursor.stack().pop_back();
-			cursor.stack().emplace_back(match_to_iterator(cursor.ast(), s, match));
+			cursor.stack().emplace_back(match_to_iterator(cursor, s, match));
 		}
 		else {
 			cursor.stack().pop_back();
@@ -169,7 +169,7 @@ RegexClass::RegexClass(AbstractSyntaxTree& ast) :
 		if (regex_search(s, match, self.data<Regex>().expr)) {
 			cursor.stack().pop_back();
 			cursor.stack().pop_back();
-			cursor.stack().emplace_back(match_to_iterator(cursor.ast(), s, match));
+			cursor.stack().emplace_back(match_to_iterator(cursor, s, match));
 		}
 		else {
 			cursor.stack().pop_back();

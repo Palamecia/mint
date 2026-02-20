@@ -33,6 +33,7 @@
 #include "mint/memory/reference.h"
 #include "mint/memory/object.h"
 #include "mint/scheduler/scheduler.h"
+#include "mint/system/error.h"
 
 #include <algorithm>
 #include <cassert>
@@ -54,6 +55,7 @@ LocalPool<Iterator> Iterator::g_pool;
 LocalPool<Library> Library::g_pool;
 LocalPool<Package> Package::g_pool;
 LocalPool<Function> Function::g_pool;
+LocalPool<Coroutine> Coroutine::g_pool;
 LocalPool<Reference::Info> Reference::g_pool;
 
 GarbageCollector::GarbageCollector() = default;
@@ -103,11 +105,11 @@ std::size_t GarbageCollector::collect() {
 	// call destructors as possible
 	if (Scheduler* scheduler = Scheduler::instance()) {
 		for (Data* data : collected) {
-			if (data->format() == Data::object_format) {
+			if (data->format() == Data::Format::object) {
 				auto* object = static_cast<Object*>(data);
 				if (WeakReference* slots = object->data) {
 					if (Class::MemberInfo* member = object->metadata.find_operator(Class::delete_operator)) {
-						if (is_instance_of(Class::MemberInfo::get(*member, slots), Data::function_format)) {
+						if (is_instance_of(Class::MemberInfo::get(*member, slots), Data::Format::function)) {
 							scheduler->invoke(WeakReference(Reference::default_flags, *object), Class::delete_operator);
 						}
 					}
@@ -219,50 +221,52 @@ Null* GarbageCollector::alloc<Null>() {
 
 Data* GarbageCollector::copy(const Data& other) {
 	switch (other.format()) {
-	case Data::null_format:
+	case Data::Format::null:
 		return alloc<Null>();
-	case Data::none_format:
+	case Data::Format::none:
 		return alloc<None>();
-	case Data::number_format:
+	case Data::Format::number:
 		return alloc<Number>(static_cast<const Number&>(other));
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		return alloc<Boolean>(static_cast<const Boolean&>(other));
-	case Data::object_format:
+	case Data::Format::object:
 		{
 			Object* data = nullptr;
 			const auto& object = static_cast<const Object&>(other);
 			switch (object.metadata.metatype()) {
-			case Class::object:
+			case Class::Metatype::object:
 				data = alloc<Object>(object.metadata);
 				break;
-			case Class::string:
+			case Class::Metatype::string:
 				data = alloc<String>(static_cast<const String&>(other));
 				break;
-			case Class::regex:
+			case Class::Metatype::regex:
 				data = alloc<Regex>(static_cast<const Regex&>(other));
 				break;
-			case Class::array:
+			case Class::Metatype::array:
 				data = alloc<Array>(static_cast<const Array&>(other));
 				break;
-			case Class::hash:
+			case Class::Metatype::hash:
 				data = alloc<Hash>(static_cast<const Hash&>(other));
 				break;
-			case Class::iterator:
+			case Class::Metatype::iterator:
 				data = alloc<Iterator>(static_cast<const Iterator&>(other));
 				break;
-			case Class::library:
+			case Class::Metatype::library:
 				data = alloc<Library>(static_cast<const Library&>(other));
 				break;
-			case Class::libobject:
+			case Class::Metatype::libobject:
 				return &const_cast<Data&>(other); // safe ?
 			}
 			data->construct(object);
 			return data;
 		}
-	case Data::package_format:
+	case Data::Format::package:
 		return alloc<Package>(static_cast<const Package&>(other).data);
-	case Data::function_format:
+	case Data::Format::function:
 		return alloc<Function>(static_cast<const Function&>(other));
+	case Data::Format::coroutine:
+		error("type 'coroutine' is not copyable");
 	}
 
 	return nullptr;
@@ -270,23 +274,23 @@ Data* GarbageCollector::copy(const Data& other) {
 
 void GarbageCollector::free(Data* ptr) {
 	switch (ptr->format()) {
-	case Data::none_format:
-	case Data::null_format:
+	case Data::Format::none:
+	case Data::Format::null:
 		delete ptr;
 		break;
-	case Data::number_format:
+	case Data::Format::number:
 		Number::g_pool.free(static_cast<Number*>(ptr));
 		break;
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		Boolean::g_pool.free(static_cast<Boolean*>(ptr));
 		break;
-	case Data::object_format:
+	case Data::Format::object:
 		if (Scheduler* scheduler = Scheduler::instance()) {
 			auto* object = static_cast<Object*>(ptr);
 			if (WeakReference* slots = object->data) {
 				if (Class::MemberInfo* member = object->metadata.find_operator(Class::delete_operator)) {
 					const auto& member_ref = Class::MemberInfo::get(*member, slots);
-					if (member_ref.data().format() == Data::function_format) {
+					if (member_ref.data().format() == Data::Format::function) {
 						scheduler->create_destructor(object, member_ref, member->owner);
 						break;
 					}
@@ -298,63 +302,69 @@ void GarbageCollector::free(Data* ptr) {
 			destroy(static_cast<Object*>(ptr));
 		}
 		break;
-	case Data::package_format:
+	case Data::Format::package:
 		Package::g_pool.free(static_cast<Package*>(ptr));
 		break;
-	case Data::function_format:
+	case Data::Format::function:
 		Function::g_pool.free(static_cast<Function*>(ptr));
+		break;
+	case Data::Format::coroutine:
+		Coroutine::g_pool.free(static_cast<Coroutine*>(ptr));
 		break;
 	}
 }
 
 void GarbageCollector::destroy(Data* ptr) {
 	switch (ptr->format()) {
-	case Data::none_format:
-	case Data::null_format:
+	case Data::Format::none:
+	case Data::Format::null:
 		delete ptr;
 		break;
-	case Data::number_format:
+	case Data::Format::number:
 		Number::g_pool.free(static_cast<Number*>(ptr));
 		break;
-	case Data::boolean_format:
+	case Data::Format::boolean:
 		Boolean::g_pool.free(static_cast<Boolean*>(ptr));
 		break;
-	case Data::object_format:
+	case Data::Format::object:
 		destroy(static_cast<Object*>(ptr));
 		break;
-	case Data::package_format:
+	case Data::Format::package:
 		Package::g_pool.free(static_cast<Package*>(ptr));
 		break;
-	case Data::function_format:
+	case Data::Format::function:
 		Function::g_pool.free(static_cast<Function*>(ptr));
+		break;
+	case Data::Format::coroutine:
+		Coroutine::g_pool.free(static_cast<Coroutine*>(ptr));
 		break;
 	}
 }
 
 void GarbageCollector::destroy(Object* ptr) {
 	switch (ptr->metadata.metatype()) {
-	case Class::object:
+	case Class::Metatype::object:
 		Object::g_pool.free(ptr);
 		break;
-	case Class::string:
+	case Class::Metatype::string:
 		String::g_pool.free(static_cast<String*>(ptr));
 		break;
-	case Class::regex:
+	case Class::Metatype::regex:
 		Regex::g_pool.free(static_cast<Regex*>(ptr));
 		break;
-	case Class::array:
+	case Class::Metatype::array:
 		Array::g_pool.free(static_cast<Array*>(ptr));
 		break;
-	case Class::hash:
+	case Class::Metatype::hash:
 		Hash::g_pool.free(static_cast<Hash*>(ptr));
 		break;
-	case Class::iterator:
+	case Class::Metatype::iterator:
 		Iterator::g_pool.free(static_cast<Iterator*>(ptr));
 		break;
-	case Class::library:
+	case Class::Metatype::library:
 		Library::g_pool.free(static_cast<Library*>(ptr));
 		break;
-	case Class::libobject:
+	case Class::Metatype::libobject:
 		delete ptr;
 		break;
 	}

@@ -5,7 +5,7 @@ load system.filesystem
 class FileTest : Test.Case {
 	const def testOpen(self) {
 		
-		f = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
+		let f = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
 		self.expectEqual('System.File', typeof f)
 		self.expectEqual(true, f.isOpen())
 		print(f, 'test')
@@ -19,7 +19,7 @@ class FileTest : Test.Case {
 
 	const def testClose(self) {
 
-		f = System.File(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'))
+		let f = System.File(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'))
 		self.expectEqual(false, f.isOpen())
 
 		f.open('w')

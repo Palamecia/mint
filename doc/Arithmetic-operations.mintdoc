@@ -211,7 +211,7 @@ Subscript operators are used to access a sub-element of a value. Sub-elements ca
 **Example**:
 
 ```mn
-a = ['a', 'b', 'c']
+let a = ['a', 'b', 'c']
 
 a[1]        // gives 'b'
 a[1] = 'z'  // a gives now ['a', 'z', 'c']

@@ -51,9 +51,11 @@ package Network {
 		/**
 		 * Creates a new end point for the IP address descibed by `address` and
 		 * the TCP port descibed by `port`.
+		 * 
+		 * The end point is managed by the `scheduler` object.
 		 */
-		const def new(self, address, port) {
-			if self = Network.IpEndPoint.new(self, address) {
+		const def new(self, scheduler, address, port) {
+			if self = Network.IpEndPoint.new(self, scheduler, address) {
 				self.port = port
 				return self
 			}
@@ -220,7 +222,7 @@ package Network {
 				raise Exception.SocketError(errno, self)
 			}
 			if defined clientSocket {
-				var client = Network.TcpIp(address, port)
+				var client = Network.TcpIp(self.getScheduler(), address, port)
 				client.setSocket(clientSocket)
 				client.setState(Network.EndPoint.State.Connected)
 				return client

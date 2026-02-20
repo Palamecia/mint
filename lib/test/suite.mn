@@ -36,16 +36,6 @@ package Test {
 	 * This singleton schedule tests implemented in classes derived from {Test.Case}.
 	 */
 	class Suite {
-		/// Internal constructor.
-		~ const new
-
-		/**
-		 * Return the global {Test.Suite} instance.
-		 */
-		@const def instance() {
-			return Test.Suite.g_instance
-		}
-
 		/**
 		 * List attached tests on the standard output.
 		 */
@@ -201,12 +191,8 @@ package Test {
 			}
 		}
 
-		/// Global instance.
-		- @g_instance = none
-
 		/// Internal test class filter.
 		- final filter = /.*/
 	}
 
-	Test.Suite.g_instance = Test.Suite()
 }

@@ -11,12 +11,13 @@ load network.protocols.http.server
 class NetworkChannelTest : Test.Case {
 	const def testOnTcpMessage(self) {
 
-        var result = 'ko'
-        var client = Network.AsynchronousChannel(Network.TcpIp('127.0.0.1', 7357))
-        var server = Network.AsynchronousChannel(Network.TcpIp('127.0.0.1', 7357), Network.ServerSerializer)
+        let result = 'ko'
+        let scheduler = Network.Scheduler()
+        let client = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357))
+        let server = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357), Network.ServerSerializer)
 
         server.onMessage = def [result] (self, channel) {
-            var client = Network.AsynchronousChannel(channel.read())
+            let client = Network.AsynchronousChannel(channel.read())
             client.onMessage = def [result] (self, channel) {
                 result = channel.read()
                 channel.close()
@@ -41,15 +42,16 @@ class NetworkChannelTest : Test.Case {
         self.expectEqual(true, client.watch())
         self.expectEqual(true, client.connect())
 
-        Network.Scheduler.instance().run()
+        scheduler.run()
         self.expectEqual('ok', result)
     }
 
 	const def testOnHttpMessage(self) {
 
-        var result = 'ko'
-        var client = Network.Http.Client(Network.TcpIp('127.0.0.1', 7357))
-        var server = Network.Http.Server(Network.TcpIp('127.0.0.1', 7357))
+        let result = 'ko'
+        let scheduler = Network.Scheduler()
+        let client = Network.Http.Client(Network.TcpIp(scheduler, '127.0.0.1', 7357))
+        let server = Network.Http.Server(Network.TcpIp(scheduler, '127.0.0.1', 7357))
 
         server.onConnection = def [result] (self, channel) {
             channel.onMessage = def [result] (self, channel) {
@@ -75,17 +77,18 @@ class NetworkChannelTest : Test.Case {
         self.expectEqual(true, client.watch())
         self.expectEqual(true, client.connect())
 
-        Network.Scheduler.instance().run()
+        scheduler.run()
         self.expectEqual('ok', result)
     }
 
 	const def testOnUdpMessage(self) {
 
-        var result = 'ko'
-        var client = Network.AsynchronousChannel(Network.UdpIp('127.0.0.1', 7357), Network.DatagramSerializer)
-        var server = Network.AsynchronousChannel(Network.UdpIp('127.0.0.1', 7357), Network.DatagramSerializer)
+        let result = 'ko'
+        let scheduler = Network.Scheduler()
+        let client = Network.AsynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
+        let server = Network.AsynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
 
-        var sender = System.Thread(def [client, result] {
+        let sender = System.Thread(def [client, result] {
             while result == 'ko' {
                 client.write('ok')
                 System.wait()
@@ -94,7 +97,7 @@ class NetworkChannelTest : Test.Case {
         })
 
         server.onMessage = def [result] (self, channel) {
-            var datagram = channel.read()
+            let datagram = channel.read()
             result = datagram.data().getString()
             channel.close()
             channel.unwatch()
@@ -112,18 +115,19 @@ class NetworkChannelTest : Test.Case {
 
         sender.start()
 
-        Network.Scheduler.instance().run()
+        scheduler.run()
         self.expectEqual('ok', result)
     }
 
 	const def testWatch(self) {
 
-        var i = 0
-        var client = Network.AsynchronousChannel(Network.TcpIp('127.0.0.1', 7357))
-        var server = Network.AsynchronousChannel(Network.TcpIp('127.0.0.1', 7357), Network.ServerSerializer)
+        let i = 0
+        let scheduler = Network.Scheduler()
+        let client = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357))
+        let server = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357), Network.ServerSerializer)
 
         server.onMessage = def [result] (self, channel) {
-            var client = Network.AsynchronousChannel(channel.read())
+            let client = Network.AsynchronousChannel(channel.read())
             client.close()
         }
 
@@ -143,7 +147,7 @@ class NetworkChannelTest : Test.Case {
         self.expectEqual(true, client.watch())
         self.expectEqual(true, client.connect())
 
-        Network.Scheduler.instance().run()
+        scheduler.run()
         self.expectEqual(3, i)
     }
 }

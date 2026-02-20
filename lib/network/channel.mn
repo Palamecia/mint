@@ -141,7 +141,7 @@ package Network {
 		 * An instance of {Exception.SocketError} is raised on error.
 		 */
 		const def watch(self) {
-			return Network.Scheduler.instance().watch(self)
+			return self.endpoint.getScheduler().watch(self)
 		}
 
 		/**
@@ -149,7 +149,7 @@ package Network {
 		 * calls the {Network.Scheduler.remove} method.
 		 */
 		const def unwatch(self) {
-			return Network.Scheduler.instance().remove(self)
+			return self.endpoint.getScheduler().remove(self)
 		}
 
 		/**
@@ -201,6 +201,14 @@ package Network {
 		 */
 		const def getEndpoint(const self) {
 			return self.endpoint
+		}
+
+		/**
+		 * Returns the scheduler associated with the object. This method calls
+		 * the {Network.EndPoint.getScheduler} method of the underling object.
+		 */
+		const def getScheduler(const self) {
+			return self.endpoint.getScheduler()
 		}
 
 		/**

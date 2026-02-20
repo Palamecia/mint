@@ -22,9 +22,10 @@ load network.scheduler
 load network.endpoints.tcpip
 load network.protocol.http.client
 
-Network.Scheduler.instance().startSynchronizationLoop()
+let scheduler = Network.Scheduler()
+scheduler.startSynchronizationLoop()
 
-if client = Network.Http.Client(Network.TcpIp(server_host, server_port)) {
+if client = Network.Http.Client(Network.TcpIp(scheduler, server_host, server_port)) {
     client.onMessage = def (self, channel) {
         send_to_browser(self.read())
     }
@@ -38,6 +39,6 @@ if client = Network.Http.Client(Network.TcpIp(server_host, server_port)) {
     client.unwatch()
 }
 
-Network.Scheduler.instance().stopSynchronizationLoop()
+scheduler.stopSynchronizationLoop()
 
 ```

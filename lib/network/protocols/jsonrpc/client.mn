@@ -88,7 +88,7 @@ package Network {
 			 */
 			const def watch(self) {
 				try {
-					return Network.Scheduler.instance().watch(self)
+					return self.channel.getScheduler().watch(self)
 				} catch e {
 					if typeof e === 'Exception.SocketError' {
 						raise Exception.SocketError(e.getErrno(), self)
@@ -103,7 +103,7 @@ package Network {
 			 * calls the {Network.Scheduler.remove} method.
 			 */
 			const def unwatch(self) {
-				return Network.Scheduler.instance().remove(self)
+				return self.channel.getScheduler().remove(self)
 			}
 
 			/**
@@ -153,6 +153,15 @@ package Network {
 			 */
 			const def getEndpoint(const self) {
 				return self.channel.getEndpoint()
+			}
+
+			/**
+			 * Returns the scheduler associated with the object. This method calls
+			 * the {Network.AsynchronousChannel.getScheduler} method of the 
+			 * underling channel.
+			 */
+			const def getScheduler(const self) {
+				return self.channel.getScheduler()
 			}
 
 			/**

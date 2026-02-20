@@ -10,6 +10,6 @@ load my-test
 load my-other-test
 
 if isMain() {
-    Test.Suite.instance().run()
+    Test.Suite().run()
 }
 ```

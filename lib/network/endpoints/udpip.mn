@@ -40,17 +40,19 @@ package Network {
 		 * Creates a new end point for any IP address and any UDP port. This
 		 * endpoint is mean to be used with the {@see writeTo} and {@see readFrom}
 		 * methods and can only be opened using the {@see open} method.
+		 * 
+		 * The end point is managed by the `scheduler` object.
 		 */
-		const def new(self) {
-			return Network.IpEndPoint.new(self, none)
+		const def new(self, scheduler) {
+			return Network.IpEndPoint.new(self, scheduler, none)
 		}
 
 		/**
 		 * Creates a new end point for the IP address descibed by `address` and
 		 * the UDP port descibed by `port`.
 		 */
-		const def new(self, address, port) {
-			if self = Network.IpEndPoint.new(self, address) {
+		const def new(self, scheduler, address, port) {
+			if self = Network.IpEndPoint.new(self, scheduler, address) {
 				self.port = port
 				return self
 			}
@@ -127,7 +129,7 @@ package Network {
 
 			switch status {
 			case Network.EndPoint.IOStatus.IOSuccess:
-				return (stream, Network.UdpIp(address, port))
+				return (stream, Network.UdpIp(self.getScheduler(), address, port))
 
 			case Network.EndPoint.IOStatus.IOWouldBlock:
 				return none

@@ -302,12 +302,14 @@ package Network {
 		}
 
 		/**
-		 * Creates a new end point.
+		 * Creates a new end point. The end point is managed by the `scheduler`
+		 * object.
 		 * 
 		 * > This method initialize the internal end point's state and must be
 		 * > called in the implementation class constructor.
 		 */
-		const def new(self) {
+		const def new(self, scheduler) {
+			self.scheduler = scheduler
 			self.state = Network.EndPoint.State.Unknown
 			return self
 		}
@@ -434,6 +436,13 @@ package Network {
 		 */
 		const def getSocket(const self) {
 			return none
+		}
+
+		/**
+		 * Returns the scheduler associated with the object.
+		 */
+		const def getScheduler(const self) {
+			return self.scheduler
 		}
 
 		/**
@@ -601,6 +610,9 @@ package Network {
 
 		/// Global library handle.
 		- @g_lib = lib('libmint-network')
+
+		/// Internal scheduler object.
+		- final scheduler = null
 
 		/// Internal end point's state.
 		- final %state = null

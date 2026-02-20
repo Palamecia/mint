@@ -125,18 +125,13 @@ package Network {
 			- final handle = null
 		}
 
-		/// Internal constructor.
-		~const def new(self) {
+		/**
+		 * Creates a new scheduler for network operations.
+		 */
+		const def new(self) {
 			self.thread = System.Thread(self, self.synchronizationLoop)
 			self.mutex = System.Mutex()
 			return self
-		}
-
-		/**
-		 * Returns the global instance of {Network.Scheduler}.
-		 */
-		@const def instance() {
-			return Network.Scheduler.g_instance
 		}
 
 		/**
@@ -300,9 +295,6 @@ package Network {
 		/// Global library handle.
 		- @g_lib = lib('libmint-network')
 
-		/// Global object instance.
-		- @g_instance
-
 		/// Internal synchronization loop state.
 		- final loopRunning = false
 
@@ -315,7 +307,5 @@ package Network {
 		/// Internal channels context.
 		- final channels = {}
 	}
-
-	Network.Scheduler.g_instance = Network.Scheduler()
 
 }

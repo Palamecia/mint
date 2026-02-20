@@ -465,9 +465,11 @@ package Network {
 		/**
 		 * Creates a new end point for the IP address descibed by `address`. The
 		 * protocol version is automaticaly detected using the address format.
+		 * 
+		 * The end point is managed by the `scheduler` object.
 		 */
-		const def new(self, address) {
-			if self = Network.EndPoint.new(self) {
+		const def new(self, scheduler, address) {
+			if self = Network.EndPoint.new(self, scheduler) {
 				self.ipVersion = Network.IpEndPoint.addressVersion(address)
 				self.address = address
 				return self

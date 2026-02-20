@@ -2,4 +2,4 @@
 
 load test.suite
 
-Test.Suite.instance().run(va_args)
+Test.Suite().run(va_args)

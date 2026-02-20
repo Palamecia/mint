@@ -675,7 +675,8 @@ $def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = 
 		private('delegate'): null
 	})
 
-	var endpoint = Network.TcpIp(address, port)
+	var scheduler = Network.Scheduler()
+	var endpoint = Network.TcpIp(scheduler, address, port)
 	endpoint.setSocketOption(Network.SocketOption.REUSEADDR, true)
 
 	var server = Network.JsonRpc.Server(endpoint, wrapper_class)
@@ -684,7 +685,7 @@ $def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = 
 		server.watch()
 		server.listen()
 		log.info('Serving %s on (%s, %s)', typeof MintLspServerClass, address, port)
-		Network.Scheduler.instance().run()
+		scheduler.run()
 	}
 
 	log.info('Shutting down')

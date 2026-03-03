@@ -55,7 +55,7 @@ class Iconv {
 	 * {Codec.Iconv.encode} methods to make the conversion.
 	 */
 	enum State {
-		/// Conversion succed.
+		/// Conversion succeed.
 		Success
 		/// Invalid byte sequence.
 		Invalid

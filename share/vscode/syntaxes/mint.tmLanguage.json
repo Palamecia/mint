@@ -168,7 +168,7 @@
       "patterns": [
         {
 			    "name": "meta.class.declaration.mn",
-          "begin": "\\b(class)\\s+([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(:)",
+          "begin": "\\b(class)\\s+([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(:)\\s*(.+?)\\s*({)",
           "beginCaptures": {
             "1": {
               "name": "storage.type.class.mn"
@@ -178,6 +178,19 @@
             },
             "3": {
               "name": "punctuation.mn"
+            },
+            "4": {
+              "patterns": [
+                {
+                  "include": "#comment"
+                },
+                {
+                  "include": "#class_inherited_rule"
+                }
+              ]
+            },
+            "5": {
+              "name": "punctuation.definition.block.mn"
             }
           },
           "end": "(})",
@@ -191,7 +204,7 @@
               "include": "#comment"
             },
             {
-              "include": "#class_heritage_rule"
+              "include": "#desc_block_rule"
             }
           ]
         },
@@ -242,7 +255,7 @@
         }
       ]
     },
-    "class_heritage_rule": {
+    "class_inherited_rule": {
       "patterns": [
         {
           "match": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(\\.)",
@@ -259,7 +272,7 @@
           "match": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(,)",
           "captures": {
             "1": {
-              "name": "entity.name.type.class.mn"
+              "name": "entity.name.type.inherited-class.mn"
             },
             "2": {
               "name": "punctuation.mn"
@@ -267,27 +280,10 @@
           }
         },
         {
-          "begin": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*({)",
-          "beginCaptures": {
+          "match": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)",
+          "captures": {
             "1": {
-              "name": "entity.name.type.class.mn"
-            },
-            "2": {
-              "name": "punctuation.definition.block.mn"
-            }
-          },
-          "patterns": [
-            {
-              "include": "#comment"
-            },
-            {
-              "include": "#desc_block_rule"
-            }
-          ],
-          "end": "(})",
-          "endCaptures": {
-            "1": {
-              "name": "punctuation.definition.block.mn"
+              "name": "entity.name.type.inherited-class.mn"
             }
           }
         }
@@ -443,6 +439,9 @@
         {
           "include": "#class_rule"
         },
+				{
+					"include": "#enum_rule"
+				},
         {
           "match": "(\\+|-|#|~)",
           "name": "storage.type.mn"
@@ -743,7 +742,7 @@
           }
         },
         {
-          "match": "\\b(none(?!\\S)|null(?!\\S)|false(?!\\S)|true(?!\\S))\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "match": "\\b(none|null|false|true)\\b\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|/(?:(?!/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
           "captures": {
             "1": {
               "name": "variable.language.mn"
@@ -803,20 +802,6 @@
           }
         },
         {
-          "match": "\\b([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|\\/(?:(?!\\/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
-          "captures": {
-            "1": {
-              "name": "variable.other.readwrite.mn"
-            },
-            "2": {
-              "name": "keyword.operator.mn"
-            },
-            "3": {
-              "name": "keyword.operator.mn"
-            }
-          }
-        },
-        {
           "begin": "(\\.)\\s*([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(\\()",
           "beginCaptures": {
             "1": {
@@ -860,12 +845,26 @@
               "name": "punctuation.mn"
             },
             "2": {
-              "name": "variable.other.mn"
+              "name": "variable.other.readwrite.mn"
             },
             "3": {
               "name": "keyword.operator.mn"
             },
             "4": {
+              "name": "keyword.operator.mn"
+            }
+          }
+        },
+        {
+          "match": "\\b([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)\\s*(?:(--|\\+\\+)?)\\s*(?:(\\band(?!\\S)|\\bor(?!\\S)|\\bxor(?!\\S)|\\bis(?!\\S)|\\bin(?!\\S)|=>|=(?![\\x{003d}\\x{007e}])|:=|%=|&=|\\*=|\\+=|-=|/=|\\^=|\\|=|<<=|>>=|<<|>>|&|\\^|\\|<=|>=|<|>|==|!=|===|!==|=~|!~|\\*\\*|\\/(?:(?!\\/))|%|\\*|\\+|-|\\.\\.\\.|\\.\\.|\\?|:)?)",
+          "captures": {
+            "1": {
+              "name": "variable.other.readwrite.mn"
+            },
+            "2": {
+              "name": "keyword.operator.mn"
+            },
+            "3": {
               "name": "keyword.operator.mn"
             }
           }

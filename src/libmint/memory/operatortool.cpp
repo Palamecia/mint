@@ -45,7 +45,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <cmath>
 #include <optional>
@@ -64,7 +63,8 @@ bool mint::call_overload(Cursor& cursor, Class::Operator operator_overload, int 
 	if (Class::MemberInfo* info = object.metadata.find_operator(operator_overload)) {
 
 		if (is_class(object)) [[unlikely]] {
-			error("invalid use of class '{}' in an operation", object.metadata.full_name());
+			error("invalid use of class '{}' with operator '{}'({})", object.metadata.full_name(),
+			    get_operator_symbol(operator_overload).str(), signature);
 		}
 
 		const auto& function = Class::MemberInfo::get(*info, object);
@@ -87,9 +87,9 @@ bool mint::call_overload(Cursor& cursor, Class::Operator operator_overload, int 
 			}
 			break;
 		case Data::Format::package:
-			error("invalid use of package in an operation");
+			error("invalid use of package '{}' as a function", function.data<Package>().data.full_name());
 		case Data::Format::coroutine:
-			error("invalid use of coroutine in an operation");
+			error("invalid use of coroutine as a function");
 		case Data::Format::function:
 			if (!(function.flags() & Reference::global)) {
 				// add self to function arguments
@@ -119,7 +119,8 @@ bool mint::call_overload(Cursor& cursor, const Symbol& operator_overload, int si
 	if (auto* info = object.metadata.find_member(operator_overload)) {
 
 		if (is_class(object)) [[unlikely]] {
-			error("invalid use of class '{}' in an operation", object.metadata.full_name());
+			error("invalid use of class '{}' with operator '{}'({})", object.metadata.full_name(),
+			    operator_overload.str(), signature);
 		}
 
 		const auto& function = Class::MemberInfo::get(*info, object);
@@ -142,9 +143,9 @@ bool mint::call_overload(Cursor& cursor, const Symbol& operator_overload, int si
 			}
 			break;
 		case Data::Format::package:
-			error("invalid use of package in an operation");
+			error("invalid use of package '{}' as a function", function.data<Package>().data.full_name());
 		case Data::Format::coroutine:
-			error("invalid use of coroutine in an operation");
+			error("invalid use of coroutine as a function");
 		case Data::Format::function:
 			if (!(function.flags() & Reference::global)) {
 				// add self to function arguments
@@ -168,21 +169,21 @@ void mint::move_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	auto& lhs = load_from_stack(cursor, base - 1);
 
-	if ((lvalue.flags() & Reference::const_address) && (lvalue.data().format() != Data::Format::none)) [[unlikely]] {
+	if ((lhs.flags() & Reference::const_address) && (lhs.data().format() != Data::Format::none)) [[unlikely]] {
 		error("invalid modification of constant reference");
 	}
 
-	if (lvalue.flags() & Reference::const_value) {
-		lvalue.move_data(rvalue);
+	if (lhs.flags() & Reference::const_value) {
+		lhs.move_data(rhs);
 	}
-	else if ((rvalue.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
-		lvalue.copy_data(rvalue);
+	else if ((rhs.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
+		lhs.copy_data(rhs);
 	}
 	else {
-		lvalue.move_data(rvalue);
+		lhs.move_data(rhs);
 	}
 
 	cursor.stack().pop_back();
@@ -192,50 +193,50 @@ void mint::copy_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	if (lvalue.flags() & Reference::const_value) [[unlikely]] {
+	if (lhs.flags() & Reference::const_value) [[unlikely]] {
 		error("invalid modification of constant value");
 	}
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value in assignment");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		lvalue.data<Number>().value = to_number(cursor, rvalue);
+		lhs.data<Number>().value = to_number(cursor, rhs);
 		cursor.stack().pop_back();
 		break;
 	case Data::Format::boolean:
-		lvalue.data<Boolean>().value = to_boolean(rvalue);
+		lhs.data<Boolean>().value = to_boolean(rhs);
 		cursor.stack().pop_back();
 		break;
 	case Data::Format::function:
-		if (rvalue.data().format() != Data::Format::function) [[unlikely]] {
-			error("invalid conversion from '{}' to '{}'", type_name(rvalue), type_name(lvalue));
+		if (rhs.data().format() != Data::Format::function) [[unlikely]] {
+			error("invalid conversion from '{}' to '{}'", type_name(rhs), type_name(lhs));
 		}
-		lvalue.data<Function>().mapping = rvalue.data<Function>().mapping;
+		lhs.data<Function>().mapping = rhs.data<Function>().mapping;
 		cursor.stack().pop_back();
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::copy_operator, 1)) {
-			if (rvalue.data().format() != Data::Format::object) [[unlikely]] {
-				error("cannot convert '{}' to '{}' in assignment", type_name(rvalue), type_name(lvalue));
+			if (rhs.data().format() != Data::Format::object) [[unlikely]] {
+				error("cannot convert '{}' to '{}' in assignment", type_name(rhs), type_name(lhs));
 			}
-			if (&lvalue.data<Object>().metadata != &rvalue.data<Object>().metadata) [[unlikely]] {
-				error("cannot convert '{}' to '{}' in assignment", type_name(rvalue), type_name(lvalue));
+			if (&lhs.data<Object>().metadata != &rhs.data<Object>().metadata) [[unlikely]] {
+				error("cannot convert '{}' to '{}' in assignment", type_name(rhs), type_name(lhs));
 			}
-			lvalue.data<Object>().destroy();
-			lvalue.data<Object>().construct(rvalue.data<Object>());
+			lhs.data<Object>().destroy();
+			lhs.data<Object>().construct(rhs.data<Object>());
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' in assignment", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine in assignment");
 	}
 }
 
@@ -274,9 +275,9 @@ void mint::call_operator(Cursor& cursor, int signature) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' as a function", function.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine as a function");
 	case Data::Format::function:
 		if (flags & Cursor::Call::member_call) {
 			// add self to function arguments
@@ -326,9 +327,9 @@ void mint::call_member_operator(Cursor& cursor, int signature) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' as a function", function.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine as a function");
 	case Data::Format::function:
 		if (!(function.flags() & Reference::global)) {
 			// add self to function arguments
@@ -347,56 +348,56 @@ void mint::add_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '+'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Number>().value += to_number(cursor, rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Number>().value += to_number(cursor, rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_number(lvalue.data<Number>().value + to_number(cursor, rvalue));
+			Reference&& result = create_number(lhs.data<Number>().value + to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Boolean>().value += to_boolean(rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Boolean>().value += to_boolean(rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value + to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value + to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::add_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '+'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '+'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '+'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '+'(1)");
 	case Data::Format::function:
 		{
-			if (rvalue.data().format() != Data::Format::function) [[unlikely]] {
-				error("invalid use of operator '+' with '{}' and '{}' types", type_name(lvalue), type_name(rvalue));
+			if (rhs.data().format() != Data::Format::function) [[unlikely]] {
+				error("invalid use of operator '+'(1) with '{}' and '{}' types", type_name(lhs), type_name(rhs));
 			}
 			Reference&& result = create_function();
-			for (const auto& item : lvalue.data<Function>().mapping) {
+			for (const auto& item : lhs.data<Function>().mapping) {
 				result.data<Function>().mapping.insert(item);
 			}
-			for (const auto& item : rvalue.data<Function>().mapping) {
+			for (const auto& item : rhs.data<Function>().mapping) {
 				result.data<Function>().mapping.insert(item);
 			}
 			cursor.stack().pop_back();
@@ -410,48 +411,48 @@ void mint::sub_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '-'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Number>().value -= to_number(cursor, rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Number>().value -= to_number(cursor, rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_number(lvalue.data<Number>().value - to_number(cursor, rvalue));
+			Reference&& result = create_number(lhs.data<Number>().value - to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Boolean>().value -= to_boolean(rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Boolean>().value -= to_boolean(rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value - to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value - to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::sub_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '-'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '-'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '-'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '-'(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '-'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '-'(1)", type_name(lhs));
 	}
 }
 
@@ -459,48 +460,48 @@ void mint::mul_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '*'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Number>().value *= to_number(cursor, rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Number>().value *= to_number(cursor, rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_number(lvalue.data<Number>().value * to_number(cursor, rvalue));
+			Reference&& result = create_number(lhs.data<Number>().value * to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Boolean>().value = lvalue.data<Boolean>().value && to_boolean(rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Boolean>().value = lhs.data<Boolean>().value && to_boolean(rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value && to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value && to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::mul_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '*'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '*'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '*'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '*'(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '*'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '*'(1)", type_name(lhs));
 	}
 }
 
@@ -508,48 +509,48 @@ void mint::div_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '/'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Number>().value /= to_number(cursor, rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Number>().value /= to_number(cursor, rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_number(lvalue.data<Number>().value / to_number(cursor, rvalue));
+			Reference&& result = create_number(lhs.data<Number>().value / to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Boolean>().value /= to_boolean(rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Boolean>().value /= to_boolean(rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value / to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value / to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::div_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '/'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '/'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '/'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '/'(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '/'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '/'(1)", type_name(lhs));
 	}
 }
 
@@ -557,38 +558,38 @@ void mint::pow_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '**'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Number>().value = pow(lvalue.data<Number>().value, to_number(cursor, rvalue));
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Number>().value = pow(lhs.data<Number>().value, to_number(cursor, rhs));
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_number(pow(lvalue.data<Number>().value, to_number(cursor, rvalue)));
+			Reference&& result = create_number(pow(lhs.data<Number>().value, to_number(cursor, rhs)));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::pow_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '**'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '**'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '**'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '**'(1)");
 	case Data::Format::boolean:
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '**'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '**'(1)", type_name(lhs));
 	}
 }
 
@@ -596,23 +597,23 @@ void mint::mod_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '%'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		if (const auto divider = to_signed_integer(cursor, rvalue)) {
-			if (lvalue.flags() & Reference::temporary) {
-				lvalue.data<Number>().value = to_number(to_signed_integer(lvalue.data<Number>().value) % divider);
+		if (const auto divider = to_signed_integer(cursor, rhs)) {
+			if (lhs.flags() & Reference::temporary) {
+				lhs.data<Number>().value = to_number(to_signed_integer(lhs.data<Number>().value) % divider);
 				cursor.stack().pop_back();
 			}
 			else {
-				Reference&& result = create_signed_number(to_signed_integer(lvalue.data<Number>().value) % divider);
+				Reference&& result = create_signed_number(to_signed_integer(lhs.data<Number>().value) % divider);
 				cursor.stack().pop_back();
 				cursor.stack().back() = std::move(result);
 			}
@@ -623,16 +624,16 @@ void mint::mod_operator(Cursor& cursor) {
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::mod_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '%%'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '%'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '%'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '%'(1)");
 	case Data::Format::boolean:
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '%%'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '%'(1)", type_name(lhs));
 	}
 }
 
@@ -640,10 +641,10 @@ void mint::is_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	WeakReference result = create_boolean(&lvalue.data() == &rvalue.data());
+	WeakReference result = create_boolean(&lhs.data() == &rhs.data());
 	cursor.stack().pop_back();
 	cursor.stack().back() = std::move(result);
 }
@@ -652,26 +653,26 @@ void mint::eq_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
 		{
-			Reference&& result = create_boolean(rvalue.data().format() == Data::Format::none);
+			Reference&& result = create_boolean(rhs.data().format() == Data::Format::none);
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::null:
 		{
-			Reference&& result = create_boolean(rvalue.data().format() == Data::Format::null);
+			Reference&& result = create_boolean(rhs.data().format() == Data::Format::null);
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::number:
-		switch (rvalue.data().format()) {
+		switch (rhs.data().format()) {
 		case Data::Format::none:
 		case Data::Format::null:
 			{
@@ -681,13 +682,13 @@ void mint::eq_operator(Cursor& cursor) {
 			}
 			break;
 		default:
-			Reference&& result = create_boolean(lvalue.data<Number>().value == to_number(cursor, rvalue));
+			Reference&& result = create_boolean(lhs.data<Number>().value == to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
-		switch (rvalue.data().format()) {
+		switch (rhs.data().format()) {
 		case Data::Format::none:
 		case Data::Format::null:
 			{
@@ -697,14 +698,14 @@ void mint::eq_operator(Cursor& cursor) {
 			}
 			break;
 		default:
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value == to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value == to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::eq_operator, 1)) {
-			switch (rvalue.data().format()) {
+			switch (rhs.data().format()) {
 			case Data::Format::none:
 			case Data::Format::null:
 				{
@@ -714,22 +715,22 @@ void mint::eq_operator(Cursor& cursor) {
 				}
 				break;
 			default:
-				error("class '{}' doesn't overload operator '=='(1)", type_name(lvalue));
+				error("class '{}' doesn't overload operator '=='(1)", type_name(lhs));
 			}
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '=='(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '=='(1)");
 	case Data::Format::function:
-		if (rvalue.data().format() == Data::Format::function) {
-			Reference&& result = create_boolean(lvalue.data<Function>().mapping == rvalue.data<Function>().mapping);
+		if (rhs.data().format() == Data::Format::function) {
+			Reference&& result = create_boolean(lhs.data<Function>().mapping == rhs.data<Function>().mapping);
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		else {
-			error("invalid use of '{}' type with operator '=='", type_name(lvalue));
+			error("invalid use of '{}' type with operator '=='(1)", type_name(lhs));
 		}
 	}
 }
@@ -738,26 +739,26 @@ void mint::ne_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
 		{
-			Reference&& result = create_boolean(rvalue.data().format() != Data::Format::none);
+			Reference&& result = create_boolean(rhs.data().format() != Data::Format::none);
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::null:
 		{
-			Reference&& result = create_boolean(rvalue.data().format() != Data::Format::null);
+			Reference&& result = create_boolean(rhs.data().format() != Data::Format::null);
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::number:
-		switch (rvalue.data().format()) {
+		switch (rhs.data().format()) {
 		case Data::Format::none:
 		case Data::Format::null:
 			{
@@ -767,13 +768,13 @@ void mint::ne_operator(Cursor& cursor) {
 			}
 			break;
 		default:
-			Reference&& result = create_boolean(lvalue.data<Number>().value != to_number(cursor, rvalue));
+			Reference&& result = create_boolean(lhs.data<Number>().value != to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
-		switch (rvalue.data().format()) {
+		switch (rhs.data().format()) {
 		case Data::Format::none:
 		case Data::Format::null:
 			{
@@ -783,14 +784,14 @@ void mint::ne_operator(Cursor& cursor) {
 			}
 			break;
 		default:
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value != to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value != to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::ne_operator, 1)) {
-			switch (rvalue.data().format()) {
+			switch (rhs.data().format()) {
 			case Data::Format::none:
 			case Data::Format::null:
 				{
@@ -800,22 +801,22 @@ void mint::ne_operator(Cursor& cursor) {
 				}
 				break;
 			default:
-				error("class '{}' doesn't overload operator '!='(1)", type_name(lvalue));
+				error("class '{}' doesn't overload operator '!='(1)", type_name(lhs));
 			}
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '!='(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '!='(1)");
 	case Data::Format::function:
-		if (rvalue.data().format() == Data::Format::function) {
-			Reference&& result = create_boolean(lvalue.data<Function>().mapping != rvalue.data<Function>().mapping);
+		if (rhs.data().format() == Data::Format::function) {
+			Reference&& result = create_boolean(lhs.data<Function>().mapping != rhs.data<Function>().mapping);
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		else {
-			error("invalid use of '{}' type with operator '!='", type_name(lvalue));
+			error("invalid use of '{}' type with operator '!='(1)", type_name(lhs));
 		}
 	}
 }
@@ -824,40 +825,40 @@ void mint::lt_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '<'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
 		{
-			Reference&& result = create_boolean(lvalue.data<Number>().value < to_number(cursor, rvalue));
+			Reference&& result = create_boolean(lhs.data<Number>().value < to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
 		{
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value < to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value < to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::lt_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '<'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '<'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '<'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '<'(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '<'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '<'(1)", type_name(lhs));
 	}
 }
 
@@ -865,40 +866,40 @@ void mint::gt_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '>'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
 		{
-			Reference&& result = create_boolean(lvalue.data<Number>().value > to_number(cursor, rvalue));
+			Reference&& result = create_boolean(lhs.data<Number>().value > to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
 		{
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value > to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value > to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::gt_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '>'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '>'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '>'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '>'(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '>'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '>'(1)", type_name(lhs));
 	}
 }
 
@@ -906,40 +907,40 @@ void mint::le_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '<='(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
 		{
-			Reference&& result = create_boolean(lvalue.data<Number>().value <= to_number(cursor, rvalue));
+			Reference&& result = create_boolean(lhs.data<Number>().value <= to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
 		{
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value <= to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value <= to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::le_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '<='(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '<='(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '<='(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '<='(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '<='", type_name(lvalue));
+		error("invalid use of '{}' type with operator '<='(1)", type_name(lhs));
 	}
 }
 
@@ -947,66 +948,66 @@ void mint::ge_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '>='(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
 		{
-			Reference&& result = create_boolean(lvalue.data<Number>().value >= to_number(cursor, rvalue));
+			Reference&& result = create_boolean(lhs.data<Number>().value >= to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
 		{
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value >= to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value >= to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::ge_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '>='(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '>='(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '>='(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '>='(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '>='", type_name(lvalue));
+		error("invalid use of '{}' type with operator '>='(1)", type_name(lhs));
 	}
 }
 
 void mint::and_pre_check(Cursor& cursor, std::size_t pos) {
 
-	const auto& value = cursor.stack().back();
+	const auto& arg = cursor.stack().back();
 
-	switch (value.data().format()) {
+	switch (arg.data().format()) {
 	case Data::Format::none:
 	case Data::Format::null:
 		cursor.jmp(pos);
 		break;
 	case Data::Format::number:
-		if (value.data<Number>().value == 0.) {
+		if (arg.data<Number>().value == 0.) {
 			cursor.jmp(pos);
 		}
 		break;
 	case Data::Format::boolean:
-		if (!value.data<Boolean>().value) {
+		if (!arg.data<Boolean>().value) {
 			cursor.jmp(pos);
 		}
 		break;
 	case Data::Format::object:
-		switch (value.data<Object>().metadata.metatype()) {
+		switch (arg.data<Object>().metadata.metatype()) {
 		case Class::Metatype::iterator:
-			if (value.data<Iterator>().ctx.empty()) {
+			if (arg.data<Iterator>().ctx.empty()) {
 				cursor.jmp(pos);
 			}
 			break;
@@ -1023,49 +1024,49 @@ void mint::and_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	auto& rvalue = load_from_stack(cursor, base);
-	auto& lvalue = load_from_stack(cursor, base - 1);
+	auto& rhs = load_from_stack(cursor, base);
+	auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::and_operator, 1)) {
-			std::swap(lvalue, rvalue);
+			std::swap(lhs, rhs);
 			cursor.stack().pop_back();
 		}
 		break;
 	default:
-		std::swap(lvalue, rvalue);
+		std::swap(lhs, rhs);
 		cursor.stack().pop_back();
 	}
 }
 
 void mint::or_pre_check(Cursor& cursor, std::size_t pos) {
 
-	const auto& value = cursor.stack().back();
+	const auto& arg = cursor.stack().back();
 
-	switch (value.data().format()) {
+	switch (arg.data().format()) {
 	case Data::Format::none:
 	case Data::Format::null:
 		break;
 	case Data::Format::number:
-		if (value.data<Number>().value != 0.) {
+		if (arg.data<Number>().value != 0.) {
 			cursor.jmp(pos);
 		}
 		break;
 	case Data::Format::boolean:
-		if (value.data<Boolean>().value) {
+		if (arg.data<Boolean>().value) {
 			cursor.jmp(pos);
 		}
 		break;
 	case Data::Format::object:
-		switch (value.data<Object>().metadata.metatype()) {
+		switch (arg.data<Object>().metadata.metatype()) {
 		case Class::Metatype::iterator:
-			if (!value.data<Iterator>().ctx.empty()) {
+			if (!arg.data<Iterator>().ctx.empty()) {
 				cursor.jmp(pos);
 			}
 			break;
 		default:
-			if (!value.data<Object>().metadata.find_operator(Class::or_operator)) {
+			if (!arg.data<Object>().metadata.find_operator(Class::or_operator)) {
 				cursor.jmp(pos);
 			}
 			break;
@@ -1081,18 +1082,18 @@ void mint::or_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	auto& rvalue = load_from_stack(cursor, base);
-	auto& lvalue = load_from_stack(cursor, base - 1);
+	auto& rhs = load_from_stack(cursor, base);
+	auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::or_operator, 1)) {
-			std::swap(lvalue, rvalue);
+			std::swap(lhs, rhs);
 			cursor.stack().pop_back();
 		}
 		break;
 	default:
-		std::swap(lvalue, rvalue);
+		std::swap(lhs, rhs);
 		cursor.stack().pop_back();
 	}
 }
@@ -1101,50 +1102,50 @@ void mint::band_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '&'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Number>().value = to_number(
-			    to_unsigned_integer(lvalue.data<Number>().value) & to_unsigned_integer(cursor, rvalue));
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Number>().value = to_number(
+			    to_unsigned_integer(lhs.data<Number>().value) & to_unsigned_integer(cursor, rhs));
 			cursor.stack().pop_back();
 		}
 		else {
 			Reference&& result = create_unsigned_number(
-			    to_unsigned_integer(lvalue.data<Number>().value) & to_unsigned_integer(cursor, rvalue));
+			    to_unsigned_integer(lhs.data<Number>().value) & to_unsigned_integer(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Boolean>().value &= to_boolean(rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Boolean>().value &= to_boolean(rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value && to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value && to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::band_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '&'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '&'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '&'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '&'(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '&'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '&'(1)", type_name(lhs));
 	}
 }
 
@@ -1152,50 +1153,50 @@ void mint::bor_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '|'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Number>().value = to_number(
-			    to_unsigned_integer(lvalue.data<Number>().value) | to_unsigned_integer(cursor, rvalue));
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Number>().value = to_number(
+			    to_unsigned_integer(lhs.data<Number>().value) | to_unsigned_integer(cursor, rhs));
 			cursor.stack().pop_back();
 		}
 		else {
 			Reference&& result = create_unsigned_number(
-			    to_unsigned_integer(lvalue.data<Number>().value) | to_unsigned_integer(cursor, rvalue));
+			    to_unsigned_integer(lhs.data<Number>().value) | to_unsigned_integer(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Boolean>().value |= to_boolean(rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Boolean>().value |= to_boolean(rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value || to_boolean(rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value || to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::bor_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '|'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '|'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '|'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '|'(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '|'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '|'(1)", type_name(lhs));
 	}
 }
 
@@ -1203,258 +1204,258 @@ void mint::xor_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '^'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Number>().value = to_number(
-			    to_unsigned_integer(lvalue.data<Number>().value) ^ to_unsigned_integer(cursor, rvalue));
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Number>().value = to_number(
+			    to_unsigned_integer(lhs.data<Number>().value) ^ to_unsigned_integer(cursor, rhs));
 			cursor.stack().pop_back();
 		}
 		else {
 			Reference&& result = create_unsigned_number(
-			    to_unsigned_integer(lvalue.data<Number>().value) ^ to_unsigned_integer(cursor, rvalue));
+			    to_unsigned_integer(lhs.data<Number>().value) ^ to_unsigned_integer(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Boolean>().value ^= to_boolean(rvalue);
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Boolean>().value ^= to_boolean(rhs);
 			cursor.stack().pop_back();
 		}
 		else {
-			Reference&& result = create_boolean(to_unsigned_integer(lvalue.data<Number>().value) ^ to_boolean(rvalue));
+			Reference&& result = create_boolean(to_unsigned_integer(lhs.data<Number>().value) ^ to_boolean(rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::xor_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '^'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '^'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '^'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '^'(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '^'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '^'(1)", type_name(lhs));
 	}
 }
 
 void mint::inc_operator(Cursor& cursor) {
 
-	auto& value = cursor.stack().back();
+	auto& arg = cursor.stack().back();
 
-	if (value.flags() & Reference::const_value) [[unlikely]] {
+	if (arg.flags() & Reference::const_value) [[unlikely]] {
 		error("invalid modification of constant value");
 	}
 
-	switch (value.data().format()) {
+	switch (arg.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '++'(0)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(value));
+		cursor.raise(WeakReference(arg));
 		break;
 	case Data::Format::number:
-		value.move_data(create_number(value.data<Number>().value + 1));
+		arg.move_data(create_number(arg.data<Number>().value + 1));
 		break;
 	case Data::Format::boolean:
-		value.move_data(create_boolean(value.data<Boolean>().value + 1));
+		arg.move_data(create_boolean(arg.data<Boolean>().value + 1));
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::inc_operator, 0)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '++'(0)", type_name(value));
+			error("class '{}' doesn't overload operator '++'(0)", type_name(arg));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '++'(0)", arg.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '++'(0)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '++'", type_name(value));
+		error("invalid use of '{}' type with operator '++'(0)", type_name(arg));
 	}
 }
 
 void mint::dec_operator(Cursor& cursor) {
 
-	auto& value = cursor.stack().back();
+	auto& arg = cursor.stack().back();
 
-	if (value.flags() & Reference::const_value) [[unlikely]] {
+	if (arg.flags() & Reference::const_value) [[unlikely]] {
 		error("invalid modification of constant value");
 	}
 
-	switch (value.data().format()) {
+	switch (arg.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '--'(0)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(value));
+		cursor.raise(WeakReference(arg));
 		break;
 	case Data::Format::number:
-		value.move_data(create_number(value.data<Number>().value - 1));
+		arg.move_data(create_number(arg.data<Number>().value - 1));
 		break;
 	case Data::Format::boolean:
-		value.move_data(create_boolean(value.data<Boolean>().value - 1));
+		arg.move_data(create_boolean(arg.data<Boolean>().value - 1));
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::dec_operator, 0)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '--'(0)", type_name(value));
+			error("class '{}' doesn't overload operator '--'(0)", type_name(arg));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '--'(0)", arg.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '--'(0)");
 	case Data::Format::function:
-		std::string type = type_name(value);
-		error("invalid use of '{}' type with operator '--'", type);
+		std::string type = type_name(arg);
+		error("invalid use of '{}' type with operator '--'(0)", type);
 	}
 }
 
 void mint::not_operator(Cursor& cursor) {
 
-	const auto& value = cursor.stack().back();
+	const auto& arg = cursor.stack().back();
 
-	switch (value.data().format()) {
+	switch (arg.data().format()) {
 	case Data::Format::none:
 	case Data::Format::null:
 		cursor.stack().back() = create_boolean(true);
 		break;
 	case Data::Format::number:
-		cursor.stack().back() = create_boolean(value.data<Number>().value == 0.);
+		cursor.stack().back() = create_boolean(arg.data<Number>().value == 0.);
 		break;
 	case Data::Format::boolean:
-		cursor.stack().back() = create_boolean(!value.data<Boolean>().value);
+		cursor.stack().back() = create_boolean(!arg.data<Boolean>().value);
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::not_operator, 0)) {
-			cursor.stack().back() = create_boolean(!to_boolean(value));
+			cursor.stack().back() = create_boolean(!to_boolean(arg));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '!'(0)", arg.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '!'(0)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '!'", type_name(value));
+		error("invalid use of '{}' type with operator '!'(0)", type_name(arg));
 	}
 }
 
 void mint::compl_operator(Cursor& cursor) {
 
-	const auto& value = cursor.stack().back();
+	const auto& arg = cursor.stack().back();
 
-	switch (value.data().format()) {
+	switch (arg.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '~'(0)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(value));
+		cursor.raise(WeakReference(arg));
 		break;
 	case Data::Format::number:
-		cursor.stack().back() = create_signed_number(~to_signed_integer(cursor, value));
+		cursor.stack().back() = create_signed_number(~to_signed_integer(cursor, arg));
 		break;
 	case Data::Format::boolean:
-		cursor.stack().back() = create_boolean(!value.data<Boolean>().value);
+		cursor.stack().back() = create_boolean(!arg.data<Boolean>().value);
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::compl_operator, 0)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '~'(0)", type_name(value));
+			error("class '{}' doesn't overload operator '~'(0)", type_name(arg));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '~'(0)", arg.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '~'(0)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '~'", type_name(value));
+		error("invalid use of '{}' type with operator '~'(0)", type_name(arg));
 	}
 }
 
 void mint::pos_operator(Cursor& cursor) {
 
-	const auto& value = cursor.stack().back();
+	const auto& arg = cursor.stack().back();
 
-	switch (value.data().format()) {
+	switch (arg.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '+'(0)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(value));
+		cursor.raise(WeakReference(arg));
 		break;
 	case Data::Format::number:
-		if (value.flags() & Reference::temporary) {
-			value.data<Number>().value = +(value.data<Number>().value);
+		if (arg.flags() & Reference::temporary) {
+			arg.data<Number>().value = +(arg.data<Number>().value);
 		}
 		else {
-			cursor.stack().back() = create_number(+(value.data<Number>().value));
+			cursor.stack().back() = create_number(+(arg.data<Number>().value));
 		}
 		break;
 	case Data::Format::boolean:
-		if (value.flags() & Reference::temporary) {
-			value.data<Boolean>().value = +(value.data<Boolean>().value);
+		if (arg.flags() & Reference::temporary) {
+			arg.data<Boolean>().value = +(arg.data<Boolean>().value);
 		}
 		else {
-			cursor.stack().back() = create_boolean(+(value.data<Boolean>().value));
+			cursor.stack().back() = create_boolean(+(arg.data<Boolean>().value));
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::add_operator, 0)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '+'(0)", type_name(value));
+			error("class '{}' doesn't overload operator '+'(0)", type_name(arg));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '+'(0)", arg.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '+'(0)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '+'", type_name(value));
+		error("invalid use of '{}' type with operator '+'(0)", type_name(arg));
 	}
 }
 
 void mint::neg_operator(Cursor& cursor) {
 
-	const auto& value = cursor.stack().back();
+	const auto& arg = cursor.stack().back();
 
-	switch (value.data().format()) {
+	switch (arg.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '-'(0)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(value));
+		cursor.raise(WeakReference(arg));
 		break;
 	case Data::Format::number:
-		if (value.flags() & Reference::temporary) {
-			value.data<Number>().value = -(value.data<Number>().value);
+		if (arg.flags() & Reference::temporary) {
+			arg.data<Number>().value = -(arg.data<Number>().value);
 		}
 		else {
-			cursor.stack().back() = create_number(-(value.data<Number>().value));
+			cursor.stack().back() = create_number(-(arg.data<Number>().value));
 		}
 		break;
 	case Data::Format::boolean:
-		if (value.flags() & Reference::temporary) {
-			value.data<Boolean>().value = -(value.data<Boolean>().value);
+		if (arg.flags() & Reference::temporary) {
+			arg.data<Boolean>().value = -(arg.data<Boolean>().value);
 		}
 		else {
-			cursor.stack().back() = create_boolean(-(value.data<Boolean>().value));
+			cursor.stack().back() = create_boolean(-(arg.data<Boolean>().value));
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::sub_operator, 0)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '-'(0)", type_name(value));
+			error("class '{}' doesn't overload operator '-'(0)", type_name(arg));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '-'(0)", arg.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '-'(0)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '-'", type_name(value));
+		error("invalid use of '{}' type with operator '-'(0)", type_name(arg));
 	}
 }
 
@@ -1462,19 +1463,19 @@ void mint::shift_left_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '<<'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
 		{
 			Reference&& result = create_unsigned_number(
-			    to_unsigned_integer(lvalue.data<Number>().value) << to_unsigned_integer(cursor, rvalue));
+			    to_unsigned_integer(lhs.data<Number>().value) << to_unsigned_integer(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
@@ -1482,22 +1483,22 @@ void mint::shift_left_operator(Cursor& cursor) {
 	case Data::Format::boolean:
 		{
 			Reference&& result = create_unsigned_number(
-			    to_unsigned_integer(lvalue.data<Boolean>().value) << to_unsigned_integer(cursor, rvalue));
+			    to_unsigned_integer(lhs.data<Boolean>().value) << to_unsigned_integer(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::shift_left_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '<<'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '<<'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '<<'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '<<'(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '<<'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '<<'(1)", type_name(lhs));
 	}
 }
 
@@ -1505,41 +1506,41 @@ void mint::shift_right_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '>>'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
 		{
 			Reference&& result = create_unsigned_number(
-			    to_unsigned_integer(lvalue.data<Number>().value) >> to_unsigned_integer(cursor, rvalue));
+			    to_unsigned_integer(lhs.data<Number>().value) >> to_unsigned_integer(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
 		{
-			Reference&& result = create_boolean(lvalue.data<Boolean>().value >> to_unsigned_integer(cursor, rvalue));
+			Reference&& result = create_boolean(lhs.data<Boolean>().value >> to_unsigned_integer(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::shift_right_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '>>'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '>>'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '>>'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '>>'(1)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '>>'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '>>'(1)", type_name(lhs));
 	}
 }
 
@@ -1547,35 +1548,35 @@ void mint::inclusive_range_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '..'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
 		{
-			auto result = create_iterator(from_inclusive_range, cursor.ast(), lvalue.data<Number>().value,
-			    to_number(cursor, rvalue));
+			auto result = create_iterator(from_inclusive_range, cursor.ast(), lhs.data<Number>().value,
+			    to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::inclusive_range_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '..'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '..'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '..'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '..'(1)");
 	case Data::Format::boolean:
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '..'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '..'(1)", type_name(lhs));
 	}
 }
 
@@ -1583,35 +1584,35 @@ void mint::exclusive_range_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '...'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
 		{
-			auto result = create_iterator(from_exclusive_range, cursor.ast(), lvalue.data<Number>().value,
-			    to_number(cursor, rvalue));
+			auto result = create_iterator(from_exclusive_range, cursor.ast(), lhs.data<Number>().value,
+			    to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::exclusive_range_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '...'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '...'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '...'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '...'(1)");
 	case Data::Format::boolean:
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '...'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '...'(1)", type_name(lhs));
 	}
 }
 
@@ -1621,13 +1622,13 @@ void mint::typeof_operator(Cursor& cursor) {
 
 void mint::membersof_operator(Cursor& cursor) {
 
-	auto& value = cursor.stack().back();
+	auto& arg = cursor.stack().back();
 	WeakReference result = create_array(cursor.ast());
 
-	switch (value.data().format()) {
+	switch (arg.data().format()) {
 	case Data::Format::object:
 		{
-			auto& object = value.data<Object>();
+			auto& object = arg.data<Object>();
 			auto& array = result.data<Array>();
 			array.values.reserve(object.metadata.members().size());
 			for (const auto& [symbol, info] : object.metadata.members()) {
@@ -1658,7 +1659,7 @@ void mint::membersof_operator(Cursor& cursor) {
 
 	case Data::Format::package:
 		{
-			auto& package = value.data<Package>();
+			auto& package = arg.data<Package>();
 			auto& array = result.data<Array>();
 			array.values.reserve(package.data.symbols().size());
 			for (const auto& [symbol, _] : package.data.symbols()) {
@@ -1678,44 +1679,44 @@ void mint::subscript_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '[]'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		if (lvalue.flags() & Reference::temporary) {
-			lvalue.data<Number>().value = to_number(
-			    to_unsigned_integer(lvalue.data<Number>().value / pow(decimal_base, to_number(cursor, rvalue)))
+		if (lhs.flags() & Reference::temporary) {
+			lhs.data<Number>().value = to_number(
+			    to_unsigned_integer(lhs.data<Number>().value / pow(decimal_base, to_number(cursor, rhs)))
 			    % decimal_base);
 			cursor.stack().pop_back();
 		}
 		else {
 			WeakReference result = create_unsigned_number(
-			    to_unsigned_integer(lvalue.data<Number>().value / pow(decimal_base, to_number(cursor, rvalue)))
+			    to_unsigned_integer(lhs.data<Number>().value / pow(decimal_base, to_number(cursor, rhs)))
 			    % decimal_base);
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
 		}
 		break;
 	case Data::Format::boolean:
-		error("invalid use of '{}' type with operator '[]'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '[]'(1)", type_name(lhs));
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::subscript_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '[]'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '[]'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '[]'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '[]'(1)");
 	case Data::Format::function:
-		auto signature = lvalue.data<Function>().mapping.find(to_integer<int>(cursor, rvalue));
-		if (signature != lvalue.data<Function>().mapping.end()) {
+		auto signature = lhs.data<Function>().mapping.find(to_integer<int>(cursor, rhs));
+		if (signature != lhs.data<Function>().mapping.end()) {
 			auto result = create_function(*signature);
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
@@ -1732,96 +1733,96 @@ void mint::subscript_move_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
+	const auto& rhs = load_from_stack(cursor, base);
 	const auto& kvalue = load_from_stack(cursor, base - 1);
-	const auto& lvalue = load_from_stack(cursor, base - 2);
+	const auto& lhs = load_from_stack(cursor, base - 2);
 
-	if (lvalue.flags() & Reference::const_value) [[unlikely]] {
+	if (lhs.flags() & Reference::const_value) [[unlikely]] {
 		error("invalid modification of constant value");
 	}
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '[]='(2)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::number:
-		lvalue.data<Number>().value -= (to_number(to_unsigned_integer(lvalue.data<Number>().value
-		                                                              / pow(decimal_base, to_number(cursor, kvalue)))
-		                                          % decimal_base)
-		                                * pow(decimal_base, to_number(cursor, kvalue)));
-		lvalue.data<Number>().value += to_number(cursor, rvalue) * pow(decimal_base, to_number(cursor, kvalue));
+		lhs.data<Number>().value -= (to_number(to_unsigned_integer(lhs.data<Number>().value
+		                                                           / pow(decimal_base, to_number(cursor, kvalue)))
+		                                       % decimal_base)
+		                             * pow(decimal_base, to_number(cursor, kvalue)));
+		lhs.data<Number>().value += to_number(cursor, rhs) * pow(decimal_base, to_number(cursor, kvalue));
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
 		break;
 	case Data::Format::boolean:
-		error("invalid use of '{}' type with operator '[]='", type_name(lvalue));
+		error("invalid use of '{}' type with operator '[]='(2)", type_name(lhs));
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::subscript_move_operator, 2)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '[]='(2)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '[]='(2)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '[]='(2)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '[]='(2)");
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '[]='", type_name(lvalue));
+		error("invalid use of '{}' type with operator '[]='(2)", type_name(lhs));
 	}
 }
 
 void mint::regex_match(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '=~'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::regex_match_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '=~'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '=~'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '=~'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '=~'(1)");
 	case Data::Format::number:
 	case Data::Format::boolean:
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '=~'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '=~'(1)", type_name(lhs));
 	}
 }
 
 void mint::regex_unmatch(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
-	const auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid use of none value with operator '!~'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lvalue));
+		cursor.raise(WeakReference(lhs));
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::regex_unmatch_operator, 1)) [[unlikely]] {
-			error("class '{}' doesn't overload operator '!~'(1)", type_name(lvalue));
+			error("class '{}' doesn't overload operator '!~'(1)", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package in an operation");
+		error("invalid use of package '{}' with operator '!~'(1)", lhs.data<Package>().data.full_name());
 	case Data::Format::coroutine:
-		error("invalid use of coroutine in an operation");
+		error("invalid use of coroutine with operator '!~'(1)");
 	case Data::Format::number:
 	case Data::Format::boolean:
 	case Data::Format::function:
-		error("invalid use of '{}' type with operator '!~'", type_name(lvalue));
+		error("invalid use of '{}' type with operator '!~'(1)", type_name(lhs));
 	}
 }
 
@@ -1829,11 +1830,11 @@ void mint::strict_eq_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	auto& lhs = load_from_stack(cursor, base - 1);
 
-	if (lvalue.data().format() == rvalue.data().format()) {
-		switch (lvalue.data().format()) {
+	if (lhs.data().format() == rhs.data().format()) {
+		switch (lhs.data().format()) {
 		case Data::Format::none:
 		case Data::Format::null:
 			{
@@ -1843,30 +1844,30 @@ void mint::strict_eq_operator(Cursor& cursor) {
 			break;
 		case Data::Format::number:
 			{
-				Reference&& result = create_boolean(lvalue.data<Number>().value == rvalue.data<Number>().value);
+				Reference&& result = create_boolean(lhs.data<Number>().value == rhs.data<Number>().value);
 				cursor.stack().pop_back();
 				cursor.stack().back() = std::move(result);
 			}
 			break;
 		case Data::Format::boolean:
 			{
-				Reference&& result = create_boolean(lvalue.data<Boolean>().value == rvalue.data<Boolean>().value);
+				Reference&& result = create_boolean(lhs.data<Boolean>().value == rhs.data<Boolean>().value);
 				cursor.stack().pop_back();
 				cursor.stack().back() = std::move(result);
 			}
 			break;
 		case Data::Format::object:
 			if (!call_overload(cursor, Class::eq_operator, 1)) {
-				error("class '{}' doesn't overload operator '=='(1)", type_name(lvalue));
+				error("class '{}' doesn't overload operator '=='(1)", type_name(lhs));
 			}
 			break;
 		case Data::Format::package:
-			error("invalid use of package in an operation");
+			error("invalid use of package '{}' with operator '=='(1)", lhs.data<Package>().data.full_name());
 		case Data::Format::coroutine:
-			error("invalid use of coroutine in an operation");
+			error("invalid use of coroutine with operator '=='(1)");
 		case Data::Format::function:
 			{
-				Reference&& result = create_boolean(lvalue.data<Function>().mapping == rvalue.data<Function>().mapping);
+				Reference&& result = create_boolean(lhs.data<Function>().mapping == rhs.data<Function>().mapping);
 				cursor.stack().pop_back();
 				cursor.stack().back() = std::move(result);
 			}
@@ -1882,11 +1883,11 @@ void mint::strict_ne_operator(Cursor& cursor) {
 
 	const auto base = get_stack_base(cursor);
 
-	const auto& rvalue = load_from_stack(cursor, base);
-	auto& lvalue = load_from_stack(cursor, base - 1);
+	const auto& rhs = load_from_stack(cursor, base);
+	auto& lhs = load_from_stack(cursor, base - 1);
 
-	if (lvalue.data().format() == rvalue.data().format()) {
-		switch (lvalue.data().format()) {
+	if (lhs.data().format() == rhs.data().format()) {
+		switch (lhs.data().format()) {
 		case Data::Format::none:
 		case Data::Format::null:
 			{
@@ -1896,30 +1897,30 @@ void mint::strict_ne_operator(Cursor& cursor) {
 			break;
 		case Data::Format::number:
 			{
-				Reference&& result = create_boolean(lvalue.data<Number>().value != rvalue.data<Number>().value);
+				Reference&& result = create_boolean(lhs.data<Number>().value != rhs.data<Number>().value);
 				cursor.stack().pop_back();
 				cursor.stack().back() = std::move(result);
 			}
 			break;
 		case Data::Format::boolean:
 			{
-				Reference&& result = create_boolean(lvalue.data<Boolean>().value != rvalue.data<Boolean>().value);
+				Reference&& result = create_boolean(lhs.data<Boolean>().value != rhs.data<Boolean>().value);
 				cursor.stack().pop_back();
 				cursor.stack().back() = std::move(result);
 			}
 			break;
 		case Data::Format::object:
 			if (!call_overload(cursor, Class::ne_operator, 1)) {
-				error("class '{}' doesn't overload operator '!='(1)", type_name(lvalue));
+				error("class '{}' doesn't overload operator '!='(1)", type_name(lhs));
 			}
 			break;
 		case Data::Format::package:
-			error("invalid use of package in an operation");
+			error("invalid use of package '{}' with operator '!='(1)", lhs.data<Package>().data.full_name());
 		case Data::Format::coroutine:
-			error("invalid use of coroutine in an operation");
+			error("invalid use of coroutine with operator '!='(1)");
 		case Data::Format::function:
 			{
-				Reference&& result = create_boolean(lvalue.data<Function>().mapping != rvalue.data<Function>().mapping);
+				Reference&& result = create_boolean(lhs.data<Function>().mapping != rhs.data<Function>().mapping);
 				cursor.stack().pop_back();
 				cursor.stack().back() = std::move(result);
 			}
@@ -1951,13 +1952,13 @@ void mint::find_defined_member(Cursor& cursor, const Symbol& symbol) {
 
 	if (cursor.stack().back().data().format() != Data::Format::none) {
 
-		const auto value = std::move(cursor.stack().back());
+		const auto arg = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
 
-		switch (value.data().format()) {
+		switch (arg.data().format()) {
 		case Data::Format::package:
 			{
-				auto& package = value.data<Package>();
+				auto& package = arg.data<Package>();
 				if (auto it = package.data.symbols().find(symbol); it != package.data.symbols().end()) {
 					cursor.stack().emplace_back(it->second);
 					return;
@@ -1969,7 +1970,7 @@ void mint::find_defined_member(Cursor& cursor, const Symbol& symbol) {
 
 		case Data::Format::object:
 			{
-				auto& object = value.data<Object>();
+				auto& object = arg.data<Object>();
 				if (auto* info = object.metadata.find_member(symbol)) {
 					cursor.stack().emplace_back(Class::MemberInfo::get(*info, object));
 					return;
@@ -1992,8 +1993,8 @@ void mint::find_defined_member(Cursor& cursor, const Symbol& symbol) {
 }
 
 void mint::check_defined(Cursor& cursor) {
-	const auto value = std::move(cursor.stack().back());
-	cursor.stack().back() = create_boolean(value.data().format() != Data::Format::none);
+	const auto arg = std::move(cursor.stack().back());
+	cursor.stack().back() = create_boolean(arg.data().format() != Data::Format::none);
 }
 
 void mint::find_operator(Cursor& cursor) {
@@ -2001,11 +2002,11 @@ void mint::find_operator(Cursor& cursor) {
 	const auto base = get_stack_base(cursor);
 
 	const auto& range = load_from_stack(cursor, base);
-	auto& value = load_from_stack(cursor, base - 1);
+	auto& arg = load_from_stack(cursor, base - 1);
 
 	switch (range.data().format()) {
 	case Data::Format::object:
-		cursor.stack().emplace_back(value);
+		cursor.stack().emplace_back(arg);
 		if (!call_overload(cursor, Class::in_operator, 1)) {
 			cursor.stack().pop_back();
 			cursor.stack().back() = create_iterator_over(cursor, range);
@@ -2032,7 +2033,7 @@ void mint::find_next(Cursor& cursor) {
 	const auto base = get_stack_base(cursor);
 
 	const auto& range = load_from_stack(cursor, base);
-	auto& value = load_from_stack(cursor, base - 1);
+	auto& arg = load_from_stack(cursor, base - 1);
 
 	if (range.data().format() == Data::Format::boolean) {
 		cursor.stack().emplace_back(range);
@@ -2041,7 +2042,7 @@ void mint::find_next(Cursor& cursor) {
 		assert(is_instance_of(range, Class::Metatype::iterator));
 		auto& iterator = range.data<Iterator>();
 		if (std::optional<WeakReference>&& item = iterator_next(cursor, iterator)) {
-			cursor.stack().emplace_back(value);
+			cursor.stack().emplace_back(arg);
 			cursor.stack().emplace_back(*item);
 			eq_operator(cursor);
 		}
@@ -2224,47 +2225,47 @@ std::size_t Hash::hash::operator()(const Hash::key_type& value) const {
 	return false;
 }
 
-bool Hash::equal_to::operator()(const Hash::key_type& lvalue, const Hash::key_type& rvalue) const {
+bool Hash::equal_to::operator()(const Hash::key_type& lhs, const Hash::key_type& rhs) const {
 
-	if (lvalue.data().format() != rvalue.data().format()) {
+	if (lhs.data().format() != rhs.data().format()) {
 		return false;
 	}
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
 	case Data::Format::null:
 		return true;
 
 	case Data::Format::number:
-		return lvalue.data<Number>().value == rvalue.data<Number>().value;
+		return lhs.data<Number>().value == rhs.data<Number>().value;
 
 	case Data::Format::boolean:
-		return lvalue.data<Boolean>().value == rvalue.data<Boolean>().value;
+		return lhs.data<Boolean>().value == rhs.data<Boolean>().value;
 
 	case Data::Format::object:
-		if (lvalue.data<Object>().metadata.metatype() != rvalue.data<Object>().metadata.metatype()) {
+		if (lhs.data<Object>().metadata.metatype() != rhs.data<Object>().metadata.metatype()) {
 			return false;
 		}
 
-		switch (lvalue.data<Object>().metadata.metatype()) {
+		switch (lhs.data<Object>().metadata.metatype()) {
 		case Class::Metatype::object:
-			if (&lvalue.data<Object>().metadata != &rvalue.data<Object>().metadata) {
+			if (&lhs.data<Object>().metadata != &rhs.data<Object>().metadata) {
 				return false;
 			}
-			return lvalue.data<Object>().data == rvalue.data<Object>().data;
+			return lhs.data<Object>().data == rhs.data<Object>().data;
 
 		case Class::Metatype::string:
-			return lvalue.data<String>().str == rvalue.data<String>().str;
+			return lhs.data<String>().str == rhs.data<String>().str;
 
 		case Class::Metatype::regex:
-			return lvalue.data<Regex>().initializer == rvalue.data<Regex>().initializer;
+			return lhs.data<Regex>().initializer == rhs.data<Regex>().initializer;
 
 		case Class::Metatype::array:
-			if (lvalue.data<Array>().values.size() != rvalue.data<Array>().values.size()) {
+			if (lhs.data<Array>().values.size() != rhs.data<Array>().values.size()) {
 				return false;
 			}
-			for (auto i = lvalue.data<Array>().values.begin(), j = rvalue.data<Array>().values.begin();
-			    i != lvalue.data<Array>().values.end() && j != rvalue.data<Array>().values.end(); ++i, ++j) {
+			for (auto i = lhs.data<Array>().values.begin(), j = rhs.data<Array>().values.begin();
+			    i != lhs.data<Array>().values.end() && j != rhs.data<Array>().values.end(); ++i, ++j) {
 				if (!operator()(array_get_item(i), array_get_item(j))) {
 					return false;
 				}
@@ -2275,56 +2276,56 @@ bool Hash::equal_to::operator()(const Hash::key_type& lvalue, const Hash::key_ty
 		case Class::Metatype::iterator:
 		case Class::Metatype::library:
 		case Class::Metatype::libobject:
-			error("invalid use of '{}' type as hash key", type_name(lvalue));
+			error("invalid use of '{}' type as hash key", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
 	case Data::Format::function:
 	case Data::Format::coroutine:
-		error("invalid use of '{}' type as hash key", type_name(lvalue));
+		error("invalid use of '{}' type as hash key", type_name(lhs));
 	}
 
 	return false;
 }
 
-bool Hash::compare_to::operator()(const Hash::key_type& lvalue, const Hash::key_type& rvalue) const {
+bool Hash::compare_to::operator()(const Hash::key_type& lhs, const Hash::key_type& rhs) const {
 
-	if (lvalue.data().format() != rvalue.data().format()) {
-		return lvalue.data().format() < rvalue.data().format();
+	if (lhs.data().format() != rhs.data().format()) {
+		return lhs.data().format() < rhs.data().format();
 	}
 
-	switch (lvalue.data().format()) {
+	switch (lhs.data().format()) {
 	case Data::Format::none:
 	case Data::Format::null:
 		return false;
 
 	case Data::Format::number:
-		return lvalue.data<Number>().value < rvalue.data<Number>().value;
+		return lhs.data<Number>().value < rhs.data<Number>().value;
 
 	case Data::Format::boolean:
-		return lvalue.data<Boolean>().value < rvalue.data<Boolean>().value;
+		return lhs.data<Boolean>().value < rhs.data<Boolean>().value;
 
 	case Data::Format::object:
-		if (lvalue.data<Object>().metadata.metatype() != rvalue.data<Object>().metadata.metatype()) {
-			return lvalue.data<Object>().metadata.metatype() < rvalue.data<Object>().metadata.metatype();
+		if (lhs.data<Object>().metadata.metatype() != rhs.data<Object>().metadata.metatype()) {
+			return lhs.data<Object>().metadata.metatype() < rhs.data<Object>().metadata.metatype();
 		}
 
-		switch (lvalue.data<Object>().metadata.metatype()) {
+		switch (lhs.data<Object>().metadata.metatype()) {
 		case Class::Metatype::object:
-			if (&lvalue.data<Object>().metadata != &rvalue.data<Object>().metadata) {
-				return &lvalue.data<Object>().metadata < &rvalue.data<Object>().metadata;
+			if (&lhs.data<Object>().metadata != &rhs.data<Object>().metadata) {
+				return &lhs.data<Object>().metadata < &rhs.data<Object>().metadata;
 			}
-			return lvalue.data<Object>().data < rvalue.data<Object>().data;
+			return lhs.data<Object>().data < rhs.data<Object>().data;
 
 		case Class::Metatype::string:
-			return lvalue.data<String>().str < rvalue.data<String>().str;
+			return lhs.data<String>().str < rhs.data<String>().str;
 
 		case Class::Metatype::regex:
-			return lvalue.data<Regex>().initializer < rvalue.data<Regex>().initializer;
+			return lhs.data<Regex>().initializer < rhs.data<Regex>().initializer;
 
 		case Class::Metatype::array:
-			for (auto i = lvalue.data<Array>().values.begin(), j = rvalue.data<Array>().values.begin();
-			    i != lvalue.data<Array>().values.end() && j != rvalue.data<Array>().values.end(); ++i, ++j) {
+			for (auto i = lhs.data<Array>().values.begin(), j = rhs.data<Array>().values.begin();
+			    i != lhs.data<Array>().values.end() && j != rhs.data<Array>().values.end(); ++i, ++j) {
 				if (operator()(array_get_item(i), array_get_item(j))) {
 					return true;
 				}
@@ -2332,19 +2333,19 @@ bool Hash::compare_to::operator()(const Hash::key_type& lvalue, const Hash::key_
 					return false;
 				}
 			}
-			return lvalue.data<Array>().values.size() < rvalue.data<Array>().values.size();
+			return lhs.data<Array>().values.size() < rhs.data<Array>().values.size();
 
 		case Class::Metatype::hash:
 		case Class::Metatype::iterator:
 		case Class::Metatype::library:
 		case Class::Metatype::libobject:
-			error("invalid use of '{}' type as hash key", type_name(lvalue));
+			error("invalid use of '{}' type as hash key", type_name(lhs));
 		}
 		break;
 	case Data::Format::package:
 	case Data::Format::function:
 	case Data::Format::coroutine:
-		error("invalid use of '{}' type as hash key", type_name(lvalue));
+		error("invalid use of '{}' type as hash key", type_name(lhs));
 	}
 
 	return false;

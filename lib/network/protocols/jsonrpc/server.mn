@@ -49,7 +49,7 @@ package Network {
 			 * create clients context on client connection.
 			 * 
 			 * The `Channel` parameter can provide a class that will be used to
-			 * create the underling channel.
+			 * create the underlying channel.
 			 */
 			const def new(self, endpoint, RequestHandler = Network.JsonRpc.RequestHandler, Channel = Network.AsynchronousChannel) {
 				self.channel = Channel(endpoint, Network.ServerSerializer)
@@ -84,7 +84,7 @@ package Network {
 			 * Tells the channel to listen for incoming connections on address
 			 * configured by the end point. Returns `true` on success; otherwise
 			 * returns `false`. This method calls the {Network.AsynchronousChannel.listen}
-			 * method of the underling channel.
+			 * method of the underlying channel.
 			 * 
 			 * An instance of {Exception.SocketError} is raised on error.
 			 */
@@ -127,19 +127,8 @@ package Network {
 			}
 
 			/**
-			 * Returns the next end point in the connection queue. This method
-			 * calls the {Network.AsynchronousChannel.read} method of the underling
-			 * channel. If there is at least one pending connection in the queue,
-			 * a call to this method will create a client handler that will be
-			 * automatically watched by the {Network.Scheduler} instance.
-			 */
-			const def read(self) {
-				return self.channel.read()
-			}
-
-			/**
 			 * Returns the context's socket as a number. This method calls the
-			 * {Network.AsynchronousChannel.getSocket} method of the underling
+			 * {Network.AsynchronousChannel.getSocket} method of the underlying
 			 * channel.
 			 */
 			const def getSocket(const self) {
@@ -147,8 +136,8 @@ package Network {
 			}
 
 			/**
-			 * Returns the underling end point object. This method calls the
-			 * {Network.AsynchronousChannel.getEndpoint} method of the underling
+			 * Returns the underlying end point object. This method calls the
+			 * {Network.AsynchronousChannel.getEndpoint} method of the underlying
 			 * channel.
 			 */
 			const def getEndpoint(const self) {
@@ -158,7 +147,7 @@ package Network {
 			/**
 			 * Returns the scheduler associated with the object. This method calls
 			 * the {Network.AsynchronousChannel.getScheduler} method of the 
-			 * underling channel.
+			 * underlying channel.
 			 */
 			const def getScheduler(const self) {
 				return self.channel.getScheduler()
@@ -167,7 +156,7 @@ package Network {
 			/**
 			 * Stops listening if the context was openned with {@see listen}.
 			 * This method calls the {Network.AsynchronousChannel.close}
-			 * method of the underling channel. If the socket was successfully closed,
+			 * method of the underlying channel. If the socket was successfully closed,
 			 * {@see onClose} is called; otherwise the socket will be closed later.
 			 * 
 			 * An instance of {Exception.SocketError} is raised on error.
@@ -187,7 +176,7 @@ package Network {
 			/**
 			 * Returns the current state of the context as a value of
 			 * {Network.EndPoint.State}. This method calls the
-			 * {Network.AsynchronousChannel.getState} method of the underling
+			 * {Network.AsynchronousChannel.getState} method of the underlying
 			 * channel.
 			 */
 			const def getState(const self) {
@@ -197,7 +186,7 @@ package Network {
 			/**
 			 * Returns the events expected by the context as mask of values from the
 			 * {Network.Scheduler.PollEvent} enum. This method calls the
-			 * {Network.AsynchronousChannel.getEvents} method of the underling
+			 * {Network.AsynchronousChannel.getEvents} method of the underlying
 			 * channel.
 			 */
 			const def getEvents(const self) {
@@ -208,7 +197,7 @@ package Network {
 			 * Returns `true` if the channel performs I/O operations asynchronously
 			 * (i.e. read or write data without blocking other channels); otherwise
 			 * returns `false`. This method calls the
-			 * {Network.AsynchronousChannel.isNonBlocking} method of the underling
+			 * {Network.AsynchronousChannel.isNonBlocking} method of the underlying
 			 * channel.
 			 */
 			const def isNonBlocking(const self) {
@@ -218,7 +207,7 @@ package Network {
 			/**
 			 * Sets the non blocking mode of the channel to `enabled`. This method
 			 * calls the {Network.AsynchronousChannel.setNonBlocking} method of
-			 * the underling channel. Returns `true` if the mode was successfully
+			 * the underlying channel. Returns `true` if the mode was successfully
 			 * changed; otherwise returns `false`.
 			 * 
 			 * > [!WARNING]
@@ -286,9 +275,9 @@ package Network {
 			}
 
 			/**
-			 * Notifies the context that the underling channel is readable. This
+			 * Notifies the context that the underlying channel is readable. This
 			 * method calls the {Network.AsynchronousChannel.notifyReadable}
-			 * method of the underling channel.
+			 * method of the underlying channel.
 			 * 
 			 * An instance of {Exception.SocketError} is raised on error.
 			 */
@@ -305,9 +294,9 @@ package Network {
 			}
 
 			/**
-			 * Notifies the channel that the underling end point is writable. This
+			 * Notifies the channel that the underlying end point is writable. This
 			 * method calls the {Network.AsynchronousChannel.notifyWritable}
-			 * method of the underling channel.
+			 * method of the underlying channel.
 			 * 
 			 * An instance of {Exception.SocketError} is raised on error.
 			 */
@@ -324,10 +313,10 @@ package Network {
 			}
 
 			/**
-			 * Notifies the channel that the underling end point has received
+			 * Notifies the channel that the underlying end point has received
 			 * a new connection request. This method calls the
 			 * {Network.AsynchronousChannel.notifyConnection} method of the
-			 * underling channel.
+			 * underlying channel.
 			 * 
 			 * An instance of {Exception.SocketError} is raised on error.
 			 */
@@ -346,7 +335,7 @@ package Network {
 			/**
 			 * Notifies the channel that the connection was closed by the peer. This
 			 * method calls the {Network.AsynchronousChannel.notifyClosed} method
-			 * of the underling channel.
+			 * of the underlying channel.
 			 * 
 			 * 
 			 * An instance of {Exception.SocketError} is raised on error.
@@ -364,9 +353,9 @@ package Network {
 			}
 
 			/**
-			 * Notifies the channel that the underling end point has received an error.
+			 * Notifies the channel that the underlying end point has received an error.
 			 * This method calls the {Network.AsynchronousChannel.notifyClosed} method
-			 * of the underling channel and an instance of {Exception.SocketError}
+			 * of the underlying channel and an instance of {Exception.SocketError}
 			 * is raised.
 			 */
 			const def notifyError(self) {
@@ -398,7 +387,7 @@ package Network {
 			/**
 			 * This method can be rebinded to handle state change events. The `server`
 			 * parameter is the context that received the event and the `state` parameter
-			 * is the state that will be applied to the underling channel. The previous
+			 * is the state that will be applied to the underlying channel. The previous
 			 * state can still be accessed with {@see getState} until the end of the method.
 			 * 
 			 * > [!WARNING]
@@ -424,7 +413,7 @@ package Network {
 
 			/// Internal channel.
 			- final channel = null
-			
+
 			/// Internal default attributes.
 			- final attributes = {}
 		}
@@ -460,7 +449,7 @@ package Network {
 			 * interface.
 			 * 
 			 * The `Channel` parameter can provide a class that will be used to
-			 * create the underling channel.
+			 * create the underlying channel.
 			 */
 			const def new(self, endpoint, Channel = Network.AsynchronousChannel) {
 				self.channel = Channel(endpoint, Network.JsonRpc.Serializer)
@@ -508,7 +497,7 @@ package Network {
 			/**
 			 * Pushes the message object described by `data` to the request queue.
 			 * This method calls the {Network.AsynchronousChannel.write} method
-			 * of the underling channel.
+			 * of the underlying channel.
 			 * 
 			 * The `data` parameter can be an instance of {Network.JsonRpc.Message};
 			 * otherwise an instance will be created depending on the type of the
@@ -530,42 +519,15 @@ package Network {
 			/**
 			 * Returns the next message object in the reply queue or `none` if no
 			 * more message is available. This method calls the
-			 * {Network.AsynchronousChannel.read} method of the underling channel.
+			 * {Network.AsynchronousChannel.read} method of the underlying channel.
 			 */
 			const def read(self) {
 				return self.channel.read()
 			}
 
 			/**
-			 * Returns the handler's socket as a number. This method calls the
-			 * {Network.AsynchronousChannel.getSocket} method of the underling
-			 * channel.
-			 */
-			const def getSocket(const self) {
-				return self.channel.getSocket()
-			}
-
-			/**
-			 * Returns the underling end point object. This method calls the
-			 * {Network.AsynchronousChannel.getEndpoint} method of the underling
-			 * channel.
-			 */
-			const def getEndpoint(const self) {
-				return self.channel.getEndpoint()
-			}
-
-			/**
-			 * Returns the scheduler associated with the object. This method calls
-			 * the {Network.AsynchronousChannel.getScheduler} method of the 
-			 * underling channel.
-			 */
-			const def getScheduler(const self) {
-				return self.channel.getScheduler()
-			}
-
-			/**
 			 * Closes the communication with the peer. This method calls the
-			 * {Network.AsynchronousChannel.close} method of the underling channel.
+			 * {Network.AsynchronousChannel.close} method of the underlying channel.
 			 * If the socket was successfully closed, {@see onClose} is called;
 			 * otherwise the socket will be closed later.
 			 * 
@@ -584,9 +546,36 @@ package Network {
 			}
 
 			/**
+			 * Returns the handler's socket as a number. This method calls the
+			 * {Network.AsynchronousChannel.getSocket} method of the underlying
+			 * channel.
+			 */
+			const def getSocket(const self) {
+				return self.channel.getSocket()
+			}
+
+			/**
+			 * Returns the underlying end point object. This method calls the
+			 * {Network.AsynchronousChannel.getEndpoint} method of the underlying
+			 * channel.
+			 */
+			const def getEndpoint(const self) {
+				return self.channel.getEndpoint()
+			}
+
+			/**
+			 * Returns the scheduler associated with the object. This method calls
+			 * the {Network.AsynchronousChannel.getScheduler} method of the 
+			 * underlying channel.
+			 */
+			const def getScheduler(const self) {
+				return self.channel.getScheduler()
+			}
+
+			/**
 			 * Returns the current state of the handler as a value of
 			 * {Network.EndPoint.State}. This method calls the
-			 * {Network.AsynchronousChannel.getState} method of the underling
+			 * {Network.AsynchronousChannel.getState} method of the underlying
 			 * channel.
 			 */
 			const def getState(const self) {
@@ -596,7 +585,7 @@ package Network {
 			/**
 			 * Returns the events expected by the handler as mask of values from the
 			 * {Network.Scheduler.PollEvent} enum. This method calls the
-			 * {Network.AsynchronousChannel.getEvents} method of the underling
+			 * {Network.AsynchronousChannel.getEvents} method of the underlying
 			 * channel.
 			 */
 			const def getEvents(const self) {
@@ -607,7 +596,7 @@ package Network {
 			 * Returns `true` if the channel performs I/O operations asynchronously
 			 * (i.e. read or write data without blocking other channels); otherwise
 			 * returns `false`. This method calls the
-			 * {Network.AsynchronousChannel.isNonBlocking} method of the underling
+			 * {Network.AsynchronousChannel.isNonBlocking} method of the underlying
 			 * channel.
 			 */
 			const def isNonBlocking(const self) {
@@ -617,7 +606,7 @@ package Network {
 			/**
 			 * Sets the non blocking mode of the channel to `enabled`. This method
 			 * calls the {Network.AsynchronousChannel.setNonBlocking} method of
-			 * the underling channel. Returns `true` if the mode was successfully
+			 * the underlying channel. Returns `true` if the mode was successfully
 			 * changed; otherwise returns `false`.
 			 * 
 			 * > [!WARNING]
@@ -685,9 +674,9 @@ package Network {
 			}
 
 			/**
-			 * Notifies the context that the underling channel is readable. This
+			 * Notifies the context that the underlying channel is readable. This
 			 * method calls the {Network.AsynchronousChannel.notifyReadable}
-			 * method of the underling channel.
+			 * method of the underlying channel.
 			 * 
 			 * An instance of {Exception.SocketError} is raised on error.
 			 */
@@ -704,9 +693,9 @@ package Network {
 			}
 
 			/**
-			 * Notifies the channel that the underling end point is writable. This
+			 * Notifies the channel that the underlying end point is writable. This
 			 * method calls the {Network.AsynchronousChannel.notifyWritable}
-			 * method of the underling channel.
+			 * method of the underlying channel.
 			 * 
 			 * An instance of {Exception.SocketError} is raised on error.
 			 */
@@ -725,7 +714,7 @@ package Network {
 			/**
 			 * Notifies the channel that the connection was closed by the peer. This
 			 * method calls the {Network.AsynchronousChannel.notifyClosed} method
-			 * of the underling channel.
+			 * of the underlying channel.
 			 * 
 			 * 
 			 * An instance of {Exception.SocketError} is raised on error.
@@ -743,9 +732,9 @@ package Network {
 			}
 
 			/**
-			 * Notifies the channel that the underling end point has received an error.
+			 * Notifies the channel that the underlying end point has received an error.
 			 * This method calls the {Network.AsynchronousChannel.notifyClosed} method
-			 * of the underling channel and an instance of {Exception.SocketError}
+			 * of the underlying channel and an instance of {Exception.SocketError}
 			 * is raised.
 			 */
 			const def notifyError(self) {
@@ -771,7 +760,7 @@ package Network {
 			 * 
 			 * > [!NOTE]
 			 * > This method can be called for one or more messages and will not be
-			 * > called until the underling end point receive more data.
+			 * > called until the underlying end point receive more data.
 			 * > The {@see read} method should then be called by this method until
 			 * > `none` is returned.
 			 */
@@ -862,7 +851,7 @@ package Network {
 			/**
 			 * This method can be rebinded to handle state change events. The `client`
 			 * parameter is the context that received the event and the `state` parameter
-			 * is the state that will be applied to the underling channel. The previous
+			 * is the state that will be applied to the underlying channel. The previous
 			 * state can still be accessed with {@see getState} until the end of the method.
 			 * 
 			 * > [!WARNING]

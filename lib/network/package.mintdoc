@@ -10,8 +10,9 @@ This package provides 3 main classes:
   derived class. The {Network.SynchronousChannel} can also be used to perform
   exchanges synchronously.
 * The {Network.Scheduler} class synchronize exchanges. It manages a set of channels
-  described by an instance of {Network.AsynchronousChannel} or a derived class and
-  can work synchronously or asynchronously using a thread.
+  described by an instance of {Network.AsynchronousChannel} or a derived class
+  synchronously or asynchronously. The {Network.SchedulerThread} can work using
+  a thread.
 
 This package also provides a set of protocol specific client and server classes
 that implement the layers 5 to 7 of the OSI model. That allow basic communication
@@ -23,7 +24,7 @@ load network.scheduler
 load network.endpoints.tcpip
 load network.protocol.http.client
 
-let scheduler = Network.Scheduler()
+let scheduler = Network.SchedulerThread()
 scheduler.startSynchronizationLoop()
 
 if client = Network.Http.Client(Network.TcpIp(scheduler, server_host, server_port)) {

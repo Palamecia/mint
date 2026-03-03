@@ -29,6 +29,8 @@
 #include <format>
 #include <string>
 #include <functional>
+#include <utility>
+#include <vector>
 
 namespace mint {
 
@@ -42,6 +44,10 @@ template<typename... Args>
 MINT_EXPORT int add_error_callback(const std::function<void(const std::string&)>& callback);
 MINT_EXPORT void call_error_callbacks(const std::string& message);
 MINT_EXPORT void remove_error_callback(int id);
+
+MINT_EXPORT std::vector<std::pair<int, std::function<void(const std::string&)>>> take_error_callbacks();
+MINT_EXPORT void restore_error_callbacks(
+    std::vector<std::pair<int, std::function<void(const std::string&)>>>&& callbacks);
 
 MINT_EXPORT std::function<void(void)> get_exit_callback();
 MINT_EXPORT void set_exit_callback(const std::function<void(void)>& callback);

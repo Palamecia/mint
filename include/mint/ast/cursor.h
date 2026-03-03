@@ -162,9 +162,10 @@ public:
 
 	[[nodiscard]] bool is_in_builtin() const;
 	[[nodiscard]] bool is_in_generator() const;
-	std::unique_ptr<SavedState> suspend(std::unique_ptr<SavedState> state);
-	std::unique_ptr<SavedState> interrupt();
-	void restore(std::unique_ptr<SavedState> state);
+	[[nodiscard]] bool is_in_coroutine() const;
+	std::unique_ptr<SavedState> suspend(std::unique_ptr<SavedState> state, std::size_t stack_offset = 0);
+	std::unique_ptr<SavedState> interrupt(std::size_t stack_offset = 0);
+	void restore(std::unique_ptr<SavedState> state, std::size_t stack_offset = 0);
 	void destroy(SavedState* state);
 
 	void open_printer(std::unique_ptr<Printer>&& printer);
@@ -176,6 +177,7 @@ public:
 	[[nodiscard]] inline const SymbolTable& symbols() const;
 	[[nodiscard]] inline SymbolTable& symbols();
 	[[nodiscard]] inline Reference& generator();
+	[[nodiscard]] inline Reference& coroutine();
 
 	bool load_module(const std::string& module);
 	bool exit_module();
@@ -196,16 +198,18 @@ protected:
 		explicit Context(const Module& module);
 
 		std::size_t iptr = 0;
+		const Module& module;
+
+		WaitingCallStack waiting_calls;
 		std::shared_ptr<SymbolTable> symbols;
 		std::unique_ptr<WeakReference> generator;
-		std::reference_wrapper<const Module> module;
+		std::unique_ptr<WeakReference> coroutine;
 		std::vector<std::unique_ptr<Printer>> printers;
 	};
 
 	struct RetrievePoint {
 		std::size_t stack_size;
 		std::size_t call_stack_size;
-		std::size_t waiting_calls_count;
 		std::size_t retrieve_offset;
 		Context* current_context;
 	};
@@ -221,7 +225,6 @@ private:
 	Cursor* _parent;
 	Cursor* _child;
 
-	WaitingCallStack _waiting_calls;
 	std::vector<Context*> _call_stack;
 	retrieve_point_stack_t _retrieve_points;
 };
@@ -251,8 +254,8 @@ Cursor* Cursor::parent() const {
 }
 
 const Node& Cursor::next() {
-	assert(_current_context->iptr <= _current_context->module.get().end());
-	return _current_context->module.get().node_at(_current_context->iptr++);
+	assert(_current_context->iptr <= _current_context->module.end());
+	return _current_context->module.node_at(_current_context->iptr++);
 }
 
 std::vector<WeakReference>& Cursor::stack() {
@@ -260,7 +263,7 @@ std::vector<WeakReference>& Cursor::stack() {
 }
 
 Cursor::WaitingCallStack& Cursor::waiting_calls() {
-	return _waiting_calls;
+	return _current_context->waiting_calls;
 }
 
 const SymbolTable& Cursor::symbols() const {
@@ -276,6 +279,11 @@ SymbolTable& Cursor::symbols() {
 Reference& Cursor::generator() {
 	assert(_current_context->generator);
 	return *_current_context->generator;
+}
+
+Reference& Cursor::coroutine() {
+	assert(_current_context->coroutine);
+	return *_current_context->coroutine;
 }
 
 }

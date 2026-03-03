@@ -60,7 +60,6 @@ public:
 	virtual void cleanup();
 
 	bool exec();
-	bool debug(DebugInterface& debug_interface);
 	bool resume();
 
 	[[nodiscard]] ThreadId get_thread_id() const;

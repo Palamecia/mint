@@ -433,6 +433,13 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().back() = std::move(item);
 	}));
 
+	create_builtin_member("shift", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+		const Reference& self = cursor.stack().back();
+		auto item = std::move(self.data<Array>().values.front());
+		self.data<Array>().values.erase(self.data<Array>().values.begin());
+		cursor.stack().back() = std::move(item);
+	}));
+
 	create_builtin_member("clear", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
 		if (self.flags() & Reference::const_value) [[unlikely]] {

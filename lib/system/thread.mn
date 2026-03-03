@@ -244,7 +244,7 @@ package System {
 		- final object = none
 
 		/// Internal associated function.
-		- final function = null
+		- final %function = null
 	}
 
 	/**
@@ -576,7 +576,7 @@ package System {
 	 * coroutine. The promise object is started by this function. If the promise
 	 * failed to start, `none` is returned instead.
 	 */
-	def spawnAsync(%coroutine) {
+	def spawnAsync(coroutine) {
 		var promise = System.Promise(coroutine)
 		if promise.spawn() {
 			return promise

@@ -41,10 +41,12 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace {
 
 struct ErrorCatcher {
+	std::vector<std::pair<int, std::function<void(const std::string&)>>> error_callbacks;
 	int on_error = -1;
 };
 
@@ -56,6 +58,7 @@ mint::WeakReference mint_test_error_catcher_install(mint::FunctionHelper& helper
 
 	return mint::create_c_object(cursor.ast(),
 	    new ErrorCatcher {
+	        .error_callbacks = mint::take_error_callbacks(),
 	        .on_error = mint::add_error_callback(
 	            [&cursor, &scheduler, &runtime_error_class](const std::string& message) {
 		            throw mint::MintException(cursor,
@@ -66,6 +69,7 @@ mint::WeakReference mint_test_error_catcher_install(mint::FunctionHelper& helper
 
 mint::WeakReference mint_test_error_catcher_remove(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	mint::remove_error_callback(d_ptr.data<mint::LibObject<ErrorCatcher>>().ptr->on_error);
+	mint::restore_error_callbacks(std::move(d_ptr.data<mint::LibObject<ErrorCatcher>>().ptr->error_callbacks));
 	delete d_ptr.data<mint::LibObject<ErrorCatcher>>().ptr;
 	return {};
 }

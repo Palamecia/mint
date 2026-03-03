@@ -57,7 +57,7 @@ class TextStream {
 
 	/**
 	 * Returns the codec that is current assigned to the stream. It correspond
-	 * to the codec of the underling stream or `none` if the underling stream
+	 * to the codec of the underlying stream or `none` if the underlying stream
 	 * does not support codec.
 	 */
 	const def getCodec(const self) {
@@ -67,7 +67,7 @@ class TextStream {
 	}
 
 	/**
-	 * Forwards the `codec` to the underling object if supported.
+	 * Forwards the `codec` to the underlying object if supported.
 	 */
 	const def setCodec(self, codec) {
 		if defined self.stream.setCodec {
@@ -131,7 +131,7 @@ class TextStream {
 	/**
 	 * Writes the content of `data` to the stream.
 	 * 
-	 * The `write` method of the underling object is used to write the data.
+	 * The `write` method of the underlying object is used to write the data.
 	 */
 	const def write(self, data) {
 		self.stream.write(data.toString())
@@ -201,7 +201,7 @@ class TextStream {
 		return Serializer.StringStream(stream)
 	}
 
-	/// Internal underling stream.
+	/// Internal underlying stream.
 	- final stream = null
 }
 

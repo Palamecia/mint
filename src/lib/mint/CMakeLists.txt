@@ -41,3 +41,7 @@ install(
 	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 )
+
+add_dependencies(mint-mint module-mint)
+add_dependencies(mint-mint module-container)
+add_dependencies(mint-mint module-exception)

@@ -34,12 +34,12 @@ package System {
 
 	/**
 	 * This class is used to manipulate path names, access information regarding
-	 * paths and files, and manipulate the underling file system.
+	 * paths and files, and manipulate the underlying file system.
 	 * 
 	 * The "/" character is used as a universal directory separator in the same
 	 * way that "/" is used as a path separator in URLs. If you always use "/"
 	 * as a directory separator, this class will translate your paths to conform
-	 * to the underling operating system.
+	 * to the underlying operating system.
 	 */
 	class Directory {
 

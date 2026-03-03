@@ -26,8 +26,10 @@
  * between the network devices.
  */
 
-load system.thread
+load exception.network
+load mint.function
 load mint.lockguard
+load system.thread
 
 package Network {
 	/**
@@ -126,10 +128,133 @@ package Network {
 		}
 
 		/**
+		 * This class represents the state of an asynchronous operation.
+		 */
+		class Promise {
+			/**
+			 * Creates a new promise for the result of the `coroutine` operation.
+			 */
+			const def new(self, coroutine) {
+				self.coroutine = coroutine
+				return self
+			}
+
+			/**
+			 * Starts the associated operation.
+			 */
+			const async def start(self) {
+				self.result = await self.coroutine
+			}
+
+			/**
+			 * Takes the associated operation's result and returns it. If the result is not yet available, the method
+			 * returns `none`.
+			 */
+			const def get(self) {
+				return self.result
+			}
+
+			/**
+			 * Takes the associated operation's result and returns it. If the result is not yet available, the method
+			 * returns `none`.
+			 */
+			const def await(self) {
+				return self.get()
+			}
+
+			/**
+			 * Takes the associated operation's result and returns it. If the result is not yet available, the method
+			 * returns `none`.
+			 */
+			const def ()(self) {
+				return self.get()
+			}
+
+			/// Internal associated coroutine.
+			- final coroutine = null
+
+			/// Internal result.
+			- final result = none
+		}
+
+		/**
+		 * This class describe an asynchronous operation.
+		 * 
+		 * Operation objects represent asynchronous tasks executed by {Network.Scheduler}.
+		 *
+		 * An operation encapsulates the logic required to perform a specific
+		 * asynchronous action such as connecting, reading, writing or
+		 * accepting connections.
+		 *
+		 * The lifecycle of an operation is typically:
+		 *
+		 *  1. Created by an endpoint asynchronous method
+		 *  2. Submitted to the scheduler using {Network.Scheduler.suspend}
+		 *  3. Executed until the operation blocks
+		 *  4. Suspended until the required socket event occurs
+		 *  5. Resumed by the scheduler
+		 *  6. Completed when the operation's result is available
+		 *
+		 * This design allows asynchronous operations to be expressed in a
+		 * sequential style using coroutines while the scheduler handles the
+		 * underlying event loop and I/O readiness notifications.
+		 */
+		class Operation {
+			/**
+			 * Returns `true` if `other` is equal to this list; otherwise returns `false`.
+			 */
+			const def ==(const self, const other) {
+				return self is other
+			}
+
+			/**
+			 * Returns `false` if `other` is equal to this list; otherwise returns `true`.
+			 */
+			const def !=(const self, const other) {
+				return not (self is other)
+			}
+
+			/**
+			 * Starts the asynchronous operation. The `callback` function will be called on completion and will resume
+			 * `coroutine`.
+			 */
+			const def start(self, coroutine, callback) {
+				self.coroutine = coroutine
+				self.callback = callback
+			}
+
+			/**
+			 * Checks for completion.
+			 */
+			const def check(self) {
+				self.done()
+			}
+
+			/**
+			 * Returns the operation result.
+			 */
+			const def get(self) {
+				return none
+			}
+
+			/**
+			 * Notify for completion.
+			 */
+			# final const def done(self, error = none) {
+			    self.callback(self, self.coroutine, error)
+			}
+
+			/// Internal associated coroutine.
+			- final coroutine = null
+
+			/// Internal completion callback.
+			- final callback = null
+		}
+
+		/**
 		 * Creates a new scheduler for network operations.
 		 */
 		const def new(self) {
-			self.thread = System.Thread(self, self.synchronizationLoop)
 			self.mutex = System.Mutex()
 			return self
 		}
@@ -148,24 +273,6 @@ package Network {
 		@const def poll(fdset, timeout) {
 			var handleSet = [for let fd in fdset => fd.getHandle()]
 			return Network.Scheduler.g_lib.call('mint_scheduler_poll', handleSet, timeout)
-		}
-
-		/**
-		 * Starts the synchronization loop in a separate thread. This loop calls
-		 * {@see synchronize} forever until {@see stopSynchronizationLoop} is
-		 * called. The `timeout` parameter is forwarded to the called method.
-		 */
-		const def startSynchronizationLoop(self, timeout = 500) {
-			self.loopRunning = true
-			self.thread.start(timeout)
-		}
-
-		/**
-		 * Stops the synchronization loop thread.
-		 */
-		const def stopSynchronizationLoop(self) {
-			self.loopRunning = false
-			self.thread.join()
 		}
 
 		/**
@@ -200,13 +307,69 @@ package Network {
 		}
 
 		/**
-		 * Runs the synchronization loop. This loop calls {@see synchronize}
-		 * forever until {@see stopSynchronizationLoop} is called. The `timeout`
-		 * parameter is forwarded to the called method.
+		 * Schedules a `coroutine` for execution. Returns an instance of {Network.Scheduler.Promise} associated to
+		 * the `coroutine` object.
+		 * 
+		 * The coroutine is added to the scheduler's ready queue and will be
+		 * executed during the next iteration of the event loop.
+		 *
+		 * Coroutines spawned using this method run concurrently with other
+		 * scheduled coroutines.
+		 *
+		 * The scheduler does not guarantee execution order beyond fairness
+		 * between ready coroutines.
 		 */
-		# const def synchronizationLoop(self, timeout) {
-			while self.loopRunning {
-				self.synchronize(timeout)
+		const def spawn(self, coroutine) {
+			let promise = Network.Scheduler.Promise(coroutine)
+			self.waiting.push(promise)
+			return promise
+		}
+
+		/**
+		 * Suspends the current coroutine and registers an asynchronous `operation`.
+		 * 
+		 * This method is typically called internally by asynchronous endpoint
+		 * methods such as {Network.EndPoint.readAsync} or {Network.EndPoint.writeAsync}.
+		 *
+		 * When invoked:
+		 *
+		 *  1. The current coroutine is suspended
+		 *  2. The operation is registered with the scheduler
+		 *  3. The scheduler continues executing other coroutines
+		 *
+		 * The operation is responsible for indicating when it is ready to
+		 * resume. Once the required condition is met (for example, a socket
+		 * becomes readable), the scheduler resumes the suspended coroutine.
+		 *
+		 * The result of the operation is returned to the coroutine when it
+		 * resumes.
+		 *
+		 * This mechanism allows asynchronous operations to be written in a
+		 * sequential style using `await`.
+		 */
+		const async def suspend(self, operation) {
+
+			let coroutine = Network.Scheduler.g_lib.call('mint_scheduler_current_coroutine')
+			if not defined coroutine {
+				raise Exception.InvalidNetworkOperation('suspend must be called inside a coroutine', self)
+			}
+
+			self.operations.push(operation)
+
+			operation.start(coroutine, Callback(self, self.operationCompletion))
+			Network.Scheduler.g_lib.call('mint_scheduler_suspend', coroutine)
+			return operation.get()
+		}
+
+		/**
+		 * Resumes `coroutine`. If `error` is defined, the object is imediaimmediately raised after it.
+		 */
+		- const def operationCompletion(self, operation, coroutine, error = none) {
+		    self.operations.remove(self.operations.indexOf(operation))
+			if defined error {
+				Network.Scheduler.g_lib.call('mint_scheduler_raise', coroutine, error)
+			} else {
+				Network.Scheduler.g_lib.call('mint_scheduler_resume', coroutine)
 			}
 		}
 
@@ -231,7 +394,7 @@ package Network {
 		 * After a call to this method, the values returned by
 		 * {Network.Scheduler.PollDescriptor.getEvents} are updated.
 		 */
-		const def synchronize(self, timeout = 500) {
+		const def pollEvents(self, timeout = 500) {
 
 			var lock = LockGuard(self.mutex)
 			var channelset = []
@@ -245,9 +408,11 @@ package Network {
 						continue
 					}
 				}
-				fd.setRequestedEvents(channel.getEvents())
-				channelset << [channel, fd]
-				fdset << fd
+				if let events = channel.getEvents() {
+					fd.setRequestedEvents(events)
+					channelset.push([channel, fd])
+					fdset.push(fd)
+				}
 			}
 
 			lock = none
@@ -282,9 +447,35 @@ package Network {
 		}
 
 		/**
-		 * Runs the synchronization loop synchronously. This loop calls
-		 * {@see synchronize} forever until no more channel is watched. The
-		 * `timeout` parameter is forwarded to the called method.
+		 * Checks for suspended operations completion. Each completed operation will resume their coroutine.
+		 */
+		const def checkOperations(self) {
+			for let operation in self.operations {
+				operation.check()
+			}
+		}
+
+		/*
+		 * Execute a single iteration of the event loop.
+		 *
+		 * Ready coroutines are executed until they suspend or complete, pending operations are progressed, and I/O
+		 * events are processed. Coroutines whose operations have completed are scheduled for execution.
+		 * 
+		 * The `timeout` parameter is forwarded to {@see pollEvents} to stop event handling if no event is activated
+		 * until the specified amount of time (in milliseconds) and check for suspended operations completion.
+		 */
+		const def synchronize(self, timeout = 500) {
+			if self.waiting.isEmpty() {
+				self.pollEvents(timeout)
+				self.checkOperations()
+			} else {
+				Network.Scheduler.g_lib.call('mint_scheduler_spawn', self.waiting.shift().start())
+			}
+		}
+
+		/**
+		 * Runs the synchronization loop synchronously. This loop calls {@see synchronize} until no more channel is
+		 * watched. The `timeout` parameter is forwarded to the called method.
 		 */
 		const def run(self, timeout = 500) {
 			while not self.channels.isEmpty() {
@@ -292,20 +483,95 @@ package Network {
 			}
 		}
 
+		/**
+		 * Runs the synchronization loop synchronously. This loop calls {@see pollEvents} and {@see checkOperations}
+		 * until a coroutine added with {Network.Scheduler.spawn} is completed. The `timeout` parameter is forwarded
+		 * to the called method.
+		 */
+		const def runOne(self, timeout = 500) {
+			if not self.waiting.isEmpty() {
+				Network.Scheduler.g_lib.call('mint_scheduler_spawn', self.waiting.shift().start())
+			} 
+			while not self.operations.isEmpty() {
+				self.pollEvents(timeout)
+				self.checkOperations()
+			}
+		}
+
+		/**
+		 * Runs the synchronization loop synchronously. This loop calls {@see synchronize} until all coroutines added
+		 * with {Network.Scheduler.spawn} is completed. The `timeout` parameter is forwarded to the called method.
+		 */
+		const def runAll(self, timeout = 500) {
+			while not self.operations.isEmpty() or not self.waiting.isEmpty() {
+				self.synchronize(timeout)
+			}
+		}
+
 		/// Global library handle.
 		- @g_lib = lib('libmint-network')
+
+		/// Internal channel access mutex.
+		- final mutex = null
+
+		/// Internal channels context.
+		- final channels = {}
+
+		/// Internal list of waiting coroutines.
+		- final waiting = []
+
+		/// Internal list of waiting operations.
+		- final operations = []
+	}
+
+	/**
+	 * This class manages synchronization between the network devices in a thread.
+	 */
+	class SchedulerThread : Network.Scheduler {
+		/**
+		 * Creates a new scheduler for threaded network operations.
+		 */
+		const def new(self) {
+			if Network.Scheduler.new(self) {
+				self.thread = System.Thread(self, self.synchronizationLoop)
+				return self
+			}
+		}
+
+		/**
+		 * Starts the synchronization loop in a separate thread. This loop calls
+		 * {@see synchronize} forever until {@see stopSynchronizationLoop} is
+		 * called. The `timeout` parameter is forwarded to the called method.
+		 */
+		const def startSynchronizationLoop(self, timeout = 500) {
+			self.loopRunning = true
+			self.thread.start(timeout)
+		}
+
+		/**
+		 * Stops the synchronization loop thread.
+		 */
+		const def stopSynchronizationLoop(self) {
+			self.loopRunning = false
+			self.thread.join()
+		}
+
+		/**
+		 * Runs the synchronization loop. This loop calls {@see synchronize}
+		 * forever until {@see stopSynchronizationLoop} is called. The `timeout`
+		 * parameter is forwarded to the called method.
+		 */
+		# const def synchronizationLoop(self, timeout) {
+			while self.loopRunning {
+				self.synchronize(timeout)
+			}
+		}
 
 		/// Internal synchronization loop state.
 		- final loopRunning = false
 
 		/// Internal synchronization thead handle.
 		- final thread = null
-		
-		/// Internal channel access mutex.
-		- final mutex = null
-
-		/// Internal channels context.
-		- final channels = {}
 	}
 
 }

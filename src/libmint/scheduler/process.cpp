@@ -230,25 +230,6 @@ bool Process::exec() {
 	}
 }
 
-bool Process::debug(DebugInterface& debug_interface) {
-
-	auto _ = ProcessorLocker();
-
-	try {
-		return debug_steps(debug_interface.declare_thread(*this), debug_interface);
-	}
-	catch (MintException& raised) {
-		if (_cursor.get() == &raised.cursor()) {
-			_cursor->raise(raised.take_exception());
-			return true;
-		}
-		throw;
-	}
-	catch (const MintRuntimeError&) {
-		return false;
-	}
-}
-
 bool Process::resume() {
 
 	while (_endless) {

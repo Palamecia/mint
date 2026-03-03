@@ -95,6 +95,18 @@ package Network {
 		}
 
 		/**
+		 * Attempts to read data asynchronously from the end point. Returns `true` if data was
+		 * receive; otherwise returns `false`.
+		 */
+		const async def readAsync(self, endpoint) {
+			if var buffer = await endpoint.readAsync() {
+				self.stream.write(buffer)
+				return true
+			}
+			return false
+		}
+
+		/**
 		 * Attempts to write data to the end point. Returns `true` if the data
 		 * was successfully sent; otherwise returns `false`. After this call,
 		 * the sent data is removed from the buffer.
@@ -111,10 +123,34 @@ package Network {
 		}
 
 		/**
+		 * Attempts to write data asynchronously to the end point. Returns `true` if the data
+		 * was successfully sent; otherwise returns `false`. After this call,
+		 * the sent data is removed from the buffer.
+		 */
+		const async def writeAsync(self, endpoint) {
+			if not self.stream.isEmpty() {
+				var (success, count) = await endpoint.writeAsync(self.stream)
+				if success {
+					self.stream.remove(count)
+					return true
+				}
+			}
+			return false
+		}
+
+		/**
 		 * Attempts to accept a connection on the end point. This method raises
 		 * an instance of {Exception.InvalidNetworkOperation}.
 		 */
 		const def accept(self, endpoint) {
+			raise Exception.InvalidNetworkOperation('the socket can not accept', self)
+		}
+
+		/**
+		 * Attempts to accept a connection asynchronously on the end point. This method raises
+		 * an instance of {Exception.InvalidNetworkOperation}.
+		 */
+		const async def acceptAsync(self, endpoint) {
 			raise Exception.InvalidNetworkOperation('the socket can not accept', self)
 		}
 

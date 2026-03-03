@@ -357,4 +357,57 @@ class TestLoop : Test.Case {
 
         self.expectEqual(2, nextCalls)
     }
+
+    const def testForNightmareControlFlow(self) {
+
+        let nextCalls = 0
+
+        def [...] next(i) {
+            nextCalls = nextCalls + 1
+            return i + 1
+        }
+
+        def [...] generator() {
+
+            for (let i = 0, i < 6, i = next(i)) {
+
+                try {
+
+                    if i == 1 {
+                        continue
+                    }
+
+                    if i == 3 {
+                        raise "boom"
+                    }
+
+                    if i == 5 {
+                        break
+                    }
+
+                    yield i
+
+                } catch e {
+
+                    yield "error"
+                    continue
+                }
+            }
+
+            yield "done"
+        }
+
+        let g = generator()
+
+        let result = []
+        result.push(g.next())
+        result.push(g.next())
+        result.push(g.next())
+        result.push(g.next())
+        result.push(g.next())
+
+        self.expectEqual([0, 2, "error", 4, "done"], result)
+
+        self.expectEqual(5, nextCalls)
+    }
 }

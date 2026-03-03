@@ -36,6 +36,6 @@ TEST(operatortool, call_overload) {
 
 	cursor.stack().emplace_back(mint::create_alias(mint::StringClass::instance(scheduler.ast())));
 	cursor.stack().emplace_back(mint::create_string(scheduler.ast(), "bar"));
-	ASSERT_DEATH(mint::call_overload(cursor, "+", 1), "invalid use of class 'string' in an operation");
+	ASSERT_DEATH(mint::call_overload(cursor, "+", 1), "invalid use of class 'string' with operator '\\+'\\(1\\)");
 	cursor.stack().clear();
 }

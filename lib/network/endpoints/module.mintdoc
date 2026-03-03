@@ -26,7 +26,7 @@ the following methods:
 `def connect(self)`
 
 Attempts to make a connection to the remote device. Returns `true` if connection
-succed or if the connection request was successfully sent and is waiting for
+succeed or if the connection request was successfully sent and is waiting for
 acknowledgment; otherwise returns `false`. On success, the end point should enter
 the {Network.EndPoint.State.Connected} or {Network.EndPoint.State.Connecting} state.
 On error, it should enter the {Network.EndPoint.State.Disconnected} state.
@@ -35,7 +35,7 @@ On error, it should enter the {Network.EndPoint.State.Disconnected} state.
 
 `def finalizeConnection(self)`
 
-Finalize the connection to the peer. Return `true` if the connection succed;
+Finalize the connection to the peer. Return `true` if the connection succeed;
 otherwise returns `false`. On success, the end point should enter the
 {Network.EndPoint.State.Connected} state. On error, it should enter the
 {Network.EndPoint.State.Disconnected} state.
@@ -91,7 +91,7 @@ Closes the communication with the peer if the end point was in the
 {Network.EndPoint.State.Connected} state or stops listening if the end point was
 in the {Network.EndPoint.State.Listening} state. Returns `true` if the socket
 was successfully closed; otherwise returns `false` and the socket should then
-be closed later unsing {@see finalizeClose}. On success, the end point should
+be closed later using {@see finalizeClose}. On success, the end point should
 enter the {Network.EndPoint.State.Closed} or {Network.EndPoint.State.Closing}
 state.
 
@@ -99,7 +99,7 @@ state.
 
 `def finalizeClose(self)`
 
-Finalize the close to the peer. Return `true` if the close succed; otherwise
+Finalize the close to the peer. Return `true` if the close succeed; otherwise
 returns `false`. On success, the end point should enter the
 {Network.EndPoint.State.Closed} state. On error, it should enter the
 {Network.EndPoint.State.Error} state.

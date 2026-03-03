@@ -302,69 +302,109 @@ void Function::mark() {
 }
 
 Coroutine::Coroutine(std::unique_ptr<SavedState>&& state, std::size_t stack_size) :
-    _state(std::move(state)),
+    _saved_state(std::move(state)),
     _stored_stack(std::from_range,
-        std::views::drop(_state->cursor.get().stack(), static_cast<std::ptrdiff_t>(stack_size))),
-    _stack_size(stack_size) {
-	_state->cursor.get().stack().resize(stack_size);
+        std::views::drop(_saved_state->cursor.get().stack(), static_cast<std::ptrdiff_t>(stack_size))) {
+	_saved_state->cursor.get().stack().resize(stack_size);
 }
 
 void Coroutine::call(Cursor& cursor, WeakReference&& self) {
 
-	if (!_state) {
+	if (_state != State::ready) {
 		error("cannot reuse already awaited coroutine");
 	}
 
-	_stack_size = cursor.stack().size();
+	_context = std::make_shared<Context>(Context {
+	    .stack_size = cursor.stack().size(),
+	});
+
 	cursor.stack().emplace_back(std::move(self));
 	cursor.stack().append_range(std::move(_stored_stack));
 	_stored_stack.clear();
-	cursor.restore(std::move(_state));
+
+	cursor.restore(std::move(_saved_state));
+
+	_state = State::running;
 }
 
 void Coroutine::await(Cursor& cursor, WeakReference&& self) {
 
-	auto stored_stack = std::vector(std::from_range,
-	    std::views::drop(cursor.stack(), static_cast<std::ptrdiff_t>(_stack_size)));
+	if (_state != State::ready) {
+		error("cannot reuse already awaited coroutine");
+	}
 
-	cursor.stack().resize(_stack_size);
+	const auto stack_size = cursor.stack().size();
 	cursor.stack().emplace_back(std::move(self));
 	cursor.stack().append_range(std::move(_stored_stack));
-	_state = cursor.suspend(std::move(_state));
+	_stored_stack.clear();
 
-	std::swap(_stored_stack, stored_stack);
+	_parent_saved_state = cursor.suspend(std::move(_saved_state));
+
+	assert(_parent_saved_state->context->coroutine);
+	_context = _parent_saved_state->context->coroutine->data<Coroutine>()._context;
+	_stack_offset = stack_size - _context->stack_size;
+
+	_state = State::running;
 }
 
 void Coroutine::resume(Cursor& cursor, WeakReference&& value) {
-	if (_state) {
-		_stored_stack.append_range(std::views::drop(cursor.stack(), static_cast<std::ptrdiff_t>(_stack_size)));
-		cursor.stack().resize(_stack_size);
+
+	assert(_state == State::running);
+
+	if (_parent_saved_state) {
+		cursor.stack().resize(_context->stack_size + _stack_offset);
 		cursor.exit_call();
-		cursor.restore(std::move(_state));
+		cursor.restore(std::move(_parent_saved_state), _context->stack_size);
 	}
 	else {
-		cursor.stack().resize(_stack_size);
+		cursor.stack().resize(_context->stack_size + _stack_offset);
 		cursor.exit_call();
 	}
 	cursor.stack().emplace_back(std::move(value));
+	_state = State::completed;
+}
+
+void Coroutine::resume(Cursor& cursor) {
+
+	assert(_state == State::waiting);
+
+	_context->stack_size = cursor.stack().size();
+	cursor.stack().append_range(std::move(_stored_stack));
+	_stored_stack.clear();
+	cursor.restore(std::move(_saved_state), _context->stack_size);
+
+	_state = State::running;
+}
+
+void Coroutine::suspend(Cursor& cursor) {
+
+	assert(_state == State::running);
+
+	_stored_stack.append_range(std::views::drop(cursor.stack(), static_cast<std::ptrdiff_t>(_context->stack_size)));
+	cursor.stack().resize(_context->stack_size);
+	_saved_state = cursor.interrupt(_context->stack_size);
+
+	_state = State::waiting;
 }
 
 void Coroutine::raise(Cursor& cursor) {
-	if (_state) {
-		_stored_stack.append_range(std::views::drop(cursor.stack(), static_cast<std::ptrdiff_t>(_stack_size)));
-		cursor.stack().resize(_stack_size);
-		cursor.exit_call();
-		cursor.restore(std::move(_state));
+	cursor.exit_call();
+	if (_parent_saved_state) {
+		cursor.restore(std::move(_parent_saved_state), _context->stack_size);
 	}
-	else {
-		cursor.stack().resize(_stack_size);
-		cursor.exit_call();
-	}
+	_state = State::failed;
+}
+
+void Coroutine::exit(Cursor& cursor) {
+	cursor.stack().resize(_context->stack_size);
+	cursor.exit_call();
 }
 
 void Coroutine::mark() {
 	Data::mark();
 	for (const Reference& item : _stored_stack) {
-		item.data().mark();
+		if (this != &item.data()) {
+			item.data().mark();
+		}
 	}
 }

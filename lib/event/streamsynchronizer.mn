@@ -68,7 +68,7 @@ package Event {
 
 		/**
 		 * Waits for available data and calls the `readChar` method of the
-		 * underling object.
+		 * underlying object.
 		 */
 		var def readChar(self) {
 			if self.wait() {
@@ -78,7 +78,7 @@ package Event {
 
 		/**
 		 * Waits for available data and calls the `readWord` method of the
-		 * underling object.
+		 * underlying object.
 		 */
 		var def readWord(self) {
 			if self.wait() {
@@ -88,7 +88,7 @@ package Event {
 
 		/**
 		 * Waits for available data and calls the `readLine` method of the
-		 * underling object.
+		 * underlying object.
 		 */
 		var def readLine(self) {
 			if self.wait() {
@@ -98,7 +98,7 @@ package Event {
 
 		/**
 		 * Waits for available data and calls the `readLines` method of the
-		 * underling object.
+		 * underlying object.
 		 */
 		var def readLines(self) {
 			while self.wait() {
@@ -110,7 +110,7 @@ package Event {
 
 		/**
 		 * Waits for available data and calls the `read` method of the
-		 * underling object.
+		 * underlying object.
 		 */
 		const def read(self) {
 			if self.wait() {
@@ -119,7 +119,7 @@ package Event {
 		}
 
 		/**
-		 * calls the `write` method of the underling object.
+		 * calls the `write` method of the underlying object.
 		 */
 		const def write(self, data) {
 			return self.stream.write(data)
@@ -127,7 +127,7 @@ package Event {
 
 		/**
 		 * Waits for available data and calls the `readWord` method of the
-		 * underling object, stores the result in `data`, then returns a
+		 * underlying object, stores the result in `data`, then returns a
 		 * reference to the stream.
 		 */
 		const def >>(self, data) {
@@ -136,7 +136,7 @@ package Event {
 		}
 
 		/**
-		 * calls the `write` method of the underling object, then returns a
+		 * calls the `write` method of the underlying object, then returns a
 		 * reference to the stream.
 		 */
 		const def <<(self, data) {

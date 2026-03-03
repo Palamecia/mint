@@ -189,10 +189,10 @@ bool Cursor::is_thread() const {
 	}
 
 	if (_call_stack.empty()) {
-		return &_current_context->module.get() == &ThreadEntryPoint::instance();
+		return &_current_context->module == &ThreadEntryPoint::instance();
 	}
 
-	return &_call_stack.front()->module.get() == &ThreadEntryPoint::instance();
+	return &_call_stack.front()->module == &ThreadEntryPoint::instance();
 }
 
 void Cursor::jmp(std::size_t pos) {
@@ -200,7 +200,7 @@ void Cursor::jmp(std::size_t pos) {
 }
 
 bool Cursor::call_in_progress() const {
-	if (&_current_context->module.get() != &ThreadEntryPoint::instance()) {
+	if (&_current_context->module != &ThreadEntryPoint::instance()) {
 		return !_call_stack.empty();
 	}
 	return false;
@@ -220,8 +220,15 @@ void Cursor::call_generator_expression(std::size_t offset) {
 	expression_context->generator->data<Iterator>().construct();
 
 	_current_context->iptr = offset;
-	_call_stack.emplace_back(_current_context);
-	_current_context = expression_context;
+	if (_current_context->coroutine) {
+		expression_context->coroutine = std::make_unique<WeakReference>(Reference::default_flags,
+		    std::in_place_type<Coroutine>, std::make_unique<SavedState>(*this, expression_context), stack_base + 1);
+		expression_context->coroutine->data<Coroutine>().await(*this, WeakReference(*expression_context->coroutine));
+	}
+	else {
+		_call_stack.emplace_back(_current_context);
+		_current_context = expression_context;
+	}
 }
 
 void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) {
@@ -246,9 +253,10 @@ void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) 
 	}
 
 	if (handle.async) {
-		auto coroutine = make_weak_reference<Coroutine>(Reference::default_flags,
-		    std::make_unique<SavedState>(*this, call_context), handle.generator ? stack_base + 1 : stack_base);
-		_stack->emplace_back(std::move(coroutine));
+		call_context->coroutine = std::make_unique<WeakReference>(Reference::default_flags,
+		    std::in_place_type<Coroutine>, std::make_unique<SavedState>(*this, call_context),
+		    handle.generator ? stack_base + 1 : stack_base);
+		_stack->emplace_back(*call_context->coroutine);
 	}
 	else {
 		_call_stack.emplace_back(_current_context);
@@ -282,13 +290,19 @@ bool Cursor::is_in_generator() const {
 	return _current_context->generator != nullptr;
 }
 
-std::unique_ptr<SavedState> Cursor::suspend(std::unique_ptr<SavedState> state) {
+bool Cursor::is_in_coroutine() const {
+	return _current_context->coroutine != nullptr;
+}
+
+std::unique_ptr<SavedState> Cursor::suspend(std::unique_ptr<SavedState> state, std::size_t stack_offset) {
 
 	auto previous_state = std::make_unique<SavedState>(*this, _current_context);
 	_current_context = state->context;
 
 	while (!state->retrieve_points.empty()) {
-		_retrieve_points.push(state->retrieve_points.top());
+		auto& retrieve_point = state->retrieve_points.top();
+		retrieve_point.stack_size += stack_offset;
+		_retrieve_points.push(retrieve_point);
 		state->retrieve_points.pop();
 	}
 
@@ -296,27 +310,31 @@ std::unique_ptr<SavedState> Cursor::suspend(std::unique_ptr<SavedState> state) {
 	return previous_state;
 }
 
-std::unique_ptr<SavedState> Cursor::interrupt() {
+std::unique_ptr<SavedState> Cursor::interrupt(std::size_t stack_offset) {
 
 	auto state = std::make_unique<SavedState>(*this, _current_context);
 	_current_context = _call_stack.back();
 	_call_stack.pop_back();
 
 	while (!_retrieve_points.empty() && _retrieve_points.top().call_stack_size > _call_stack.size()) {
-		state->retrieve_points.push(_retrieve_points.top());
+		auto& retrieve_point = _retrieve_points.top();
+		retrieve_point.stack_size -= stack_offset;
+		state->retrieve_points.push(retrieve_point);
 		_retrieve_points.pop();
 	}
 
 	return state;
 }
 
-void Cursor::restore(std::unique_ptr<SavedState> state) {
+void Cursor::restore(std::unique_ptr<SavedState> state, std::size_t stack_offset) {
 
 	_call_stack.push_back(_current_context);
 	_current_context = state->context;
 
 	while (!state->retrieve_points.empty()) {
-		_retrieve_points.push(state->retrieve_points.top());
+		auto& retrieve_point = state->retrieve_points.top();
+		retrieve_point.stack_size += stack_offset;
+		_retrieve_points.push(retrieve_point);
 		state->retrieve_points.pop();
 	}
 
@@ -376,7 +394,6 @@ void Cursor::set_retrieve_point(std::size_t offset) {
 	_retrieve_points.push({
 	    .stack_size = _stack->size(),
 	    .call_stack_size = _call_stack.size(),
-	    .waiting_calls_count = _waiting_calls.size(),
 	    .retrieve_offset = offset,
 	    .current_context = _current_context,
 	});
@@ -392,20 +409,19 @@ void Cursor::raise(WeakReference&& exception) {
 
 		const RetrievePoint& state = _retrieve_points.top();
 
-		while (state.waiting_calls_count < _waiting_calls.size()) {
-			_waiting_calls.pop();
-		}
-
-		while (state.call_stack_size < _call_stack.size()) {
-			exit_call();
-		}
-
 		while (state.current_context != _current_context) {
-			assert(is_instance_of(_stack->back(), Data::Format::coroutine));
-			_stack->back().data<Coroutine>().raise(*this);
+			if (_current_context->coroutine) {
+				_current_context->coroutine->data<Coroutine>().raise(*this);
+			}
+			else {
+				exit_call();
+			}
 		}
 
-		assert(state.current_context == _current_context);
+		while (!_current_context->waiting_calls.empty()) {
+			_current_context->waiting_calls.pop();
+		}
+
 		_stack->resize(state.stack_size);
 		_stack->emplace_back(std::move(exception));
 		jmp(state.retrieve_offset);
@@ -443,25 +459,25 @@ std::size_t Cursor::offset() const {
 }
 
 void Cursor::resume() {
-	jmp(_current_context->module.get().next_node_offset());
+	jmp(_current_context->module.next_node_offset());
 	_stack->clear();
 }
 
 void Cursor::retrieve() {
 
-	while (!_waiting_calls.empty()) {
-		_waiting_calls.pop();
-	}
-
 	while (!_call_stack.empty()) {
 		exit_call();
+	}
+
+	while (!_current_context->waiting_calls.empty()) {
+		_current_context->waiting_calls.pop();
 	}
 
 	while (!_stack->empty()) {
 		_stack->pop_back();
 	}
 
-	jmp(_current_context->module.get().end());
+	jmp(_current_context->module.end());
 }
 
 void Cursor::cleanup() {

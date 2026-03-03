@@ -318,33 +318,59 @@ class MINT_EXPORT Coroutine : public Data {
 	friend class LocalPool;
 	friend class GarbageCollector;
 public:
+	enum class State : std::uint8_t {
+		ready,
+		running,
+		waiting,
+		completed,
+		failed
+	};
+
 	Coroutine(std::unique_ptr<SavedState>&& state, std::size_t stack_size);
 
 	[[nodiscard]] Format format() const override {
 		return Format::coroutine;
 	}
 
+	[[nodiscard]] inline State state() const;
 	[[nodiscard]] inline SymbolTable& symbols();
 
 	void call(Cursor& cursor, WeakReference&& self);
 	void await(Cursor& cursor, WeakReference&& self);
+
 	void resume(Cursor& cursor, WeakReference&& value);
+	void resume(Cursor& cursor);
+
+	void suspend(Cursor& cursor);
 	void raise(Cursor& cursor);
+	void exit(Cursor& cursor);
 
 	void mark() override;
 
 private:
 	static LocalPool<Coroutine> g_pool;
 
-	std::unique_ptr<SavedState> _state;
+	struct Context {
+		std::size_t stack_size;
+	};
 
+	std::unique_ptr<SavedState> _saved_state;
 	std::vector<mint::WeakReference> _stored_stack;
-	std::size_t _stack_size;
+	std::size_t _stack_offset = 0;
+
+	std::unique_ptr<SavedState> _parent_saved_state;
+	std::shared_ptr<Context> _context;
+
+	State _state = State::ready;
 };
 
+Coroutine::State Coroutine::state() const {
+	return _state;
+}
+
 SymbolTable& Coroutine::symbols() {
-	assert(_state && _state->context && _state->context->symbols);
-	return *_state->context->symbols;
+	assert(_saved_state && _saved_state->context && _saved_state->context->symbols);
+	return *_saved_state->context->symbols;
 }
 
 }

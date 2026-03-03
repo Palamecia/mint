@@ -63,7 +63,7 @@ package Network {
 
 		/**
 		 * Attempts to make a connection to the remote device. Returns `true` if
-		 * connection succed or if the connection request was successfully sent
+		 * connection succeed or if the connection request was successfully sent
 		 * and is waiting for acknowledgment; otherwise returns `false`.
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
@@ -137,7 +137,7 @@ package Network {
 		/**
 		 * Sends the data described by the `data` parameter to the peer. The
 		 * `data` parameter must be an instance of {Serializer.DataStream}. Returns an
-		 * iteraror containing `true` and the amount of sent data in bytes if
+		 * iterator containing `true` and the amount of sent data in bytes if
 		 * the data was successfully sent to the peer; otherwise returns
 		 * `false`.
 		 * 

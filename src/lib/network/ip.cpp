@@ -33,6 +33,7 @@
 #include "mint/memory/casttool.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
+#include "mint/scheduler/processor.h"
 #include "scheduler.h"
 #include "socket.h"
 #include "ip.h"
@@ -218,7 +219,11 @@ mint::WeakReference mint_ip_socket_connect(mint::FunctionHelper& helper, const m
 
 	Scheduler::instance().set_socket_listening(socket_fd, false);
 
-	if (::connect(socket_fd, target.get(), length) == 0) {
+	mint::unlock_processor();
+	const auto connect_result = ::connect(socket_fd, target.get(), length);
+	mint::lock_processor();
+
+	if (connect_result == 0) {
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
 		    io_status.member(mint::symbols::io_success).share());
 	}
@@ -262,7 +267,9 @@ mint::WeakReference mint_ip_socket_accept(mint::Cursor& cursor, const mint::Refe
 	sockaddr cli_addr {};
 	socklen_t cli_len = sizeof(cli_addr);
 	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
+	mint::unlock_processor();
 	const SOCKET client_fd = ::accept(socket_fd, &cli_addr, &cli_len);
+	mint::lock_processor();
 
 	if (client_fd != INVALID_SOCKET) {
 

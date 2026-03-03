@@ -28,6 +28,7 @@
 #include "mint/memory/casttool.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
+#include "mint/scheduler/processor.h"
 #include "scheduler.h"
 #include "socket.h"
 #include <algorithm>
@@ -105,7 +106,9 @@ mint::WeakReference mint_tcp_ip_socket_send(mint::FunctionHelper& helper, const 
 	const auto flags = MSG_NOSIGNAL;
 #endif
 
+	mint::unlock_processor();
 	const auto count = send(socket_fd, reinterpret_cast<const char*>(buf->data()), static_cast<int>(buf->size()), flags);
+	mint::lock_processor();
 
 	switch (count) {
 	case -1:
@@ -161,7 +164,9 @@ mint::WeakReference mint_tcp_ip_socket_recv(mint::FunctionHelper& helper, const 
 #endif
 
 		auto local_buffer = std::make_unique<std::uint8_t[]>(length);
+		mint::unlock_processor();
 		auto count = recv(socket_fd, reinterpret_cast<char*>(local_buffer.get()), static_cast<int>(length), 0);
+		mint::lock_processor();
 
 		switch (count) {
 		case -1:

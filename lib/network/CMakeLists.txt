@@ -56,6 +56,9 @@ add_custom_target(${PROJECT_NAME}
 	${${PROJECT_NAME}_SERIALIZERS_LIB}
 )
 
+# Copy source files into build output (optional)
+mint_copy_module_sources(${PROJECT_NAME} "network")
+
 # Install
 install(
 	FILES ${${PROJECT_NAME}_LIB}

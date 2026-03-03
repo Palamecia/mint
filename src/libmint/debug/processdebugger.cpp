@@ -1,5 +1,4 @@
 /**
- * @license
  * Copyright (c) 2026 Gauvain CHERY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,14 +19,43 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * @module
- * This module provides coroutine support.
  */
 
-/**
- * Execute `coroutine` without event loop and return the result.
- */
-def [g_lib = lib('libmint-mint')] spawn(coroutine) {
-    return g_lib.call('mint_coroutine_call', coroutine)
+#include "mint/debug/processdebugger.h"
+#include "mint/debug/debuginterface.h"
+#include "mint/scheduler/exception.h"
+#include "mint/scheduler/process.h"
+#include "mint/scheduler/processor.h"
+#include "mint/system/mintruntimeerror.h"
+
+using namespace mint;
+
+ProcessDebugger::ProcessDebugger(DebugInterface& handle, Process& process) :
+    _thread_locker(handle, process) {}
+
+bool mint::ProcessDebugger::exec() {
+
+	const auto _ = ProcessorLocker();
+
+	try {
+		return debug_steps(_thread_locker.cursor(), _thread_locker.handle());
+	}
+	catch (MintException& raised) {
+		auto& cursor = _thread_locker.cursor();
+		if (&cursor.cursor() == &raised.cursor()) {
+			cursor.cursor().raise(raised.take_exception());
+			return true;
+		}
+		throw;
+	}
+	catch (const MintRuntimeError&) {
+		return false;
+	}
+}
+
+void mint::ProcessDebugger::resume() {
+
+	auto _ = ProcessorLocker();
+
+	_thread_locker.handle().debug(_thread_locker.cursor());
 }

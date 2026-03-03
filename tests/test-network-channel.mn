@@ -9,7 +9,31 @@ load network.protocols.http.client
 load network.protocols.http.server
 
 class NetworkChannelTest : Test.Case {
-	const def testOnTcpMessage(self) {
+	const def testSynchronousTcpMessage(self) {
+
+        let scheduler = Network.SchedulerThread()
+        scheduler.startSynchronizationLoop()
+
+        let server = Network.SynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357), Network.ServerSerializer)
+        self.expectEqual(true, server.listen())
+
+        let client = Network.SynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357))
+        self.expectEqual(true, client.connect())
+
+        let remoteClient = Network.SynchronousChannel(server.read())
+        server.close()
+
+        remoteClient.write('ok')
+        remoteClient.close()
+
+        let result = client.read()
+        client.close()
+
+        scheduler.stopSynchronizationLoop()
+        self.expectEqual('ok', result)
+    }
+
+	const def testAsynchronousTcpMessage(self) {
 
         let result = 'ko'
         let scheduler = Network.Scheduler()
@@ -46,7 +70,90 @@ class NetworkChannelTest : Test.Case {
         self.expectEqual('ok', result)
     }
 
-	const def testOnHttpMessage(self) {
+	const def testSynchronousTcpMessageAsync(self) {
+
+        let scheduler = Network.Scheduler()
+
+        async def [...] serverMain() {
+            let server = Network.SynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357), Network.ServerSerializer)
+            self.expectEqual(true, server.listen())
+            let client = await server.readAsync()
+            await client.writeAsync('ok')
+            await client.closeAsync()
+            await server.closeAsync()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.SynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357))
+            self.expectEqual(true, await client.connectAsync())
+            let result = await client.readAsync()
+            await client.closeAsync()
+            return result
+        }
+
+        scheduler.spawn(serverMain())
+
+        let promise = scheduler.spawn(clientMain())
+        scheduler.runAll()
+
+        self.expectEqual('ok', promise.get())
+    }
+
+	const def testAsynchronousTcpMessageAsync(self) {
+
+        let scheduler = Network.Scheduler()
+        let serverEvents = []
+        let clientEvents = []
+
+        async def [...] serverMain() {
+            let server = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357), Network.ServerSerializer)
+            server.onOpen = def [...] (self, channel) {
+                serverEvents.push('open')
+            }
+            server.onClose = def [...] (self, channel) {
+                serverEvents.push('close')
+            }
+            server.onMessage = def [...] (self, channel) {
+                serverEvents.push('message')
+            }
+            self.expectEqual(true, scheduler.watch(server))
+            self.expectEqual(true, server.listen())
+            let client = Network.AsynchronousChannel(await server.readAsync())
+            self.expectEqual(true, client.watch())
+            await client.writeAsync('ok')
+            await client.closeAsync()
+            await server.closeAsync()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357))
+            client.onOpen = def [...] (self, channel) {
+                clientEvents.push('open')
+            }
+            client.onClose = def [...] (self, channel) {
+                clientEvents.push('close')
+            }
+            client.onMessage = def [...] (self, channel) {
+                clientEvents.push('message')
+            }
+            self.expectEqual(true, scheduler.watch(client))
+            self.expectEqual(true, await client.connectAsync())
+            let result = await client.readAsync()
+            await client.closeAsync()
+            return result
+        }
+
+        scheduler.spawn(serverMain())
+
+        let promise = scheduler.spawn(clientMain())
+        scheduler.runAll()
+
+        self.expectEqual('ok', promise.get())
+        self.expectEqual(['open', 'message', 'close'], serverEvents)
+        self.expectEqual(['open', 'message', 'close'], clientEvents)
+    }
+
+	const def testHttpMessage(self) {
 
         let result = 'ko'
         let scheduler = Network.Scheduler()
@@ -81,7 +188,41 @@ class NetworkChannelTest : Test.Case {
         self.expectEqual('ok', result)
     }
 
-	const def testOnUdpMessage(self) {
+	const def testHttpMessageAsync(self) {
+
+        let result = 'ko'
+        let scheduler = Network.Scheduler()
+
+        async def [...] clientMain() {
+            let client = Network.Http.Client(Network.TcpIp(scheduler, '127.0.0.1', 7357))
+            self.expectEqual(true, client.watch())
+            self.expectEqual(true, await client.connectAsync())
+            await client.writeAsync('ok')
+            await client.closeAsync()
+        }
+    
+        // TODO: add some Network.Http.AsyncServer to use coroutine based API
+        let server = Network.Http.Server(Network.TcpIp(scheduler, '127.0.0.1', 7357))
+        server.onConnection = def [result] (self, channel) {
+            channel.onMessage = def [result] (self, channel) {
+                result = channel.read().getBody()
+                channel.close()
+                channel.unwatch()
+            }
+            self.close()
+            self.unwatch()
+        }
+
+        self.expectEqual(true, server.watch())
+        self.expectEqual(true, server.listen())
+
+        scheduler.spawn(clientMain())
+        scheduler.runAll()
+
+        self.expectEqual('ok', result)
+    }
+
+	const def testAsynchronousUdpMessage(self) {
 
         let result = 'ko'
         let scheduler = Network.Scheduler()
@@ -89,7 +230,7 @@ class NetworkChannelTest : Test.Case {
         let server = Network.AsynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
 
         let sender = System.Thread(def [client, result] {
-            while result == 'ko' {
+            while result === 'ko' {
                 client.write('ok')
                 System.wait()
             }
@@ -114,9 +255,135 @@ class NetworkChannelTest : Test.Case {
         self.expectEqual(true, client.connect())
 
         sender.start()
-
         scheduler.run()
+
         self.expectEqual('ok', result)
+    }
+
+    const def testSynchronousUdpMessage(self) {
+
+        let result = 'ko'
+        let scheduler = Network.SchedulerThread()
+        scheduler.startSynchronizationLoop()
+
+        let server = Network.SynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
+        self.expectEqual(true, server.bind())
+        self.expectEqual(true, server.setNonBlocking(true))
+
+        let client = Network.SynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
+        self.expectEqual(true, client.connect())
+
+        let sender = System.Thread(def [client, result] {
+            while result === 'ko' {
+                client.write('ok')
+                System.wait()
+            }
+            client.close()
+        })
+
+        sender.start()
+
+        let datagram = none
+        while not defined datagram {
+            System.wait()
+            datagram = server.read()
+        }
+        result = datagram.data().getString()
+        server.close()
+
+        scheduler.stopSynchronizationLoop()
+        self.expectEqual('ok', result)
+    }
+
+    const def testAsynchronousUdpMessageAsync(self) {
+
+        let scheduler = Network.Scheduler()
+        let serverEvents = []
+        let clientEvents = []
+        let result = 'ko'
+
+        async def [...] serverMain() {
+            let server = Network.AsynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
+
+            server.onOpen = def [...] (self, channel) {
+                serverEvents.push('open')
+            }
+            server.onClose = def [...] (self, channel) {
+                serverEvents.push('close')
+            }
+
+            self.expectEqual(true, scheduler.watch(server))
+            self.expectEqual(true, server.bind())
+
+            let datagram = await server.readAsync()
+            result = datagram.data().getString()
+            await server.closeAsync()
+
+            return result
+        }
+
+        async def [...] clientMain() {
+            let client = Network.AsynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
+
+            client.onOpen = def [...] (self, channel) {
+                clientEvents.push('open')
+            }
+            client.onClose = def [...] (self, channel) {
+                clientEvents.push('close')
+            }
+
+            self.expectEqual(true, scheduler.watch(client))
+            self.expectEqual(true, await client.connectAsync())
+
+            while result === 'ko' {
+                await client.writeAsync('ok')
+            }
+
+            await client.closeAsync()
+        }
+
+        let promise = scheduler.spawn(serverMain())
+        scheduler.spawn(clientMain())
+        scheduler.runAll()
+
+        self.expectEqual('ok', promise.get())
+
+        self.expectEqual(['open', 'close'], serverEvents)
+        self.expectEqual(['open', 'close'], clientEvents)
+    }
+
+    const def testSynchronousUdpMessageAsync(self) {
+
+        let scheduler = Network.Scheduler()
+        let result = 'ko'
+
+        async def [...] serverMain() {
+            let server = Network.SynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
+            self.expectEqual(true, server.bind())
+
+            let datagram = await server.readAsync()
+            result = datagram.data().getString()
+            await server.closeAsync()
+
+            return result
+        }
+
+        async def [...] clientMain() {
+            let client = Network.SynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
+            self.expectEqual(true, await client.connectAsync())
+
+            while result === 'ko' {
+                await client.writeAsync('ok')
+            }
+
+            await client.closeAsync()
+        }
+
+        let promise = scheduler.spawn(serverMain())
+        scheduler.spawn(clientMain())
+        scheduler.runAll()
+
+        self.expectEqual('ok', promise.get())
     }
 
 	const def testWatch(self) {

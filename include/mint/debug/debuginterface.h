@@ -59,6 +59,29 @@ struct MINT_EXPORT Breakpoint {
 using ThreadList = std::vector<std::reference_wrapper<CursorDebugger>>;
 using BreakpointList = std::vector<Breakpoint>;
 
+class DebugThreadLocker {
+public:
+	DebugThreadLocker(DebugInterface& handle, Process& process);
+	DebugThreadLocker(const DebugThreadLocker&) = delete;
+	DebugThreadLocker(DebugThreadLocker&&) = delete;
+	~DebugThreadLocker();
+
+	DebugThreadLocker& operator=(const DebugThreadLocker&) = delete;
+	DebugThreadLocker& operator=(DebugThreadLocker&&) = delete;
+
+	[[nodiscard]] DebugInterface& handle() const {
+		return _handle;
+	}
+
+	[[nodiscard]] CursorDebugger& cursor() const {
+		return _cursor;
+	}
+
+private:
+	std::reference_wrapper<DebugInterface> _handle;
+	std::reference_wrapper<CursorDebugger> _cursor;
+};
+
 class MINT_EXPORT DebugInterface {
 public:
 	DebugInterface() = default;

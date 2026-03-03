@@ -23,6 +23,7 @@
 
 #include "mint/ast/symbol.h"
 #include "mint/memory/builtin/iterator.h"
+#include "mint/memory/data.h"
 #include "mint/memory/reference.h"
 #include "mint/ast/cursor.h"
 #include "mint/memory/functiontool.h"
@@ -34,6 +35,7 @@
 #include "mint/scheduler/scheduler.h"
 #include "mint/scheduler/processor.h"
 #include "mint/system/errno.h"
+#include "mint/system/error.h"
 
 #include <chrono>
 #include <memory>
@@ -64,8 +66,13 @@ mint::WeakReference mint_thread_start_member(mint::FunctionHelper& helper, const
 	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
 	const auto signature = static_cast<int>(args.data<mint::Iterator>().ctx.size());
 
-	if (auto* info = find_member_info(object.data<mint::Object>(), method)) {
-		thread_cursor->waiting_calls().emplace(method, info->owner);
+	if (mint::is_instance_of(method, mint::Data::Format::function)) {
+		if (auto* info = find_member_info(object.data<mint::Object>(), method)) {
+			thread_cursor->waiting_calls().emplace(method, info->owner);
+		}
+		else {
+			mint::error("member not found in class '{}'", object.data<mint::Object>().metadata.full_name());
+		}
 	}
 	else {
 		auto [member, owner] = mint::get_member(*thread_cursor, object, mint::Symbol(to_string(method)));

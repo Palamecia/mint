@@ -23,16 +23,24 @@
 
 #include "scheduler.h"
 
+#include "mint/ast/cursor.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/libobject.h"
+#include "mint/memory/data.h"
+#include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
 #include "mint/system/errno.h"
+#include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <functional>
+#include <memory>
 #include <ranges>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #ifdef MINT_OS_WINDOWS
@@ -326,9 +334,6 @@ bool Scheduler::revents_from_native_handle(PollFd& desc, [[maybe_unused]] const 
 		desc.revents |= PollFd::accept_event;
 	}
 	if (events.lNetworkEvents & FD_CLOSE) {
-		if ((desc.events & PollFd::error_event) && events.iErrorCode[FD_CLOSE_BIT]) {
-			desc.revents |= PollFd::error_event;
-		}
 		desc.revents |= PollFd::close_event;
 	}
 
@@ -467,6 +472,65 @@ int errno_from_io_last_error() {
 #else
 	return errno;
 #endif
+}
+
+MINT_RAW_FUNCTION(mint_scheduler_spawn, 1, cursor) {
+
+	auto coroutine = cursor.stack().back();
+	cursor.stack().pop_back();
+
+	if (mint::is_instance_of(coroutine, mint::Data::Format::coroutine)) {
+		coroutine.data<mint::Coroutine>().call(cursor, mint::WeakReference(coroutine));
+	}
+	else {
+		cursor.stack().emplace_back(mint::create_none());
+	}
+}
+
+MINT_RAW_FUNCTION(mint_scheduler_current_coroutine, 0, cursor) {
+
+	cursor.exit_call();
+
+	if (cursor.is_in_coroutine()) {
+		cursor.stack().emplace_back(cursor.coroutine());
+	}
+	else {
+		cursor.stack().emplace_back(mint::create_none());
+	}
+}
+
+MINT_RAW_FUNCTION(mint_scheduler_suspend, 1, cursor) {
+
+	auto coroutine = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
+	cursor.exit_call();
+
+	assert(mint::is_instance_of(coroutine, mint::Data::Format::coroutine));
+	coroutine.data<mint::Coroutine>().suspend(cursor);
+	cursor.stack().emplace_back(mint::create_none());
+}
+
+MINT_RAW_FUNCTION(mint_scheduler_raise, 2, cursor) {
+
+	auto error = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
+
+	auto coroutine = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
+	// cursor.exit_call();
+
+	assert(mint::is_instance_of(coroutine, mint::Data::Format::coroutine));
+	coroutine.data<mint::Coroutine>().resume(cursor);
+	cursor.raise(mint::WeakReference(error));
+}
+
+MINT_RAW_FUNCTION(mint_scheduler_resume, 1, cursor) {
+
+	auto coroutine = std::move(cursor.stack().back());
+	cursor.stack().pop_back();
+
+	assert(mint::is_instance_of(coroutine, mint::Data::Format::coroutine));
+	coroutine.data<mint::Coroutine>().resume(cursor);
 }
 
 MINT_EXPORT_FUNCTION(mint_scheduler_pollfd_new, 1);

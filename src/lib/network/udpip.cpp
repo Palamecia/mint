@@ -26,6 +26,7 @@
 #include "mint/memory/functiontool.h"
 #include "mint/memory/casttool.h"
 #include "mint/memory/reference.h"
+#include "mint/scheduler/processor.h"
 #include "mint/system/errno.h"
 #include "scheduler.h"
 #include "socket.h"
@@ -172,8 +173,10 @@ mint::WeakReference mint_udp_ip_socket_sendto(mint::FunctionHelper& helper, cons
 	const auto flags = MSG_CONFIRM;
 #endif
 
+	mint::unlock_processor();
 	const auto count = sendto(socket_fd, reinterpret_cast<const char*>(buf->data()), static_cast<int>(buf->size()),
 	    flags, target.get(), targetlen);
+	mint::lock_processor();
 
 	switch (count) {
 	case -1:
@@ -235,8 +238,10 @@ mint::WeakReference mint_udp_ip_socket_recvfrom(mint::FunctionHelper& helper, co
 
 		const auto flags = 0; // MSG_WAITALL;
 		auto local_buffer = std::make_unique<std::uint8_t[]>(length);
+		mint::unlock_processor();
 		auto count = recvfrom(socket_fd, reinterpret_cast<char*>(local_buffer.get()), static_cast<int>(length), flags,
 		    &source, &sourcelen);
+		mint::lock_processor();
 
 		switch (count) {
 		case -1:
@@ -312,7 +317,9 @@ mint::WeakReference mint_udp_ip_socket_send(mint::FunctionHelper& helper, const 
 	const auto flags = MSG_CONFIRM;
 #endif
 
+	mint::unlock_processor();
 	const auto count = send(socket_fd, reinterpret_cast<const char*>(buf->data()), static_cast<int>(buf->size()), flags);
+	mint::lock_processor();
 
 	switch (count) {
 	case -1:
@@ -369,7 +376,9 @@ mint::WeakReference mint_udp_ip_socket_recv(mint::FunctionHelper& helper, const 
 
 		const auto flags = MSG_WAITALL;
 		auto local_buffer = std::make_unique<std::uint8_t[]>(length);
+		mint::unlock_processor();
 		auto count = recv(socket_fd, reinterpret_cast<char*>(local_buffer.get()), static_cast<int>(length), flags);
+		mint::lock_processor();
 
 		switch (count) {
 		case -1:

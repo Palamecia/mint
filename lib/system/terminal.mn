@@ -251,7 +251,7 @@ package System {
 		}
 
 		/**
-		 * Writes the content of `data` to {System.stdout}. Returns an iteraror
+		 * Writes the content of `data` to {System.stdout}. Returns an iterator
 		 * containing `true` and the amount of sent data in bytes if the data
 		 * was successfully sent to the peer; otherwise returns `false`.
 		 * 
@@ -266,7 +266,7 @@ package System {
 		}
 
 		/**
-		 * Writes the content of `data` to {System.stderr}. Returns an iteraror
+		 * Writes the content of `data` to {System.stderr}. Returns an iterator
 		 * containing `true` and the amount of sent data in bytes if the data
 		 * was successfully sent to the peer; otherwise returns `false`.
 		 * 

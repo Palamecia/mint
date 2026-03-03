@@ -59,6 +59,6 @@ WeakReference& SymbolTable::create_fast_reference(const Symbol& name, std::size_
 }
 
 WeakReference& SymbolTable::create_fast_reference(Reference::Flags flags, const Symbol& name, std::size_t index) {
-	return *(
-	    _fasts[index] = std::make_unique<WeakReference>(_symbols.emplace(name, WeakReference(flags)).first->second));
+	return *(_fasts[index] = std::make_unique<WeakReference>(
+	             _symbols.insert_or_assign(name, WeakReference(flags)).first->second));
 }

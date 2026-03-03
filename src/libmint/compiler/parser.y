@@ -29,7 +29,6 @@
 #include "mint/compiler/compiler.h"
 #include <memory>
 
-#define YYSTYPE std::string
 #define yylex context.next_token
 
 using namespace mint;
@@ -37,6 +36,7 @@ using namespace mint;
 %}
 
 %define api.namespace {mint}
+%define api.value.type {std::string}
 %parse-param {mint::BuildContext& context}
 
 %token assert_token

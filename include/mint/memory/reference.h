@@ -214,16 +214,24 @@ StrongReference make_strong_reference(Reference::Flags flags, Args&&... args) {
 template<std::derived_from<Data> Type, typename... Args>
     requires std::constructible_from<Type, Args...>
 StrongReference::StrongReference(Reference::Flags flags, std::in_place_type_t<Type> /*in_place_type*/, Args&&... args) :
-    Reference(flags, Info::alloc<Type>(std::forward<Args>(args)...)) {}
+    Reference(flags, Info::alloc<Type>(std::forward<Args>(args)...)) {
+	register_root();
+}
 
 inline StrongReference::StrongReference(FromCreate /*create_from*/, const Reference& other) :
-    Reference(other.flags(), &other.data()) {}
+    Reference(other.flags(), &other.data()) {
+	register_root();
+}
 
 inline StrongReference::StrongReference(FromCopy /*copy_from*/, const Reference& other) :
-    Reference(other.flags(), Info::copy(other.data())) {}
+    Reference(other.flags(), Info::copy(other.data())) {
+	register_root();
+}
 
 inline StrongReference::StrongReference(FromCopy /*copy_from*/, Flags flags, const Data& data) :
-    Reference(flags, Info::copy(data)) {}
+    Reference(flags, Info::copy(data)) {
+	register_root();
+}
 
 }
 

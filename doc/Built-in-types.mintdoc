@@ -574,6 +574,12 @@ The `index` parameter can either be a [number](#number) or an [iterator](#iterat
 
 Removes the last element of the array and returns that element.
 
+### array.shift
+
+`def shift(self)`
+
+Removes the first element of the array and returns that element.
+
 ### array.clear
 
 `def clear(self)`

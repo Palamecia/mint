@@ -24,6 +24,7 @@
 #include "mint/scheduler/scheduler.h"
 #include "mint/ast/cursor.h"
 #include "mint/ast/symbol.h"
+#include "mint/debug/processdebugger.h"
 #include "mint/memory/class.h"
 #include "mint/memory/functiontool.h"
 #include "mint/memory/garbagecollector.h"
@@ -488,8 +489,9 @@ int Scheduler::run() {
 		_running = true;
 
 		if (DebugInterface* handle = _debug_interface) {
-			set_exit_callback([handle, &cursor = handle->declare_thread(*main_thread)] {
-				handle->exit(cursor);
+			set_exit_callback([handle, &thread = *main_thread] {
+				auto thread_locker = DebugThreadLocker(*handle, thread);
+				handle->exit(thread_locker.cursor());
 			});
 		}
 		else if (main_thread->is_endless()) {
@@ -625,25 +627,17 @@ bool Scheduler::schedule(Process& thread) {
 
 	if (DebugInterface* handle = _debug_interface) {
 
+		auto debug_thread = ProcessDebugger(*handle, thread);
+
 		while (is_running() || is_destructor(thread)) {
-			if (!thread.debug(*handle)) {
-
-				lock_processor();
-				auto cursor = handle->declare_thread(thread);
-				handle->debug(cursor);
-				handle->remove_thread(cursor);
-				unlock_processor();
-
+			if (!debug_thread.exec()) {
+				debug_thread.resume();
 				finalize_process(thread);
 				return true;
 			}
 		}
 
-		lock_processor();
-		auto cursor = handle->declare_thread(thread);
-		handle->debug(cursor);
-		handle->remove_thread(cursor);
-		unlock_processor();
+		debug_thread.resume();
 	}
 	else {
 		while (is_running() || is_destructor(thread)) {

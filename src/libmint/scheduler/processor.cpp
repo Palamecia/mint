@@ -515,9 +515,9 @@ public:
 	}
 
 	static void on_exit_coroutine(Cursor& cursor) {
-		assert(is_instance_of(cursor.stack().back(), Data::Format::coroutine));
-		cursor.stack().pop_back();
-		cursor.exit_call();
+		assert(cursor.is_in_coroutine());
+		const mint::WeakReference coroutine = cursor.coroutine();
+		coroutine.data<Coroutine>().exit(cursor);
 	}
 
 	static void on_resume_coroutine(Cursor& cursor) {
@@ -525,8 +525,8 @@ public:
 		auto result = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
 
-		auto& coroutine = cursor.stack().back();
-		assert(is_instance_of(coroutine, Data::Format::coroutine));
+		assert(cursor.is_in_coroutine());
+		const mint::WeakReference coroutine = cursor.coroutine();
 		coroutine.data<Coroutine>().resume(cursor, std::move(result));
 	}
 

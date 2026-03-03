@@ -82,10 +82,26 @@ package Network {
 		}
 
 		/**
+		 * Attempts to read data asynchronously from the end point. This method raises an
+		 * instance of {Exception.InvalidNetworkOperation}.
+		 */
+		const async def readAsync(self, endpoint) {
+			raise Exception.InvalidNetworkOperation('the socket can not be read', self)
+		}
+	
+		/**
 		 * Attempts to write data to the end point. This method raises an
 		 * instance of {Exception.InvalidNetworkOperation}.
 		 */
 		const def write(self, endpoint) {
+			raise Exception.InvalidNetworkOperation('the socket can not be write', self)
+		}
+
+		/**
+		 * Attempts to write data asynchronously to the end point. This method raises an
+		 * instance of {Exception.InvalidNetworkOperation}.
+		 */
+		const async def writeAsync(self, endpoint) {
 			raise Exception.InvalidNetworkOperation('the socket can not be write', self)
 		}
 
@@ -95,6 +111,18 @@ package Network {
 		 */
 		const def accept(self, endpoint) {
 			if var client = endpoint.accept() {
+				self.connectionQueue.push(client)
+				return true
+			}
+			return false
+		}
+
+		/**
+		 * Attempts to accept a connection asynchronously on the end point. Returns `true` if
+		 * a new connection was successfully accepted; otherwise returns `false`.
+		 */
+		const async def acceptAsync(self, endpoint) {
+			if var client = await endpoint.acceptAsync() {
 				self.connectionQueue.push(client)
 				return true
 			}

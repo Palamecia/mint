@@ -77,7 +77,7 @@ std::string number_to_char(std::intmax_t number) {
 double mint::to_number(Cursor& cursor, const Reference& ref) {
 	switch (ref.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid conversion from 'none' to 'number'");
 	case Data::Format::null:
 		cursor.raise(ref);
 		break;
@@ -121,7 +121,7 @@ double mint::to_number(Cursor& cursor, const Reference& ref) {
 double mint::to_number(Cursor& cursor, Reference&& ref) {
 	switch (ref.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid conversion from 'none' to 'number'");
 	case Data::Format::null:
 		cursor.raise(std::move(ref));
 		break;
@@ -165,7 +165,7 @@ double mint::to_number(Cursor& cursor, Reference&& ref) {
 std::intmax_t mint::to_signed_integer(Cursor& cursor, const Reference& ref) {
 	switch (ref.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid conversion from 'none' to 'number'");
 	case Data::Format::null:
 		cursor.raise(ref);
 		break;
@@ -209,7 +209,7 @@ std::intmax_t mint::to_signed_integer(Cursor& cursor, const Reference& ref) {
 std::intmax_t mint::to_signed_integer(Cursor& cursor, Reference&& ref) {
 	switch (ref.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid conversion from 'none' to 'number'");
 	case Data::Format::null:
 		cursor.raise(std::move(ref));
 		break;
@@ -253,7 +253,7 @@ std::intmax_t mint::to_signed_integer(Cursor& cursor, Reference&& ref) {
 std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, const Reference& ref) {
 	switch (ref.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid conversion from 'none' to 'number'");
 	case Data::Format::null:
 		cursor.raise(ref);
 		break;
@@ -297,7 +297,7 @@ std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, const Reference& ref) {
 std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, Reference&& ref) {
 	switch (ref.data().format()) {
 	case Data::Format::none:
-		error("invalid use of none value in an operation");
+		error("invalid conversion from 'none' to 'number'");
 	case Data::Format::null:
 		cursor.raise(std::move(ref));
 		break;

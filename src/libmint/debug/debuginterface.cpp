@@ -37,6 +37,14 @@
 
 using namespace mint;
 
+DebugThreadLocker::DebugThreadLocker(DebugInterface& handle, Process& process) :
+    _handle(handle),
+    _cursor(handle.declare_thread(process)) {}
+
+DebugThreadLocker::~DebugThreadLocker() {
+	_handle.get().remove_thread(_cursor);
+}
+
 bool DebugInterface::debug(CursorDebugger& cursor) {
 
 	if (_running) {

@@ -15,6 +15,9 @@ add_custom_target(${PROJECT_NAME}
 	uri.mn
 )
 
+# Copy source files into build output (optional)
+mint_copy_module_sources(${PROJECT_NAME} "system")
+
 # Install
 get_target_property(${PROJECT_NAME}_LIB ${PROJECT_NAME} SOURCES)
 install(

@@ -32,7 +32,7 @@ package Serializer {
 
 /**
  * This class creates a conveniant interface for reading and writing data on an
- * object which only provides `read` and `write`. Data from the underling object
+ * object which only provides `read` and `write`. Data from the underlying object
  * are stored in a buffer to get retrieved later.
  */
 class BufferedStream {
@@ -46,7 +46,7 @@ class BufferedStream {
 	}
 	
 	/**
-	 * Returns the codec that is current assigned to the stream. If the underling
+	 * Returns the codec that is current assigned to the stream. If the underlying
 	 * object support codecs, the codec of the object is used; otherwise a codec
 	 * is added at this level.
 	 */
@@ -62,7 +62,7 @@ class BufferedStream {
 	 * any data that is read from the assigned device, and for encoding any data
 	 * that is written.
 	 * 
-	 * If the underling class object support codecs, the codec is directly added
+	 * If the underlying class object support codecs, the codec is directly added
 	 * to the pbject; otherwise the codec is managed by this class.
 	 */
 	const def setCodec(self, codec) {
@@ -135,7 +135,7 @@ class BufferedStream {
 	 * converted to string using the codec set by
 	 * {Serializer.BufferedStream.setCodec} or to an UTF-8 string by default.
 	 * 
-	 * The `write` method of the underling object is used to write the data.
+	 * The `write` method of the underlying object is used to write the data.
 	 */
 	const def write(self, data) {
 		self.object.write(data)
@@ -172,7 +172,7 @@ class BufferedStream {
 	}
 
 	/**
-	 * Reads more data from the underling object and add it to the buffer. Returns
+	 * Reads more data from the underlying object and add it to the buffer. Returns
 	 * `true` if more data was found; otherwise returns `false`.
 	 * 
 	 * If the stream uses a codec initialiszed with {@see setCodec}, the object
@@ -237,7 +237,7 @@ class BufferedStream {
 		}
 	}
 
-	/// Internal underling object.
+	/// Internal underlying object.
 	- final object = null
 
 	/// Internal stream codec.

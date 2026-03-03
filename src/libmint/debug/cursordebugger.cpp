@@ -33,6 +33,7 @@
 #include "mint/memory/symboltable.h"
 #include "mint/scheduler/process.h"
 
+#include <cassert>
 #include <cstddef>
 #include <filesystem>
 #include <functional>
@@ -58,6 +59,7 @@ Process::ThreadId CursorDebugger::get_thread_id() const {
 
 void CursorDebugger::update_cursor(Cursor& cursor) {
 	if (&_cursor.get() != &cursor) {
+		assert(&_cursor.get() == cursor.parent());
 		_cursor = std::ref(cursor);
 	}
 }
@@ -71,7 +73,7 @@ bool CursorDebugger::close_cursor() {
 }
 
 Node::Command CursorDebugger::command() const {
-	return _cursor.get()._current_context->module.get().node_at(_cursor.get()._current_context->iptr).as_command();
+	return _cursor.get()._current_context->module.node_at(_cursor.get()._current_context->iptr).as_command();
 }
 
 const Cursor& CursorDebugger::cursor() const {

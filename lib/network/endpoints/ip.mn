@@ -478,7 +478,7 @@ package Network {
 
 		/**
 		 * Finalize the connection to the peer. Return `true` if the connection
-		 * succed; otherwise returns `false`. On success, the end point enter
+		 * succeed; otherwise returns `false`. On success, the end point enter
 		 * the {Network.EndPoint.State.Connected} state.
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.
@@ -535,7 +535,7 @@ package Network {
 		}
 
 		/**
-		 * Finalize the close to the peer. Return `true` if the close succed;
+		 * Finalize the close to the peer. Return `true` if the close succeed;
 		 * otherwise returns `false`.
 		 * 
 		 * An instance of {Exception.SocketError} is raised on error.

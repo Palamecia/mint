@@ -27,6 +27,7 @@
 #include "mint/memory/casttool.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
+#include "mint/scheduler/processor.h"
 #include "scheduler.h"
 #include <cerrno>
 #include <cstring>
@@ -455,7 +456,11 @@ mint::WeakReference mint_socket_shutdown(mint::FunctionHelper& helper, const min
 	auto io_status =
 	    helper.reference(mint::symbols::network).member(mint::symbols::end_point).member(mint::symbols::io_status);
 
-	if (::shutdown(socket_fd, how) == 0) {
+	mint::unlock_processor();
+	const auto shutdown_result = ::shutdown(socket_fd, how);
+	mint::lock_processor();
+
+	if (shutdown_result == 0) {
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
 		    io_status.member(mint::symbols::io_success).share());
 	}

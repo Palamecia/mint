@@ -26,6 +26,7 @@
 #include "mint/system/terminal.h"
 #include "mint/system/mintruntimeerror.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <functional>
@@ -33,6 +34,7 @@
 #include <map>
 #include <string>
 #include <utility>
+#include <vector>
 
 using namespace mint;
 
@@ -41,7 +43,7 @@ namespace {
 struct {
 	std::mutex callback_mutex;
 	int next_callback_id = 0;
-	std::map<int, std::function<void(const std::string&)>> callbacks;
+	std::vector<std::pair<int, std::function<void(const std::string&)>>> callbacks;
 	std::function<void(void)> exit_callback = []() {
 		std::exit(EXIT_FAILURE);
 	};
@@ -84,7 +86,7 @@ int mint::add_error_callback(const std::function<void(const std::string&)>& call
 	do {
 		++g_error.next_callback_id;
 	}
-	while (!g_error.callbacks.emplace(g_error.next_callback_id, callback).second);
+	while (!g_error.callbacks.emplace_back(g_error.next_callback_id, callback).second);
 
 	return g_error.next_callback_id;
 }
@@ -100,9 +102,22 @@ void mint::call_error_callbacks(const std::string& message) {
 
 void mint::remove_error_callback(int id) {
 
+	using CallbackList = decltype(g_error.callbacks);
+
 	const std::unique_lock _(g_error.callback_mutex);
 
-	g_error.callbacks.erase(id);
+	if (auto it = std::ranges::find(g_error.callbacks, id, &CallbackList::value_type::first);
+	    it != g_error.callbacks.end()) {
+		g_error.callbacks.erase(it);
+	}
+}
+
+std::vector<std::pair<int, std::function<void(const std::string&)>>> mint::take_error_callbacks() {
+	return std::move(g_error.callbacks);
+}
+
+void mint::restore_error_callbacks(std::vector<std::pair<int, std::function<void(const std::string&)>>>&& callbacks) {
+	g_error.callbacks.append_range(std::move(callbacks));
 }
 
 std::function<void(void)> mint::get_exit_callback() {

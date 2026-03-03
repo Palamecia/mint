@@ -115,6 +115,7 @@ PUBLIC
 	${MINT_INCLUDE_DIR}/mint/debug/debuginterface.h
 	${MINT_INCLUDE_DIR}/mint/debug/debugtool.h
 	${MINT_INCLUDE_DIR}/mint/debug/lineinfo.h
+	${MINT_INCLUDE_DIR}/mint/debug/processdebugger.h
 	${MINT_INCLUDE_DIR}/mint/debug/threadcontext.h
 PRIVATE
 	debug/cursordebugger.cpp
@@ -122,6 +123,7 @@ PRIVATE
 	debug/debuginterface.cpp
 	debug/debugtool.cpp
 	debug/lineinfo.cpp
+	debug/processdebugger.cpp
 )
 
 target_sources(

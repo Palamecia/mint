@@ -78,7 +78,7 @@ package System {
 
 		/**
 		 * Creates a new instance pointing to the file specified by the given `path`.
-		 
+		 * 
 		 * If `path` is already an instance of {System.File}, this instance
 		 * is returned.
 		 * 

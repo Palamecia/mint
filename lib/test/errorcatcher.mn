@@ -32,64 +32,64 @@ package Test {
 
 	/**
 	 * This class provides the context of a runtime error catched by an instance
-     * of {Test.ErrorCatcher}.
+	 * of {Test.ErrorCatcher}.
 	 */
-    class RuntimeError : Exception.Exception {
-        /**
-         * Creates a new context. The `message` parameter provides the runtime
-         * error message.
-         */
-        const def new(self, message) {
-            self.message = message
-            return self
-        }
+	class RuntimeError : Exception.Exception {
+		/**
+		 * Creates a new context. The `message` parameter provides the runtime
+		 * error message.
+		 */
+		const def new(self, message) {
+			self.message = message
+			return self
+		}
 
-        /**
-         * Returns the runtime error message.
-         */
-        const def toString(const self) {
-            return self.message
-        }
+		/**
+		 * Returns the runtime error message.
+		 */
+		const def toString(const self) {
+			return self.message
+		}
 
-        /// Internal error mesage.
-        - final message = none
-    }
+		/// Internal error mesage.
+		- final message = none
+	}
 
 	/**
 	 * This class provides a context to manage runtime error conversion to
-     * exception. All runtime errors reached with an instance of {Test.ErrorCatcher}
-     * active will automaticaly be converted into {Test.RuntimeError} and raised.
-     * 
-     * Test code can then catch the {Test.RuntimeError} to perform tests.
-     * 
-     * **Example:**
-     * 
-     * ```mn
-     * try {
-     *     let catcher = Test.ErrorCatcher()
-     *     1 % 0
-     * } catch e {
-     *     self.expectEquel('Test.RuntimeError', typeof e)
-     *     self.expectEquel('modulo by zero', e.toString())
-     * }
-     * ```
+	 * exception. All runtime errors reached with an instance of {Test.ErrorCatcher}
+	 * active will automaticaly be converted into {Test.RuntimeError} and raised.
+	 * 
+	 * Test code can then catch the {Test.RuntimeError} to perform tests.
+	 * 
+	 * **Example:**
+	 * 
+	 * ```mn
+	 * try {
+	 *     let catcher = Test.ErrorCatcher()
+	 *     1 % 0
+	 * } catch e {
+	 *     self.expectEquel('Test.RuntimeError', typeof e)
+	 *     self.expectEquel('modulo by zero', e.toString())
+	 * }
+	 * ```
 	 */
 	class ErrorCatcher {
-        /**
-         * Creates a new context.
-         */
+		/**
+		 * Creates a new context.
+		 */
 		const def new(self) {
 			self.d_ptr = Test.ErrorCatcher.g_lib.call('mint_test_error_catcher_install')
-            self.d_ptr.delete = def [g_lib = Test.ErrorCatcher.g_lib](self) {
-                g_lib.call('mint_test_error_catcher_remove', self)
-            }
+			self.d_ptr.delete = def [g_lib = Test.ErrorCatcher.g_lib](self) {
+				g_lib.call('mint_test_error_catcher_remove', self)
+			}
 			return self
 		}
 
 		/// Global library handle.
 		- @g_lib = lib('libmint-test')
 
-        /// Internal context.
+		/// Internal context.
 		- final d_ptr = null
 	}
 

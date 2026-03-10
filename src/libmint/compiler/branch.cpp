@@ -28,6 +28,7 @@
 #include <cstddef>
 #include <functional>
 #include <optional>
+#include <ranges>
 #include <utility>
 #include <vector>
 
@@ -105,6 +106,24 @@ std::size_t Branch::resolve_labels_offset(Branch& parent) {
 
 void Branch::insert_label(std::size_t offset) {
 	_labels.insert(offset);
+}
+
+void Branch::forward_jumps(Branch& parent, std::size_t offset) {
+
+	for (const auto& jump_forward : _jump_forward) {
+		parent._jump_forward.emplace_back(std::from_range,
+		    std::views::transform(jump_forward, [offset](const auto jump) {
+			    return jump + offset;
+		    }));
+	}
+
+	_jump_forward.clear();
+
+	for (const auto jump_backward : _jump_backward) {
+		parent._jump_backward.push_back(jump_backward + offset);
+	}
+
+	_jump_backward.clear();
 }
 
 MainBranch::MainBranch(AbstractSyntaxTree& ast, const Module::Info& data) :
@@ -194,10 +213,11 @@ void SubBranch::on_new_line(std::size_t line_number) {
 }
 
 void SubBranch::build() {
-	const std::size_t offset = resolve_labels_offset(_parent.get());
+	const std::size_t offset = resolve_labels_offset(_parent);
 	for (const auto& line : _lines) {
 		_parent.get().on_new_line(offset + line.first, line.second);
 	}
 	_parent.get().push_nodes(_tree);
+	forward_jumps(_parent, offset);
 	_tree.clear();
 }

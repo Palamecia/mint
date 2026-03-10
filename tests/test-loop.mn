@@ -25,10 +25,336 @@ class TestLoop : Test.Case {
     const def testCustomForInFor(self) {
         var values = []
         for let i in 0..5 {
-            for (let j = i, --j, j) {
+            for (let j = i, j, --j) {
                 values << j
             }
         }
         self.expectEqual([1, 2, 1, 3, 2, 1, 4, 3, 2, 1, 5, 4, 3, 2, 1], values)
+    }
+
+    const def testForCStyleBasic(self) {
+
+        let result = 0
+
+        for (let i = 0, i < 5, i = i + 1) {
+            result = result + i
+        }
+
+        self.expectEqual(10, result)
+    }
+
+    const def testForCStyleZeroIteration(self) {
+
+        let result = 0
+
+        for (let i = 10, i < 5, i = i + 1) {
+            result = result + 1
+        }
+
+        self.expectEqual(0, result)
+    }
+
+    const def testForCStyleSingleIteration(self) {
+
+        let result = 0
+
+        for (let i = 0, i < 1, i = i + 1) {
+            result = result + 1
+        }
+
+        self.expectEqual(1, result)
+    }
+
+    const def testForInitOnlyOnce(self) {
+
+        let counter = 0
+
+        def [...] init() {
+            counter = counter + 1
+            return 0
+        }
+
+        for (let i = init(), i < 3, i = i + 1) {
+        }
+
+        self.expectEqual(1, counter)
+    }
+
+    const def testForCheckCalledEachIteration(self) {
+
+        let counter = 0
+
+        def [...] check(i) {
+            counter = counter + 1
+            return i < 3
+        }
+
+        for (let i = 0, check(i), i = i + 1) {
+        }
+
+        self.expectEqual(4, counter)
+    }
+
+    const def testForNextExecution(self) {
+
+        let result = []
+
+        for (let i = 0, i < 3, i = i + 1) {
+            result.push(i)
+        }
+
+        self.expectEqual([0,1,2], result)
+    }
+
+    const def testForBreak(self) {
+
+        let result = 0
+
+        for (let i = 0, i < 10, i = i + 1) {
+
+            if i == 3 {
+                break
+            }
+
+            result = result + 1
+        }
+
+        self.expectEqual(3, result)
+    }
+
+    const def testForBreakSkipsNext(self) {
+
+        let nextCalls = 0
+
+        def [...] next(i) {
+            nextCalls = nextCalls + 1
+            return i + 1
+        }
+
+        for (let i = 0, i < 5, i = next(i)) {
+
+            if i == 2 {
+                break
+            }
+        }
+
+        self.expectEqual(2, nextCalls)
+    }
+
+    const def testForContinue(self) {
+
+        let result = []
+
+        for (let i = 0, i < 5, i = i + 1) {
+
+            if i == 2 {
+                continue
+            }
+
+            result.push(i)
+        }
+
+        self.expectEqual([0,1,3,4], result)
+    }
+
+    const def testForContinueExecutesNext(self) {
+
+        let nextCalls = 0
+
+        def [...] next(i) {
+            nextCalls = nextCalls + 1
+            return i + 1
+        }
+
+        for (let i = 0, i < 3, i = next(i)) {
+            continue
+        }
+
+        self.expectEqual(3, nextCalls)
+    }
+
+    const def testForNestedLoops(self) {
+
+        let count = 0
+
+        for (let i = 0, i < 3, i = i + 1) {
+
+            for (let j = 0, j < 2, j = j + 1) {
+                count = count + 1
+            }
+        }
+
+        self.expectEqual(6, count)
+    }
+
+    const def testForVariableAfterLoop(self) {
+
+        let i = 0
+
+        for (i = 0, i < 4, i = i + 1) {
+        }
+
+        self.expectEqual(4, i)
+    }
+
+    const def testForEmptyBody(self) {
+
+        let i = 0
+
+        for (i = 0, i < 3, i = i + 1) {
+        }
+
+        self.expectEqual(3, i)
+    }
+
+    const def testForInfiniteBreak(self) {
+
+        let count = 0
+
+        for (let x = 0, true, x = x + 1) {
+
+            if x == 5 {
+                break
+            }
+
+            count = count + 1
+        }
+
+        self.expectEqual(5, count)
+    }
+
+    const def testForExecutionOrder(self) {
+
+        let log = []
+
+        def [...] init() {
+            log.push("init")
+            return 0
+        }
+
+        def [...] check(i) {
+            log.push("check")
+            return i < 2
+        }
+
+        def [...] next(i) {
+            log.push("next")
+            return i + 1
+        }
+
+        for (let i = init(), check(i), i = next(i)) {
+            log.push("body")
+        }
+
+        self.expectEqual(["init","check","body","next","check","body","next","check"], log)
+    }
+
+    const def testForContinueInnerLoop(self) {
+
+        let count = 0
+
+        for (let i = 0, i < 3, i = i + 1) {
+
+            for (let j = 0, j < 3, j = j + 1) {
+
+                if j == 1 {
+                    continue
+                }
+
+                count = count + 1
+            }
+        }
+
+        self.expectEqual(6, count)
+    }
+
+    const def testForBreakInnerLoop(self) {
+
+        let count = 0
+
+        for (let i = 0, i < 3, i = i + 1) {
+
+            for (let j = 0, j < 5, j = j + 1) {
+
+                if j == 2 {
+                    break
+                }
+
+                count = count + 1
+            }
+        }
+
+        self.expectEqual(6, count)
+    }
+
+    const def testForContinueInsideTry(self) {
+
+        let nextCalls = 0
+
+        def [...] next(i) {
+            nextCalls = nextCalls + 1
+            return i + 1
+        }
+
+        for (let i = 0, i < 3, i = next(i)) {
+
+            try {
+
+                if i == 1 {
+                    continue
+                }
+
+            } catch e {}
+        }
+
+        self.expectEqual(3, nextCalls)
+    }
+
+    const def testForExceptionThenContinue(self) {
+
+        let nextCalls = 0
+
+        def [...] next(i) {
+            nextCalls = nextCalls + 1
+            return i + 1
+        }
+
+        for (let i = 0, i < 3, i = next(i)) {
+
+            try {
+
+                if i == 1 {
+                    raise "boom"
+                }
+
+            } catch e {
+                continue
+            }
+        }
+
+        self.expectEqual(3, nextCalls)
+    }
+
+    const def testForBreakInsideTry(self) {
+
+        let nextCalls = 0
+
+        def [...] next(i) {
+            nextCalls = nextCalls + 1
+            return i + 1
+        }
+
+        for (let i = 0, i < 5, i = next(i)) {
+
+            try {
+
+                if i == 2 {
+                    break
+                }
+
+            } catch e {}
+        }
+
+        self.expectEqual(2, nextCalls)
     }
 }

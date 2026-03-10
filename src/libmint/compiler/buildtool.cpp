@@ -866,6 +866,23 @@ void BuildContext::start_condition() {
 
 void BuildContext::resolve_condition() {}
 
+void BuildContext::open_sub_branch() {
+	Context& context = current_context();
+	context.branches.emplace(_branch);
+	push_branch(context.branches.top());
+}
+
+void BuildContext::close_sub_branch() {
+	pop_branch();
+}
+
+void BuildContext::build_sub_branch() {
+	Context& context = current_context();
+	SubBranch branch = std::move(context.branches.top());
+	context.branches.pop();
+	branch.build();
+}
+
 void BuildContext::push_node(Node::Command command) {
 	_branch.get().push_node(command);
 }

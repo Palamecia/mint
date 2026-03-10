@@ -191,7 +191,7 @@ class DocumentStream {
 	const def read(self) {
 		var data = self.stream.read()
 		const length = data.size()
-		for (i = data.indexOf('\n'), i = data.indexOf('\n', i + 1), defined i) {
+		for (i = data.indexOf('\n'), defined i, i = data.indexOf('\n', i + 1)) {
 			self.column = 0
 			self.line++
 		}

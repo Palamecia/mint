@@ -64,7 +64,7 @@ package System {
 		 */
 		@const def unescapeString(const str) {
 			var unescapedString = str
-			for (var index = unescapedString.indexOf(/%[0-9A-F]{2}/), index = unescapedString.indexOf(/%[0-9A-F]{2}/, index + 1), defined index) {
+			for (var index = unescapedString.indexOf(/%[0-9A-F]{2}/), defined index, index = unescapedString.indexOf(/%[0-9A-F]{2}/, index + 1)) {
 				unescapedString.replace(index, 3, '%c' % ('0x' + unescapedString.substring(index + 1, 2)).toNumber())
 			}
 			return unescapedString

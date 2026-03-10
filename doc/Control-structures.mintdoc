@@ -301,8 +301,8 @@ It is introduced by the `for` keyword followed by a custom range description. Th
 A custom range description starts with a `(` and ends with a `)` and contains three steps separated by `,`:
 
 * The initialization step, executed before the first execution of the loop.
-* The update step, executed before each next execution of the loop.
 * The end check step, executed after the initialization/update step to check the end of the loop.
+* The update step, executed before each next execution of the loop.
 
 > [!NOTE]
 > The custom range update and end check steps are considered inside the opened block by the `let` [[keyword|Variables#scope]].
@@ -311,21 +311,10 @@ A custom range description starts with a `(` and ends with a `)` and contains th
 **Example**:
 
 ```mn
-for (pos = str.indexOf(c), pos = str.indexOf(c, pos + 1), defined pos) {
+for (let pos = str.indexOf(c), defined pos, pos = str.indexOf(c, pos + 1)) {
     // Script to be executed with the new value of pos
 }
 ```
-
-> [!TIP]
-> The custom for statement can also be used to reproduce the behavior of the "do while" structure of C.
->
-> **Example**:
->
-> ```mn
-> for (do = true, do = not obj.isOver(), do) {
->     obj.perform()
-> }
-> ```
 
 ## Generator expressions
 

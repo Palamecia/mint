@@ -180,6 +180,10 @@ public:
 	void start_condition();
 	void resolve_condition();
 
+	void open_sub_branch();
+	void close_sub_branch();
+	void build_sub_branch();
+
 	void push_node(Node::Command command);
 	void push_node(int parameter);
 	void push_node(std::size_t parameter);

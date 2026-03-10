@@ -239,7 +239,7 @@ class LinkedList {
 	 */
 	const def data(const self) {
 		var content = []
-		for (var node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
 			content << node.getValue()
 		}
 		return content
@@ -249,7 +249,7 @@ class LinkedList {
 	 * Returns an `iterator` on the elements of the list.
 	 */
 	const def in(const self) {
-		for (var node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
 			yield node.getValue()
 		}
 	}
@@ -258,7 +258,7 @@ class LinkedList {
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
 	const def in(const self, const value) {
-		for (var node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
 			if value == node.getValue() {
 				return true
 			}
@@ -270,7 +270,7 @@ class LinkedList {
 	 * Apply the `func` function to each elements of the list.
 	 */
 	const def each(const self, func) {
-		for (var node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
 			func(node.getValue())
 		}
 	}
@@ -286,7 +286,7 @@ class LinkedList {
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
 	const def contains(const self, value) {
-		for (var node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
 			if value == node.getValue() {
 				return true
 			}
@@ -299,7 +299,7 @@ class LinkedList {
 	 */
 	const def count(const self, value) {
 		var found = 0
-		for (var node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
 			if value == node.getValue() {
 				found++
 			}
@@ -312,7 +312,7 @@ class LinkedList {
 	 */
 	const def size(const self) {
 		var found = 0
-		for (var node = self.firstNode(), node = node.getNext(), defined node) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
 			found++
 		}
 		return found
@@ -334,7 +334,7 @@ class LinkedList {
 		if not defined from {
 			from = self.firstNode()
 		}
-		for (var node = from, node = node.getNext(), defined node) {
+		for (var node = from, defined node, node = node.getNext()) {
 			if value == node.getValue() {
 				return node
 			}
@@ -416,7 +416,7 @@ class LinkedList {
 		if var node = self.nodeOf(value) {
 			var next = node.getNext()
 			node.remove()
-			for (node = self.nodeOf(value, next), node = self.nodeOf(value, next), defined node) {
+			for (node = self.nodeOf(value, next), defined node, node = self.nodeOf(value, next)) {
 				next = node.getNext()
 				node.remove()
 			}

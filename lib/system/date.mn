@@ -727,7 +727,7 @@ package System {
 			}
 			var str = ''
 			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			for (var c = format.in(), c.next(), not c.isEmpty()) {
+			for (var c = format.in(), not c.isEmpty(), c.next()) {
 				if '%' == c.value() {
 					if c.next() {
 						switch c.value() {

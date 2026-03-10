@@ -84,6 +84,8 @@ protected:
 	std::size_t resolve_labels_offset(Branch& parent);
 	void insert_label(std::size_t offset);
 
+	void forward_jumps(Branch& parent, std::size_t offset);
+
 private:
 	std::optional<std::function<void()>> _pending_new_line;
 	std::deque<ForwardNodeIndex> _jump_forward;

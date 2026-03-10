@@ -1657,7 +1657,7 @@ class XmlStream : Serializer.DocumentStream {
 		 * Returns the namespace URI for the given `prefix`.
 		 */
 		- final const def namespaceForPrefix(self, prefix) {
-			for (var i = self.namespaces.size() - 1, --i, i >= 0) {
+			for (var i = self.namespaces.size() - 1, i >= 0, --i) {
 				let nsd = self.namespaces[i]
 				if nsd.prefix == prefix {
 					return nsd.uri

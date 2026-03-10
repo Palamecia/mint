@@ -52,6 +52,7 @@ struct Context {
 
 	std::stack<MetaBlock> meta_blocks;
 	std::stack<std::unique_ptr<ClassDescription>> classes;
+	std::stack<SubBranch> branches;
 	std::list<std::unique_ptr<Block>> blocks;
 	std::unique_ptr<std::vector<const Symbol*>> condition_scoped_symbols;
 	std::unique_ptr<std::vector<const Symbol*>> range_loop_scoped_symbols;

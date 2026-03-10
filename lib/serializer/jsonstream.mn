@@ -355,7 +355,7 @@ class JsonStream : Serializer.DocumentStream {
 		 */
 		- final const def parseNextString(self) {
 			var json_string = ''
-			for (var c = self.nextChar(), c = self.nextChar(), defined c and c != '"') {
+			for (var c = self.nextChar(), defined c and c != '"', c = self.nextChar()) {
 				switch c {
 				case '\\':
 					switch c = self.nextChar() {
@@ -415,19 +415,19 @@ class JsonStream : Serializer.DocumentStream {
 		 */
 		- final const def parseNextValue(self, token) {
 			if token =~ /\d/ or token == '-' or token == '+' {
-				for (var c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
+				for (var c = self.nextChar(), c =~ /\d/, c = self.nextChar()) {
 					token << c
 				}
 				if c === '.' {
 					token << c
-					for (c = self.nextChar(), c = self.nextChar(), c =~ /\d/) {
+					for (c = self.nextChar(), c =~ /\d/, c = self.nextChar()) {
 						token << c
 					}
 				}
 				self.discardToken()
 				return number(token)
 			} else {
-				for (var c = self.nextChar(), c = self.nextChar(), c =~ /[a-z]/) {
+				for (var c = self.nextChar(), c =~ /[a-z]/, c = self.nextChar()) {
 					token << c
 				}
 				self.discardToken()

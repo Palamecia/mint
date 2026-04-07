@@ -62,10 +62,10 @@ void trace(const std::string& type, const std::string& name, const std::string& 
 	}
 	else {
 		mint::print(stdout,
-		    std::format(MINT_TERM_STR(
-		                    MINT_TERM_OPT(MINT_TERM_BOLD, MINT_TERM_FG_BLUE) " >> " MINT_TERM_OPT(MINT_TERM_ITALIC,
-		                        MINT_TERM_FG_RED) "{} " MINT_TERM_RESET
-		                                          "{} " MINT_TERM_OPT(MINT_TERM_ITALIC, MINT_TERM_FG_GREEN) "{}") "\n",
+		    std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_BOLD,
+		                    MINT_TERM_FG_BLUE) " >> " MINT_TERM_OPT(MINT_TERM_ITALIC,
+		                    MINT_TERM_FG_RED) "{} " MINT_TERM_OPT(MINT_TERM_RESET) "{} " MINT_TERM_OPT(MINT_TERM_ITALIC,
+		                    MINT_TERM_FG_GREEN) "{}") "\n",
 		        type, name, doc));
 	}
 }

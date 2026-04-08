@@ -54,11 +54,11 @@ public:
 	};
 
 	struct MINT_EXPORT equal_to {
-		bool operator()(const key_type& lvalue, const key_type& rvalue) const;
+		bool operator()(const key_type& lhs, const key_type& rhs) const;
 	};
 
 	struct MINT_EXPORT compare_to {
-		bool operator()(const key_type& lvalue, const key_type& rvalue) const;
+		bool operator()(const key_type& lhs, const key_type& rhs) const;
 	};
 
 	using values_type = std::unordered_map<key_type, value_type, hash, equal_to>;

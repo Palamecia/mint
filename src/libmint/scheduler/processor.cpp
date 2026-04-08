@@ -432,9 +432,19 @@ public:
 		cursor.call_generator_expression(offset);
 	}
 
+	static void on_begin_async_generator_expression(Cursor& cursor, std::size_t offset) {
+		cursor.call_async_generator_expression(offset);
+	}
+
 	static void on_end_generator_expression(Cursor& cursor) {
 		assert(cursor.is_in_generator());
 		cursor.exit_call();
+	}
+
+	static void on_end_async_generator_expression(Cursor& cursor) {
+		assert(cursor.is_in_generator() && cursor.is_in_coroutine());
+		const mint::WeakReference coroutine = cursor.coroutine();
+		coroutine.data<Coroutine>().exit(cursor);
 	}
 
 	static void on_open_printer(Cursor& cursor) {
@@ -514,12 +524,6 @@ public:
 		}
 	}
 
-	static void on_exit_coroutine(Cursor& cursor) {
-		assert(cursor.is_in_coroutine());
-		const mint::WeakReference coroutine = cursor.coroutine();
-		coroutine.data<Coroutine>().exit(cursor);
-	}
-
 	static void on_resume_coroutine(Cursor& cursor) {
 
 		auto result = std::move(cursor.stack().back());
@@ -540,10 +544,22 @@ public:
 		cursor.exit_call();
 	}
 
+	static void on_exit_async_generator(Cursor& cursor) {
+		assert(cursor.is_in_coroutine());
+		const mint::WeakReference coroutine = cursor.coroutine();
+		coroutine.data<Coroutine>().exit(cursor);
+	}
+
 	static void on_yield_exit_generator(Cursor& cursor) {
 		const auto item = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
 		iterator_return(cursor, cursor.generator().data<Iterator>(), WeakReference(create_from, item));
+	}
+
+	static void on_yield_exit_async_generator(Cursor& cursor) {
+		const auto item = std::move(cursor.stack().back());
+		cursor.stack().pop_back();
+		iterator_resume(cursor, cursor.generator().data<Iterator>(), WeakReference(create_from, item));
 	}
 
 	static void on_init_capture(Cursor& cursor) {

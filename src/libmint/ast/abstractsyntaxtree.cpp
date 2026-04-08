@@ -121,6 +121,27 @@ std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const 
 	return {signature, module.module->get_handle(type.get_package(), offset)};
 }
 
+std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_async_method(const Class& type, int signature,
+    BuiltinMethod method) {
+
+	const auto builtin_index = static_cast<int>(type.metatype());
+	BuiltinModuleInfo& module = builtin_module(-builtin_index);
+
+	const std::size_t offset = module.module->next_node_offset() + 2;
+	const std::size_t index = _builtin_methods.size();
+	_builtin_methods.emplace_back(method);
+
+	// clang-format off
+	module.module->push_nodes({
+		Node::Command::jump, static_cast<int>(offset) + 3,
+		Node::Command::call_builtin, static_cast<int>(index),
+		Node::Command::resume_coroutine, Node::Command::exit_module
+	});
+	// clang-format on
+
+	return {signature, module.module->make_builtin_async_handle(type.get_package(), offset)};
+}
+
 Module::Info AbstractSyntaxTree::create_module(Module::State state) {
 	return _modules.emplace_back(Module::Info {
 	    .id = _modules.size(),

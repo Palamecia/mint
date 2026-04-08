@@ -552,9 +552,20 @@ public:
 		return Node::Command::begin_generator_expression;
 	}
 
+	Node::Command on_begin_async_generator_expression(Cursor& /*cursor*/, std::size_t offset) {
+		_stream.get() << to_debug_string("BEGIN_ASYNC_GENERATOR_EXPRESSION");
+		_stream.get() << " " << to_debug_string(offset);
+		return Node::Command::begin_async_generator_expression;
+	}
+
 	Node::Command on_end_generator_expression(Cursor& /*cursor*/) {
 		_stream.get() << to_debug_string("END_GENERATOR_EXPRESSION");
 		return Node::Command::end_generator_expression;
+	}
+
+	Node::Command on_end_async_generator_expression(Cursor& /*cursor*/) {
+		_stream.get() << to_debug_string("END_ASYNC_GENERATOR_EXPRESSION");
+		return Node::Command::end_async_generator_expression;
 	}
 
 	Node::Command on_open_printer(Cursor& /*cursor*/) {
@@ -623,11 +634,6 @@ public:
 		return Node::Command::await;
 	}
 
-	Node::Command on_exit_coroutine(Cursor& /*cursor*/) {
-		_stream.get() << to_debug_string("EXIT_COROUTINE");
-		return Node::Command::exit_coroutine;
-	}
-
 	Node::Command on_resume_coroutine(Cursor& /*cursor*/) {
 		_stream.get() << to_debug_string("RESUME_COROUTINE");
 		return Node::Command::resume_coroutine;
@@ -643,9 +649,19 @@ public:
 		return Node::Command::exit_generator;
 	}
 
+	Node::Command on_exit_async_generator(Cursor& /*cursor*/) {
+		_stream.get() << to_debug_string("EXIT_ASYNC_GENERATOR");
+		return Node::Command::exit_async_generator;
+	}
+
 	Node::Command on_yield_exit_generator(Cursor& /*cursor*/) {
 		_stream.get() << to_debug_string("YIELD_EXIT_GENERATOR");
 		return Node::Command::yield_exit_generator;
+	}
+
+	Node::Command on_yield_exit_async_generator(Cursor& /*cursor*/) {
+		_stream.get() << to_debug_string("YIELD_EXIT_ASYNC_GENERATOR");
+		return Node::Command::yield_exit_async_generator;
 	}
 
 	Node::Command on_init_capture(Cursor& /*cursor*/) {
@@ -952,6 +968,7 @@ std::string mint::to_debug_string(Cursor& cursor, const Reference& constant) {
 		case Class::Metatype::hash:
 			return to_debug_string(cursor, constant.data<Hash>());
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			return to_debug_string(cursor, constant.data<Iterator>());
 		default:
 			return mint::to_string(&constant.data());

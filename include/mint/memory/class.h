@@ -59,6 +59,7 @@ public:
 		array,
 		hash,
 		iterator,
+		async_iterator,
 		library,
 		libobject
 	};

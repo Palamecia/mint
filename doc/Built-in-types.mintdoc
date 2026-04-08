@@ -1,6 +1,6 @@
 # Built-in types
 
-Mint support 14 built-in types:
+Mint support 15 built-in types:
 
 * 2 special types:
   * [`none`](#none)
@@ -10,10 +10,11 @@ Mint support 14 built-in types:
   * [`number`](#number)
   * [`string`](#string)
   * [`regex`](#regex)
-* 3 compound types:
+* 4 compound types:
   * [`array`](#array)
   * [`hash`](#hash)
   * [`iterator`](#iterator)
+  * [`async_iterator`](#async_iterator)
 * 3 block types:
   * [`package`](#package)
   * [`function`](#function)
@@ -842,6 +843,68 @@ Returns `true` if the iterator has no more element; otherwise returns `false`.
 Returns the current element of the iterator and move the iteration context forward.
 
 ### iterator.value
+
+`def value(self)`
+
+Returns the current element of the iterator.
+
+## async_iterator
+
+This type represents an iterator whose values are produced asynchronously. It is typically returned by [[asynchronous generator functions|Function-definition#asynchronous-generators]] using `async def` and `yield`.
+
+An `async_iterator` allows consuming a sequence of values that may require suspension between each step of the iteration.
+
+**Example**:
+
+```mn
+async def f(self) {
+    yield 1
+    yield 2
+    yield 3
+}
+
+let it = spawn(f())
+```
+
+### async_iterator.:=
+
+`async def :=(self, other)`
+
+Walk over the `other` iterator and move the value of the elements to the [[variable|Variables]] at the same position in `self`. If `other` contains less [[variables|Variables]] than `self`, extra [[variables|Variables]] of `self` remain unchanged. If `self` contains less [[variables|Variables]] than `other`, the walk over `other` is interrupted where `self` has no more element.
+
+**Example**:
+
+```mn
+(a, b, c) := (1, 2, 3) // a gives 1, b gives 2 and c gives 3
+```
+
+As an alias, the `=` operator can be used with a list of [[variables|Variables]] on the left part. It will automatically create a temporary iterator and use the `:=` operator instead. This is useful to initialize multiple [[variables|Variables]] on a single line or with an iterator.
+
+**Example**:
+
+```mn
+a, b, c = (1, 2, 3) // a gives 1, b gives 2 and c gives 3
+```
+
+### async_iterator.each
+
+`async def each(self, func)`
+
+Walk over the iterator and apply the `func` [function](#function) to each element.
+
+### async_iterator.isEmpty
+
+`def isEmpty(self)`
+
+Returns `true` if the iterator has no more element; otherwise returns `false`.
+
+### async_iterator.next
+
+`async def next(self)`
+
+Returns the current element of the iterator and move the iteration context forward.
+
+### async_iterator.value
 
 `def value(self)`
 

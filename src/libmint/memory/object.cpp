@@ -136,6 +136,7 @@ void Object::construct(const Object& other, std::unordered_map<const Data*, Data
 							    target_ref.data<Hash>());
 							break;
 						case Class::Metatype::iterator:
+						case Class::Metatype::async_iterator:
 							member_ref = std::construct_at(member_ref, target_ref.flags(), std::in_place_type<Iterator>,
 							    target_ref.data<Iterator>());
 							break;
@@ -347,6 +348,37 @@ void Coroutine::await(Cursor& cursor, WeakReference&& self) {
 	_state = State::running;
 }
 
+std::unique_ptr<mint::SavedState> mint::Coroutine::yield(Cursor& cursor) {
+
+	assert(_state == State::running);
+
+	if (_parent_saved_state) {
+		return cursor.suspend(std::move(_parent_saved_state), _context->stack_size);
+	}
+
+	_state = State::waiting;
+	return cursor.interrupt(_context->stack_size);
+}
+
+void Coroutine::resume(Cursor& cursor, std::unique_ptr<mint::SavedState>&& state) {
+
+	assert(_state == State::running || _state == State::waiting);
+
+	switch (_state) {
+	case State::running:
+		_stack_offset = cursor.stack().size() - _context->stack_size;
+		_parent_saved_state = cursor.suspend(std::move(state), _context->stack_size);
+		break;
+	case State::waiting:
+		_context->stack_size = cursor.stack().size() - _stack_offset;
+		cursor.restore(std::move(state), _context->stack_size);
+		_state = State::running;
+		break;
+	default:
+		break;
+	}
+}
+
 void Coroutine::resume(Cursor& cursor, WeakReference&& value) {
 
 	assert(_state == State::running);
@@ -396,8 +428,18 @@ void Coroutine::raise(Cursor& cursor) {
 }
 
 void Coroutine::exit(Cursor& cursor) {
-	cursor.stack().resize(_context->stack_size);
-	cursor.exit_call();
+
+	assert(_state == State::running);
+
+	if (_parent_saved_state) {
+		cursor.stack().resize(_context->stack_size + _stack_offset);
+		cursor.exit_call();
+		cursor.restore(std::move(_parent_saved_state), _context->stack_size);
+	}
+	else {
+		cursor.stack().resize(_context->stack_size + _stack_offset);
+		cursor.exit_call();
+	}
 }
 
 void Coroutine::mark() {

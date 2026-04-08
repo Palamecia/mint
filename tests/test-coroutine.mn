@@ -28,32 +28,32 @@ class TestCoroutine : Test.Case {
         self.expectEqual(6, spawn(f(2)))
     }
 
-    /*const def testGenerator(self) {
+    const def testGenerator(self) {
         async def f() {
             yield none
             return 42
         }
         let result = spawn(f())
-        self.expectEqual('iterator', typeof result)
-        self.expectNotDefined(result.next())
-        self.expectEqual(42, result.next())
-    }*/
+        self.expectEqual('async_iterator', typeof result)
+        self.expectNotDefined(spawn(result.next()))
+        self.expectEqual(42, spawn(result.next()))
+    }
 
-    /*const def testGeneratorOnly(self) {
+    const def testGeneratorOnly(self) {
         async def f() {
             yield 1
             yield 2
             yield 3
         }
         let result = spawn(f())
-        self.expectEqual('iterator', typeof result)
-        self.expectEqual(1, result.next())
-        self.expectEqual(2, result.next())
-        self.expectEqual(3, result.next())
+        self.expectEqual('async_iterator', typeof result)
+        self.expectEqual(1, spawn(result.next()))
+        self.expectEqual(2, spawn(result.next()))
+        self.expectEqual(3, spawn(result.next()))
         self.expectEqual(true, result.isEmpty())
-    }*/
+    }
     
-    /*const def testAwaitNestedGenerator(self) {
+    const def testAwaitNestedGenerator(self) {
         async def f() {
             yield none
             return 42
@@ -61,13 +61,13 @@ class TestCoroutine : Test.Case {
         async def [...] g() {
             return await f()
         }
-        let result = spawn(f())
-        self.expectEqual('iterator', typeof result)
-        self.expectNotDefined(result.next())
-        self.expectEqual(42, result.next())
-    }*/
+        let result = spawn(g())
+        self.expectEqual('async_iterator', typeof result)
+        self.expectNotDefined(spawn(result.next()))
+        self.expectEqual(42, spawn(result.next()))
+    }
 
-    /*const def testAwaitNestedGeneratorOnly(self) {
+    const def testAwaitNestedGeneratorOnly(self) {
         async def f() {
             yield 1
             yield 2
@@ -76,15 +76,15 @@ class TestCoroutine : Test.Case {
         async def [...] g() {
             return await f()
         }
-        let result = spawn(f())
-        self.expectEqual('iterator', typeof result)
-        self.expectEqual(1, result.next())
-        self.expectEqual(2, result.next())
-        self.expectEqual(3, result.next())
+        let result = spawn(g())
+        self.expectEqual('async_iterator', typeof result)
+        self.expectEqual(1, spawn(result.next()))
+        self.expectEqual(2, spawn(result.next()))
+        self.expectEqual(3, spawn(result.next()))
         self.expectEqual(true, result.isEmpty())
-    }*/
+    }
 
-    /*const def testAwaitNestedGeneratorWithOperation(self) {
+    const def testAwaitNestedGeneratorWithOperation(self) {
         async def f() {
             yield 1
             return 2
@@ -94,12 +94,12 @@ class TestCoroutine : Test.Case {
                 yield i + 1
             }
         }
-        let result = spawn(f())
-        self.expectEqual('iterator', typeof result)
-        self.expectEqual(2, result.next())
-        self.expectEqual(3, result.next())
+        let result = spawn(g())
+        self.expectEqual('async_iterator', typeof result)
+        self.expectEqual(2, spawn(result.next()))
+        self.expectEqual(3, spawn(result.next()))
         self.expectEqual(true, result.isEmpty())
-    }*/
+    }
 
     const def testDeepAwaitChain(self) {
         async def leaf() {
@@ -218,7 +218,7 @@ class TestCoroutine : Test.Case {
         }
     }
 
-    /*const def testAwaitInsideGeneratorExpression(self) {
+    const def testAwaitInsideGeneratorExpression(self) {
         async def inc(x) {
             return x + 1
         }
@@ -231,7 +231,7 @@ class TestCoroutine : Test.Case {
             return sum
         }
         self.expectEqual(9, spawn(test()))
-    }*/
+    }
 
     const def testVariableCaptureAcrossSuspension(self) {
         async def test() {
@@ -253,7 +253,7 @@ class TestCoroutine : Test.Case {
         self.expectEqual(50, spawn(chain(50)))
     }
 
-    /*const def testAwaitInSwitch(self) {
+    const def testAwaitInSwitch(self) {
         async def get(x) {
             return x * 2
         }
@@ -267,7 +267,7 @@ class TestCoroutine : Test.Case {
         }
         self.expectEqual(2, spawn(test(1)))
         self.expectEqual(4, spawn(test(2)))
-    }*/
+    }
 
     const def testAwaitInWhileLoopWithMutation(self) {
         async def next_val(x) {
@@ -545,5 +545,136 @@ class TestCoroutine : Test.Case {
             }
         }
         self.expectEqual(11, spawn(test()))
+    }
+
+    const def testAsyncGeneratorNextAfterCompletion(self) {
+
+        async def f() {
+            yield 1
+        }
+
+        let it = spawn(f())
+
+        self.expectEqual(1, spawn(it.next()))
+        self.expectEqual(true, it.isEmpty())
+
+        let result = spawn(it.next())
+        self.expectEqual(none, result)
+    }
+
+    const def testAsyncGeneratorYieldAfterAwait(self) {
+
+        async def f() {
+            return 10
+        }
+
+        async def [...] g() {
+            let x = await f()
+            yield x + 1
+            yield x + 2
+        }
+
+        let it = spawn(g())
+
+        self.expectEqual(11, spawn(it.next()))
+        self.expectEqual(12, spawn(it.next()))
+        self.expectEqual(true, it.isEmpty())
+    }
+
+    const def testAsyncGeneratorAwaitInLoop(self) {
+
+        async def f() {
+            yield 1
+            yield 2
+        }
+
+        async def delay(x) {
+            return x
+        }
+
+        async def [...] g() {
+            for let x in await f() {
+                let y = await delay(x)
+                yield y * 2
+            }
+        }
+
+        let it = spawn(g())
+
+        self.expectEqual(2, spawn(it.next()))
+        self.expectEqual(4, spawn(it.next()))
+        self.expectEqual(true, it.isEmpty())
+    }
+
+    const def testAsyncGeneratorException(self) {
+
+        async def f() {
+            yield 1
+            raise 'boom'
+        }
+
+        let caught = false
+        try {
+            let it = spawn(f())
+            self.expectEqual(1, spawn(it.next()))
+            spawn(it.next())
+        } catch e {
+            caught = true
+        }
+
+        self.expectEqual(true, caught)
+    }
+
+    const def testAsyncGeneratorDoubleIterator(self) {
+
+        async def f() {
+            yield 1
+            yield 2
+        }
+
+        let it1 = spawn(f())
+        let it2 = it1   // aliasing same iterator
+
+        self.expectEqual(1, spawn(it1.next()))
+        self.expectEqual(2, spawn(it2.next()))
+
+        self.expectEqual(true, it1.isEmpty())
+    }
+
+    const def testAsyncGeneratorDeepStack(self) {
+
+        async def [...] f(n) {
+            if n == 0 {
+                yield 0
+            } else {
+                for let x in await f(n - 1) {
+                    yield x + 1
+                }
+            }
+        }
+
+        let it = spawn(f(5))
+
+        self.expectEqual(5, spawn(it.next()))
+        self.expectEqual(true, it.isEmpty())
+    }
+    
+
+    const def testAsyncGeneratorSchedulerInterleave(self) {
+
+        async def f() {
+            yield 1
+            yield 2
+        }
+
+        async def [...] consumer() {
+            let it = await f()
+            let a = await it.next()
+            let b = await it.next()
+            return a + b
+        }
+
+        let result = spawn(consumer())
+        self.expectEqual(3, result)
     }
 }

@@ -250,6 +250,7 @@ Data* GarbageCollector::copy(const Data& other) {
 				data = alloc<Hash>(static_cast<const Hash&>(other));
 				break;
 			case Class::Metatype::iterator:
+			case Class::Metatype::async_iterator:
 				data = alloc<Iterator>(static_cast<const Iterator&>(other));
 				break;
 			case Class::Metatype::library:
@@ -359,6 +360,7 @@ void GarbageCollector::destroy(Object* ptr) {
 		Hash::g_pool.free(static_cast<Hash*>(ptr));
 		break;
 	case Class::Metatype::iterator:
+	case Class::Metatype::async_iterator:
 		Iterator::g_pool.free(static_cast<Iterator*>(ptr));
 		break;
 	case Class::Metatype::library:

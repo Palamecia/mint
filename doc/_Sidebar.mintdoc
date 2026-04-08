@@ -16,6 +16,7 @@
   * [[Built-in-types#array]]
   * [[Built-in-types#hash]]
   * [[Built-in-types#iterator]]
+  * [[Built-in-types#async_iterator]]
   * [[Built-in-types#package]]
   * [[Built-in-types#function]]
   * [[Built-in-types#coroutine]]

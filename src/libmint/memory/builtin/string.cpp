@@ -503,8 +503,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const auto& self = load_from_stack(cursor, base - 1);
 		WeakReference result = create_string(cursor.ast());
 
-		if ((index.data().format() != Data::Format::object)
-		    || (index.data<Object>().metadata.metatype() != Class::Metatype::iterator)) {
+		if (!is_iterator(index)) {
 			std::string& string_ref = self.data<String>().str;
 			auto offset = string_index(string_ref, to_signed_integer(cursor, index));
 			result.data<String>().str = *(utf8iterator(string_ref.begin()) + offset);
@@ -546,11 +545,10 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const auto base = get_stack_base(cursor);
 
 		auto& value = load_from_stack(cursor, base);
-		auto& index = load_from_stack(cursor, base - 1);
+		const auto& index = load_from_stack(cursor, base - 1);
 		const auto& self = load_from_stack(cursor, base - 2);
 
-		if ((index.data().format() != Data::Format::object)
-		    || (index.data<Object>().metadata.metatype() != Class::Metatype::iterator)) {
+		if (!is_iterator(index)) {
 			std::string& string_ref = self.data<String>().str;
 			auto offset = string_index(string_ref, to_signed_integer(cursor, index));
 			auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);

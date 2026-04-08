@@ -167,7 +167,7 @@ let sum = def (a, b) {
 
 ## Generators
 
-An [[iterator|Built-in-types#iterator]] can also be generated with the `yield` keyword followed by an expression. The result of the expression is then used as an element of the iterator. When the `yield` keyword is used, the execution is then temporarily passed to the caller to allow it to use the generated value. The execution returns to the function when the next element of the iterator is requested. This is useful when the computation of a single element of the result takes a lot of time or memory and not all values are needed.
+An [[**iterator**|Built-in-types#iterator]] can also be generated with the `yield` keyword followed by an expression. The result of the expression is then used as an element of the iterator. When the `yield` keyword is used, the execution is then temporarily passed to the caller to allow it to use the generated value. The execution returns to the function when the next element of the iterator is requested. This is useful when the computation of a single element of the result takes a lot of time or memory and not all values are needed.
 
 **Example**:
 
@@ -282,7 +282,7 @@ async def greet(name) {
 }
 ```
 
-Calling an async function does **not** immediately execute it. It returns a [[coroutine|Built-in-types#coroutine]] object.
+Calling an async function does **not** immediately execute it. It returns a [[**coroutine**|Built-in-types#coroutine]] object.
 
 To execute a coroutine, it must be awaited from another coroutine or passed to the runtime (for example using `spawn()` from the [[mint.coroutine]] module).
 
@@ -310,6 +310,75 @@ When await is reached:
 3. When it finishes, execution resumes after the `await`.
 
 Semantically, `await` behaves like a normal function call. The only difference is that execution may be suspended between call and return.
+
+## Asynchronous Generators
+
+Mint supports **asynchronous generators**, which combine the behavior of generators and coroutines. They allow producing a sequence of values over time while using `await` inside their execution.
+
+An asynchronous generator is defined using `async def` and `yield`:
+
+```mn
+async def produce(self) {
+    yield 1
+    yield 2
+    yield 3
+}
+```
+
+Calling an asynchronous generator returns an [[**iterator**||Built-in-types#async_iterator]]:
+
+```mn
+let it = spawn(produce())
+```
+
+Values are retrieved using `next`, which returns a coroutine:
+
+```mn
+let a = spawn(it.next())  // 1
+let b = spawn(it.next())  // 2
+let c = spawn(it.next())  // 3
+```
+
+The iterator is exhausted when `isEmpty()` returns `true`:
+
+```mn
+it.isEmpty()  // true
+```
+
+### Using `await` Inside Generators
+
+Asynchronous generators can suspend on other coroutines:
+
+```mn
+async def compute(self, x) {
+    return x * 2
+}
+
+async def generate(self) {
+    let a = await compute(10)
+    yield a
+    yield a + 1
+}
+```
+
+### Iteration with `for`
+
+Asynchronous generators can be used with `for` loops when awaited:
+
+```mn
+async def f(self) {
+    yield 1
+    yield 2
+}
+
+async def g(self) {
+    for let x in await f() {
+        yield x + 1
+    }
+}
+```
+
+The `await` is required because the generator itself is produced asynchronously.
 
 ---
 

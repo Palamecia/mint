@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include <cassert>
 #include <cstddef>
 #include <iterator>
 #include <memory>
@@ -34,6 +35,7 @@
 #include "mint/memory/functiontool.h"
 #include "mint/memory/garbagecollector.h"
 #include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/algorithm.h"
 #include "mint/ast/abstractsyntaxtree.h"
@@ -41,14 +43,19 @@
 #include "mint/system/error.h"
 #include "mint/scheduler/scheduler.h"
 
+#include "iterator_asyncgenerator.h"
+#include "iterator_generator.h"
 #include "iterator_items.h"
 #include "iterator_range.h"
-#include "iterator_generator.h"
 
 using namespace mint;
 
 IteratorClass& IteratorClass::instance(AbstractSyntaxTree& ast) {
 	return ast.global_data().builtin<IteratorClass>(Class::Metatype::iterator);
+}
+
+AsyncIteratorClass& AsyncIteratorClass::instance(AbstractSyntaxTree& ast) {
+	return ast.global_data().builtin<AsyncIteratorClass>(Class::Metatype::async_iterator);
 }
 
 Iterator::Iterator(AbstractSyntaxTree& ast) :
@@ -82,6 +89,11 @@ Iterator::Iterator(Iterator&& other) noexcept :
 Iterator::Iterator(FromGenerator /*from_generator*/, AbstractSyntaxTree& ast, std::size_t stack_size) :
     Iterator(ast, std::make_unique<mint::internal::GeneratorData>(stack_size)) {}
 
+Iterator::Iterator(FromAsyncGenerator /*from_async_generator*/, AbstractSyntaxTree& ast, Coroutine& coroutine,
+    std::size_t stack_size) :
+    Object(AsyncIteratorClass::instance(ast)),
+    ctx(std::make_unique<mint::internal::AsyncGeneratorData>(coroutine, stack_size)) {}
+
 Iterator::Iterator(FromInclusiveRange /*from_inclusive_range*/, AbstractSyntaxTree& ast, double begin, double end) :
     Iterator(ast, std::make_unique<mint::internal::RangeIteratorData>(begin, begin <= end ? end + 1 : end - 1)) {}
 
@@ -89,11 +101,16 @@ Iterator::Iterator(FromExclusiveRange /*from_exclusive_range*/, AbstractSyntaxTr
     Iterator(ast, std::make_unique<mint::internal::RangeIteratorData>(begin, end)) {}
 
 Iterator& Iterator::operator=(const Iterator& other) {
+	if (this == &other) [[unlikely]] {
+		return *this;
+	}
+	assert(&metadata == &other.metadata);
 	ctx = other.ctx;
 	return *this;
 }
 
 Iterator& Iterator::operator=(Iterator&& other) noexcept {
+	assert(&metadata == &other.metadata);
 	ctx = std::move(other.ctx);
 	return *this;
 }
@@ -164,6 +181,72 @@ IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
 	create_builtin_member("each", ast.create_builtin_method(*this, 2, R"""(
 		def (self, const func) {
 			for let item in self {
+				func(item)
+			}
+		})"""));
+
+	/// \todo register operator overloads
+}
+
+AsyncIteratorClass::AsyncIteratorClass(AbstractSyntaxTree& ast) :
+    Class(ast.global_data(), "async_iterator", Class::Metatype::async_iterator) {
+
+	create_builtin_member(copy_operator, ast.create_builtin_async_method(*this, 2, [](Cursor& cursor) {
+		const auto base = get_stack_base(cursor);
+
+		const auto& other = load_from_stack(cursor, base);
+		const auto& self = load_from_stack(cursor, base - 1);
+		auto it = self.data<Iterator>().ctx.begin();
+		const auto end = self.data<Iterator>().ctx.end();
+
+		for_each_if(cursor, other, [&it, &end](const Reference& item) -> bool {
+			if (it != end) {
+				if ((it->flags() & Reference::const_address) && (it->data().format() != Data::Format::none))
+				    [[unlikely]] {
+					error("invalid modification of constant reference");
+				}
+
+				it->move_data(item);
+				++it;
+				return true;
+			}
+
+			return false;
+		});
+
+		cursor.stack().pop_back();
+	}));
+
+	create_builtin_member("next", ast.create_builtin_async_method(*this, 1, [](Cursor& cursor) {
+		const auto self = std::move(cursor.stack().back());
+
+		if (!self.data<Iterator>().ctx.empty()) {
+			cursor.stack().back() = WeakReference(create_from, self.data<Iterator>().ctx.get());
+			// The next call can interrupt the current context,
+			// so the value must be pushed first
+			self.data<Iterator>().ctx.next(cursor);
+		}
+		else {
+			cursor.stack().back() = create_none();
+		}
+	}));
+
+	create_builtin_member("value", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+		if (std::optional<WeakReference>&& result = iterator_get(cursor.stack().back().data<Iterator>())) {
+			cursor.stack().back() = std::move(*result);
+		}
+		else {
+			cursor.stack().back() = create_none();
+		}
+	}));
+
+	create_builtin_member("isEmpty", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+		cursor.stack().back() = create_boolean(cursor.stack().back().data<Iterator>().ctx.empty());
+	}));
+
+	create_builtin_member("each", ast.create_builtin_method(*this, 2, R"""(
+		async def (self, const func) {
+			for let item in await self {
 				func(item)
 			}
 		})"""));
@@ -439,6 +522,12 @@ void Iterator::Context::clear() {
 	_data->clear();
 }
 
+bool mint::is_iterator(const Reference& ref) {
+	return ref.data().format() == Data::Format::object
+	       && (ref.data<Object>().metadata.metatype() == Class::Metatype::iterator
+	           || ref.data<Object>().metadata.metatype() == Class::Metatype::async_iterator);
+}
+
 void mint::iterator_new(Cursor& cursor, std::size_t length) {
 
 	auto& stack = cursor.stack();
@@ -468,6 +557,15 @@ void mint::iterator_yield(Cursor& cursor, Iterator& iterator, Reference&& item) 
 void mint::iterator_return(Cursor& cursor, Iterator& iterator, Reference&& item) {
 	iterator.ctx.yield(cursor, std::move(item), Iterator::ResumeKind::close);
 	cursor.exit_call();
+}
+
+void mint::iterator_resume(Cursor& cursor, Iterator& iterator, Reference&& item) {
+
+	assert(cursor.is_in_coroutine());
+
+	const mint::WeakReference coroutine = cursor.coroutine();
+	iterator.ctx.yield(cursor, std::move(item), Iterator::ResumeKind::close);
+	coroutine.data<Coroutine>().exit(cursor);
 }
 
 std::optional<WeakReference> mint::iterator_get(Iterator& iterator) {

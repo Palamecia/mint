@@ -228,8 +228,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		const auto& index = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
 
-		if ((index.data().format() != Data::Format::object)
-		    || (index.data<Object>().metadata.metatype() != Class::Metatype::iterator)) {
+		if (!is_iterator(index)) {
 			const auto index_value = to_signed_integer(cursor, index);
 			cursor.stack().pop_back();
 			cursor.stack().back() = array_get_item(self.data<Array>(), index_value);
@@ -271,11 +270,10 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 	create_builtin_member(subscript_move_operator, ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& value = load_from_stack(cursor, base);
-		Reference& index = load_from_stack(cursor, base - 1);
+		const auto& index = load_from_stack(cursor, base - 1);
 		Reference& self = load_from_stack(cursor, base - 2);
 
-		if ((index.data().format() != Data::Format::object)
-		    || (index.data<Object>().metadata.metatype() != Class::Metatype::iterator)) {
+		if (!is_iterator(index)) {
 			Reference&& result = array_get_item(self.data<Array>(), to_signed_integer(cursor, index));
 			result.move_data(value);
 			cursor.stack().pop_back();
@@ -390,8 +388,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		const auto& index = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
 
-		if ((index.data().format() != Data::Format::object)
-		    || (index.data<Object>().metadata.metatype() != Class::Metatype::iterator)) {
+		if (!is_iterator(index)) {
 			self.data<Array>().values.erase(
 			    array_next(self.data<Array>(), array_index(self.data<Array>(), to_signed_integer(cursor, index))));
 		}

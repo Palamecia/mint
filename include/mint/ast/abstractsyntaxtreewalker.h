@@ -226,8 +226,13 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_range_iterator_check(cursor, static_cast<std::size_t>(cursor.next().as_parameter()));
 	case Node::Command::begin_generator_expression:
 		return walker.on_begin_generator_expression(cursor, static_cast<std::size_t>(cursor.next().as_parameter()));
+	case Node::Command::begin_async_generator_expression:
+		return walker.on_begin_async_generator_expression(cursor,
+		    static_cast<std::size_t>(cursor.next().as_parameter()));
 	case Node::Command::end_generator_expression:
 		return walker.on_end_generator_expression(cursor);
+	case Node::Command::end_async_generator_expression:
+		return walker.on_end_async_generator_expression(cursor);
 	case Node::Command::open_printer:
 		return walker.on_open_printer(cursor);
 	case Node::Command::close_printer:
@@ -252,16 +257,18 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_raise(cursor);
 	case Node::Command::await:
 		return walker.on_await(cursor);
-	case Node::Command::exit_coroutine:
-		return walker.on_exit_coroutine(cursor);
 	case Node::Command::resume_coroutine:
 		return walker.on_resume_coroutine(cursor);
 	case Node::Command::yield:
 		return walker.on_yield(cursor);
 	case Node::Command::exit_generator:
 		return walker.on_exit_generator(cursor);
+	case Node::Command::exit_async_generator:
+		return walker.on_exit_async_generator(cursor);
 	case Node::Command::yield_exit_generator:
 		return walker.on_yield_exit_generator(cursor);
+	case Node::Command::yield_exit_async_generator:
+		return walker.on_yield_exit_async_generator(cursor);
 	case Node::Command::init_capture:
 		return walker.on_init_capture(cursor);
 	case Node::Command::capture_symbol:

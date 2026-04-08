@@ -822,8 +822,14 @@ bool BuildContext::capture_all() {
 
 void BuildContext::open_generator_expression() {
 	if (!is_in_generator_expression()) {
-		push_node(Node::Command::begin_generator_expression);
-		start_jump_forward();
+		if (is_in_async_function()) {
+			push_node(Node::Command::begin_async_generator_expression);
+			start_jump_forward();
+		}
+		else {
+			push_node(Node::Command::begin_generator_expression);
+			start_jump_forward();
+		}
 	}
 	current_context().meta_blocks.push(Context::MetaBlock::generator_expression);
 }
@@ -832,8 +838,14 @@ void BuildContext::close_generator_expression() {
 	assert(current_context().meta_blocks.top() == Context::MetaBlock::generator_expression);
 	current_context().meta_blocks.pop();
 	if (!is_in_generator_expression()) {
-		push_node(Node::Command::end_generator_expression);
-		resolve_jump_forward();
+		if (is_in_async_function()) {
+			push_node(Node::Command::end_async_generator_expression);
+			resolve_jump_forward();
+		}
+		else {
+			push_node(Node::Command::end_generator_expression);
+			resolve_jump_forward();
+		}
 	}
 }
 

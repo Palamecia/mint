@@ -122,6 +122,7 @@ ItemsIteratorData::ItemsIteratorData(Cursor& cursor, const Reference& ref) {
 			}
 			break;
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			_capacity = ref.data<Iterator>().ctx.size();
 			_data = g_allocator.allocate(_capacity);
 			for (const Reference& item : ref.data<Iterator>().ctx) {
@@ -178,6 +179,7 @@ ItemsIteratorData::ItemsIteratorData(Cursor& cursor, Reference&& ref) {
 			}
 			break;
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			_capacity = ref.data<Iterator>().ctx.size();
 			_data = g_allocator.allocate(_capacity);
 			for (const Reference& item : ref.data<Iterator>().ctx) {

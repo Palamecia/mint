@@ -59,6 +59,7 @@ public:
 
 	std::pair<int, Module::Handle&> create_builtin_method(const Class& type, int signature, BuiltinMethod method);
 	std::pair<int, Module::Handle&> create_builtin_method(const Class& type, int signature, const std::string& method);
+	std::pair<int, Module::Handle&> create_builtin_async_method(const Class& type, int signature, BuiltinMethod method);
 	inline void call_builtin_method(std::size_t method, Cursor& cursor);
 
 	Module::Info create_module(Module::State state);

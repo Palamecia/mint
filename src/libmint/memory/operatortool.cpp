@@ -1007,6 +1007,7 @@ void mint::and_pre_check(Cursor& cursor, std::size_t pos) {
 	case Data::Format::object:
 		switch (arg.data<Object>().metadata.metatype()) {
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			if (arg.data<Iterator>().ctx.empty()) {
 				cursor.jmp(pos);
 			}
@@ -1061,6 +1062,7 @@ void mint::or_pre_check(Cursor& cursor, std::size_t pos) {
 	case Data::Format::object:
 		switch (arg.data<Object>().metadata.metatype()) {
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			if (!arg.data<Iterator>().ctx.empty()) {
 				cursor.jmp(pos);
 			}
@@ -2039,7 +2041,7 @@ void mint::find_next(Cursor& cursor) {
 		cursor.stack().emplace_back(range);
 	}
 	else {
-		assert(is_instance_of(range, Class::Metatype::iterator));
+		assert(is_iterator(range));
 		auto& iterator = range.data<Iterator>();
 		if (std::optional<WeakReference>&& item = iterator_next(cursor, iterator)) {
 			cursor.stack().emplace_back(arg);
@@ -2079,14 +2081,15 @@ void mint::in_operator(Cursor& cursor) {
 
 void mint::range_init(Cursor& cursor) {
 	auto& range = cursor.stack().back();
-	if (!is_instance_of(range, Class::Metatype::iterator)) {
+	if (!is_iterator(range)) {
 		cursor.stack().back() = create_iterator_over(cursor, std::move(range));
 	}
 }
 
 void mint::range_next(Cursor& cursor) {
-	assert(is_instance_of(cursor.stack().back(), Class::Metatype::iterator));
-	cursor.stack().back().data<Iterator>().ctx.next(cursor);
+	const auto& range = cursor.stack().back();
+	assert(is_iterator(range));
+	range.data<Iterator>().ctx.next(cursor);
 }
 
 void mint::range_check(Cursor& cursor, std::size_t pos) {
@@ -2095,7 +2098,7 @@ void mint::range_check(Cursor& cursor, std::size_t pos) {
 	const auto& range = load_from_stack(cursor, base);
 	auto& target = load_from_stack(cursor, base - 1);
 
-	assert(is_instance_of(range, Class::Metatype::iterator));
+	assert(is_iterator(range));
 
 	if (auto item = iterator_get(range.data<Iterator>())) {
 
@@ -2211,6 +2214,7 @@ std::size_t Hash::hash::operator()(const Hash::key_type& value) const {
 
 		case Class::Metatype::hash:
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 		case Class::Metatype::library:
 		case Class::Metatype::libobject:
 			error("invalid use of '{}' type as hash key", type_name(value));
@@ -2274,6 +2278,7 @@ bool Hash::equal_to::operator()(const Hash::key_type& lhs, const Hash::key_type&
 
 		case Class::Metatype::hash:
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 		case Class::Metatype::library:
 		case Class::Metatype::libobject:
 			error("invalid use of '{}' type as hash key", type_name(lhs));
@@ -2337,6 +2342,7 @@ bool Hash::compare_to::operator()(const Hash::key_type& lhs, const Hash::key_typ
 
 		case Class::Metatype::hash:
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 		case Class::Metatype::library:
 		case Class::Metatype::libobject:
 			error("invalid use of '{}' type as hash key", type_name(lhs));

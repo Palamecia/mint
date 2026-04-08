@@ -381,6 +381,7 @@ mint::WeakReference mint_datastream_get(mint::Cursor& /*cursor*/, const mint::Re
 		case mint::Class::Metatype::array:
 		case mint::Class::Metatype::hash:
 		case mint::Class::Metatype::iterator:
+		case mint::Class::Metatype::async_iterator:
 		case mint::Class::Metatype::library:
 		case mint::Class::Metatype::libobject:
 			break;
@@ -491,6 +492,7 @@ mint::WeakReference mint_datastream_read(mint::Cursor& /*cursor*/, const mint::R
 		case mint::Class::Metatype::array:
 		case mint::Class::Metatype::hash:
 		case mint::Class::Metatype::iterator:
+		case mint::Class::Metatype::async_iterator:
 		case mint::Class::Metatype::library:
 		case mint::Class::Metatype::libobject:
 			break;
@@ -576,6 +578,7 @@ mint::WeakReference mint_datastream_write(mint::Cursor& /*cursor*/, const mint::
 		case mint::Class::Metatype::array:
 		case mint::Class::Metatype::hash:
 		case mint::Class::Metatype::iterator:
+		case mint::Class::Metatype::async_iterator:
 		case mint::Class::Metatype::library:
 		case mint::Class::Metatype::libobject:
 			buffer_object.append_range(to_string(data));

@@ -338,6 +338,9 @@ public:
 	void call(Cursor& cursor, WeakReference&& self);
 	void await(Cursor& cursor, WeakReference&& self);
 
+	std::unique_ptr<mint::SavedState> yield(Cursor& cursor);
+	void resume(Cursor& cursor, std::unique_ptr<mint::SavedState>&& state);
+
 	void resume(Cursor& cursor, WeakReference&& value);
 	void resume(Cursor& cursor);
 

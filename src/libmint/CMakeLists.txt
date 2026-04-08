@@ -160,10 +160,15 @@ PUBLIC
 PRIVATE
 	memory/builtin/array.cpp
 	memory/builtin/hash.cpp
-	memory/builtin/iterator.cpp
-	memory/builtin/iterator_items.cpp
-	memory/builtin/iterator_range.cpp
+	memory/builtin/iterator_asyncgenerator.cpp
+	memory/builtin/iterator_asyncgenerator.h
 	memory/builtin/iterator_generator.cpp
+	memory/builtin/iterator_generator.h
+	memory/builtin/iterator_items.cpp
+	memory/builtin/iterator_items.h
+	memory/builtin/iterator_range.cpp
+	memory/builtin/iterator_range.h
+	memory/builtin/iterator.cpp
 	memory/builtin/libobject.cpp
 	memory/builtin/library.cpp
 	memory/builtin/regex.cpp

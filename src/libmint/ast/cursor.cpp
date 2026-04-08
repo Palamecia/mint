@@ -208,27 +208,47 @@ bool Cursor::call_in_progress() const {
 
 void Cursor::call_generator_expression(std::size_t offset) {
 
+	assert(!_current_context->coroutine);
+
 	auto* expression_context = g_pool.allocate();
 	std::construct_at(expression_context, _current_context->module);
 	expression_context->iptr = _current_context->iptr;
 	expression_context->symbols = _current_context->symbols;
+	_current_context->iptr = offset;
 
-	const std::size_t stack_base = _stack->size();
+	const auto stack_base = _stack->size();
+
 	expression_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
 	    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
 	_stack->emplace_back(*expression_context->generator);
 	expression_context->generator->data<Iterator>().construct();
 
+	_call_stack.emplace_back(_current_context);
+	_current_context = expression_context;
+}
+
+void Cursor::call_async_generator_expression(std::size_t offset) {
+
+	assert(_current_context->coroutine);
+
+	auto* expression_context = g_pool.allocate();
+	std::construct_at(expression_context, _current_context->module);
+	expression_context->iptr = _current_context->iptr;
+	expression_context->symbols = _current_context->symbols;
 	_current_context->iptr = offset;
-	if (_current_context->coroutine) {
-		expression_context->coroutine = std::make_unique<WeakReference>(Reference::default_flags,
-		    std::in_place_type<Coroutine>, std::make_unique<SavedState>(*this, expression_context), stack_base + 1);
-		expression_context->coroutine->data<Coroutine>().await(*this, WeakReference(*expression_context->coroutine));
-	}
-	else {
-		_call_stack.emplace_back(_current_context);
-		_current_context = expression_context;
-	}
+
+	const auto stack_base = _stack->size();
+
+	expression_context->coroutine = std::make_unique<WeakReference>(Reference::default_flags,
+	    std::in_place_type<Coroutine>, std::make_unique<SavedState>(*this, expression_context), stack_base);
+
+	expression_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
+	    std::in_place_type<Iterator>, from_async_generator, _ast, expression_context->coroutine->data<Coroutine>(),
+	    stack_base + 1);
+	_stack->emplace_back(*expression_context->generator);
+	expression_context->generator->data<Iterator>().construct();
+
+	expression_context->coroutine->data<Coroutine>().await(*this, WeakReference(*expression_context->coroutine));
 }
 
 void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) {
@@ -245,20 +265,32 @@ void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) 
 		call_context->symbols->open_package(handle.package);
 	}
 
-	if (handle.generator) {
-		call_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
-		    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
-		_stack->emplace(std::next(_stack->begin(), static_cast<std::ptrdiff_t>(stack_base)), *call_context->generator);
-		call_context->generator->data<Iterator>().construct();
-	}
-
 	if (handle.async) {
+
 		call_context->coroutine = std::make_unique<WeakReference>(Reference::default_flags,
-		    std::in_place_type<Coroutine>, std::make_unique<SavedState>(*this, call_context),
-		    handle.generator ? stack_base + 1 : stack_base);
+		    std::in_place_type<Coroutine>, std::make_unique<SavedState>(*this, call_context), stack_base);
+
+		if (handle.generator) {
+			call_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
+			    std::in_place_type<Iterator>, from_async_generator, _ast, call_context->coroutine->data<Coroutine>(),
+			    stack_base + 1);
+			_stack->emplace(std::next(_stack->begin(), static_cast<std::ptrdiff_t>(stack_base)),
+			    *call_context->generator);
+			call_context->generator->data<Iterator>().construct();
+		}
+
 		_stack->emplace_back(*call_context->coroutine);
 	}
 	else {
+
+		if (handle.generator) {
+			call_context->generator = std::make_unique<WeakReference>(Reference::default_flags,
+			    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
+			_stack->emplace(std::next(_stack->begin(), static_cast<std::ptrdiff_t>(stack_base)),
+			    *call_context->generator);
+			call_context->generator->data<Iterator>().construct();
+		}
+
 		_call_stack.emplace_back(_current_context);
 		_current_context = call_context;
 	}

@@ -71,6 +71,7 @@ R visit(Visitor&& visitor, const Reference& reference) {
 		case Class::Metatype::hash:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data<Hash>());
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data<Iterator>());
 		case Class::Metatype::library:
 			return std::invoke(std::forward<Visitor>(visitor), reference.data<Library>());
@@ -119,6 +120,7 @@ void for_each(Cursor& cursor, const Reference& ref, Function function) {
 			}
 			break;
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			while (!ref.data<Iterator>().ctx.empty()) {
 				function(ref.data<Iterator>().ctx.get());
 				ref.data<Iterator>().ctx.next(cursor);
@@ -171,6 +173,7 @@ bool for_each_if(Cursor& cursor, const Reference& ref, Function function) {
 			}
 			break;
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			while (!ref.data<Iterator>().ctx.empty()) {
 				if (!function(ref.data<Iterator>().ctx.get())) [[unlikely]] {
 					return false;

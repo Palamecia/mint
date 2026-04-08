@@ -101,6 +101,7 @@ std::string reference_value(const AbstractSyntaxTree& ast, const Reference& refe
 			        })
 			        | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			if (auto item = iterator_get(reference.data<Iterator>())) {
 				return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "iterator:" MINT_TERM_OPT(
 				                       MINT_TERM_RESET) " {}"),

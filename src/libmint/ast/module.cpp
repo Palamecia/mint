@@ -82,6 +82,16 @@ Module::Handle& Module::make_builtin_handle(PackageData& package, std::size_t of
 	}));
 }
 
+Module::Handle& Module::make_builtin_async_handle(PackageData& package, std::size_t offset) {
+	return *_handles.emplace_back(std::make_unique<Handle>(Handle {
+	    .module = *this,
+	    .offset = offset,
+	    .package = package,
+	    .fast_count = 0,
+	    .async = true,
+	}));
+}
+
 Reference* Module::make_constant(Data& data) {
 	return _constants
 	    .emplace_back(std::make_unique<WeakReference>(Reference::const_address | Reference::const_value, data))

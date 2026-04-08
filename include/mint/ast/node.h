@@ -126,7 +126,9 @@ union MINT_EXPORT Node {
 		range_iterator_check,
 
 		begin_generator_expression,
+		begin_async_generator_expression,
 		end_generator_expression,
+		end_async_generator_expression,
 
 		open_printer,
 		close_printer,
@@ -143,12 +145,13 @@ union MINT_EXPORT Node {
 		raise,
 
 		await,
-		exit_coroutine,
 		resume_coroutine,
 
 		yield,
 		exit_generator,
+		exit_async_generator,
 		yield_exit_generator,
+		yield_exit_async_generator,
 
 		init_capture,
 		capture_symbol,

@@ -101,6 +101,7 @@ public:
 	Handle& get_handle(PackageData& package, std::size_t offset);
 	Handle& make_handle(PackageData& package, std::size_t offset);
 	Handle& make_builtin_handle(PackageData& package, std::size_t offset);
+	Handle& make_builtin_async_handle(PackageData& package, std::size_t offset);
 
 	template<std::derived_from<Data> Type, typename... Args>
 	Reference* make_constant(Args&&... args);

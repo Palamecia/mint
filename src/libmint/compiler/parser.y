@@ -242,8 +242,7 @@ stmt_rule:
 		context.set_exit_point();
 		if (context.is_in_generator()) {
 			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::yield);
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::yield_exit_async_generator);
 			}
 			else {
 				context.push_node(Node::Command::yield_exit_generator);
@@ -304,7 +303,7 @@ stmt_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -336,7 +335,7 @@ stmt_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -558,7 +557,7 @@ desc_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -585,7 +584,7 @@ desc_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -612,7 +611,7 @@ desc_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -639,7 +638,7 @@ desc_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -666,7 +665,7 @@ desc_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -693,7 +692,7 @@ desc_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -720,7 +719,7 @@ desc_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -747,7 +746,7 @@ desc_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -1084,8 +1083,7 @@ stmt_bloc_rule:
 		context.set_exit_point();
 		if (context.is_in_generator()) {
 			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::yield);
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::yield_exit_async_generator);
 			}
 			else {
 				context.push_node(Node::Command::yield_exit_generator);
@@ -2245,7 +2243,7 @@ def_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {
@@ -2269,7 +2267,7 @@ def_rule:
 				context.push_node(Node::Command::exit_generator);
 			}
 			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_coroutine);
+				context.push_node(Node::Command::exit_async_generator);
 			}
 		}
 		else if (!context.has_returned()) {

@@ -56,13 +56,24 @@ public:
 	static IteratorClass& instance(AbstractSyntaxTree& ast);
 };
 
+class MINT_EXPORT AsyncIteratorClass : public Class {
+public:
+	AsyncIteratorClass(AbstractSyntaxTree& ast);
+	static AsyncIteratorClass& instance(AbstractSyntaxTree& ast);
+};
+
+MINT_EXPORT bool is_iterator(const Reference& ref);
+
 struct FromGenerator {};
+
+struct FromAsyncGenerator {};
 
 struct FromInclusiveRange {};
 
 struct FromExclusiveRange {};
 
 inline constexpr FromGenerator from_generator;
+inline constexpr FromAsyncGenerator from_async_generator;
 inline constexpr FromInclusiveRange from_inclusive_range;
 inline constexpr FromExclusiveRange from_exclusive_range;
 
@@ -75,6 +86,8 @@ public:
 	Iterator(AbstractSyntaxTree& ast, std::size_t capacity);
 	Iterator(AbstractSyntaxTree& ast, std::unique_ptr<mint::internal::IteratorData>&& data);
 	Iterator(FromGenerator /*from_generator*/, AbstractSyntaxTree& ast, std::size_t stack_size);
+	Iterator(FromAsyncGenerator /*from_async_generator*/, AbstractSyntaxTree& ast, Coroutine& coroutine,
+	    std::size_t stack_size);
 	Iterator(FromInclusiveRange /*from_inclusive_range*/, AbstractSyntaxTree& ast, double begin, double end);
 	Iterator(FromExclusiveRange /*from_exclusive_range*/, AbstractSyntaxTree& ast, double begin, double end);
 
@@ -288,6 +301,7 @@ private:
 MINT_EXPORT void iterator_new(Cursor& cursor, std::size_t length);
 MINT_EXPORT void iterator_yield(Cursor& cursor, Iterator& iterator, Reference&& item);
 MINT_EXPORT void iterator_return(Cursor& cursor, Iterator& iterator, Reference&& item);
+MINT_EXPORT void iterator_resume(Cursor& cursor, Iterator& iterator, Reference&& item);
 MINT_EXPORT std::optional<WeakReference> iterator_get(Iterator& iterator);
 MINT_EXPORT std::optional<WeakReference> iterator_next(Cursor& cursor, Iterator& iterator);
 

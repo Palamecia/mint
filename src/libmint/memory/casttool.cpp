@@ -95,6 +95,7 @@ double mint::to_number(Cursor& cursor, const Reference& ref) {
 				return 0;
 			}
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
@@ -139,6 +140,7 @@ double mint::to_number(Cursor& cursor, Reference&& ref) {
 				return 0;
 			}
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
@@ -183,6 +185,7 @@ std::intmax_t mint::to_signed_integer(Cursor& cursor, const Reference& ref) {
 				return 0;
 			}
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_signed_integer(cursor, *item);
 			}
@@ -222,6 +225,7 @@ std::intmax_t mint::to_signed_integer(Cursor& cursor, Reference&& ref) {
 		case Class::Metatype::string:
 			return to_signed_integer(ref.data<String>().str);
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			try {
 				if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 					return to_signed_integer(cursor, *item);
@@ -271,6 +275,7 @@ std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, const Reference& ref) {
 				return 0;
 			}
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_unsigned_integer(cursor, *item);
 			}
@@ -315,6 +320,7 @@ std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, Reference&& ref) {
 				return 0;
 			}
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_unsigned_integer(cursor, *item);
 			}
@@ -350,6 +356,7 @@ bool mint::to_boolean(const Reference& ref) {
 	case Data::Format::object:
 		switch (ref.data<Object>().metadata.metatype()) {
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			return !ref.data<Iterator>().ctx.empty();
 		default:
 			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_boolean)) {
@@ -432,6 +439,7 @@ std::string mint::to_string(const Reference& ref) {
 			                                 | std::views::join_with(std::string(", "))
 			                                 | std::ranges::to<std::string>());
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			if (auto item = iterator_get(ref.data<Iterator>())) {
 				return to_string(*item);
 			}
@@ -505,6 +513,7 @@ Array::values_type mint::to_array(const Reference& ref) {
 			});
 			return result;
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			result.reserve(ref.data<Iterator>().ctx.size());
 			std::ranges::transform(ref.data<Iterator>().ctx, std::back_inserter(result), [](const Reference& item) {
 				return array_item(item);
@@ -544,6 +553,7 @@ Hash::values_type mint::to_hash(const Reference& ref) {
 			}
 			return result;
 		case Class::Metatype::iterator:
+		case Class::Metatype::async_iterator:
 			for (const Reference& item : ref.data<Iterator>().ctx) {
 				result.emplace(hash_key(item), WeakReference());
 			}

@@ -546,6 +546,12 @@ public:
 		return Node::Command::range_iterator_check;
 	}
 
+	Node::Command on_range_expression_check(Cursor& /*cursor*/, std::size_t offset) {
+		_stream.get() << to_debug_string("RANGE_EXPRESSION_CHECK");
+		_stream.get() << " " << to_debug_string(offset);
+		return Node::Command::range_expression_check;
+	}
+
 	Node::Command on_begin_generator_expression(Cursor& /*cursor*/, std::size_t offset) {
 		_stream.get() << to_debug_string("BEGIN_GENERATOR_EXPRESSION");
 		_stream.get() << " " << to_debug_string(offset);
@@ -566,6 +572,11 @@ public:
 	Node::Command on_end_async_generator_expression(Cursor& /*cursor*/) {
 		_stream.get() << to_debug_string("END_ASYNC_GENERATOR_EXPRESSION");
 		return Node::Command::end_async_generator_expression;
+	}
+
+	Node::Command on_unpack_generator_expression(Cursor& /*cursor*/) {
+		_stream.get() << to_debug_string("UNPACK_GENERATOR_EXPRESSION");
+		return Node::Command::unpack_generator_expression;
 	}
 
 	Node::Command on_open_printer(Cursor& /*cursor*/) {

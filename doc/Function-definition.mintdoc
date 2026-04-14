@@ -162,6 +162,30 @@ let sum = def (a, b) {
 }
 ```
 
+If the expression is a [[generator expression|Control-structures#generator-expressions]] wrapped in parentheses, the generated [[iterator|Built-in-types#iterator]] itself becomes the function result.
+
+**Example**:
+
+```mn
+def evenValues(values) {
+    return (for let value in values => if value % 2 == 0 => value)
+}
+```
+
+Without parentheses, the generator expression is unpacked and the first yielded value becomes the function result.
+
+**Example**:
+
+```mn
+def firstGreeting(tone) {
+    return switch tone {
+        case is Tone.Friendly => 'Hello'
+        case is Tone.Formal => 'Greetings'
+        default => 'Hi'
+    }
+}
+```
+
 > [!IMPORTANT]
 > The `return` keyword also forces the call to return immediately. All instructions of the function after a reached `return` will not be executed.
 
@@ -178,6 +202,26 @@ let makeList = def (from, to) {
         yield value
         value = doSomeBigComputation(value)
     }
+}
+```
+
+If the expression is a [[generator expression|Control-structures#generator-expressions]] wrapped in parentheses, the generated [[iterator|Built-in-types#iterator]] itself is yielded as a single value.
+
+**Example**:
+
+```mn
+let makeNestedList = def (from, to) {
+    yield (for let value in from..to => value)
+}
+```
+
+Without parentheses, the generator expression is unpacked and all its yielded values are yielded by the function one by one.
+
+**Example**:
+
+```mn
+let makeList = def (from, to) {
+    yield for let value in from..to => value
 }
 ```
 

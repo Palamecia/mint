@@ -28,6 +28,7 @@
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/assert.h"
 
+#include <cassert>
 #include <cstddef>
 #include <memory>
 #include <ranges>
@@ -61,6 +62,8 @@ Iterator::Context::Type GeneratorData::get_type() const {
 }
 
 void GeneratorData::yield(Cursor& cursor, Iterator::Context::value_type&& value, Iterator::ResumeKind resume_kind) {
+
+	assert(!_state);
 
 	ItemsIteratorData::yield(cursor, std::move(value), resume_kind);
 

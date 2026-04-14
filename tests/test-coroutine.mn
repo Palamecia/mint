@@ -269,6 +269,24 @@ class TestCoroutine : Test.Case {
         self.expectEqual(4, spawn(test(2)))
     }
 
+    const def testReturnSwitchExpression(self) {
+        async def get(x) {
+            return x * 2
+        }
+
+        async def [...] test(v) {
+            return switch v {
+                case 1 => await get(1)
+                case 2 => await get(2)
+                default => 0
+            }
+        }
+
+        self.expectEqual(2, spawn(test(1)))
+        self.expectEqual(4, spawn(test(2)))
+        self.expectEqual(0, spawn(test(3)))
+    }
+
     const def testAwaitInWhileLoopWithMutation(self) {
         async def next_val(x) {
             return x + 1
@@ -581,6 +599,20 @@ class TestCoroutine : Test.Case {
         self.expectEqual(true, it.isEmpty())
     }
 
+    const def testAsyncGeneratorYieldGeneratorExpressionWithoutParentheses(self) {
+
+        async def f() {
+            yield for let i in (1, 2, 3) => i
+        }
+
+        let it = spawn(f())
+
+        self.expectEqual(1, spawn(it.next()))
+        self.expectEqual(2, spawn(it.next()))
+        self.expectEqual(3, spawn(it.next()))
+        self.expectEqual(true, it.isEmpty())
+    }
+
     const def testAsyncGeneratorAwaitInLoop(self) {
 
         async def f() {
@@ -656,6 +688,24 @@ class TestCoroutine : Test.Case {
         let it = spawn(f(5))
 
         self.expectEqual(5, spawn(it.next()))
+        self.expectEqual(true, it.isEmpty())
+    }
+
+    const def testAsyncGeneratorReturnGeneratorExpressionWithoutParentheses(self) {
+
+        async def f() {
+            yield 1
+            return switch 1 {
+                case 0 => 10
+                case 1 => 20
+                default => 30
+            }
+        }
+
+        let it = spawn(f())
+
+        self.expectEqual(1, spawn(it.next()))
+        self.expectEqual(20, spawn(it.next()))
         self.expectEqual(true, it.isEmpty())
     }
     

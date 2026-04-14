@@ -366,6 +366,44 @@ let foo =: if test() {
 }
 ```
 
+Generator expressions can also be used after the `return` and `yield` keywords.
+
+When a generator expression is wrapped in parentheses, it behaves like a normal expression: the generated [[iterator|Built-in-types#iterator]] itself is returned or yielded.
+
+**Example**:
+
+```mn
+def evenValues(values) {
+    return (for let value in values => if value % 2 == 0 => value)
+}
+
+def nestedValues(from, to) {
+    yield (for let value in from..to => value)
+}
+```
+
+Without parentheses, the generator expression is unpacked automatically.
+
+After `return`, the function returns the first yielded result.
+
+After `yield`, each produced value is yielded one by one. This is equivalent to iterating on the generated iterator in a `for` loop and yielding each element.
+
+**Example**:
+
+```mn
+def greetShort(tone) {
+    return switch tone {
+        case is Tone.Friendly => 'Hello'
+        case is Tone.Formal => 'Greetings'
+        default => 'Hi'
+    }
+}
+
+def makeListShort(from, to) {
+    yield for let value in from..to => value
+}
+```
+
 The control structure can also be used between `[` and `]` tokens to generate an [[array|Built-in-types#array]]. In this case, each value of the generated iterator is expanded to set up the array as if the [[unpack|Arithmetic-operations#unpack-operator]] operator was used.
 
 **Example**:
@@ -388,7 +426,6 @@ It is introduced by the `print` keyword followed by an expression between a `(` 
 
 ```mn
 print('Hello world!')  // Prints 'Hello world!' to the standard output
-}
 ```
 
 The value can also be sent to a custom output.
@@ -397,7 +434,6 @@ A custom output description is provided by an expression giving the custom outpu
 
 ```mn
 print(obj, 'Hello world!')  // // Equivalent to obj.write('Hello world!')
-}
 ```
 
 ### The print bloc statement

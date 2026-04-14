@@ -919,6 +919,10 @@ void BuildContext::push_node(Data& constant) {
 	_branch.get().push_node(_data.module->make_constant(constant));
 }
 
+std::size_t BuildContext::next_offset() const {
+	return _branch.get().next_node_offset();
+}
+
 void BuildContext::push_node(const Reference* constant) {
 	_branch.get().push_node(constant);
 }

@@ -24,7 +24,6 @@
 #ifndef MINT_MEMORY_ALGORITHM_HPP
 #define MINT_MEMORY_ALGORITHM_HPP
 
-#include "mint/ast/classregister.h"
 #include "mint/ast/cursor.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
@@ -83,6 +82,8 @@ R visit(Visitor&& visitor, const Reference& reference) {
 		return std::invoke(std::forward<Visitor>(visitor), reference.data<Package>());
 	case Data::Format::function:
 		return std::invoke(std::forward<Visitor>(visitor), reference.data<Function>());
+	case Data::Format::coroutine:
+		return std::invoke(std::forward<Visitor>(visitor), reference.data<Coroutine>());
 	}
 	if constexpr (!std::is_same_v<void, R>) {
 		return {};

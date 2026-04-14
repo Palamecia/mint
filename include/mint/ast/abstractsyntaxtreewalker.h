@@ -224,6 +224,8 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_range_check(cursor, static_cast<std::size_t>(cursor.next().as_parameter()));
 	case Node::Command::range_iterator_check:
 		return walker.on_range_iterator_check(cursor, static_cast<std::size_t>(cursor.next().as_parameter()));
+	case Node::Command::range_expression_check:
+		return walker.on_range_expression_check(cursor, static_cast<std::size_t>(cursor.next().as_parameter()));
 	case Node::Command::begin_generator_expression:
 		return walker.on_begin_generator_expression(cursor, static_cast<std::size_t>(cursor.next().as_parameter()));
 	case Node::Command::begin_async_generator_expression:
@@ -233,6 +235,8 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_end_generator_expression(cursor);
 	case Node::Command::end_async_generator_expression:
 		return walker.on_end_async_generator_expression(cursor);
+	case Node::Command::unpack_generator_expression:
+		return walker.on_unpack_generator_expression(cursor);
 	case Node::Command::open_printer:
 		return walker.on_open_printer(cursor);
 	case Node::Command::close_printer:

@@ -189,6 +189,7 @@ public:
 	void push_node(std::size_t parameter);
 	void push_node(const char* symbol);
 	void push_node(Data& constant);
+	[[nodiscard]] std::size_t next_offset() const;
 
 	void start_operator(Class::Operator op);
 	Class::Operator retrieve_operator();

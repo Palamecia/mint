@@ -223,6 +223,21 @@ stmt_rule:
 		context.close_block();
 		context.close_printer();
 	}
+	| yield_token generator_expr_rule line_end_token {
+		context.set_generator();
+		context.push_node(Node::Command::jump);
+		context.start_jump_forward();
+		context.start_jump_backward();
+		context.push_node(Node::Command::range_next);
+		context.resolve_jump_forward();
+		context.push_node(Node::Command::range_expression_check);
+		context.start_jump_forward();
+		context.push_node(Node::Command::yield);
+		context.push_node(Node::Command::jump);
+		context.resolve_jump_backward();
+		context.resolve_jump_forward();
+		context.commit_line();
+	}
 	| yield_token expr_rule line_end_token {
 		if (context.is_in_generator_expression()) {
 			context.push_node(Node::Command::yield);
@@ -237,6 +252,27 @@ stmt_rule:
 			context.parse_error("unexpected 'yield' statement outside of function");
 			YYERROR;
 		}
+	}
+	| return_rule generator_expr_rule line_end_token {
+		context.set_exit_point();
+		context.push_node(Node::Command::unpack_generator_expression);
+		if (context.is_in_generator()) {
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::yield_exit_async_generator);
+			}
+			else {
+				context.push_node(Node::Command::yield_exit_generator);
+			}
+		}
+		else {
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::exit_call);
+			}
+		}
+		context.commit_line();
 	}
 	| return_rule expr_rule line_end_token {
 		context.set_exit_point();
@@ -1066,6 +1102,20 @@ elif_generator_bloc_rule:
 
 stmt_bloc_rule:
     open_brace_token stmt_list_rule close_brace_token
+	| open_brace_token yield_token generator_expr_rule close_brace_token {
+		context.set_generator();
+		context.push_node(Node::Command::jump);
+		context.start_jump_forward();
+		context.start_jump_backward();
+		context.push_node(Node::Command::range_next);
+		context.resolve_jump_forward();
+		context.push_node(Node::Command::range_expression_check);
+		context.start_jump_forward();
+		context.push_node(Node::Command::yield);
+		context.push_node(Node::Command::jump);
+		context.resolve_jump_backward();
+		context.resolve_jump_forward();
+	}
 	| open_brace_token yield_token expr_rule close_brace_token {
 		if (context.is_in_generator_expression()) {
 			context.push_node(Node::Command::yield);
@@ -1077,6 +1127,26 @@ stmt_bloc_rule:
 		else {	
 			context.parse_error("unexpected 'yield' statement outside of function");
 			YYERROR;
+		}
+	}
+	| open_brace_token return_rule generator_expr_rule close_brace_token {
+		context.set_exit_point();
+		context.push_node(Node::Command::unpack_generator_expression);
+		if (context.is_in_generator()) {
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::yield_exit_async_generator);
+			}
+			else {
+				context.push_node(Node::Command::yield_exit_generator);
+			}
+		}
+		else {
+			if (context.is_in_async_function()) {
+				context.push_node(Node::Command::resume_coroutine);
+			}
+			else {
+				context.push_node(Node::Command::exit_call);
+			}
 		}
 	}
 	| open_brace_token return_rule expr_rule close_brace_token {

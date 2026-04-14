@@ -95,6 +95,7 @@ MINT_EXPORT void range_init(Cursor& cursor);
 MINT_EXPORT void range_next(Cursor& cursor);
 MINT_EXPORT void range_check(Cursor& cursor, std::size_t pos);
 MINT_EXPORT void range_iterator_check(Cursor& cursor, std::size_t pos);
+MINT_EXPORT void range_expression_check(Cursor& cursor, std::size_t pos);
 
 }
 

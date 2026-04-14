@@ -27,6 +27,7 @@
 #include "mint/ast/symbol.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
+#include "mint/memory/functiontool.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/symboltable.h"
@@ -428,6 +429,10 @@ public:
 		range_iterator_check(cursor, offset);
 	}
 
+	static void on_range_expression_check(Cursor& cursor, std::size_t offset) {
+		range_expression_check(cursor, offset);
+	}
+
 	static void on_begin_generator_expression(Cursor& cursor, std::size_t offset) {
 		cursor.call_generator_expression(offset);
 	}
@@ -445,6 +450,19 @@ public:
 		assert(cursor.is_in_generator() && cursor.is_in_coroutine());
 		const mint::WeakReference coroutine = cursor.coroutine();
 		coroutine.data<Coroutine>().exit(cursor);
+	}
+
+	static void on_unpack_generator_expression(Cursor& cursor) {
+
+		auto value = std::move(cursor.stack().back());
+		assert(is_iterator(value));
+
+		if (!value.data<Iterator>().ctx.empty()) {
+			cursor.stack().back() = std::move(value.data<Iterator>().ctx.get());
+		}
+		else {
+			cursor.stack().back() = create_none();
+		}
 	}
 
 	static void on_open_printer(Cursor& cursor) {

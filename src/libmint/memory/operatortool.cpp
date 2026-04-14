@@ -2160,6 +2160,20 @@ void mint::range_iterator_check(Cursor& cursor, std::size_t pos) {
 	}
 }
 
+void mint::range_expression_check(Cursor& cursor, std::size_t pos) {
+
+	const auto& range = cursor.stack().back();
+	assert(is_iterator(range));
+
+	if (auto item = iterator_get(range.data<Iterator>())) {
+		cursor.stack().emplace_back(*item);
+	}
+	else {
+		cursor.stack().pop_back();
+		cursor.jmp(pos);
+	}
+}
+
 namespace mint {
 
 #if !defined(__x86_64__) && !defined(_WIN64)

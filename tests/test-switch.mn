@@ -20,4 +20,18 @@ class RangeSwitch : Test.Case {
         }
         self.expectEqual('5', i)
     }
+
+    const def testReturnSwitchExpression(self) {
+        def greet(tone) {
+            return switch tone {
+                case 'friendly' => 'Hello'
+                case 'formal' => 'Greetings'
+                default => 'Hi'
+            }
+        }
+
+        self.expectEqual('Hello', greet('friendly'))
+        self.expectEqual('Greetings', greet('formal'))
+        self.expectEqual('Hi', greet('other'))
+    }
 }

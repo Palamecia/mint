@@ -43,6 +43,77 @@ print('hello world !\n')
 
 You can then run `mint helloworld.mn`.
 
+## What Mint looks like
+
+Here is a commented example that covers a few more core language features:
+
+```mn
+#!/bin/mint
+
+// Enums are simple named constants.
+enum Tone {
+    Friendly
+    Formal
+}
+
+// Define a class with one private member and a constructor.
+class Greeter {
+    def new(self, prefix) {
+        self.prefix = prefix
+        return self
+    }
+
+    // Methods receive the instance as their first parameter.
+    // Parameters can also have default values.
+    def greet(self, name, tone = Tone.Friendly) {
+        return switch tone {
+        case is Tone.Friendly => '%s, %s!' % (self.prefix, name)
+        case is Tone.Formal => 'Greetings, %s.' % name
+        }
+    }
+
+    // `-` makes the member private.
+    - prefix = ''
+}
+
+// Functions are introduced with `def`.
+// Using `yield` turns this into a generator function.
+def makeNames(prefix, count) {
+    // `1..count` is a range including `count`.
+    for let i in 1..count {
+        yield '%s #%d' % (prefix, i)
+    }
+}
+
+// Create an object by calling the class like a function.
+let greeter = Greeter('Hello')
+
+// Hashes store key/value pairs.
+let stats = {
+    'printed' : 0,
+    'skipped' : 0
+}
+
+// Generator functions return iterators, so they work naturally with `for`.
+for let name in makeNames('Mint', 5) {
+    // `in` can be used for containment checks.
+    if '3' in name {
+        stats['skipped'] += 1
+        continue
+    }
+
+    // Methods are called with `.`, and strings use `%` formatting.
+    let tone = name.endsWith('5') ? Tone.Formal : Tone.Friendly
+    print(greeter.greet(name, tone) + '\n')
+    stats['printed'] += 1
+}
+
+// A `for` loop can destructure iterator values into multiple variables.
+for let (key, value) in stats {
+    print('%s: %d\n' % (key, value))
+}
+```
+
 More informations can be found in the [wiki](https://github.com/Palamecia/mint/wiki) section.
 
 ## IDE integration

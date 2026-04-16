@@ -26,9 +26,9 @@
 
 using namespace mint;
 
-SavedState::SavedState(Cursor& cursor, Cursor::Context* context) :
+SavedState::SavedState(Cursor& cursor, Cursor::StackFrame* stack_frame) :
     cursor(cursor),
-    context(context) {}
+    stack_frame(stack_frame) {}
 
 SavedState::~SavedState() {
 	cursor.get().destroy(this);

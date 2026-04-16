@@ -195,8 +195,8 @@ public:
 	void cleanup();
 
 protected:
-	struct Context {
-		explicit Context(const Module& module);
+	struct StackFrame {
+		explicit StackFrame(const Module& module);
 
 		std::size_t iptr = 0;
 		const Module& module;
@@ -212,21 +212,21 @@ protected:
 		std::size_t stack_size;
 		std::size_t call_stack_size;
 		std::size_t retrieve_offset;
-		Context* current_context;
+		StackFrame* current_stack_frame;
 	};
 
 private:
 	using retrieve_point_stack_t = std::stack<RetrievePoint, std::vector<RetrievePoint>>;
-	static PoolAllocator<Context> g_pool;
+	static PoolAllocator<StackFrame> g_pool;
 
 	std::vector<WeakReference>* _stack;
-	Context* _current_context;
+	StackFrame* _current_stack_frame;
 
 	std::reference_wrapper<AbstractSyntaxTree> _ast;
 	Cursor* _parent;
 	Cursor* _child;
 
-	std::vector<Context*> _call_stack;
+	std::vector<StackFrame*> _call_stack;
 	retrieve_point_stack_t _retrieve_points;
 };
 
@@ -255,8 +255,8 @@ Cursor* Cursor::parent() const {
 }
 
 const Node& Cursor::next() {
-	assert(_current_context->iptr <= _current_context->module.end());
-	return _current_context->module.node_at(_current_context->iptr++);
+	assert(_current_stack_frame->iptr <= _current_stack_frame->module.end());
+	return _current_stack_frame->module.node_at(_current_stack_frame->iptr++);
 }
 
 std::vector<WeakReference>& Cursor::stack() {
@@ -264,27 +264,27 @@ std::vector<WeakReference>& Cursor::stack() {
 }
 
 Cursor::WaitingCallStack& Cursor::waiting_calls() {
-	return _current_context->waiting_calls;
+	return _current_stack_frame->waiting_calls;
 }
 
 const SymbolTable& Cursor::symbols() const {
-	assert(_current_context->symbols);
-	return *_current_context->symbols;
+	assert(_current_stack_frame->symbols);
+	return *_current_stack_frame->symbols;
 }
 
 SymbolTable& Cursor::symbols() {
-	assert(_current_context->symbols);
-	return *_current_context->symbols;
+	assert(_current_stack_frame->symbols);
+	return *_current_stack_frame->symbols;
 }
 
 Reference& Cursor::generator() {
-	assert(_current_context->generator);
-	return *_current_context->generator;
+	assert(_current_stack_frame->generator);
+	return *_current_stack_frame->generator;
 }
 
 Reference& Cursor::coroutine() {
-	assert(_current_context->coroutine);
-	return *_current_context->coroutine;
+	assert(_current_stack_frame->coroutine);
+	return *_current_stack_frame->coroutine;
 }
 
 }

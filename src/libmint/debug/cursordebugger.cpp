@@ -73,7 +73,7 @@ bool CursorDebugger::close_cursor() {
 }
 
 Node::Command CursorDebugger::command() const {
-	return _cursor.get()._current_context->module.node_at(_cursor.get()._current_context->iptr).as_command();
+	return _cursor.get()._current_stack_frame->module.node_at(_cursor.get()._current_stack_frame->iptr).as_command();
 }
 
 const Cursor& CursorDebugger::cursor() const {
@@ -84,47 +84,47 @@ Cursor& CursorDebugger::cursor() {
 	return _cursor;
 }
 
-const SymbolTable* CursorDebugger::symbols(std::size_t stack_frame) const {
-	if (stack_frame == 0) {
-		return _cursor.get()._current_context->symbols.get();
+const SymbolTable* CursorDebugger::symbols(std::size_t stack_frame_index) const {
+	if (stack_frame_index == 0) {
+		return _cursor.get()._current_stack_frame->symbols.get();
 	}
-	if (stack_frame > _cursor.get()._call_stack.size()) {
+	if (stack_frame_index > _cursor.get()._call_stack.size()) {
 		return nullptr;
 	}
-	return _cursor.get()._call_stack[_cursor.get()._call_stack.size() - stack_frame]->symbols.get();
+	return _cursor.get()._call_stack[_cursor.get()._call_stack.size() - stack_frame_index]->symbols.get();
 }
 
-LineInfo CursorDebugger::line_info(std::size_t stack_frame) const {
-	const Cursor::Context* context = nullptr;
+LineInfo CursorDebugger::line_info(std::size_t stack_frame_index) const {
+	const Cursor::StackFrame* stack_frame = nullptr;
 	const auto& ast = _cursor.get().ast();
-	if (stack_frame == 0) {
-		context = _cursor.get()._current_context;
+	if (stack_frame_index == 0) {
+		stack_frame = _cursor.get()._current_stack_frame;
 	}
-	else if (stack_frame > _cursor.get()._call_stack.size()) {
-		context = _cursor.get()._call_stack[_cursor.get()._call_stack.size() - stack_frame];
+	else if (stack_frame_index > _cursor.get()._call_stack.size()) {
+		stack_frame = _cursor.get()._call_stack[_cursor.get()._call_stack.size() - stack_frame_index];
 	}
-	if (context) {
+	if (stack_frame) {
 		std::size_t line_number = 0;
-		const auto module_id = ast.get_module_id(context->module);
+		const auto module_id = ast.get_module_id(stack_frame->module);
 		if (DebugInfo* infos = ast.find_debug_info(module_id)) {
-			line_number = infos->line_number(context->iptr);
+			line_number = infos->line_number(stack_frame->iptr);
 		}
-		return {module_id, ast.get_module_name(context->module), line_number};
+		return {module_id, ast.get_module_name(stack_frame->module), line_number};
 	}
 	return {};
 }
 
 std::string CursorDebugger::module_name() const {
-	return _cursor.get().ast().get_module_name(_cursor.get()._current_context->module);
+	return _cursor.get().ast().get_module_name(_cursor.get()._current_stack_frame->module);
 }
 
 Module::Id CursorDebugger::module_id() const {
-	return _cursor.get().ast().get_module_id(_cursor.get()._current_context->module);
+	return _cursor.get().ast().get_module_id(_cursor.get()._current_stack_frame->module);
 }
 
 std::size_t CursorDebugger::line_number() const {
 	if (DebugInfo* info = _cursor.get().ast().find_debug_info(module_id())) {
-		return info->line_number(_cursor.get()._current_context->iptr);
+		return info->line_number(_cursor.get()._current_stack_frame->iptr);
 	}
 	return 0;
 }

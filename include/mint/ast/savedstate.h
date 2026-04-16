@@ -35,14 +35,14 @@ namespace mint {
 struct MINT_EXPORT SavedState {
 	SavedState(SavedState&& other) = delete;
 	SavedState(const SavedState& other) = delete;
-	SavedState(Cursor& cursor, Cursor::Context* context);
+	SavedState(Cursor& cursor, Cursor::StackFrame* stack_frame);
 	~SavedState();
 
 	SavedState& operator=(SavedState&& other) = delete;
 	SavedState& operator=(const SavedState& other) = delete;
 
 	std::reference_wrapper<Cursor> cursor;
-	Cursor::Context* context;
+	Cursor::StackFrame* stack_frame;
 	std::stack<Cursor::RetrievePoint> retrieve_points;
 };
 

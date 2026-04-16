@@ -372,8 +372,8 @@ Coroutine::State Coroutine::state() const {
 }
 
 SymbolTable& Coroutine::symbols() {
-	assert(_saved_state && _saved_state->context && _saved_state->context->symbols);
-	return *_saved_state->context->symbols;
+	assert(_saved_state && _saved_state->stack_frame && _saved_state->stack_frame->symbols);
+	return *_saved_state->stack_frame->symbols;
 }
 
 }

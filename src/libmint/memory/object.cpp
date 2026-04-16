@@ -341,8 +341,8 @@ void Coroutine::await(Cursor& cursor, WeakReference&& self) {
 
 	_parent_saved_state = cursor.suspend(std::move(_saved_state));
 
-	assert(_parent_saved_state->context->coroutine);
-	_context = _parent_saved_state->context->coroutine->data<Coroutine>()._context;
+	assert(_parent_saved_state->stack_frame->coroutine);
+	_context = _parent_saved_state->stack_frame->coroutine->data<Coroutine>()._context;
 	_stack_offset = stack_size - _context->stack_size;
 
 	_state = State::running;

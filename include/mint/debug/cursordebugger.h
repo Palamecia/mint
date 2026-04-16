@@ -57,8 +57,8 @@ public:
 	[[nodiscard]] const Cursor& cursor() const;
 	[[nodiscard]] Cursor& cursor();
 
-	[[nodiscard]] const SymbolTable* symbols(std::size_t stack_frame = 0) const;
-	[[nodiscard]] LineInfo line_info(std::size_t stack_frame = 0) const;
+	[[nodiscard]] const SymbolTable* symbols(std::size_t stack_frame_index = 0) const;
+	[[nodiscard]] LineInfo line_info(std::size_t stack_frame_index = 0) const;
 
 	[[nodiscard]] std::string module_name() const;
 	[[nodiscard]] Module::Id module_id() const;

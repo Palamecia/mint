@@ -141,36 +141,6 @@ public:
 			const_iterator& operator--();
 		};
 
-		class MINT_EXPORT iterator {
-			mint::internal::IteratorViewData* _data = nullptr;
-		public:
-			explicit iterator(mint::internal::IteratorViewData* data);
-			iterator(iterator&& other) noexcept = default;
-			iterator(const iterator& other) = default;
-			iterator() = default;
-			~iterator() = default;
-
-			iterator& operator=(iterator&& other) noexcept = default;
-			iterator& operator=(const iterator& other) = default;
-
-			bool operator==(const iterator& other) const;
-			bool operator!=(const iterator& other) const;
-
-			MINT_EXPORT friend bool operator==(const iterator& self, const sentinel& other);
-			MINT_EXPORT friend bool operator==(const sentinel& self, const iterator& other);
-			MINT_EXPORT friend bool operator!=(const iterator& self, const sentinel& other);
-			MINT_EXPORT friend bool operator!=(const sentinel& self, const iterator& other);
-
-			reference operator*() const;
-			pointer operator->() const;
-
-			iterator operator++(int);
-			iterator& operator++();
-
-			iterator operator--(int);
-			iterator& operator--();
-		};
-
 		explicit View(std::unique_ptr<mint::internal::IteratorViewData>&& data);
 		View(const View&) = delete;
 		View(View&& other) noexcept;
@@ -187,19 +157,11 @@ public:
 			return const_iterator {_data.get()};
 		}
 
-		[[nodiscard]] iterator begin() {
-			return iterator {_data.get()};
-		}
-
 		[[nodiscard]] sentinel cend() const {
 			return sentinel {};
 		}
 
 		[[nodiscard]] sentinel end() const {
-			return sentinel {};
-		}
-
-		[[nodiscard]] sentinel end() {
 			return sentinel {};
 		}
 
@@ -227,31 +189,31 @@ public:
 
 		struct sentinel {};
 
-		class MINT_EXPORT iterator {
+		class MINT_EXPORT const_iterator {
 			mint::internal::IteratorData* _data = nullptr;
 		public:
-			explicit iterator(mint::internal::IteratorData* data);
-			iterator(iterator&&) = default;
-			iterator(const iterator&) = default;
-			iterator() = default;
-			~iterator() = default;
+			explicit const_iterator(mint::internal::IteratorData* data);
+			const_iterator(const_iterator&&) = default;
+			const_iterator(const const_iterator& other) = default;
+			const_iterator() = default;
+			~const_iterator() = default;
 
-			iterator& operator=(iterator&&) = default;
-			iterator& operator=(const iterator&) = default;
+			const_iterator& operator=(const_iterator&&) = default;
+			const_iterator& operator=(const const_iterator&) = default;
 
-			bool operator==(const iterator& other) const;
-			bool operator!=(const iterator& other) const;
+			bool operator==(const const_iterator& other) const;
+			bool operator!=(const const_iterator& other) const;
 
-			MINT_EXPORT friend bool operator==(const iterator& self, const sentinel& other);
-			MINT_EXPORT friend bool operator==(const sentinel& self, const iterator& other);
-			MINT_EXPORT friend bool operator!=(const iterator& self, const sentinel& other);
-			MINT_EXPORT friend bool operator!=(const sentinel& self, const iterator& other);
+			MINT_EXPORT friend bool operator==(const const_iterator& self, const sentinel& other);
+			MINT_EXPORT friend bool operator==(const sentinel& self, const const_iterator& other);
+			MINT_EXPORT friend bool operator!=(const const_iterator& self, const sentinel& other);
+			MINT_EXPORT friend bool operator!=(const sentinel& self, const const_iterator& other);
 
 			reference operator*() const;
 			pointer operator->() const;
 
-			iterator operator++(int);
-			iterator& operator++();
+			const_iterator operator++(int);
+			const_iterator& operator++();
 		};
 
 		explicit Context(std::unique_ptr<mint::internal::IteratorData>&& data);
@@ -262,13 +224,11 @@ public:
 		Context& operator=(Context&& other) noexcept;
 		Context& operator=(const Context& other);
 
-		[[nodiscard]] iterator cbegin() const;
-		[[nodiscard]] iterator begin() const;
-		[[nodiscard]] iterator begin();
+		[[nodiscard]] const_iterator cbegin() const;
+		[[nodiscard]] const_iterator begin() const;
 
 		[[nodiscard]] sentinel cend() const;
 		[[nodiscard]] sentinel end() const;
-		[[nodiscard]] sentinel end();
 
 		[[nodiscard]] View view() const;
 
@@ -320,19 +280,7 @@ struct std::iterator_traits<mint::Iterator::View::const_iterator> {
 static_assert(std::bidirectional_iterator<mint::Iterator::View::const_iterator>);
 
 template<>
-struct std::iterator_traits<mint::Iterator::View::iterator> {
-	using iterator_category = std::bidirectional_iterator_tag;
-	using difference_type = std::ptrdiff_t;
-	using container_type = mint::Iterator::View;
-	using value_type = container_type::value_type;
-	using pointer = container_type::pointer;
-	using reference = container_type::reference;
-};
-
-static_assert(std::bidirectional_iterator<mint::Iterator::View::iterator>);
-
-template<>
-struct std::iterator_traits<mint::Iterator::Context::iterator> {
+struct std::iterator_traits<mint::Iterator::Context::const_iterator> {
 	using iterator_category = std::input_iterator_tag;
 	using difference_type = std::ptrdiff_t;
 	using container_type = mint::Iterator::Context;
@@ -341,6 +289,6 @@ struct std::iterator_traits<mint::Iterator::Context::iterator> {
 	using reference = container_type::reference;
 };
 
-static_assert(std::input_iterator<mint::Iterator::View::iterator>);
+static_assert(std::input_iterator<mint::Iterator::Context::const_iterator>);
 
 #endif // MINT_MEMORY_BUILTIN_ITERATOR_H

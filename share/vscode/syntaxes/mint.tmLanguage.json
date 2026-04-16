@@ -949,6 +949,7 @@
     "strings": {
       "patterns": [
         {
+          "name": "meta.string.quoted.single.mn",
           "begin": "(')",
           "beginCaptures": {
             "1": {
@@ -957,7 +958,20 @@
           },
           "patterns": [
             {
-              "include": "#strings__1"
+              "match": "(\\\\.)",
+              "name": "constant.character.escape.mn"
+            },
+            {
+              "match": "(%[-\\+ #0]*(?:\\d*|\\*?)(?:\\.(?:\\d*|\\*?))?(?:c|s|P|p|A|a|B|b|O|o|X|x|d|i|u|E|e|F|f|G|g|%))",
+              "name": "constant.other.placeholder.mn"
+            },
+            {
+              "match": "(\\{\\d*(?:\\:[-\\+ #0]*(?:\\d*|(\\{\\})?)(?:\\.(?:\\d*|(\\{\\})?))?(?:c|s|P|p|A|a|B|b|O|o|X|x|d|i|u|E|e|F|f|G|g)?)?\\})",
+              "name": "constant.other.placeholder.mn"
+            },
+            {
+              "match": "(.)",
+              "name": "string.quoted.single.mn"
             }
           ],
           "end": "(?:(?<!\\\\)|(?<=\\\\\\\\))(')",
@@ -968,6 +982,7 @@
           }
         },
         {
+          "name": "meta.string.quoted.double.mn",
           "begin": "(\")",
           "beginCaptures": {
             "1": {
@@ -976,7 +991,20 @@
           },
           "patterns": [
             {
-              "include": "#strings__2"
+              "match": "(\\\\.)",
+              "name": "constant.character.escape.mn"
+            },
+            {
+              "match": "(%[-\\+ #0]*(?:\\d*|\\*?)(?:\\.(?:\\d*|\\*?))?(?:c|s|P|p|A|a|B|b|O|o|X|x|d|i|u|E|e|F|f|G|g|%))",
+              "name": "constant.other.placeholder.mn"
+            },
+            {
+              "match": "(\\{\\d*(?:\\:[-\\+ #0]*(?:\\d*|(\\{\\})?)(?:\\.(?:\\d*|(\\{\\})?))?(?:c|s|P|p|A|a|B|b|O|o|X|x|d|i|u|E|e|F|f|G|g)?)?\\})",
+              "name": "constant.other.placeholder.mn"
+            },
+            {
+              "match": "(.)",
+              "name": "string.quoted.double.mn"
             }
           ],
           "end": "(?:(?<!\\\\)|(?<=\\\\\\\\))(\")",
@@ -985,38 +1013,6 @@
               "name": "string.quoted.double.mn"
             }
           }
-        }
-      ]
-    },
-    "strings__1": {
-      "patterns": [
-        {
-          "match": "(\\\\.)",
-          "name": "constant.character.escape.mn"
-        },
-        {
-          "match": "(%(?:s|d|i|u|f|g|e|x))",
-          "name": "constant.other.placeholder.mn"
-        },
-        {
-          "match": "(.)",
-          "name": "string.quoted.single.mn"
-        }
-      ]
-    },
-    "strings__2": {
-      "patterns": [
-        {
-          "match": "(\\\\.)",
-          "name": "constant.character.escape.mn"
-        },
-        {
-          "match": "(%(?:s|d|i|u|f|g|e|x))",
-          "name": "constant.other.placeholder.mn"
-        },
-        {
-          "match": "(.)",
-          "name": "string.quoted.double.mn"
         }
       ]
     }

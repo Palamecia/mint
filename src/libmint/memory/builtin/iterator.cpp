@@ -309,61 +309,6 @@ Iterator::View::const_iterator& Iterator::View::const_iterator::operator--() {
 	return *this;
 }
 
-Iterator::View::iterator::iterator(mint::internal::IteratorViewData* data) :
-    _data(data) {}
-
-bool Iterator::View::iterator::operator==(const iterator& other) const {
-	return _data == other._data;
-}
-
-bool Iterator::View::iterator::operator!=(const iterator& other) const {
-	return _data != other._data;
-}
-
-bool mint::operator==(const Iterator::View::iterator& self, const Iterator::View::sentinel& /*other*/) {
-	return self._data->empty();
-}
-
-bool mint::operator==(const Iterator::View::sentinel& /*self*/, const Iterator::View::iterator& other) {
-	return other._data->empty();
-}
-
-bool mint::operator!=(const Iterator::View::iterator& self, const Iterator::View::sentinel& /*other*/) {
-	return !self._data->empty();
-}
-
-bool mint::operator!=(const Iterator::View::sentinel& /*self*/, const Iterator::View::iterator& other) {
-	return !other._data->empty();
-}
-
-Iterator::View::reference Iterator::View::iterator::operator*() const {
-	return _data->get();
-}
-
-Iterator::View::pointer Iterator::View::iterator::operator->() const {
-	return &_data->get();
-}
-
-Iterator::View::iterator Iterator::View::iterator::operator++(int) {
-	_data->next();
-	return Iterator::View::iterator {_data};
-}
-
-Iterator::View::iterator& Iterator::View::iterator::operator++() {
-	_data->next();
-	return *this;
-}
-
-Iterator::View::iterator Iterator::View::iterator::operator--(int) {
-	_data->prev();
-	return Iterator::View::iterator {_data};
-}
-
-Iterator::View::iterator& Iterator::View::iterator::operator--() {
-	_data->prev();
-	return *this;
-}
-
 Iterator::View::View(std::unique_ptr<mint::internal::IteratorViewData>&& data) :
     _data(std::move(data)) {}
 
@@ -381,47 +326,47 @@ Iterator::View::reference Iterator::View::back() {
 	return _data->back();
 }
 
-Iterator::Context::iterator::iterator(mint::internal::IteratorData* data) :
+Iterator::Context::const_iterator::const_iterator(mint::internal::IteratorData* data) :
     _data(data) {}
 
-bool Iterator::Context::iterator::operator==(const iterator& other) const {
+bool Iterator::Context::const_iterator::operator==(const const_iterator& other) const {
 	return _data == other._data;
 }
 
-bool Iterator::Context::iterator::operator!=(const iterator& other) const {
+bool Iterator::Context::const_iterator::operator!=(const const_iterator& other) const {
 	return _data != other._data;
 }
 
-bool mint::operator==(const Iterator::Context::iterator& self, const Iterator::Context::sentinel& /*other*/) {
+bool mint::operator==(const Iterator::Context::const_iterator& self, const Iterator::Context::sentinel& /*other*/) {
 	return self._data->empty();
 }
 
-bool mint::operator==(const Iterator::Context::sentinel& /*self*/, const Iterator::Context::iterator& other) {
+bool mint::operator==(const Iterator::Context::sentinel& /*self*/, const Iterator::Context::const_iterator& other) {
 	return other._data->empty();
 }
 
-bool mint::operator!=(const Iterator::Context::iterator& self, const Iterator::Context::sentinel& /*other*/) {
+bool mint::operator!=(const Iterator::Context::const_iterator& self, const Iterator::Context::sentinel& /*other*/) {
 	return !self._data->empty();
 }
 
-bool mint::operator!=(const Iterator::Context::sentinel& /*self*/, const Iterator::Context::iterator& other) {
+bool mint::operator!=(const Iterator::Context::sentinel& /*self*/, const Iterator::Context::const_iterator& other) {
 	return !other._data->empty();
 }
 
-Iterator::Context::reference Iterator::Context::iterator::operator*() const {
+Iterator::Context::reference Iterator::Context::const_iterator::operator*() const {
 	return _data->get();
 }
 
-Iterator::Context::pointer Iterator::Context::iterator::operator->() const {
+Iterator::Context::pointer Iterator::Context::const_iterator::operator->() const {
 	return &_data->get();
 }
 
-Iterator::Context::iterator Iterator::Context::iterator::operator++(int) {
+Iterator::Context::const_iterator Iterator::Context::const_iterator::operator++(int) {
 	_data->next(Scheduler::current_process()->cursor());
-	return Iterator::Context::iterator {_data};
+	return Iterator::Context::const_iterator {_data};
 }
 
-Iterator::Context::iterator& Iterator::Context::iterator::operator++() {
+Iterator::Context::const_iterator& Iterator::Context::const_iterator::operator++() {
 	_data->next(Scheduler::current_process()->cursor());
 	return *this;
 }
@@ -450,16 +395,12 @@ Iterator::Context& Iterator::Context::operator=(const Context& other) {
 	return *this;
 }
 
-Iterator::Context::iterator Iterator::Context::cbegin() const {
-	return Iterator::Context::iterator {_data.get()};
+Iterator::Context::const_iterator Iterator::Context::cbegin() const {
+	return Iterator::Context::const_iterator {_data.get()};
 }
 
-Iterator::Context::iterator Iterator::Context::begin() const {
-	return Iterator::Context::iterator {_data.get()};
-}
-
-Iterator::Context::iterator Iterator::Context::begin() {
-	return Iterator::Context::iterator {_data.get()};
+Iterator::Context::const_iterator Iterator::Context::begin() const {
+	return Iterator::Context::const_iterator {_data.get()};
 }
 
 Iterator::Context::sentinel Iterator::Context::cend() const {
@@ -467,10 +408,6 @@ Iterator::Context::sentinel Iterator::Context::cend() const {
 }
 
 Iterator::Context::sentinel Iterator::Context::end() const {
-	return Iterator::Context::sentinel {};
-}
-
-Iterator::Context::sentinel Iterator::Context::end() {
 	return Iterator::Context::sentinel {};
 }
 

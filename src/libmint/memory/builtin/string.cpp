@@ -33,6 +33,7 @@
 #include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/cursor.h"
 #include "mint/memory/memorytool.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/system/string.h"
 #include "mint/system/utf8.h"
@@ -44,15 +45,19 @@
 #include <cassert>
 #include <cctype>
 #include <cstdint>
+#include <format>
 #include <iterator>
 #include <cstring>
 #include <map>
 #include <optional>
 #include <ranges>
 #include <regex>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
 #include <utility>
+#include <vector>
 
 using namespace mint;
 
@@ -69,25 +74,144 @@ std::size_t string_index(const std::string& str, intmax_t index) {
 	return i;
 }
 
-std::string::const_iterator string_next(const std::string& str, std::size_t index) {
-	return next(std::begin(str), static_cast<std::string::difference_type>(index));
+auto string_next(auto& str, std::size_t index) {
+	return std::next(std::begin(str), static_cast<std::remove_reference_t<decltype(str)>::difference_type>(index));
 }
 
-void string_format(Cursor& cursor, std::string& dest, const std::string& format, Iterator& args) {
+std::string string_format_value(Cursor& cursor, char format, const Reference& value, std::intmax_t field_width,
+    std::intmax_t precision, StringFormatFlags flags) {
 
-	for (std::string::const_iterator cptr = format.begin(); cptr != format.end(); ++cptr) {
+	auto dest = std::string();
+	auto s = std::string();
+	auto len = std::intmax_t {0};
+	auto base = decimal_base;
+
+	switch (format) {
+	case 'c':
+		if (!(flags & string_left)) {
+			while (--field_width > 0) {
+				dest += ' ';
+			}
+		}
+		dest += to_char(value);
+		while (--field_width > 0) {
+			dest += ' ';
+		}
+		return dest;
+	case 's':
+		s = to_string(value);
+		len = (precision < 0) ? static_cast<std::intmax_t>(s.size())
+		                      : std::min(precision, static_cast<std::intmax_t>(s.size()));
+		if (!(flags & string_left)) {
+			while (len < field_width--) {
+				dest += ' ';
+			}
+		}
+		dest += s.substr(0, static_cast<std::size_t>(len));
+		while (len < field_width--) {
+			dest += ' ';
+		}
+		return dest;
+	case 'P':
+		flags |= string_large;
+		[[fallthrough]];
+	case 'p':
+		if (field_width == -1) {
+			field_width = 2 * sizeof(void*);
+			flags |= string_zeropad;
+		}
+		dest += format_integer(std::bit_cast<std::uintptr_t>(&value.data()), hexadecimal_base, field_width, precision,
+		    flags);
+		return dest;
+	case 'A':
+		flags |= string_large;
+		[[fallthrough]];
+	case 'a':
+		dest += format_float(to_number(cursor, value), hexadecimal_base, DigitsFormat::decimal, field_width, precision,
+		    flags);
+		return dest;
+	case 'B':
+		flags |= string_large;
+		[[fallthrough]];
+	case 'b':
+		base = binary_base;
+		break;
+	case 'O':
+		flags |= string_large;
+		[[fallthrough]];
+	case 'o':
+		base = octal_base;
+		break;
+	case 'X':
+		flags |= string_large;
+		[[fallthrough]];
+	case 'x':
+		base = hexadecimal_base;
+		break;
+	case 'd':
+	case 'i':
+		flags |= string_sign;
+		break;
+	case 'u':
+		break;
+	case 'E':
+		flags |= string_large;
+		[[fallthrough]];
+	case 'e':
+		dest += format_float(to_number(cursor, value), decimal_base, DigitsFormat::scientific, field_width, precision,
+		    flags | string_sign);
+		return dest;
+	case 'F':
+		flags |= string_large;
+		[[fallthrough]];
+	case 'f':
+		dest += format_float(to_number(cursor, value), decimal_base, DigitsFormat::decimal, field_width, precision,
+		    flags | string_sign);
+		return dest;
+	case 'G':
+		flags |= string_large;
+		[[fallthrough]];
+	case 'g':
+		dest += format_float(to_number(cursor, value), decimal_base, DigitsFormat::shortest, field_width, precision,
+		    flags | string_sign);
+		return dest;
+	default:
+		error("invalid format character '{}'", format);
+	}
+
+	if (flags & string_sign) {
+		dest += format_integer(to_signed_integer(cursor, value), base, field_width, precision, flags);
+	}
+	else {
+		dest += format_integer(to_unsigned_integer(cursor, value), base, field_width, precision, flags);
+	}
+
+	return dest;
+}
+
+std::string string_format_percent(Cursor& cursor, std::string_view format, Iterator& args) {
+
+	auto dest = std::string();
+
+	for (auto cptr = format.begin(); cptr != format.end(); ++cptr) {
 
 		if ((*cptr == '%') && !args.ctx.empty()) {
 
-			if (*(cptr + 1) == '%') {
+			if (((cptr + 1) != format.end()) && (*(cptr + 1) == '%')) {
 				dest += '%';
 				++cptr;
 				continue;
 			}
 
-			std::optional<WeakReference> argv = iterator_next(cursor, args);
-			StringFormatFlags flags = 0;
-			bool handled = false;
+			auto field_width = std::intmax_t {-1};
+			auto precision = std::intmax_t {-1};
+			auto flags = StringFormatFlags();
+			auto handled = false;
+
+			auto argv = iterator_next(cursor, args);
+			if (!argv.has_value()) {
+				error("not enough format arguments");
+			}
 
 			while (!handled && cptr != format.end()) {
 				if (++cptr == format.end()) [[unlikely]] {
@@ -114,16 +238,14 @@ void string_format(Cursor& cursor, std::string& dest, const std::string& format,
 					break;
 				}
 
-				std::intmax_t field_width = -1;
-				if (isdigit(*cptr)) {
-					std::string num;
-					while (isdigit(*cptr)) {
-						num += *cptr;
+				if (std::isdigit(static_cast<unsigned char>(*cptr))) {
+					field_width = 0;
+					while (std::isdigit(static_cast<unsigned char>(*cptr))) {
+						field_width = (field_width * decimal_base) + (*cptr - '0');
 						if (++cptr == format.end()) [[unlikely]] {
 							error("incomplete format '{}'", format);
 						}
 					}
-					field_width = std::stoll(num);
 				}
 				else if (*cptr == '*') {
 					if (++cptr == format.end()) [[unlikely]] {
@@ -131,20 +253,22 @@ void string_format(Cursor& cursor, std::string& dest, const std::string& format,
 					}
 					field_width = to_signed_integer(cursor, *argv);
 					argv = iterator_next(cursor, args);
+					if (!argv.has_value()) {
+						error("not enough format arguments");
+					}
 					if (field_width < 0) {
 						field_width = -field_width;
 						flags |= string_left;
 					}
 				}
 
-				std::intmax_t precision = -1;
 				if (*cptr == '.') {
 					if (++cptr == format.end()) [[unlikely]] {
 						error("incomplete format '{}'", format);
 					}
-					if (isdigit(*cptr)) {
+					if (std::isdigit(static_cast<unsigned char>(*cptr))) {
 						precision = 0;
-						while (isdigit(*cptr)) {
+						while (std::isdigit(static_cast<unsigned char>(*cptr))) {
 							precision = (precision * decimal_base) + (*cptr - '0');
 							if (++cptr == format.end()) [[unlikely]] {
 								error("incomplete format '{}'", format);
@@ -157,120 +281,228 @@ void string_format(Cursor& cursor, std::string& dest, const std::string& format,
 						}
 						precision = to_signed_integer(cursor, *argv);
 						argv = iterator_next(cursor, args);
+						if (!argv.has_value()) {
+							error("not enough format arguments");
+						}
 					}
 					precision = std::max(precision, std::intmax_t {0});
 				}
 
-				std::string s;
-				std::intmax_t len = 0;
-				NumberBase base = decimal_base;
-
-				switch (*cptr) {
-				case 'c':
-					if (!(flags & string_left)) {
-						while (--field_width > 0) {
-							dest += ' ';
-						}
-					}
-					dest += to_char(*argv);
-					while (--field_width > 0) {
-						dest += ' ';
-					}
-					continue;
-				case 's':
-					s = to_string(*argv);
-					len = (precision < 0) ? static_cast<std::intmax_t>(s.size())
-					                      : std::min(precision, static_cast<std::intmax_t>(s.size()));
-					if (!(flags & string_left)) {
-						while (len < field_width--) {
-							dest += ' ';
-						}
-					}
-					dest += s.substr(0, static_cast<std::size_t>(len));
-					while (len < field_width--) {
-						dest += ' ';
-					}
-					continue;
-				case 'P':
-					flags |= string_large;
-					[[fallthrough]];
-				case 'p':
-					if (field_width == -1) {
-						field_width = 2 * sizeof(void*);
-						flags |= string_zeropad;
-					}
-					dest += format_integer(std::bit_cast<std::uintptr_t>(&argv->data()), hexadecimal_base, field_width,
-					    precision, flags);
-					continue;
-				case 'A':
-					flags |= string_large;
-					[[fallthrough]];
-				case 'a':
-					dest += format_float(to_number(cursor, *argv), hexadecimal_base, DigitsFormat::decimal, field_width,
-					    precision, flags);
-					continue;
-				case 'B':
-					flags |= string_large;
-					[[fallthrough]];
-				case 'b':
-					base = binary_base;
-					break;
-				case 'O':
-					flags |= string_large;
-					[[fallthrough]];
-				case 'o':
-					base = octal_base;
-					break;
-				case 'X':
-					flags |= string_large;
-					[[fallthrough]];
-				case 'x':
-					base = hexadecimal_base;
-					break;
-				case 'd':
-				case 'i':
-					flags |= string_sign;
-					break;
-				case 'u':
-					break;
-				case 'E':
-					flags |= string_large;
-					[[fallthrough]];
-				case 'e':
-					dest += format_float(to_number(cursor, *argv), decimal_base, DigitsFormat::scientific, field_width,
-					    precision, flags | string_sign);
-					continue;
-				case 'F':
-					flags |= string_large;
-					[[fallthrough]];
-				case 'f':
-					dest += format_float(to_number(cursor, *argv), decimal_base, DigitsFormat::decimal, field_width,
-					    precision, flags | string_sign);
-					continue;
-				case 'G':
-					flags |= string_large;
-					[[fallthrough]];
-				case 'g':
-					dest += format_float(to_number(cursor, *argv), decimal_base, DigitsFormat::shortest, field_width,
-					    precision, flags | string_sign);
-					continue;
-				default:
-					dest += *cptr;
-					continue;
-				}
-
-				if (flags & string_sign) {
-					dest += format_integer(to_signed_integer(cursor, *argv), base, field_width, precision, flags);
-				}
-				else {
-					dest += format_integer(to_unsigned_integer(cursor, *argv), base, field_width, precision, flags);
-				}
+				dest += string_format_value(cursor, *cptr, *argv, field_width, precision, flags);
 			}
 		}
 		else {
 			dest += *cptr;
 		}
 	}
+
+	return dest;
+}
+
+std::vector<WeakReference> collect_format_arguments(const Iterator& args) {
+	auto result = std::vector<WeakReference>();
+	for (const auto& item : args.ctx.view()) {
+		result.emplace_back(item);
+	}
+	return result;
+}
+
+std::pair<std::optional<WeakReference>, std::string_view> parse_format_field(Cursor& cursor, std::string_view field,
+    const std::vector<WeakReference>& values, Iterator& args) {
+
+	auto offset = 0uz;
+	while ((offset < field.size()) && std::isdigit(static_cast<unsigned char>(field[offset]))) {
+		++offset;
+	}
+
+	if (offset > 0) {
+		if ((offset < field.size()) && (field[offset] != ':')) [[unlikely]] {
+			error("invalid format field '{{{}}}'", field);
+		}
+		const auto index = to_unsigned_integer(field.substr(0, offset));
+		if (index >= values.size()) [[unlikely]] {
+			error("format argument index '{}' is out of range", index);
+		}
+		if (offset == field.size()) {
+			return {values[index], std::string_view()};
+		}
+		return {values[index], field.substr(offset + 1)};
+	}
+
+	if (field.empty()) {
+		return {iterator_next(cursor, args), field};
+	}
+
+	if (!field.starts_with(':')) [[unlikely]] {
+		error("invalid format field '{{{}}}'", field);
+	}
+
+	return {iterator_next(cursor, args), field.substr(offset + 1)};
+}
+
+char string_value_prefered_format(const Reference& value) {
+	switch (value.data().format()) {
+	case Data::Format::number:
+		return is_integer(value) ? 'd' : 'g';
+	default:
+		return 's';
+	}
+}
+
+std::string string_format_argument(Cursor& cursor, std::string_view spec, const Reference& arg, Iterator& args) {
+
+	auto field_width = std::intmax_t {-1};
+	auto precision = std::intmax_t {-1};
+	auto flags = StringFormatFlags();
+	auto dest = std::string();
+
+	if (spec.empty()) {
+		dest += to_string(arg);
+		return dest;
+	}
+
+	for (auto cptr = spec.begin(); cptr != spec.end(); ++cptr) {
+
+		switch (*cptr) {
+		case '-':
+			flags |= string_left;
+			continue;
+		case '+':
+			flags |= string_plus;
+			continue;
+		case ' ':
+			flags |= string_space;
+			continue;
+		case '#':
+			flags |= string_special;
+			continue;
+		case '0':
+			flags |= string_zeropad;
+			continue;
+		default:
+			break;
+		}
+
+		if (std::isdigit(static_cast<unsigned char>(*cptr))) {
+			field_width = 0;
+			while (std::isdigit(static_cast<unsigned char>(*cptr))) {
+				field_width = (field_width * decimal_base) + (*cptr - '0');
+				if (++cptr == spec.end()) {
+					dest += string_format_value(cursor, string_value_prefered_format(arg), arg, field_width, precision,
+					    flags);
+					return dest;
+				}
+			}
+		}
+		else if (*cptr == '{') {
+			if (++cptr == spec.end()) [[unlikely]] {
+				error("incomplete format '{}'", spec);
+			}
+			const auto field_start = std::ranges::distance(spec.begin(), cptr);
+			const auto field_end = spec.find('}', field_start);
+			if (field_end == std::string_view::npos) [[unlikely]] {
+				error("incomplete format '{}'", spec);
+			}
+			const auto [value, nested_spec] = parse_format_field(cursor,
+			    spec.substr(field_start, field_end - field_start), collect_format_arguments(args), args);
+			field_width = to_signed_integer(
+			    string_format_argument(cursor, nested_spec, value.value_or(create_none()), args));
+			if (field_width < 0) {
+				field_width = -field_width;
+				flags |= string_left;
+			}
+			cptr = string_next(spec, field_end + 1);
+		}
+
+		if (*cptr == '.') {
+			if (++cptr == spec.end()) [[unlikely]] {
+				error("incomplete format '{}'", spec);
+			}
+			if (std::isdigit(static_cast<unsigned char>(*cptr))) {
+				precision = 0;
+				while (std::isdigit(static_cast<unsigned char>(*cptr))) {
+					precision = (precision * decimal_base) + (*cptr - '0');
+					if (++cptr == spec.end()) {
+						dest += string_format_value(cursor, string_value_prefered_format(arg), arg, field_width,
+						    precision, flags);
+						return dest;
+					}
+				}
+			}
+			else if (*cptr == '{') {
+				if (++cptr == spec.end()) [[unlikely]] {
+					error("incomplete format '{}'", spec);
+				}
+				const auto field_start = std::ranges::distance(spec.begin(), cptr);
+				const auto field_end = spec.find('}', field_start);
+				if (field_end == std::string_view::npos) [[unlikely]] {
+					error("incomplete format '{}'", spec);
+				}
+				const auto [value, nested_spec] = parse_format_field(cursor,
+				    spec.substr(field_start, field_end - field_start), collect_format_arguments(args), args);
+				precision = to_signed_integer(
+				    string_format_argument(cursor, nested_spec, value.value_or(create_none()), args));
+				cptr = string_next(spec, field_end + 1);
+			}
+			precision = std::max(precision, std::intmax_t {0});
+		}
+
+		if (cptr == spec.end()) {
+			dest += string_format_value(cursor, string_value_prefered_format(arg), arg, field_width, precision, flags);
+			return dest;
+		}
+
+		dest += string_format_value(cursor, *cptr, arg, field_width, precision, flags);
+		return dest;
+	}
+
+	return dest;
+}
+
+std::string string_format_brace(Cursor& cursor, std::string_view format, Iterator& args) {
+
+	const auto values = collect_format_arguments(args);
+	auto dest = std::string();
+
+	for (auto cptr = format.begin(); cptr != format.end(); ++cptr) {
+		switch (*cptr) {
+		case '{':
+			if (((cptr + 1) != format.end()) && (*(cptr + 1) == '{')) {
+				dest += '{';
+				++cptr;
+			}
+			else {
+
+				const auto field_start = std::ranges::distance(format.begin(), cptr);
+				const auto field_end = format.find('}', field_start + 1);
+				if (field_end == std::string_view::npos) [[unlikely]] {
+					error("incomplete format '{}'", format);
+				}
+
+				const auto field = format.substr(field_start + 1, field_end - field_start - 1);
+				const auto [arg, spec] = parse_format_field(cursor, field, values, args);
+				if (!arg.has_value()) {
+					error("format field '{}' is missing argument", field);
+				}
+
+				dest += string_format_argument(cursor, spec, *arg, args);
+				cptr = string_next(format, field_end);
+			}
+			break;
+		case '}':
+			if (((cptr + 1) != format.end()) && (*(cptr + 1) == '}')) {
+				dest += '}';
+				++cptr;
+				continue;
+			}
+			[[fallthrough]];
+		default:
+			dest += *cptr;
+			break;
+		}
+	}
+
+	return dest;
 }
 
 }
@@ -381,23 +613,35 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 	create_builtin_member(mod_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
-		auto& values = load_from_stack(cursor, base);
-		const auto& self = load_from_stack(cursor, base - 1);
+		auto values = move_from_stack(cursor, base);
+		auto self = move_from_stack(cursor, base - 1);
 
-		std::string result;
+		cursor.stack().pop_back();
+		cursor.stack().pop_back();
 
 		if (is_instance_of(values, Class::Metatype::iterator)) {
-			string_format(cursor, result, self.data<String>().str, values.data<Iterator>());
+			cursor.stack().emplace_back(create_string(cursor.ast(),
+			    string_format_percent(cursor, self.data<String>().str, values.data<Iterator>())));
 		}
 		else {
 			auto it = create_iterator(cursor.ast());
 			iterator_yield(cursor, it.data<Iterator>(), std::move(values));
-			string_format(cursor, result, self.data<String>().str, it.data<Iterator>());
+			cursor.stack().emplace_back(create_string(cursor.ast(),
+			    string_format_percent(cursor, self.data<String>().str, it.data<Iterator>())));
 		}
+	}));
+
+	create_builtin_member("format", ast.create_builtin_method(*this, variadic(1), [](Cursor& cursor) {
+		const auto base = get_stack_base(cursor);
+
+		auto values = move_from_stack(cursor, base);
+		auto self = move_from_stack(cursor, base - 1);
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
-		cursor.stack().emplace_back(create_string(cursor.ast(), result));
+
+		cursor.stack().emplace_back(
+		    create_string(cursor.ast(), string_format_brace(cursor, self.data<String>().str, values.data<Iterator>())));
 	}));
 
 	create_builtin_member(shift_left_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {

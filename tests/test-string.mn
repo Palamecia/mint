@@ -6,4 +6,74 @@ class StringTest : Test.Case {
         self.expectEqual('replace that string', 'replace this string'.replace('this', 'that'))
         self.expectEqual('replace that string', 'replace this string'.replace(8, 4, 'that'))
     }
+
+    const def testPercentFormat(self) {
+
+        // --- Basic substitution ---
+        self.expectEqual('Hello Mint', 'Hello %s' % 'Mint')
+
+        // --- Multiple values ---
+        self.expectEqual('1 2', '%d %d' % (1, 2))
+
+        // --- Float formatting ---
+        self.expectEqual('3.14', '%.2f' % 3.14159)
+
+        // --- Padding ---
+        self.expectEqual('0007', '%04d' % 7)
+
+        // --- Left align ---
+        self.expectEqual('7   ', '%-4d' % 7)
+
+        // --- String ---
+        self.expectEqual('value: test', 'value: %s' % 'test')
+
+        // --- Mixed ---
+        self.expectEqual('x=10 y=3.50', 'x=%d y=%.2f' % (10, 3.5))
+    }
+
+    const def testBraceFormat(self) {
+
+        // --- Basic substitution ---
+        self.expectEqual('Hello Mint', 'Hello {}'.format('Mint'))
+        self.expectEqual('0007 3.50', '{:04} {:.2f}'.format(7, 3.5))
+        self.expectEqual('right then left', '{1} then {0}'.format('left', 'right'))
+        self.expectEqual('{ok}', '{{{}}}'.format('ok'))
+
+        // --- Multiple arguments ---
+        self.expectEqual('1 2 3', '{} {} {}'.format(1, 2, 3))
+
+        // --- Mixed indexing and automatic ---
+        self.expectEqual('a a a b', '{0} {} {0} {}'.format('a', 'b'))
+
+        // --- Reuse same argument ---
+        self.expectEqual('x x x', '{0} {0} {0}'.format('x'))
+
+        // --- Large index ---
+        self.expectEqual('last', '{2}'.format('a', 'b', 'last'))
+
+        // --- Negative numbers ---
+        self.expectEqual('-0042', '{:05}'.format(-42))
+
+        // --- Float rounding ---
+        self.expectEqual('3.14', '{:.2f}'.format(3.14159))
+
+        // --- Float no decimals ---
+        self.expectEqual('4', '{:.0f}'.format(3.6))
+
+        // --- String formatting fallback ---
+        self.expectEqual('value: test', 'value: {}'.format('test'))
+
+        // --- Empty format ---
+        self.expectEqual('', ''.format())
+
+        // --- No placeholders ---
+        self.expectEqual('hello', 'hello'.format(1, 2, 3))
+
+        // --- Escaped braces ---
+        self.expectEqual('{}', '{{}}'.format())
+        self.expectEqual('{x}', '{{{}}}'.format('x'))
+
+        // --- Nested braces stress ---
+        self.expectEqual('{a b}', '{{{} {}}}'.format('a', 'b'))
+    }
 }

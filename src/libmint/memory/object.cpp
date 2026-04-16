@@ -37,6 +37,7 @@
 #include "mint/system/error.h"
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <iterator>
@@ -59,6 +60,11 @@ Number::Number(std::intmax_t value) :
 
 Number::Number(std::uintmax_t value) :
     value(static_cast<double>(value)) {}
+
+bool mint::is_integer(const Reference& ref) {
+	return ref.data().format() == Data::Format::number
+	       && std::floor(ref.data<Number>().value) == ref.data<Number>().value;
+}
 
 Boolean::Boolean(bool value) :
     value(value) {}

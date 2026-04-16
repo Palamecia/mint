@@ -179,7 +179,9 @@ contexts:
       scope: constant.character.escape.newline.mn
     - match: \\(?:x\h\h|u\h\h\h\h|.)
       scope: constant.character.escape.mn
-    - match: '%(?:s|d|i|u|f|g|e|x)'
+    - match: '(%[-\+ #0]*(?:\d*|\*?)(?:\.(?:\d*|\*?))?(?:c|s|P|p|A|a|B|b|O|o|X|x|d|i|u|E|e|F|f|G|g|%))'
+      scope: constant.character.format.mn
+    - match: '(\{\d*(?:\:[-\+ #0]*(?:\d*|(\{\})?)(?:\.(?:\d*|(\{\})?))?(?:c|s|P|p|A|a|B|b|O|o|X|x|d|i|u|E|e|F|f|G|g)?)?\})'
       scope: constant.character.format.mn
 
   immediately_pop:

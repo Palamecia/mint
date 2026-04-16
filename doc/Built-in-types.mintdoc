@@ -131,52 +131,104 @@ Returns `true` if the string does not match the [regex](#regex) `expr`; otherwis
 
 `def %(self, values)`
 
-Returns a copy of the string with format specifiers replaced with the values in the `values` [iterator](#iterator). If `values` contains more values than specifiers in the string, extra values are ignored. If the string contains more format specifiers than the number of elements in `values`, extra format specifiers are not replaced.
+Returns a copy of the string with format specifiers replaced with the values in the `values` [iterator](#iterator). If `values` contains more values than specifiers in the string, or if the string contains more format specifiers than the number of elements in `values`, an error is generated.
 
-A format specifier follow this prototype: `%[flags][width][.precision][length]specifier`
+A format specifier follow this prototype: `%[flags][width][.precision][length]specifier`.
 
-| Specifier | Output |
-|-----------|--------|
-| `c` | First character of the string representation of the element |
-| `s` | String representation of the element |
-| `P` | Address of the element as upper case hexadecimal |
-| `p` | Address of the element as lower case hexadecimal |
-| `A` | Upper case floating point hexadecimal representation of the element |
-| `a` | Lower case floating point hexadecimal representation of the element |
-| `B` | Upper case binary representation of the element |
-| `b` | Lower case binary representation of the element |
-| `O` | Upper case octal representation of the element |
-| `o` | Lower case octal representation of the element |
-| `X` | Upper case hexadecimal representation of the element |
-| `x` | Lower case hexadecimal representation of the element |
-| `d` | Signed decimal representation of the element |
-| `i` | Signed decimal representation of the element |
-| `u` | Unsigned decimal representation of the element |
-| `E` | Upper case scientific notation of the floating point representation of the element |
-| `e` | Lower case scientific notation of the floating point representation of the element |
-| `F` | Upper case floating point representation of the element |
-| `f` | Lower case floating point representation of the element |
-| `G` | Upper case shortest floating point representation of the element |
-| `g` | Lower case shortest floating point representation of the element |
-| `%` | Print a `'%'` character |
+| Specifier | Output                                                                             |
+|-----------|------------------------------------------------------------------------------------|
+|    `c`    | First character of the string representation of the element                        |
+|    `s`    | String representation of the element                                               |
+|    `P`    | Address of the element as upper case hexadecimal                                   |
+|    `p`    | Address of the element as lower case hexadecimal                                   |
+|    `A`    | Upper case floating point hexadecimal representation of the element                |
+|    `a`    | Lower case floating point hexadecimal representation of the element                |
+|    `B`    | Upper case binary representation of the element                                    |
+|    `b`    | Lower case binary representation of the element                                    |
+|    `O`    | Upper case octal representation of the element                                     |
+|    `o`    | Lower case octal representation of the element                                     |
+|    `X`    | Upper case hexadecimal representation of the element                               |
+|    `x`    | Lower case hexadecimal representation of the element                               |
+|    `d`    | Signed decimal representation of the element                                       |
+|    `i`    | Signed decimal representation of the element                                       |
+|    `u`    | Unsigned decimal representation of the element                                     |
+|    `E`    | Upper case scientific notation of the floating point representation of the element |
+|    `e`    | Lower case scientific notation of the floating point representation of the element |
+|    `F`    | Upper case floating point representation of the element                            |
+|    `f`    | Lower case floating point representation of the element                            |
+|    `G`    | Upper case shortest floating point representation of the element                   |
+|    `g`    | Lower case shortest floating point representation of the element                   |
+|    `%`    | Print a `'%'` character                                                            |
 
-| Flags | Description |
-|-------|-------------|
-| `-` | Left-justify within the given field width |
-| `+` | Force sign prefix on signed values |
-| `[\s]` | Use a space character instead of the `'+'` character as sign prefix |
-| `#` | Insert a prefix before non decimal numeric values (`'0x'` for hexadecimal, `'0o'` for octal and `'0b'` for binary) |
-| `0` | Left padding use the `'0'` character |
+| Flags  | Description                                                                                                        |
+|--------|--------------------------------------------------------------------------------------------------------------------|
+| `-`    | Left-justify within the given field width                                                                          |
+| `+`    | Force sign prefix on signed values                                                                                 |
+| `[\s]` | Use a space character instead of the `'+'` character as sign prefix                                                |
+| `#`    | Insert a prefix before non decimal numeric values (`'0x'` for hexadecimal, `'0o'` for octal and `'0b'` for binary) |
+| `0`    | Left padding use the `'0'` character                                                                               |
 
-| Width | Description |
-|-------|-------------|
+| Width   | Description                                                                                                                                        |
+|---------|----------------------------------------------------------------------------------------------------------------------------------------------------|
 | `[\d]+` | Minimum number of character to be printed. If the length of the value is less than this number, the result is left padded with spaces (by default) |
-| `*` | The width is read from the next element |
+| `*`     | The width is read from the next element                                                                                                            |
 
-| Precision | Description |
-|-----------|-------------|
-| `[\d]+` | Minimum number of digits for integer values or number of digits in the decimal part of a floating point value |
-| `*` | The precision is read from the next element |
+| Precision | Description                                                                                                   |
+|-----------|---------------------------------------------------------------------------------------------------------------|
+| `[\d]+`   | Minimum number of digits for integer values or number of digits in the decimal part of a floating point value |
+| `*`       | The precision is read from the next element                                                                   |
+
+### string.format
+
+`def format(self, ...)`
+
+Returns a copy of the string with format specifiers replaced with the values of the extra parameters. If more parameters are passed than specifiers in the string, or if the string contains more format specifiers than the number of parameters, an error is generated.
+
+A format specifier follow this prototype: `{[index][:[flags][width][.precision][length]specifier]}`. A `{{` can be used to insert a `{` character and `}}` for a  `}` character.
+
+| Specifier | Output                                                                             |
+|-----------|------------------------------------------------------------------------------------|
+|    `c`    | First character of the string representation of the element                        |
+|    `s`    | String representation of the element                                               |
+|    `P`    | Address of the element as upper case hexadecimal                                   |
+|    `p`    | Address of the element as lower case hexadecimal                                   |
+|    `A`    | Upper case floating point hexadecimal representation of the element                |
+|    `a`    | Lower case floating point hexadecimal representation of the element                |
+|    `B`    | Upper case binary representation of the element                                    |
+|    `b`    | Lower case binary representation of the element                                    |
+|    `O`    | Upper case octal representation of the element                                     |
+|    `o`    | Lower case octal representation of the element                                     |
+|    `X`    | Upper case hexadecimal representation of the element                               |
+|    `x`    | Lower case hexadecimal representation of the element                               |
+|    `d`    | Signed decimal representation of the element                                       |
+|    `i`    | Signed decimal representation of the element                                       |
+|    `u`    | Unsigned decimal representation of the element                                     |
+|    `E`    | Upper case scientific notation of the floating point representation of the element |
+|    `e`    | Lower case scientific notation of the floating point representation of the element |
+|    `F`    | Upper case floating point representation of the element                            |
+|    `f`    | Lower case floating point representation of the element                            |
+|    `G`    | Upper case shortest floating point representation of the element                   |
+|    `g`    | Lower case shortest floating point representation of the element                   |
+
+> If not specified, the behaviour is guessed from the most suittable format to print the value.
+
+| Flags  | Description                                                                                                        |
+|--------|--------------------------------------------------------------------------------------------------------------------|
+| `-`    | Left-justify within the given field width                                                                          |
+| `+`    | Force sign prefix on signed values                                                                                 |
+| `[\s]` | Use a space character instead of the `'+'` character as sign prefix                                                |
+| `#`    | Insert a prefix before non decimal numeric values (`'0x'` for hexadecimal, `'0o'` for octal and `'0b'` for binary) |
+| `0`    | Left padding use the `'0'` character                                                                               |
+
+| Width   | Description                                                                                                                                        |
+|---------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `[\d]+` | Minimum number of character to be printed. If the length of the value is less than this number, the result is left padded with spaces (by default) |
+| `{}`    | The width is read from the parameter folowing the value                                                                                            |
+
+| Precision | Description                                                                                                   |
+|-----------|---------------------------------------------------------------------------------------------------------------|
+| `[\d]+`   | Minimum number of digits for integer values or number of digits in the decimal part of a floating point value |
+| `{}`      | The precision is read from the parameter folowing the value                                                   |
 
 ### string.*
 

@@ -179,6 +179,55 @@ class MyClass {
 > [!NOTE]
 > If the constructor is not defined, the class instantiation gives an object only initialized with the values associated with the class members.
 
+Classes also provides a global `allocate` method that create an object instance only initialized with the values associated with the class members. The constructor is not called by this method. This is usefull to create named constructors where the default constructor is not suitable.
+
+**Example**:
+
+```mn
+class Result {
+    def new(self, value) {
+        self.value = value
+        return self
+    }
+
+    @def fromError(error) {
+        let self = Result.allocate()
+        self.error = error
+        return self
+    }
+
+    - error = none
+    - value = none
+}
+```
+
+As this method is defined for any user defined classes, it can also be called as an instance method to allocate the real type of an object.
+
+**Example**:
+
+```mn
+class Foo {
+    def clone(const self) {
+        let other = self.allocate()
+        // ...
+        return self
+    }
+}
+
+class Bar : Foo {
+    // ...
+}
+
+let foo = Foo()
+let bar = Bar()
+
+let otherFoo = foo.clone()  // `otherFoo` is an instance of `Foo`
+let otherBar = bar.clone()  // `otherBar` is an instance of `Bar`
+```
+
+> [!NOTE]
+> This class method has a [[protected|User-defined-types#Members-visibility]] visibility. So it can not be called outside of the class hierarchi.
+
 The `delete` member is called the destructor. When an instance is [[destroyed|Introduction#garbage-collector]], this member is [[called|Arithmetic-operations#function-call]]. The returned value is ignored.
 
 The destructor can take only one parameter corresponding to the instance of the object being destroyed. Some final operations can then be processed on the object.
@@ -467,13 +516,16 @@ class MyClass {
     - value = 0
 
     const def clone(const self) {
-        MyClass.instanceCount++
-        var other = MyClass()
+        MyClass.copyCount++
+        let other = self.allocate()
         other.value = self.value
         return other
     }
 }
 ```
+
+> [!IMPORTANT]
+> The `allocate` method should be used to create the copy instance. Calling the class constructor could performs unwanted operations and break inheritance.
 
 > [!TIP]
 > The `clone` member can also be declared as a private member to disable the copy.

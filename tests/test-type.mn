@@ -2,6 +2,19 @@ load test.case
 load mint.type
 
 class TypeTest : Test.Case {
+    const def testAllocate(self) {
+        class Foo {
+            const def clone(const self) {
+                return self.allocate()
+            }
+        }
+        class Bar : Foo {}
+        const foo = Foo()
+        const bar = Bar()
+        self.expectEqual('Foo', typeof foo.clone())
+        self.expectEqual('Bar', typeof bar.clone())
+    }
+
     const def testDeclarePrivate(self) {
         const __my_type__ = type('__my_type__', {
             private('member'): none

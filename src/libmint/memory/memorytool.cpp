@@ -91,7 +91,7 @@ Cursor::Call& setup_member_call(Cursor& cursor, Reference& reference) {
 			object->construct();
 		}
 
-		if (Class::MemberInfo* info = metadata->find_operator(Class::new_operator)) {
+		if (const auto* info = metadata->find_operator(Class::new_operator)) {
 
 			switch (info->value.flags() & Reference::visibility_mask) {
 			case Reference::protected_visibility:
@@ -120,7 +120,7 @@ Cursor::Call& setup_member_call(Cursor& cursor, Reference& reference) {
 			cursor.waiting_calls().emplace(create_none());
 		}
 	}
-	else if (Class::MemberInfo* info = metadata->find_operator(Class::call_operator)) {
+	else if (const auto* info = metadata->find_operator(Class::call_operator)) {
 		cursor.waiting_calls().emplace(Class::MemberInfo::get(*info, *object));
 		flags |= Cursor::Call::operator_call;
 		metadata = &info->owner.get();
@@ -135,8 +135,9 @@ Cursor::Call& setup_member_call(Cursor& cursor, Reference& reference) {
 	return call;
 }
 
-Reference& get_accessible_member(Cursor& cursor, const Symbol& member, Class::MemberInfo& info, Object& object) {
-	Reference& result = Class::MemberInfo::get(info, object);
+const Reference& get_accessible_member(Cursor& cursor, const Symbol& member, const Class::MemberInfo& info,
+    Object& object) {
+	const auto& result = Class::MemberInfo::get(info, object);
 	switch (result.flags() & Reference::visibility_mask) {
 	case Reference::protected_visibility:
 		if (!is_protected_accessible(cursor, info.owner)) [[unlikely]] {
@@ -159,7 +160,8 @@ Reference& get_accessible_member(Cursor& cursor, const Symbol& member, Class::Me
 	return result;
 }
 
-Reference& get_accessible_class_member(Cursor& cursor, const Symbol& member, Class::MemberInfo& info, Class& metadata) {
+const Reference& get_accessible_class_member(Cursor& cursor, const Symbol& member, const Class::MemberInfo& info,
+    Class& metadata) {
 	if (cursor.is_in_builtin() || cursor.symbols().get_metadata() == nullptr) [[unlikely]] {
 		error("could not access member '{}' of class '{}' without object", member.str(), metadata.full_name());
 	}
@@ -175,7 +177,8 @@ Reference& get_accessible_class_member(Cursor& cursor, const Symbol& member, Cla
 	return info.value;
 }
 
-Reference& get_accessible_global_member(Cursor& cursor, const Symbol& member, Class::MemberInfo& info, Class& metadata) {
+const Reference& get_accessible_global_member(Cursor& cursor, const Symbol& member, const Class::MemberInfo& info,
+    Class& metadata) {
 	if (info.value.data().format() == Data::Format::none) {
 		return info.value;
 	}
@@ -219,8 +222,9 @@ Reference& get_accessible_global_member(Cursor& cursor, const Symbol& member, Cl
 	return info.value;
 }
 
-Reference& get_accessible_member(Cursor& cursor, Class::Operator op, Class::MemberInfo& info, Object& object) {
-	Reference& result = Class::MemberInfo::get(info, object);
+const Reference& get_accessible_member(Cursor& cursor, Class::Operator op, const Class::MemberInfo& info,
+    Object& object) {
+	const auto& result = Class::MemberInfo::get(info, object);
 	switch (result.flags() & Reference::visibility_mask) {
 	case Reference::protected_visibility:
 		if (!is_protected_accessible(cursor, info.owner)) [[unlikely]] {
@@ -246,7 +250,8 @@ Reference& get_accessible_member(Cursor& cursor, Class::Operator op, Class::Memb
 	return result;
 }
 
-Reference& get_accessible_class_member(Cursor& cursor, Class::Operator op, Class::MemberInfo& info, Class& metadata) {
+const Reference& get_accessible_class_member(Cursor& cursor, Class::Operator op, const Class::MemberInfo& info,
+    Class& metadata) {
 	if (cursor.is_in_builtin() || cursor.symbols().get_metadata() == nullptr) [[unlikely]] {
 		error("could not access member '{}' of class '{}' without object", get_operator_symbol(op).str(),
 		    metadata.full_name());
@@ -435,7 +440,7 @@ void mint::init_member_call(Cursor& cursor, const Symbol& member) {
 	}
 }
 
-void mint::init_member_call(Cursor& cursor, const Symbol& member, Class::MemberInfo& info) {
+void mint::init_member_call(Cursor& cursor, const Symbol& member, const Class::MemberInfo& info) {
 
 	assert(cursor.stack().back().data().format() == Data::Format::object);
 	auto& object = cursor.stack().back().data<Object>();
@@ -572,12 +577,12 @@ bool mint::has_signature(const Reference& reference, int signature) {
 		return signature == 0;
 	case Data::Format::object:
 		if (is_object(reference.data<Object>())) {
-			if (auto* op = reference.data<Object>().metadata.find_operator(Class::call_operator)) {
+			if (const auto* op = reference.data<Object>().metadata.find_operator(Class::call_operator)) {
 				return has_signature(Class::MemberInfo::get(*op, reference.data<Object>()), signature);
 			}
 		}
 		else {
-			if (auto* op = reference.data<Object>().metadata.find_operator(Class::new_operator)) {
+			if (const auto* op = reference.data<Object>().metadata.find_operator(Class::new_operator)) {
 				return has_signature(op->value, signature);
 			}
 		}
@@ -622,7 +627,7 @@ std::tuple<WeakReference, Class*> mint::get_member(Cursor& cursor, const Referen
 	case Data::Format::object:
 		{
 			auto& object = reference.data<Object>();
-			if (auto* info = object.metadata.find_member(member)) {
+			if (const auto* info = object.metadata.find_member(member)) {
 				if (is_object(object)) {
 					const auto& result = get_accessible_member(cursor, member, *info, object);
 					return {result, &info->owner.get()};
@@ -633,7 +638,7 @@ std::tuple<WeakReference, Class*> mint::get_member(Cursor& cursor, const Referen
 				return {WeakReference(flags, result.data()), &info->owner.get()};
 			}
 
-			if (auto* info = object.metadata.find_global(member)) {
+			if (const auto* info = object.metadata.find_global(member)) {
 				const auto& result = get_accessible_global_member(cursor, member, *info, object.metadata);
 				return {result, &info->owner.get()};
 			}
@@ -644,6 +649,12 @@ std::tuple<WeakReference, Class*> mint::get_member(Cursor& cursor, const Referen
 					return {WeakReference(Reference::const_address | Reference::const_value, it->second.data()),
 					    nullptr};
 				}
+			}
+
+			if (member == builtin_symbols::allocate_method) {
+				const auto& result = get_accessible_global_member(cursor, member,
+				    object.metadata.make_allocate_method_reference(cursor.ast()), object.metadata);
+				return {result, &object.metadata};
 			}
 
 			if (is_object(object)) {
@@ -670,7 +681,7 @@ std::tuple<WeakReference, Class*> mint::get_operator(Cursor& cursor, const Refer
 
 	switch (reference.data().format()) {
 	case Data::Format::object:
-		if (auto& object = reference.data<Object>(); Class::MemberInfo* info = object.metadata.find_operator(op)) {
+		if (auto& object = reference.data<Object>(); const auto* info = object.metadata.find_operator(op)) {
 
 			if (is_object(object)) {
 				const auto& result = get_accessible_member(cursor, op, *info, object);
@@ -700,7 +711,7 @@ void mint::reduce_member(Cursor& cursor, Reference&& member) {
 	cursor.stack().back() = std::move(member);
 }
 
-std::optional<std::pair<Symbol, std::reference_wrapper<Class::MemberInfo>>> mint::find_member(Object& object,
+std::optional<std::pair<Symbol, std::reference_wrapper<const Class::MemberInfo>>> mint::find_member(Object& object,
     const Reference& member) {
 
 	const auto& data_ref = member.data();
@@ -726,7 +737,7 @@ std::optional<std::pair<Symbol, std::reference_wrapper<Class::MemberInfo>>> mint
 	return std::nullopt;
 }
 
-Class::MemberInfo* mint::find_member_info(Object& object, const Reference& member) {
+const Class::MemberInfo* mint::find_member_info(Object& object, const Reference& member) {
 
 	const auto& data_ref = member.data();
 

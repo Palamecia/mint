@@ -111,8 +111,8 @@ public:
 	WeakReference invoke(const Reference& object, Class::Operator op, std::vector<WeakReference>& parameters);
 
 	template<class... Args>
-	WeakReference invoke(const Reference& object, const Symbol& method, Class::MemberInfo& info, Args... args);
-	WeakReference invoke(const Reference& object, const Symbol& method, Class::MemberInfo& info,
+	WeakReference invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info, Args... args);
+	WeakReference invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
 	    std::vector<WeakReference>& parameters);
 
 	std::future<WeakReference> create_async_thread(std::unique_ptr<Cursor>&& cursor);
@@ -192,7 +192,8 @@ WeakReference Scheduler::invoke(const Reference& object, Class::Operator op, Arg
 }
 
 template<class... Args>
-WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, Class::MemberInfo& info, Args... args) {
+WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
+    Args... args) {
 	std::vector<WeakReference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);

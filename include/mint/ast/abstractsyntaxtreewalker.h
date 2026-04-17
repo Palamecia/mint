@@ -287,6 +287,8 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_call_member(cursor, cursor.next().as_parameter());
 	case Node::Command::call_builtin:
 		return walker.on_call_builtin(cursor, static_cast<std::size_t>(cursor.next().as_parameter()));
+	case Node::Command::call_global_builtin:
+		return walker.on_call_global_builtin(cursor, static_cast<std::size_t>(cursor.next().as_parameter()));
 	case Node::Command::init_call:
 		return walker.on_init_call(cursor);
 	case Node::Command::init_member_call:

@@ -62,7 +62,7 @@ MINT_EXPORT void capture_all_symbols(Cursor& cursor);
 MINT_EXPORT void init_call(Cursor& cursor);
 MINT_EXPORT void init_call(Cursor& cursor, const Reference& function);
 MINT_EXPORT void init_member_call(Cursor& cursor, const Symbol& member);
-MINT_EXPORT void init_member_call(Cursor& cursor, const Symbol& member, Class::MemberInfo& info);
+MINT_EXPORT void init_member_call(Cursor& cursor, const Symbol& member, const Class::MemberInfo& info);
 MINT_EXPORT void init_operator_call(Cursor& cursor, Class::Operator op);
 MINT_EXPORT void exit_call(Cursor& cursor);
 MINT_EXPORT void init_exception(Cursor& cursor, const Symbol& symbol);
@@ -80,9 +80,9 @@ MINT_EXPORT std::tuple<WeakReference, Class*> get_member(Cursor& cursor, const R
 MINT_EXPORT std::tuple<WeakReference, Class*> get_operator(Cursor& cursor, const Reference& reference,
     Class::Operator op);
 MINT_EXPORT void reduce_member(Cursor& cursor, Reference&& member);
-MINT_EXPORT std::optional<std::pair<Symbol, std::reference_wrapper<Class::MemberInfo>>> find_member(Object& object,
+MINT_EXPORT std::optional<std::pair<Symbol, std::reference_wrapper<const Class::MemberInfo>>> find_member(Object& object,
     const Reference& member);
-MINT_EXPORT Class::MemberInfo* find_member_info(Object& object, const Reference& member);
+MINT_EXPORT const Class::MemberInfo* find_member_info(Object& object, const Reference& member);
 MINT_EXPORT std::optional<Symbol> find_member_symbol(Object& object, const Class::MemberInfo& member);
 MINT_EXPORT bool is_protected_accessible(const Class& owner, const Class* context);
 MINT_EXPORT bool is_protected_accessible(const Cursor& cursor, const Class& owner);

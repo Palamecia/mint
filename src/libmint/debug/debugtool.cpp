@@ -715,6 +715,12 @@ public:
 		return Node::Command::call_builtin;
 	}
 
+	Node::Command on_call_global_builtin(Cursor& /*cursor*/, std::size_t index) {
+		_stream.get() << to_debug_string("CALL_GLOBAL_BUILTIN");
+		_stream.get() << " " << index;
+		return Node::Command::call_global_builtin;
+	}
+
 	Node::Command on_init_call(Cursor& /*cursor*/) {
 		_stream.get() << to_debug_string("INIT_CALL");
 		return Node::Command::init_call;

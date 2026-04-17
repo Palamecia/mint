@@ -610,6 +610,10 @@ public:
 		cursor.ast().call_builtin_method(index, cursor);
 	}
 
+	static void on_call_global_builtin(Cursor& cursor, std::size_t index) {
+		cursor.ast().call_global_builtin_method(index, cursor);
+	}
+
 	static void on_init_call(Cursor& cursor) {
 		init_call(cursor);
 	}

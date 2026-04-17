@@ -101,7 +101,7 @@ double mint::to_number(Cursor& cursor, const Reference& ref) {
 			}
 			return to_number(cursor, create_none());
 		default:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_number(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));

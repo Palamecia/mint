@@ -298,7 +298,7 @@ Class& ClassDescription::generate() {
 	_metadata->_description = this;
 	_bases_metadata.reserve(_bases.size());
 
-	std::unordered_map<Symbol, std::vector<std::reference_wrapper<Reference>>> member_overrides;
+	auto member_overrides = std::unordered_map<Symbol, std::vector<std::reference_wrapper<const Reference>>>();
 
 	for (const Path& path : _bases) {
 
@@ -329,15 +329,14 @@ Class& ClassDescription::generate() {
 			}
 		}
 
-		if (!base.is_copyable()) {
-			_metadata->disable_copy();
+		if (!base.is_trivially_copyable()) {
+			_metadata->disable_trivial_copy();
 		}
 	}
 
 	for (auto& [symbol, value] : _members) {
 		if (value.flags() & Reference::global) {
-			auto info = std::make_unique<Class::MemberInfo>(Class::MemberInfo {
-			    .offset = Class::MemberInfo::invalid_offset,
+			auto info = make_member_info({
 			    .owner = std::ref(*_metadata),
 			    .value = value,
 			});
@@ -351,7 +350,7 @@ Class& ClassDescription::generate() {
 		else {
 			update_member_info(symbol, value, member_overrides);
 			if (symbol == builtin_symbols::clone_method) {
-				_metadata->disable_copy();
+				_metadata->disable_trivial_copy();
 			}
 		}
 	}
@@ -365,8 +364,7 @@ Class& ClassDescription::generate() {
 		}
 
 		const auto flags = Reference::global | Reference::const_address | Reference::const_value | desc->flags();
-		_metadata->_globals.emplace(symbol, std::make_unique<Class::MemberInfo>(Class::MemberInfo {
-		                                        .offset = Class::MemberInfo::invalid_offset,
+		_metadata->_globals.emplace(symbol, make_member_info({
 		                                        .owner = std::ref(*_metadata),
 		                                        .value = make_weak_reference<Object>(flags, desc->generate()),
 		                                    }));
@@ -395,9 +393,9 @@ void ClassDescription::cleanup_metadata() {
 	}
 }
 
-std::unique_ptr<Class::MemberInfo> mint::ClassDescription::create_member_info(Class::MemberInfo& member) {
+std::unique_ptr<Class::MemberInfo> mint::ClassDescription::create_member_info(const Class::MemberInfo& member) {
 	if (member.offset != Class::MemberInfo::invalid_offset) {
-		auto info = std::make_unique<Class::MemberInfo>(Class::MemberInfo {
+		auto info = make_member_info({
 		    .offset = _metadata->_slots.size(),
 		    .owner = member.owner,
 		    .value = member.value,
@@ -405,20 +403,19 @@ std::unique_ptr<Class::MemberInfo> mint::ClassDescription::create_member_info(Cl
 		_metadata->_slots.emplace_back(*info);
 		return info;
 	}
-	return std::make_unique<Class::MemberInfo>(Class::MemberInfo {
-	    .offset = Class::MemberInfo::invalid_offset,
+	return make_member_info({
 	    .owner = member.owner,
 	    .value = member.value,
 	});
 }
 
 Class::MemberInfo* mint::ClassDescription::update_member_info(const Symbol& symbol, WeakReference& value,
-    std::unordered_map<Symbol, std::vector<std::reference_wrapper<Reference>>>& member_overrides) {
+    std::unordered_map<Symbol, std::vector<std::reference_wrapper<const Reference>>>& member_overrides) {
 	auto& members = _metadata->_members;
 	auto it = members.find(symbol);
 	if (it == members.end()) {
 		if (is_slot(value)) {
-			auto info = std::make_unique<Class::MemberInfo>(Class::MemberInfo {
+			auto info = make_member_info({
 			    .offset = _metadata->_slots.size(),
 			    .owner = std::ref(*_metadata),
 			});
@@ -426,8 +423,7 @@ Class::MemberInfo* mint::ClassDescription::update_member_info(const Symbol& symb
 			it = members.emplace(symbol, std::move(info)).first;
 		}
 		else {
-			auto info = std::make_unique<Class::MemberInfo>(Class::MemberInfo {
-			    .offset = Class::MemberInfo::invalid_offset,
+			auto info = make_member_info({
 			    .owner = std::ref(*_metadata),
 			});
 			it = members.emplace(symbol, std::move(info)).first;

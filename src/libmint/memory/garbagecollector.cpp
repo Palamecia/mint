@@ -108,7 +108,7 @@ std::size_t GarbageCollector::collect() {
 			if (data->format() == Data::Format::object) {
 				auto* object = static_cast<Object*>(data);
 				if (WeakReference* slots = object->data) {
-					if (Class::MemberInfo* member = object->metadata.find_operator(Class::delete_operator)) {
+					if (const auto* member = object->metadata.find_operator(Class::delete_operator)) {
 						if (is_instance_of(Class::MemberInfo::get(*member, slots), Data::Format::function)) {
 							scheduler->invoke(WeakReference(Reference::default_flags, *object), Class::delete_operator);
 						}
@@ -289,7 +289,7 @@ void GarbageCollector::free(Data* ptr) {
 		if (Scheduler* scheduler = Scheduler::instance()) {
 			auto* object = static_cast<Object*>(ptr);
 			if (WeakReference* slots = object->data) {
-				if (Class::MemberInfo* member = object->metadata.find_operator(Class::delete_operator)) {
+				if (const auto* member = object->metadata.find_operator(Class::delete_operator)) {
 					const auto& member_ref = Class::MemberInfo::get(*member, slots);
 					if (member_ref.data().format() == Data::Format::function) {
 						scheduler->create_destructor(object, member_ref, member->owner);

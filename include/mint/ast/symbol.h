@@ -179,6 +179,7 @@ static const Symbol subscript_operator("[]");
 static const Symbol subscript_move_operator("[]=");
 static const Symbol regex_match_operator("=~");
 static const Symbol regex_unmatch_operator("!~");
+static const Symbol allocate_method("allocate");
 static const Symbol new_method("new");
 static const Symbol delete_method("delete");
 static const Symbol clone_method("clone");

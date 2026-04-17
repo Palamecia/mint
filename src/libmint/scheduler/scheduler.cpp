@@ -294,7 +294,7 @@ WeakReference Scheduler::invoke(const Reference& object, Class::Operator op, std
 	return result;
 }
 
-WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, Class::MemberInfo& info,
+WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
     std::vector<WeakReference>& parameters) {
 
 	if (g_current.process.empty()) {

@@ -106,7 +106,7 @@ public:
 	}
 
 	Class& metadata;
-	WeakReference* data;
+	WeakReference* data = nullptr;
 
 	void construct();
 	void construct(const Object& other);
@@ -272,12 +272,14 @@ public:
 		Mapping() = default;
 		Mapping(int signature, Signature&& handle);
 		Mapping(const std::pair<int, Signature>& mapping);
+		Mapping(const std::pair<int, Module::Handle&>& mapping);
 
 		bool operator==(const Mapping& other) const;
 		bool operator!=(const Mapping& other) const;
 
 		std::pair<iterator, bool> emplace(int signature, Signature&& handle);
 		std::pair<iterator, bool> insert(const std::pair<int, Signature>& signature);
+		std::pair<iterator, bool> insert(const std::pair<int, Module::Handle&>& signature);
 
 		[[nodiscard]] const_iterator lower_bound(int signature) const;
 		[[nodiscard]] const_iterator find(int signature) const;
@@ -300,6 +302,7 @@ public:
 	Function(Mapping mapping);
 	Function(int signature, Function::Signature&& handle);
 	Function(const std::pair<int, Function::Signature>& mapping);
+	Function(const std::pair<int, Module::Handle&>& mapping);
 
 	[[nodiscard]] Format format() const override {
 		return Format::function;

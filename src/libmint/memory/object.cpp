@@ -22,6 +22,7 @@
  */
 
 #include "mint/memory/object.h"
+#include "mint/ast/module.h"
 #include "mint/ast/savedstate.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
@@ -64,8 +65,7 @@ Boolean::Boolean(bool value) :
     value(value) {}
 
 Object::Object(Class& type) :
-    metadata(type),
-    data(nullptr) {}
+    metadata(type) {}
 
 Object::~Object() {
 	destroy();
@@ -97,7 +97,8 @@ void Object::construct(const Object& other, std::unordered_map<const Data*, Data
 
 	if (other.data) {
 
-		if (!metadata.is_copyable()) [[unlikely]] {
+		if (!metadata.is_trivially_copyable()) [[unlikely]] {
+			// TODO: try using a clone method if available before giving up
 			error("type '{}' is not copyable", metadata.full_name());
 		}
 
@@ -197,6 +198,9 @@ Function::Function(int signature, Signature&& handle) :
 Function::Function(const std::pair<int, Signature>& mapping) :
     mapping(mapping) {}
 
+mint::Function::Function(const std::pair<int, Module::Handle&>& mapping) :
+    mapping(mapping) {}
+
 void Function::Stateless::call(int signature, Class* metadata, Cursor& cursor) {
 	cursor.call(handle(), signature, metadata);
 }
@@ -216,6 +220,9 @@ Function::Mapping::Mapping(int signature, Function::Signature&& handle) :
 
 Function::Mapping::Mapping(const std::pair<int, Signature>& mapping) :
     _signatures({mapping}) {}
+
+Function::Mapping::Mapping(const std::pair<int, Module::Handle&>& mapping) :
+    _signatures({{mapping.first, std::make_unique<Stateless>(mapping.second)}}) {}
 
 bool Function::Mapping::operator==(const Mapping& other) const {
 
@@ -255,6 +262,11 @@ std::pair<Function::Mapping::iterator, bool> Function::Mapping::emplace(int sign
 
 std::pair<Function::Mapping::iterator, bool> Function::Mapping::insert(const std::pair<int, Signature>& signature) {
 	return _signatures.insert(signature);
+}
+
+std::pair<Function::Mapping::iterator, bool> Function::Mapping::insert(
+    const std::pair<int, Module::Handle&>& signature) {
+	return _signatures.insert({signature.first, Signature(std::make_unique<Stateless>(signature.second))});
 }
 
 Function::Mapping::const_iterator Function::Mapping::lower_bound(int signature) const {

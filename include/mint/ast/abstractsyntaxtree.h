@@ -55,11 +55,14 @@ public:
 	AbstractSyntaxTree& operator=(AbstractSyntaxTree&& other) = delete;
 	AbstractSyntaxTree& operator=(const AbstractSyntaxTree& other) = delete;
 
+	using GlobalBuiltinMethod = std::add_pointer_t<void(Class&, Cursor&)>;
 	using BuiltinMethod = std::add_pointer_t<void(Cursor&)>;
 
-	std::pair<int, Module::Handle&> create_builtin_method(const Class& type, int signature, BuiltinMethod method);
+	std::pair<int, Module::Handle&> create_global_builtin_method(Class& type, int signature, GlobalBuiltinMethod method);
 	std::pair<int, Module::Handle&> create_builtin_method(const Class& type, int signature, const std::string& method);
+	std::pair<int, Module::Handle&> create_builtin_method(const Class& type, int signature, BuiltinMethod method);
 	std::pair<int, Module::Handle&> create_builtin_async_method(const Class& type, int signature, BuiltinMethod method);
+	void call_global_builtin_method(std::size_t method, Cursor& cursor);
 	inline void call_builtin_method(std::size_t method, Cursor& cursor);
 
 	Module::Info create_module(Module::State state);
@@ -88,7 +91,7 @@ protected:
 		explicit BuiltinModuleInfo(const Module::Info& infos);
 	};
 
-	BuiltinModuleInfo& builtin_module(int module);
+	BuiltinModuleInfo& builtin_module(std::size_t module_index);
 
 	void set_module_state(Module::Id module_id, Module::State state);
 
@@ -99,6 +102,7 @@ private:
 
 	GlobalData _global_data {*this};
 	std::vector<BuiltinModuleInfo> _builtin_modules;
+	std::vector<GlobalBuiltinMethod> _global_builtin_methods;
 	std::vector<BuiltinMethod> _builtin_methods;
 };
 

@@ -35,6 +35,7 @@
 #include <vector>
 
 #include "mint/memory/class.h"
+#include "mint/ast/abstractsyntaxtree.h"
 #include "mint/ast/classregister.h"
 #include "mint/ast/module.h"
 #include "mint/ast/symbol.h"
@@ -188,7 +189,15 @@ ClassDescription& Class::get_description() const {
 	return *_description;
 }
 
-Class::MemberInfo* Class::find_class(const Symbol& name) const {
+const Class::MemberInfo* Class::find_class(const Symbol& name) const {
+	if (auto it = _members.find(name); it != _members.end() && is_instance_of(it->second->value, Data::Format::object)
+	                                   && is_class(it->second->value.data<Object>())) {
+		return it->second.get();
+	}
+	return nullptr;
+}
+
+Class::MemberInfo* Class::find_class(const Symbol& name) {
 	if (auto it = _members.find(name); it != _members.end() && is_instance_of(it->second->value, Data::Format::object)
 	                                   && is_class(it->second->value.data<Object>())) {
 		return it->second.get();
@@ -235,12 +244,29 @@ bool Class::is_direct_base_or_same(const Class& other) const {
 	}) != other_bases.end();
 }
 
-bool Class::is_copyable() const {
-	return _copyable;
+const Class::MemberInfo& Class::make_allocate_method_reference(AbstractSyntaxTree& ast) {
+	return *_globals
+	            .emplace(builtin_symbols::allocate_method,
+	                make_member_info({
+	                    .owner = std::ref(*this),
+	                    .value = make_weak_reference<Function>(Reference::const_address | Reference::const_value
+	                                                               | Reference::global | Reference::protected_visibility,
+	                        ast.create_global_builtin_method(*this, 0,
+	                            [](Class& metadata, Cursor& cursor) {
+		                            auto instance = make_weak_reference<Object>(Reference::temporary, metadata);
+		                            instance.data<Object>().construct();
+		                            cursor.stack().emplace_back(std::move(instance));
+	                            })),
+	                }))
+	            .first->second;
 }
 
-void Class::disable_copy() {
-	_copyable = false;
+bool Class::is_trivially_copyable() const {
+	return _trivially_copyable;
+}
+
+void Class::disable_trivial_copy() {
+	_trivially_copyable = false;
 }
 
 void Class::cleanup_memory() {
@@ -268,7 +294,7 @@ void Class::create_builtin_member(Operator op, WeakReference&& value) {
 	assert(op_index < _operators.size());
 	assert(_operators[op_index] == nullptr);
 	if (ClassRegister::is_slot(value)) {
-		auto info = std::make_unique<MemberInfo>(MemberInfo {
+		auto info = make_member_info({
 		    .offset = _slots.size(),
 		    .owner = *this,
 		    .value = std::move(value),
@@ -278,8 +304,7 @@ void Class::create_builtin_member(Operator op, WeakReference&& value) {
 		_members.emplace(get_operator_symbol(op), std::move(info));
 	}
 	else {
-		auto info = std::make_unique<MemberInfo>(MemberInfo {
-		    .offset = MemberInfo::invalid_offset,
+		auto info = make_member_info({
 		    .owner = *this,
 		    .value = std::move(value),
 		});
@@ -292,15 +317,12 @@ void Class::create_builtin_member(Operator op, std::pair<int, Module::Handle&> m
 	const auto op_index = static_cast<std::size_t>(op);
 	assert(op_index < _operators.size());
 	if (auto* op_info = _operators[op_index]) {
-		auto& data = op_info->value.data<Function>();
-		data.mapping.emplace(member.first, std::make_unique<Function::Stateless>(member.second));
+		op_info->value.data<Function>().mapping.insert(member);
 	}
 	else {
-		auto info = std::make_unique<MemberInfo>(MemberInfo {
-		    .offset = MemberInfo::invalid_offset,
+		auto info = make_member_info({
 		    .owner = *this,
-		    .value = make_weak_reference<Function>(Reference::const_address | Reference::const_value, member.first,
-		        std::make_unique<Function::Stateless>(member.second)),
+		    .value = make_weak_reference<Function>(Reference::const_address | Reference::const_value, member),
 		});
 		_operators[op_index] = info.get();
 		_members.emplace(get_operator_symbol(op), std::move(info));
@@ -310,7 +332,7 @@ void Class::create_builtin_member(Operator op, std::pair<int, Module::Handle&> m
 void Class::create_builtin_member(const Symbol& symbol, WeakReference&& value) {
 	assert(!_members.contains(symbol));
 	if (ClassRegister::is_slot(value)) {
-		auto info = std::make_unique<MemberInfo>(MemberInfo {
+		auto info = make_member_info({
 		    .offset = _slots.size(),
 		    .owner = *this,
 		    .value = std::move(value),
@@ -319,8 +341,7 @@ void Class::create_builtin_member(const Symbol& symbol, WeakReference&& value) {
 		_members.emplace(symbol, std::move(info));
 	}
 	else {
-		_members.emplace(symbol, std::make_unique<MemberInfo>(MemberInfo {
-		                             .offset = MemberInfo::invalid_offset,
+		_members.emplace(symbol, make_member_info({
 		                             .owner = *this,
 		                             .value = std::move(value),
 		                         }));
@@ -329,16 +350,13 @@ void Class::create_builtin_member(const Symbol& symbol, WeakReference&& value) {
 
 void Class::create_builtin_member(const Symbol& symbol, std::pair<int, Module::Handle&> member) {
 	if (auto it = _members.find(symbol); it != _members.end()) {
-		auto& data = it->second->value.data<Function>();
-		data.mapping.emplace(member.first, std::make_unique<Function::Stateless>(member.second));
+		it->second->value.data<Function>().mapping.insert(member);
 	}
 	else {
-		auto info = std::make_unique<MemberInfo>(MemberInfo {
-		    .offset = MemberInfo::invalid_offset,
-		    .owner = *this,
-		    .value = make_weak_reference<Function>(Reference::const_address | Reference::const_value, member.first,
-		        std::make_unique<Function::Stateless>(member.second)),
-		});
-		_members.emplace(symbol, std::move(info));
+		_members.emplace(symbol,
+		    make_member_info({
+		        .owner = *this,
+		        .value = make_weak_reference<Function>(Reference::const_address | Reference::const_value, member),
+		    }));
 	}
 }

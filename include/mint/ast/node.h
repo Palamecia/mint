@@ -162,6 +162,7 @@ union MINT_EXPORT Node {
 		call,
 		call_member,
 		call_builtin,
+		call_global_builtin,
 		init_call,
 		init_member_call,
 		init_operator_call,

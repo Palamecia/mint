@@ -60,7 +60,7 @@ bool mint::call_overload(Cursor& cursor, Class::Operator operator_overload, int 
 	const auto base = get_stack_base(cursor);
 	auto& object = load_from_stack(cursor, base - static_cast<std::size_t>(signature)).data<Object>();
 
-	if (Class::MemberInfo* info = object.metadata.find_operator(operator_overload)) {
+	if (const auto* info = object.metadata.find_operator(operator_overload)) {
 
 		if (is_class(object)) [[unlikely]] {
 			error("invalid use of class '{}' with operator '{}'({})", object.metadata.full_name(),

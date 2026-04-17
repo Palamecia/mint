@@ -429,22 +429,20 @@ def [g_lib = lib('libmint-mint')] getMemberOwner(type, memberName) {
  * Returns `true` if the built-in copy operation can be applied to `type`; otherwise
  * returns `false`. The `type` parameter can either be a class or an object.
  */
-def [g_lib = lib('libmint-mint')] isCopyable(type) {
-	return g_lib.call('mint_type_is_copyable', type)
+def [g_lib = lib('libmint-mint')] isTriviallyCopyable(type) {
+	return g_lib.call('mint_type_is_trivially_copyable', type)
 }
 
 /**
- * Copy the value of `value`. If `value` provides a `clone` method, the result
+ * Copy the value of `self`. If `self` provides a `clone` method, the result
  * of the method call is returned; otherwise a built-in copy operation is
  * performed.
  */
-def [g_lib = lib('libmint-mint')] clone(value) {
-
-	if defined value.clone {
-		return value.clone()
+def [g_lib = lib('libmint-mint')] clone(self) {
+	if defined self.clone {
+		return self.clone()
 	}
-
-	return g_lib.call('mint_type_deep_copy', value)
+	return g_lib.call('mint_type_deep_copy', self)
 }
 
 /**

@@ -156,11 +156,11 @@ mint::WeakReference mint_type_get_member_owner(mint::Cursor& /*cursor*/, const m
 	return {};
 }
 
-mint::WeakReference mint_type_is_copyable(mint::Cursor& /*cursor*/, const mint::Reference& type) {
+mint::WeakReference mint_type_is_trivially_copyable(mint::Cursor& /*cursor*/, const mint::Reference& type) {
 	if (!mint::is_instance_of(type, mint::Data::Format::object)) {
 		return mint::create_boolean(true);
 	}
-	return mint::create_boolean(type.data<mint::Object>().metadata.is_copyable());
+	return mint::create_boolean(type.data<mint::Object>().metadata.is_trivially_copyable());
 }
 
 mint::WeakReference mint_type_deep_copy(mint::Cursor& /*cursor*/, const mint::Reference& value) {
@@ -227,7 +227,7 @@ MINT_EXPORT_FUNCTION(mint_type_get_member_info, 2);
 MINT_EXPORT_FUNCTION(mint_type_is_member_private, 2);
 MINT_EXPORT_FUNCTION(mint_type_is_member_protected, 2);
 MINT_EXPORT_FUNCTION(mint_type_get_member_owner, 2);
-MINT_EXPORT_FUNCTION(mint_type_is_copyable, 1);
+MINT_EXPORT_FUNCTION(mint_type_is_trivially_copyable, 1);
 MINT_EXPORT_FUNCTION(mint_type_deep_copy, 1);
 MINT_EXPORT_FUNCTION(mint_type_is_class, 1);
 MINT_EXPORT_FUNCTION(mint_type_is_object, 1);

@@ -137,9 +137,9 @@ protected:
 	}
 
 private:
-	std::unique_ptr<Class::MemberInfo> create_member_info(Class::MemberInfo& member);
+	std::unique_ptr<Class::MemberInfo> create_member_info(const Class::MemberInfo& member);
 	Class::MemberInfo* update_member_info(const Symbol& symbol, WeakReference& value,
-	    std::unordered_map<Symbol, std::vector<std::reference_wrapper<Reference>>>& member_overrides);
+	    std::unordered_map<Symbol, std::vector<std::reference_wrapper<const Reference>>>& member_overrides);
 
 	ClassDescription* _owner = nullptr;
 	std::reference_wrapper<PackageData> _package;

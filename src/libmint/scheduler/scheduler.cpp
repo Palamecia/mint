@@ -117,12 +117,6 @@ Scheduler::~Scheduler() {
 		// cleanup threads
 		finalize();
 
-		// cleanup modules
-		lock_processor();
-		garbage_collector.collect();
-		_ast.cleanup_modules();
-		unlock_processor();
-
 		// leaked destructors are ignored
 	}
 
@@ -130,6 +124,12 @@ Scheduler::~Scheduler() {
 	lock_processor();
 	garbage_collector.collect();
 	_ast.cleanup_metadata();
+	unlock_processor();
+
+	// cleanup modules
+	lock_processor();
+	garbage_collector.collect();
+	_ast.cleanup_modules();
 	unlock_processor();
 }
 

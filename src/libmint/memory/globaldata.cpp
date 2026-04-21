@@ -30,7 +30,6 @@
 #include "mint/memory/reference.h"
 #include "mint/memory/memorytool.h"
 #include "mint/memory/class.h"
-#include "mint/system/error.h"
 
 #include <algorithm>
 #include <cassert>
@@ -41,41 +40,48 @@
 
 using namespace mint;
 
-PackageData::PackageData(AbstractSyntaxTree& ast, const std::string& name, PackageData* owner) :
+FunctionData::FunctionData(AbstractSyntaxTree& ast) :
+    ClassRegister(ast) {}
+
+const FunctionData* FunctionData::get_function_data() const {
+	return this;
+}
+
+FunctionData* FunctionData::get_function_data() {
+	return this;
+}
+
+PackageData::PackageData(AbstractSyntaxTree& ast, const std::string& name) :
     ClassRegister(ast),
     _name(name),
-    _owner(owner),
     _symbols(ast.global_data()) {}
-
-PackageData::~PackageData() {}
 
 Symbol PackageData::name() const {
 	return _name;
 }
 
 std::string PackageData::full_name() const {
-	if (_owner && _owner != &ast().global_data()) {
-		return _owner->full_name() + "." + name().str();
+	if (const auto* package = get_owner_package()) {
+		if (package != &ast().global_data()) {
+			return package->full_name() + "." + name().str();
+		}
 	}
 	return name().str();
 }
 
 PackageData::Path PackageData::get_path() const {
-	if (_owner) {
-		return {_owner->get_path(), name()};
+	if (const auto* package = get_owner_package()) {
+		return {package->get_path(), name()};
 	}
 	return {name()};
-}
-
-PackageData* PackageData::get_owner_package() const {
-	return _owner;
 }
 
 PackageData& PackageData::get_package(const Symbol& name) {
 	auto it = _packages.find(name);
 	if (it == _packages.end()) {
 		constexpr auto flags = Reference::global | Reference::const_address | Reference::const_value;
-		auto package = std::make_unique<PackageData>(ast(), name.str(), this);
+		auto package = std::make_unique<PackageData>(ast(), name.str());
+		package->set_owner_register(this);
 		_symbols.emplace(name, make_weak_reference<Package>(flags, *package));
 		it = _packages.emplace(name, std::move(package)).first;
 	}
@@ -90,26 +96,30 @@ PackageData* PackageData::find_package(const Symbol& name) const {
 	return nullptr;
 }
 
-void PackageData::register_class(ClassRegister::Id id) {
-
-	ClassDescription* desc = find_class_description(id);
-	assert(desc);
-
-	Symbol&& symbol = desc->name();
-	if (_symbols.contains(symbol)) [[unlikely]] {
-		error("multiple definition of class '{}'", symbol.str());
-	}
-
-	constexpr auto flags = Reference::global | Reference::const_address | Reference::const_value;
-	_symbols.emplace(symbol, make_weak_reference<Object>(flags, desc->generate()));
-}
-
 Class* PackageData::find_class(const Symbol& name) const {
 	if (auto it = _symbols.find(name); it != _symbols.end() && it->second.data().format() == Data::Format::object
 	                                   && is_class(it->second.data<Object>())) {
 		return &it->second.data<Object>().metadata;
 	}
 	return nullptr;
+}
+
+ClassRegister* PackageData::locate(const Symbol& symbol) const {
+	if (auto* class_decription = find_class_description(symbol)) {
+		return class_decription;
+	}
+	if (auto* child_package = find_package(symbol)) {
+		return child_package;
+	}
+	return nullptr;
+}
+
+const PackageData* PackageData::get_package_data() const {
+	return this;
+}
+
+PackageData* PackageData::get_package_data() {
+	return this;
 }
 
 void PackageData::cleanup_memory() {

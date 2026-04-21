@@ -295,10 +295,11 @@ public:
 		return Node::Command::close_package;
 	}
 
-	Node::Command on_register_class(Cursor& /*cursor*/, ClassRegister::Id id) {
-		_stream.get() << to_debug_string("REGISTER_CLASS");
-		_stream.get() << " " << id;
-		return Node::Command::register_class;
+	Node::Command on_declare_class(Cursor& /*cursor*/, ClassDescription& desc, Reference::Flags flags) {
+		_stream.get() << to_debug_string("DECLARE_CLASS");
+		_stream.get() << " " << desc.name().str();
+		_stream.get() << " " << to_debug_string(flags);
+		return Node::Command::declare_class;
 	}
 
 	Node::Command on_move_operator(Cursor& /*cursor*/) {

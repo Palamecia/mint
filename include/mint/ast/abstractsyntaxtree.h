@@ -83,8 +83,8 @@ public:
 	[[nodiscard]] inline GlobalData& global_data();
 
 	void cleanup_memory();
-	void cleanup_modules();
 	void cleanup_metadata();
+	void cleanup_modules();
 
 protected:
 	struct BuiltinModuleInfo : public Module::Info {
@@ -111,7 +111,7 @@ void AbstractSyntaxTree::call_builtin_method(std::size_t method, Cursor& cursor)
 }
 
 Module* AbstractSyntaxTree::find_module(Module::Id module_id) const {
-	return (module_id < _modules.size()) ? _modules[module_id].module : nullptr;
+	return (module_id < _modules.size()) ? _modules[module_id].bytecode : nullptr;
 }
 
 DebugInfo* AbstractSyntaxTree::find_debug_info(Module::Id module_id) const {

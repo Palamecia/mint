@@ -32,7 +32,7 @@
 #include "mint/memory/reference.h"
 #include "mint/system/error.h"
 #include <algorithm>
-#include <cstddef>
+#include <cassert>
 #include <functional>
 #include <initializer_list>
 #include <memory>
@@ -96,40 +96,64 @@ ClassRegister::Path::Path(const std::string& path) {
 	}
 }
 
-ClassDescription* ClassRegister::Path::locate(const AbstractSyntaxTree& ast) const {
+const ClassDescription& ClassRegister::Path::locate(const ClassRegister& root_register) const {
 
-	const PackageData* pack = nullptr;
-	ClassDescription* desc = nullptr;
+	auto symbol = _symbols.begin();
 
-	for (const Symbol& symbol : _symbols) {
-		if (desc) {
-			desc = desc->find_class_description(symbol);
-			if (desc == nullptr) [[unlikely]] {
-				error("expected class name got '{}'", symbol.str());
-			}
-		}
-		else if (pack) {
-			desc = pack->find_class_description(symbol);
-			if (desc == nullptr) {
-				pack = pack->find_package(symbol);
-				if (pack == nullptr) [[unlikely]] {
-					error("expected package or class name got '{}'", symbol.str());
-				}
-			}
-		}
-		else {
-			const auto& global_data = ast.global_data();
-			pack = global_data.find_package(symbol);
-			if (pack == nullptr) {
-				desc = global_data.find_class_description(symbol);
-				if (desc == nullptr) [[unlikely]] {
-					error("expected package or class name got '{}'", symbol.str());
-				}
-			}
+	if (symbol == _symbols.end()) [[unlikely]] {
+		error("expected package or class name got empty path");
+	}
+
+	const auto* class_register = root_register.locate(*symbol);
+	if (class_register == nullptr) {
+		class_register = root_register.ast().global_data().locate(*symbol);
+		if (class_register == nullptr) [[unlikely]] {
+			error("expected package or class name got '{}'", symbol->str());
 		}
 	}
 
-	return desc;
+	while (++symbol != _symbols.end()) {
+		class_register = class_register->locate(*symbol);
+		if (class_register == nullptr) [[unlikely]] {
+			error("expected package or class name got '{}'", symbol->str());
+		}
+	}
+
+	const auto* class_decription = dynamic_cast<const ClassDescription*>(class_register);
+	if (class_decription == nullptr) [[unlikely]] {
+		error("class '{}' was not declared", to_string());
+	}
+	return *class_decription;
+}
+
+ClassDescription& ClassRegister::Path::locate(ClassRegister& root_register) const {
+
+	auto symbol = _symbols.begin();
+
+	if (symbol == _symbols.end()) [[unlikely]] {
+		error("expected package or class name got empty path");
+	}
+
+	auto* class_register = root_register.locate(*symbol);
+	if (class_register == nullptr) {
+		class_register = root_register.ast().global_data().locate(*symbol);
+		if (class_register == nullptr) [[unlikely]] {
+			error("expected package or class name got '{}'", symbol->str());
+		}
+	}
+
+	while (++symbol != _symbols.end()) {
+		class_register = class_register->locate(*symbol);
+		if (class_register == nullptr) [[unlikely]] {
+			error("expected package or class name got '{}'", symbol->str());
+		}
+	}
+
+	auto* class_decription = dynamic_cast<ClassDescription*>(class_register);
+	if (class_decription == nullptr) [[unlikely]] {
+		error("class '{}' was not declared", to_string());
+	}
+	return *class_decription;
 }
 
 std::string ClassRegister::Path::to_string() const {
@@ -154,82 +178,134 @@ void ClassRegister::Path::clear() {
 ClassRegister::ClassRegister(AbstractSyntaxTree& ast) :
     _ast(ast) {}
 
-ClassRegister::~ClassRegister() {}
+const ClassRegister& ClassRegister::get_root_register() const {
+	if (_owner) {
+		return _owner->get_root_register();
+	}
+	return *this;
+}
 
-ClassRegister::Id ClassRegister::create_class(std::unique_ptr<ClassDescription>&& desc) {
-	const auto id = _defined_classes.size();
-	_defined_classes.push_back(std::move(desc));
-	return static_cast<Id>(id);
+ClassRegister& ClassRegister::get_root_register() {
+	if (_owner) {
+		return _owner->get_root_register();
+	}
+	return *this;
+}
+
+const ClassRegister* ClassRegister::get_owner_register() const {
+	return _owner;
+}
+
+ClassRegister* ClassRegister::get_owner_register() {
+	return _owner;
+}
+
+void ClassRegister::set_owner_register(ClassRegister* owner) {
+	_owner = owner;
+}
+
+const PackageData* ClassRegister::get_owner_package() const {
+	if (_owner == nullptr) {
+		return nullptr;
+	}
+	if (auto* package = _owner->get_package_data()) {
+		return package;
+	}
+	return _owner->get_owner_package();
+}
+
+PackageData* ClassRegister::get_owner_package() {
+	if (_owner == nullptr) {
+		return nullptr;
+	}
+	if (auto* package = _owner->get_package_data()) {
+		return package;
+	}
+	return _owner->get_owner_package();
 }
 
 ClassDescription* ClassRegister::find_class_description(const Symbol& name) const {
-	auto it = std::ranges::find(_defined_classes, name, &ClassDescription::name);
-	if (it != _defined_classes.end()) {
-		return it->get();
+	if (auto it = std::ranges::find(_defined_classes, name,
+	        [](const auto& entry) {
+		        return entry.desc.get().name();
+	        });
+	    it != _defined_classes.end()) {
+		return &it->desc.get();
 	}
 	return nullptr;
 }
 
-ClassDescription* ClassRegister::find_class_description(Id id) const {
-	auto index = static_cast<std::size_t>(id);
-	if (index < _defined_classes.size()) {
-		return _defined_classes[index].get();
+void ClassRegister::register_class_description(ClassDescription& desc, Reference::Flags flags) {
+	assert(desc._owner == nullptr);
+	desc._owner = this;
+	_defined_classes.push_back({
+	    .desc = std::ref(desc),
+	    .flags = flags,
+	});
+}
+
+ClassRegister* ClassRegister::locate(const Symbol& symbol) const {
+	if (auto* class_decription = find_class_description(symbol)) {
+		return class_decription;
 	}
 	return nullptr;
 }
 
-std::size_t ClassRegister::count() const {
-	return _defined_classes.size();
+const FunctionData* ClassRegister::get_function_data() const {
+	return nullptr;
+}
+
+FunctionData* ClassRegister::get_function_data() {
+	return nullptr;
+}
+
+const PackageData* ClassRegister::get_package_data() const {
+	return nullptr;
+}
+
+PackageData* ClassRegister::get_package_data() {
+	return nullptr;
 }
 
 void ClassRegister::cleanup_memory() {
-	std::ranges::for_each(std::views::reverse(_defined_classes), [](const auto& description) {
-		description->cleanup_memory();
+	std::ranges::for_each(std::views::reverse(_defined_classes), [](const auto& entry) {
+		entry.desc.get().cleanup_memory();
 	});
 }
 
 void ClassRegister::cleanup_metadata() {
-	std::ranges::for_each(std::views::reverse(_defined_classes), [](const auto& description) {
-		description->cleanup_metadata();
+	std::ranges::for_each(std::views::reverse(_defined_classes), [](const auto& entry) {
+		entry.desc.get().cleanup_metadata();
 	});
+	_defined_classes.clear();
 }
 
-ClassDescription::ClassDescription(PackageData& package, Reference::Flags flags, const std::string& name) :
-    ClassRegister(package.ast()),
-    _package(package),
-    _flags(flags),
-    _name(name) {
-	register_root();
-}
-
-ClassDescription::~ClassDescription() {
-	unregister_root();
-}
+ClassDescription::ClassDescription(AbstractSyntaxTree& ast, const std::string& name) :
+    ClassRegister(ast),
+    _name(name) {}
 
 Symbol ClassDescription::name() const {
 	return _name;
 }
 
 std::string ClassDescription::full_name() const {
-	if (_owner) {
-		return _owner->full_name() + "." + name().str();
+	if (const auto* owner = get_owner_class()) {
+		return owner->full_name() + "." + name().str();
 	}
-	if (&_package.get() != &ast().global_data()) {
-		return _package.get().full_name() + "." + name().str();
+	if (const auto* package = get_owner_package()) {
+		if (package != &ast().global_data()) {
+			return package->full_name() + "." + name().str();
+		}
 	}
 	return name().str();
 }
 
-Reference::Flags ClassDescription::flags() const {
-	return _flags;
-}
-
 ClassDescription::Path ClassDescription::get_path() const {
-	if (_owner) {
-		return {_owner->get_path(), name()};
+	if (const auto* owner = get_owner_class()) {
+		return {owner->get_path(), name()};
 	}
-	if (&_package.get() != &ast().global_data()) {
-		return {_package.get().get_path(), name()};
+	if (const auto* package = get_owner_package()) {
+		return {package->get_path(), name()};
 	}
 	return {name()};
 }
@@ -238,9 +314,12 @@ void ClassDescription::add_base(const Path& base) {
 	_bases.push_back(base);
 }
 
-ClassRegister::Id ClassDescription::create_class(std::unique_ptr<ClassDescription>&& desc) {
-	desc->_owner = this;
-	return ClassRegister::create_class(std::move(desc));
+const ClassDescription* ClassDescription::get_owner_class() const {
+	return dynamic_cast<const ClassDescription*>(get_owner_register());
+}
+
+ClassDescription* ClassDescription::get_owner_class() {
+	return dynamic_cast<ClassDescription*>(get_owner_register());
 }
 
 const Reference* ClassDescription::find_member(const Symbol& name) const {
@@ -248,13 +327,11 @@ const Reference* ClassDescription::find_member(const Symbol& name) const {
 		return &it->second;
 	}
 	for (const auto& base_path : _bases) {
-		if (auto* base_desc = base_path.locate(ast())) {
-			if (const auto* reference = base_desc->find_member(name)) {
-				if (reference->flags() & Reference::global) {
-					return nullptr;
-				}
-				return reference;
+		if (const auto* reference = base_path.locate(get_root_register()).find_member(name)) {
+			if (reference->flags() & Reference::global) {
+				return nullptr;
 			}
+			return reference;
 		}
 	}
 	return nullptr;
@@ -294,7 +371,10 @@ Class& ClassDescription::generate() {
 		return *_metadata;
 	}
 
-	_metadata = std::make_unique<Class>(_package.get(), full_name());
+	auto* owner_package = get_owner_package();
+	auto& root_register = get_root_register();
+
+	_metadata = std::make_unique<Class>(owner_package ? *owner_package : ast().global_data(), full_name());
 	_metadata->_description = this;
 	_bases_metadata.reserve(_bases.size());
 
@@ -302,12 +382,8 @@ Class& ClassDescription::generate() {
 
 	for (const Path& path : _bases) {
 
-		ClassDescription* desc = path.locate(ast());
-		if (desc == nullptr) [[unlikely]] {
-			error("class '{}' was not declared", path.to_string());
-		}
-
-		Class& base = desc->generate();
+		auto& desc = path.locate(root_register);
+		auto& base = desc.generate();
 		_bases_metadata.emplace_back(base);
 
 		for (auto [symbol, member] : base.members()) {
@@ -355,18 +431,17 @@ Class& ClassDescription::generate() {
 		}
 	}
 
-	for (ClassRegister::Id id = 0; ClassDescription* desc = find_class_description(id); ++id) {
+	for (auto [desc, flags] : class_descriptions()) {
 
-		Symbol&& symbol = desc->name();
+		Symbol&& symbol = desc.name();
 
 		if (_metadata->_globals.contains(symbol)) [[unlikely]] {
 			error("multiple definition of class '{}'", symbol.str());
 		}
 
-		const auto flags = Reference::global | Reference::const_address | Reference::const_value | desc->flags();
 		_metadata->_globals.emplace(symbol, make_member_info({
 		                                        .owner = std::ref(*_metadata),
-		                                        .value = make_weak_reference<Object>(flags, desc->generate()),
+		                                        .value = make_weak_reference<Object>(flags, desc.generate()),
 		                                    }));
 	}
 

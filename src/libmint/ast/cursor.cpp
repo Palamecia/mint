@@ -405,7 +405,7 @@ bool Cursor::load_module(const std::string& module) {
 	}
 
 	if (info.state == Module::State::not_loaded) {
-		call(*info.module, 0, _ast.get().global_data());
+		call(*info.bytecode, 0, _ast.get().global_data());
 		_ast.get().set_module_state(info.id, Module::State::ready);
 	}
 

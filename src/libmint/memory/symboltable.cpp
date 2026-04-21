@@ -54,8 +54,12 @@ PackageData& SymbolTable::get_package() const {
 	return _package.back().get();
 }
 
+GlobalData& SymbolTable::get_global_data() const {
+	return _global_data;
+}
+
 WeakReference& SymbolTable::create_fast_reference(const Symbol& name, std::size_t index) {
-	return *(_fasts[index] = std::make_unique<WeakReference>(get_symbol(*this, _global_data.get(), name)));
+	return *(_fasts[index] = std::make_unique<WeakReference>(get_symbol(*this, name)));
 }
 
 WeakReference& SymbolTable::create_fast_reference(Reference::Flags flags, const Symbol& name, std::size_t index) {

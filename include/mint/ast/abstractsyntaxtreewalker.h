@@ -24,10 +24,10 @@
 #ifndef MINT_AST_ABSTRACTSYNTAXTREEWALKER_H
 #define MINT_AST_ABSTRACTSYNTAXTREEWALKER_H
 
-#include "mint/ast/classregister.h"
 #include "mint/ast/cursor.h"
 #include "mint/ast/node.h"
 #include "mint/memory/class.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include <cstddef>
 #include <type_traits>
@@ -126,8 +126,12 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_open_package(cursor, cursor.next().as_constant().data<Package>());
 	case Node::Command::close_package:
 		return walker.on_close_package(cursor);
-	case Node::Command::register_class:
-		return walker.on_register_class(cursor, static_cast<ClassRegister::Id>(cursor.next().as_parameter()));
+	case Node::Command::declare_class:
+		{
+			auto& desc = cursor.next().as_class();
+			const auto flags = static_cast<Reference::Flags>(cursor.next().as_parameter());
+			return walker.on_declare_class(cursor, desc, flags);
+		}
 	case Node::Command::move_operator:
 		return walker.on_move_operator(cursor);
 	case Node::Command::copy_operator:

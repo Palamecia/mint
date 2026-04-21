@@ -24,7 +24,6 @@
 #ifndef MINT_AST_CLASSREGISTER_H
 #define MINT_AST_CLASSREGISTER_H
 
-#include "mint/ast/module.h"
 #include "mint/ast/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
@@ -32,11 +31,12 @@
 #include "mint/memory/reference.h"
 #include "mint/memory/class.h"
 
-#include <cstddef>
 #include <functional>
 #include <initializer_list>
 #include <memory>
+#include <ranges>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <string>
 
@@ -44,6 +44,8 @@ namespace mint {
 
 class AbstractSyntaxTree;
 class ClassDescription;
+class FunctionData;
+class PackageData;
 
 class MINT_EXPORT ClassRegister {
 public:
@@ -61,7 +63,8 @@ public:
 		Path& operator=(Path&&) = default;
 		Path& operator=(const Path&) = default;
 
-		[[nodiscard]] ClassDescription* locate(const AbstractSyntaxTree& ast) const;
+		[[nodiscard]] const ClassDescription& locate(const ClassRegister& root_register) const;
+		[[nodiscard]] ClassDescription& locate(ClassRegister& root_register) const;
 		[[nodiscard]] std::string to_string() const;
 
 		void append_symbol(const Symbol& symbol);
@@ -73,21 +76,41 @@ public:
 
 	static inline bool is_slot(const Reference& member);
 
-	using Id = std::size_t;
-
 	ClassRegister(AbstractSyntaxTree& ast);
 	ClassRegister(ClassRegister&&) = delete;
 	ClassRegister(const ClassRegister&) = delete;
-	virtual ~ClassRegister();
+	virtual ~ClassRegister() = default;
 
 	ClassRegister& operator=(ClassRegister&&) = delete;
 	ClassRegister& operator=(const ClassRegister&) = delete;
 
-	virtual Id create_class(std::unique_ptr<ClassDescription>&& desc);
+	[[nodiscard]] const ClassRegister& get_root_register() const;
+	[[nodiscard]] ClassRegister& get_root_register();
+
+	[[nodiscard]] const ClassRegister* get_owner_register() const;
+	[[nodiscard]] ClassRegister* get_owner_register();
+	void set_owner_register(ClassRegister* owner);
+
+	[[nodiscard]] const PackageData* get_owner_package() const;
+	[[nodiscard]] PackageData* get_owner_package();
 
 	[[nodiscard]] ClassDescription* find_class_description(const Symbol& name) const;
-	[[nodiscard]] ClassDescription* find_class_description(Id id) const;
-	[[nodiscard]] std::size_t count() const;
+	void register_class_description(ClassDescription& desc, Reference::Flags flags);
+
+	[[nodiscard]] auto class_descriptions() const {
+		return std::views::transform(_defined_classes,
+		    [](const auto& entry) -> std::pair<ClassDescription&, Reference::Flags> {
+			    return {entry.desc, entry.flags};
+		    });
+	}
+
+	[[nodiscard]] virtual ClassRegister* locate(const Symbol& symbol) const;
+
+	[[nodiscard]] virtual const FunctionData* get_function_data() const;
+	[[nodiscard]] virtual FunctionData* get_function_data();
+
+	[[nodiscard]] virtual const PackageData* get_package_data() const;
+	[[nodiscard]] virtual PackageData* get_package_data();
 
 	virtual void cleanup_memory();
 	virtual void cleanup_metadata();
@@ -96,28 +119,28 @@ public:
 	[[nodiscard]] inline AbstractSyntaxTree& ast();
 
 private:
-	std::vector<std::unique_ptr<ClassDescription>> _defined_classes;
+	struct ClassDescriptionEntry {
+		std::reference_wrapper<ClassDescription> desc;
+		Reference::Flags flags = Reference::default_flags;
+	};
+
+	ClassRegister* _owner = nullptr;
+	std::vector<ClassDescriptionEntry> _defined_classes;
 	std::reference_wrapper<AbstractSyntaxTree> _ast;
 };
 
-class MINT_EXPORT ClassDescription : public ClassRegister, public MemoryRoot {
+class MINT_EXPORT ClassDescription : public ClassRegister {
 public:
-	ClassDescription(PackageData& package, Reference::Flags flags, const std::string& name);
-	ClassDescription(ClassDescription&&) = delete;
-	ClassDescription(const ClassDescription&) = delete;
-	~ClassDescription() override;
-
-	ClassDescription& operator=(ClassDescription&&) = delete;
-	ClassDescription& operator=(const ClassDescription&) = delete;
+	ClassDescription(AbstractSyntaxTree& ast, const std::string& name);
 
 	[[nodiscard]] Symbol name() const;
 	[[nodiscard]] std::string full_name() const;
-	[[nodiscard]] Reference::Flags flags() const;
 
 	[[nodiscard]] Path get_path() const;
 	void add_base(const Path& base);
 
-	Id create_class(std::unique_ptr<ClassDescription>&& desc) override;
+	[[nodiscard]] const ClassDescription* get_owner_class() const;
+	[[nodiscard]] ClassDescription* get_owner_class();
 
 	[[nodiscard]] const Reference* find_member(const Symbol& name) const;
 	bool create_member(const Symbol& name, const Reference& value);
@@ -129,8 +152,7 @@ public:
 	void cleanup_memory() override;
 	void cleanup_metadata() override;
 
-protected:
-	void mark() override {
+	void mark() {
 		for (auto& member : _members) {
 			member.second.data().mark();
 		}
@@ -141,10 +163,6 @@ private:
 	Class::MemberInfo* update_member_info(const Symbol& symbol, WeakReference& value,
 	    std::unordered_map<Symbol, std::vector<std::reference_wrapper<const Reference>>>& member_overrides);
 
-	ClassDescription* _owner = nullptr;
-	std::reference_wrapper<PackageData> _package;
-
-	Reference::Flags _flags;
 	Symbol _name;
 	std::vector<Path> _bases;
 	std::unordered_map<Symbol, WeakReference> _members;

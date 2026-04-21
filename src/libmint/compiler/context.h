@@ -25,14 +25,17 @@
 #define LIBMINT_COMPILER_CONTEXT_H
 
 #include "branch.h"
+#include "mint/ast/classregister.h"
 #include "mint/ast/symbol.h"
 #include "mint/compiler/buildtool.h"
+#include "mint/memory/globaldata.h"
 #include "mint/memory/reference.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 #include <stack>
 #include <list>
@@ -51,7 +54,7 @@ struct Context {
 	};
 
 	std::stack<MetaBlock> meta_blocks;
-	std::stack<std::unique_ptr<ClassDescription>> classes;
+	std::stack<std::pair<ClassDescription*, Reference::Flags>> classes;
 	std::stack<SubBranch> branches;
 	std::list<std::unique_ptr<Block>> blocks;
 	std::unique_ptr<std::vector<const Symbol*>> condition_scoped_symbols;
@@ -71,6 +74,7 @@ struct Definition : public Context {
 	std::size_t begin_offset = invalid_offset;
 	std::size_t retrieve_point_count = 0;
 	Reference* function = nullptr;
+	std::unique_ptr<FunctionData> global_data;
 	std::unique_ptr<Branch> capture;
 	bool capture_all: 1 = false;
 	bool with_fast: 1 = true;

@@ -286,15 +286,6 @@ package Test {
 		}
 
 		/**
-		 * Test for runtime error. Returns an instance of {Test.ErrorCatcher} to
-		 * perform tests. If `error` is given, the error message must match the
-		 * given value; othewise any error makes the test pass.
-		 */
-		const def expectError(self, error = none) {
-			return Test.ErrorCatcher(self, error)
-		}
-
-		/**
 		 * Extracts the name of the given `test` method.
 		 */
 		- final const def getTestName(const self, test) {

@@ -45,8 +45,11 @@
 
 namespace mint {
 
-class parser;
+class AbstractSyntaxTree;
+class ClassDescription;
+class ClassRegister;
 class PackageData;
+class parser;
 
 class MINT_EXPORT Module : public MemoryRoot {
 	friend class AbstractSyntaxTree;
@@ -69,7 +72,7 @@ public:
 
 	struct Info {
 		Id id = invalid_id;
-		Module* module = nullptr;
+		Module* bytecode = nullptr;
 		DebugInfo* debug_info = nullptr;
 		State state = State::not_compiled;
 	};
@@ -107,10 +110,16 @@ public:
 	Reference* make_constant(Args&&... args);
 	Reference* make_constant(Data& data);
 	Symbol* make_symbol(const std::string& name);
+	ClassDescription* make_class(AbstractSyntaxTree& ast, const std::string& name);
 
-	void mark() override;
+	void add_internal_register(std::unique_ptr<ClassRegister>&& class_register);
+
+	void cleanup_memory();
+	void cleanup_metadata();
 
 protected:
+	void mark() override;
+
 	void push_node(const Node& node);
 	void push_nodes(const std::vector<Node>& nodes);
 	void push_nodes(const std::initializer_list<Node>& nodes);
@@ -120,6 +129,8 @@ private:
 	std::vector<Node> _tree;
 	std::vector<std::unique_ptr<Handle>> _handles;
 	std::vector<std::unique_ptr<WeakReference>> _constants;
+	std::vector<std::unique_ptr<ClassDescription>> _classes;
+	std::vector<std::unique_ptr<ClassRegister>> _internal_registers;
 	std::unordered_map<std::string, std::unique_ptr<Symbol>> _symbols;
 };
 

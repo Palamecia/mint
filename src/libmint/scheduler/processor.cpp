@@ -233,8 +233,8 @@ public:
 		cursor.symbols().close_package();
 	}
 
-	static void on_register_class(Cursor& cursor, ClassRegister::Id id) {
-		cursor.symbols().get_package().register_class(id);
+	static void on_declare_class(Cursor& cursor, ClassDescription& desc, Reference::Flags flags) {
+		declare_class(cursor, desc, flags);
 	}
 
 	static void on_move_operator(Cursor& cursor) {

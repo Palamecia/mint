@@ -80,7 +80,7 @@ std::unique_ptr<Process> Process::from_main_file(Scheduler& scheduler, const std
 		if (stream.is_valid()) {
 			if (const auto info = ast.create_main_module(Module::State::ready); compiler.build(stream, info)) {
 				FileSystem::instance().set_main_module_path(module_file_path);
-				return std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.module));
+				return std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.bytecode));
 			}
 		}
 	}
@@ -102,7 +102,7 @@ std::unique_ptr<Process> Process::from_file(Scheduler& scheduler, const std::fil
 		if (stream.is_valid()) {
 			if (const auto info = ast.create_module_from_file_path(file, Module::State::ready);
 			    compiler.build(stream, info)) {
-				return std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.module));
+				return std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.bytecode));
 			}
 		}
 	}
@@ -122,7 +122,7 @@ std::unique_ptr<Process> Process::from_buffer(Scheduler& scheduler, const std::s
 
 		if (stream.is_valid()) {
 			if (const auto info = ast.create_module(Module::State::ready); compiler.build(stream, info)) {
-				return std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.module));
+				return std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.bytecode));
 			}
 		}
 	}
@@ -139,7 +139,7 @@ std::unique_ptr<Process> Process::from_standard_input(Scheduler& scheduler) {
 
 		AbstractSyntaxTree& ast = scheduler.ast();
 		const auto info = ast.create_main_module(Module::State::ready);
-		auto process = std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.module));
+		auto process = std::make_unique<Process>(std::make_unique<Cursor>(ast, *info.bytecode));
 		process->cursor().open_printer(std::make_unique<Output>(ast));
 		process->set_endless(true);
 

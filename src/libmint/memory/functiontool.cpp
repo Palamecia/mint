@@ -108,7 +108,7 @@ WeakReference mint::create_function(const std::pair<int, Function::Signature>& m
 WeakReference mint::create_function(AbstractSyntaxTree& ast, Module::Info& module, int signature,
     const std::string& function) {
 
-	const std::size_t offset = module.module->end() + 3;
+	const std::size_t offset = module.bytecode->end() + 3;
 
 	auto compiler = Compiler(ast);
 	auto stream = BufferStream(function);
@@ -117,7 +117,7 @@ WeakReference mint::create_function(AbstractSyntaxTree& ast, Module::Info& modul
 	}
 
 	return make_weak_reference<Function>(create_flags, signature,
-	    std::make_unique<Function::Stateless>(*module.module->find_handle(offset)));
+	    std::make_unique<Function::Stateless>(*module.bytecode->find_handle(offset)));
 }
 
 WeakReference mint::create_none() {
@@ -398,7 +398,7 @@ WeakReference mint::get_global_ignore_visibility(Object& object, const Symbol& g
 
 WeakReference mint::find_enum_value(Object& object, double value) {
 	for (auto [symbol, info] : object.metadata.globals()) {
-		auto& value_ref = info.get().value;
+		const auto& value_ref = info.get().value;
 		if (is_instance_of(value_ref, Data::Format::number) && value_ref.data<Number>().value == value) {
 			return value_ref;
 		}

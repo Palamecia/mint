@@ -102,23 +102,23 @@ std::size_t BuildContext::create_fast_scoped_symbol_index(const std::string& sym
 	Context& context = current_context();
 
 	if (context.condition_scoped_symbols) {
-		s = _data.module->make_symbol(symbol);
+		s = _data.bytecode->make_symbol(symbol);
 		context.condition_scoped_symbols->emplace_back(s);
 	}
 	else if (context.range_loop_scoped_symbols) {
-		s = _data.module->make_symbol(symbol);
+		s = _data.bytecode->make_symbol(symbol);
 		context.range_loop_scoped_symbols->emplace_back(s);
 	}
 	else if (!context.blocks.empty()) {
 		auto& block = context.blocks.back();
-		s = _data.module->make_symbol(symbol);
+		s = _data.bytecode->make_symbol(symbol);
 		block->block_scoped_symbols.push_back(s);
 	}
 
 	if (Definition* def = current_definition()) {
 		if (def->with_fast) {
 			if (s == nullptr) {
-				s = _data.module->make_symbol(symbol);
+				s = _data.bytecode->make_symbol(symbol);
 			}
 			return mint::create_fast_symbol_index(*def, *s);
 		}
@@ -131,7 +131,7 @@ std::size_t BuildContext::create_fast_symbol_index(const std::string& symbol) {
 
 	if (Definition* def = current_definition()) {
 		if (def->with_fast) {
-			return mint::create_fast_symbol_index(*def, *_data.module->make_symbol(symbol));
+			return mint::create_fast_symbol_index(*def, *_data.bytecode->make_symbol(symbol));
 		}
 	}
 
@@ -142,7 +142,7 @@ std::size_t BuildContext::fast_symbol_index(const std::string& symbol) {
 
 	if (Definition* def = current_definition()) {
 		if (def->with_fast) {
-			return mint::fast_symbol_index(*def, *_data.module->make_symbol(symbol));
+			return mint::fast_symbol_index(*def, *_data.bytecode->make_symbol(symbol));
 		}
 	}
 
@@ -390,7 +390,7 @@ void BuildContext::set_exception_symbol(const std::string& symbol) {
 	auto& block = context.blocks.back();
 
 	if (CatchContext* catch_context = block->catch_context.get()) {
-		catch_context->symbol = _data.module->make_symbol(symbol);
+		catch_context->symbol = _data.bytecode->make_symbol(symbol);
 	}
 }
 
@@ -496,14 +496,14 @@ void BuildContext::resolve_jump_backward() {
 void BuildContext::start_definition() {
 	_definitions.push(std::make_unique<Definition>(Definition {
 	    .begin_offset = _branch.get().next_node_offset(),
-	    .function = _data.module->make_constant<Function>(),
+	    .function = _data.bytecode->make_constant<Function>(),
 	}));
 }
 
 void BuildContext::start_async_definition() {
 	_definitions.push(std::make_unique<Definition>(Definition {
 	    .begin_offset = _branch.get().next_node_offset(),
-	    .function = _data.module->make_constant<Function>(),
+	    .function = _data.bytecode->make_constant<Function>(),
 	    .async = true,
 	}));
 }
@@ -518,10 +518,13 @@ bool BuildContext::add_parameter(const std::string& symbol, Reference::Flags fla
 		return false;
 	}
 
-	const auto* s = _data.module->make_symbol(symbol);
+	const auto* s = _data.bytecode->make_symbol(symbol);
 	const auto index = static_cast<int>(def->fast_symbol_count++);
 	def->fast_symbol_indexes.emplace(*s, index);
-	def->parameters.push({flags, s});
+	def->parameters.push({
+	    .flags = flags,
+	    .symbol = s,
+	});
 	return true;
 }
 
@@ -535,10 +538,13 @@ bool BuildContext::set_variadic() {
 		return false;
 	}
 
-	const auto* s = _data.module->make_symbol("va_args");
+	const auto* s = _data.bytecode->make_symbol("va_args");
 	const auto index = static_cast<int>(def->fast_symbol_count++);
 	def->fast_symbol_indexes.emplace(*s, index);
-	def->parameters.push({Reference::default_flags, s});
+	def->parameters.push({
+	    .flags = Reference::default_flags,
+	    .symbol = s,
+	});
 	def->variadic = true;
 
 	if (!def->function->data<Function>().mapping.empty()) {
@@ -577,7 +583,7 @@ bool BuildContext::save_parameters() {
 
 	const auto count = static_cast<int>(def->parameters.size());
 	const int signature = def->variadic ? ~(count - 1) : count;
-	Module::Handle& handle = _data.module->make_handle(current_package(), def->begin_offset);
+	Module::Handle& handle = _data.bytecode->make_handle(current_package(), def->begin_offset);
 
 	if (def->capture) {
 		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateful>(handle));
@@ -608,7 +614,7 @@ bool BuildContext::add_definition_signature() {
 	}
 
 	const auto signature = static_cast<int>(def->parameters.size());
-	Module::Handle& handle = _data.module->make_handle(current_package(), def->begin_offset);
+	Module::Handle& handle = _data.bytecode->make_handle(current_package(), def->begin_offset);
 
 	if (def->capture) {
 		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateful>(handle));
@@ -623,13 +629,17 @@ bool BuildContext::add_definition_signature() {
 
 void BuildContext::save_definition() {
 
-	const auto* def = current_definition();
+	auto* def = current_definition();
 	assert(def);
 
 	for (auto& signature : def->function->data<Function>().mapping) {
 		signature.second.handle().fast_count = def->fast_symbol_count;
 		signature.second.handle().generator = def->generator;
 		signature.second.handle().async = def->async;
+	}
+
+	if (def->global_data) {
+		_data.bytecode->add_internal_register(std::move(def->global_data));
 	}
 
 	push_node(Node::Command::load_constant);
@@ -655,6 +665,10 @@ Function& BuildContext::retrieve_definition() {
 		signature.second.handle().fast_count = def->fast_symbol_count;
 		signature.second.handle().generator = def->generator;
 		signature.second.handle().async = def->async;
+	}
+
+	if (def->global_data) {
+		_data.bytecode->add_internal_register(std::move(def->global_data));
 	}
 
 	assert(def->blocks.empty());
@@ -683,7 +697,7 @@ void BuildContext::close_package() {
 
 void BuildContext::start_class_description(const std::string& name, Reference::Flags flags) {
 	_class_base.clear();
-	current_context().classes.push(std::make_unique<ClassDescription>(current_package(), flags, name));
+	current_context().classes.emplace(_data.bytecode->make_class(_compiler.get().ast(), name), flags);
 }
 
 void BuildContext::append_symbol_to_base_class_path(const std::string& symbol) {
@@ -691,7 +705,7 @@ void BuildContext::append_symbol_to_base_class_path(const std::string& symbol) {
 }
 
 void BuildContext::save_base_class_path() {
-	current_context().classes.top()->add_base(_class_base);
+	current_context().classes.top().first->add_base(_class_base);
 	_class_base.clear();
 }
 
@@ -704,7 +718,7 @@ bool BuildContext::create_member(Reference::Flags flags, const Symbol& symbol, D
 }
 
 bool BuildContext::create_member(Reference::Flags flags, const Symbol& symbol, Data& value) {
-	if (!current_context().classes.top()->create_member(symbol, WeakReference(flags, value))) {
+	if (!current_context().classes.top().first->create_member(symbol, WeakReference(flags, value))) {
 		parse_error(symbol.str() + ": member was already defined");
 		return false;
 	}
@@ -712,7 +726,7 @@ bool BuildContext::create_member(Reference::Flags flags, const Symbol& symbol, D
 }
 
 bool BuildContext::update_member(Reference::Flags flags, const Symbol& symbol, Data& value) {
-	if (!current_context().classes.top()->update_member(symbol, WeakReference(flags, value))) {
+	if (!current_context().classes.top().first->update_member(symbol, WeakReference(flags, value))) {
 		parse_error(symbol.str() + ": member was already defined");
 		return false;
 	}
@@ -722,15 +736,26 @@ bool BuildContext::update_member(Reference::Flags flags, const Symbol& symbol, D
 void BuildContext::resolve_class_description() {
 
 	auto& context = current_context();
-	auto desc = std::move(context.classes.top());
+	auto [desc, flags] = context.classes.top();
 	context.classes.pop();
 
 	if (context.classes.empty()) {
-		push_node(Node::Command::register_class);
-		push_node(static_cast<int>(current_package().create_class(std::move(desc))));
+		if (flags & Reference::global) {
+			current_package().register_class_description(*desc, flags);
+		}
+		else if (auto* def = current_definition()) {
+			if (!def->global_data) {
+				def->global_data = std::make_unique<FunctionData>(_compiler.get().ast());
+			}
+			def->global_data->register_class_description(*desc, flags);
+		}
+		push_node(Node::Command::declare_class);
+		push_node(desc);
+		push_node(flags);
 	}
 	else {
-		context.classes.top()->create_class(std::move(desc));
+		assert(flags & Reference::global);
+		context.classes.top().first->register_class_description(*desc, flags);
 	}
 }
 
@@ -908,7 +933,7 @@ void BuildContext::push_node(std::size_t parameter) {
 }
 
 void BuildContext::push_node(const char* symbol) {
-	_branch.get().push_node(_data.module->make_symbol(symbol));
+	_branch.get().push_node(_data.bytecode->make_symbol(symbol));
 }
 
 void BuildContext::push_node(const Symbol* symbol) {
@@ -916,7 +941,11 @@ void BuildContext::push_node(const Symbol* symbol) {
 }
 
 void BuildContext::push_node(Data& constant) {
-	_branch.get().push_node(_data.module->make_constant(constant));
+	_branch.get().push_node(_data.bytecode->make_constant(constant));
+}
+
+void BuildContext::push_node(ClassDescription* desc) {
+	_branch.get().push_node(desc);
 }
 
 std::size_t BuildContext::next_offset() const {

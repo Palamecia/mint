@@ -1,20 +1,8 @@
 load test.case
+load test.errorcatcher
 load mint.type
 
 class TypeTest : Test.Case {
-    const def testAllocate(self) {
-        class Foo {
-            const def clone(const self) {
-                return self.allocate()
-            }
-        }
-        class Bar : Foo {}
-        const foo = Foo()
-        const bar = Bar()
-        self.expectEqual('Foo', typeof foo.clone())
-        self.expectEqual('Bar', typeof bar.clone())
-    }
-
     const def testDeclarePrivate(self) {
         const __my_type__ = type('__my_type__', {
             private('member'): none
@@ -29,5 +17,367 @@ class TypeTest : Test.Case {
         self.expectEqual('TypeTest', typeof info.getOwner())
         self.expectEqual(true, info.isConst())
         self.expectEqual(true, info.isPublic())
+    }
+
+    const def testLocalClassBasic(self) {
+
+        class Foo {}
+
+        let foo = Foo()
+
+        self.expectEqual('Foo', typeof foo)
+    }
+
+    const def testLocalClassScope(self) {
+
+        def make() {
+            class Foo {}
+            return Foo
+        }
+
+        let Foo1 = make()
+        let Foo2 = make()
+
+        self.expectIsNotSame(Foo1, Foo2)
+    }
+
+    const def testLocalClassInstanceIsolation(self) {
+
+        class Foo {}
+
+        let a = Foo()
+        let b = Foo()
+
+        self.expectIsNotSame(a, b)
+    }
+
+    const def testLocalClassMethod(self) {
+
+        class Foo {
+            def value(self) {
+                return 42
+            }
+        }
+
+        let foo = Foo()
+
+        self.expectEqual(42, foo.value())
+    }
+
+    const def testLocalClassInheritance(self) {
+
+        class A {}
+        class B : A {}
+
+        let b = B()
+
+        self.expectEqual('B', typeof b)
+    }
+
+    const def testLocalClassNoCapture(self) {
+
+        let value = 42
+
+        class Foo {
+            def get(self) {
+                return value
+            }
+        }
+
+        let foo = Foo()
+
+        self.expectIsSame(none, foo.get())
+    }
+
+    const def testLocalClassEscape(self) {
+
+        def make() {
+            class Foo {}
+            return Foo
+        }
+
+        let Foo = make()
+        let obj = Foo()
+
+        self.expectEqual('Foo', typeof obj)
+    }
+
+    const def testLocalClassShadowing(self) {
+        try {
+
+            let catcher = Test.ErrorCatcher()
+
+            class Foo {}
+            let a = Foo()
+
+            class Foo {}
+            let b = Foo()
+
+            self.fail()
+        } catch e {
+            self.expectEqual("multiple definition of class 'Foo'", e.toString())
+        }
+    }
+
+    const def testLocalClassFields(self) {
+
+        class Foo {
+            final x = 0
+        }
+
+        let foo = Foo()
+        foo.x = 10
+
+        self.expectEqual(10, foo.x)
+    }
+
+    const def testLocalClassNested(self) {
+
+        class Outer {
+            def make(self) {
+                class Inner {}
+                return Inner()
+            }
+        }
+
+        let o = Outer()
+        let i = o.make()
+
+        self.expectEqual('Inner', typeof i)
+    }
+
+    const def testLocalClassReferenceSameScope(self) {
+
+        class A {
+            def make(self) {
+                return B()
+            }
+        }
+
+        class B {
+            def value(self) {
+                return 42
+            }
+        }
+
+        let a = A()
+        let b = a.make()
+
+        self.expectEqual(42, b.value())
+    }
+
+    const def testLocalClassForwardReference(self) {
+
+        class A {
+            def make(self) {
+                return B()
+            }
+        }
+
+        class B {}
+
+        let a = A()
+        let b = a.make()
+
+        self.expectEqual('B', typeof b)
+    }
+
+    const def testLocalClassMutualReference(self) {
+
+        class A {
+            def make(self) {
+                return B()
+            }
+        }
+
+        class B {
+            def make(self) {
+                return A()
+            }
+        }
+
+        let a = A()
+        let b = a.make()
+        let a2 = b.make()
+
+        self.expectEqual('A', typeof a2)
+    }
+
+    const def testLocalClassSelfReference(self) {
+
+        class A {
+            def make(self, n) {
+                if n == 0 {
+                    return self
+                }
+                return A().make(n - 1)
+            }
+        }
+
+        let a = A()
+        let result = a.make(3)
+
+        self.expectEqual('A', typeof result)
+    }
+
+    /*const def testLocalClassNestedReference(self) {
+
+        class A {
+            def make(self) {
+
+                class B {
+                    def createA(self) {
+                        return A()
+                    }
+                }
+
+                return B().createA()
+            }
+        }
+
+        let a = A()
+        let result = a.make()
+
+        self.expectEqual('A', typeof result)
+    }*/
+
+    const def testAllocateBasic(self) {
+
+        class Foo {
+            def clone(self) {
+                return self.allocate()
+            }
+        }
+
+        let foo = Foo()
+        let other = foo.clone()
+
+        self.expectEqual('Foo', typeof other)
+        self.expectIsNotSame(foo, other)
+    }
+
+    const def testAllocateNoFieldCopy(self) {
+
+        class Foo {
+            final x = null
+
+            def clone(self) {
+                return self.allocate()
+            }
+        }
+
+        let foo = Foo()
+        foo.x = 42
+
+        let other = foo.clone()
+
+        self.expectEqual(null, other.x)
+    }
+
+    const def testAllocateNoConstructor(self) {
+
+        class Foo {
+            const def new(self) {
+                Foo.called = true
+                return self
+            }
+            const def clone(const self) {
+                return self.allocate()
+            }
+            @called = false
+        }
+
+        let foo = Foo()
+        self.expectEqual(true, Foo.called)
+
+        Foo.called = false
+
+        let other = foo.clone()
+        self.expectEqual(false, Foo.called)
+    }
+
+    const def testAllocateInheritance(self) {
+
+        class Foo {
+            const def clone(const self) {
+                return self.allocate()
+            }
+        }
+
+        class Bar : Foo {}
+
+        let foo = Foo()
+        self.expectEqual('Foo', typeof foo.clone())
+
+        let bar = Bar()
+        self.expectEqual('Bar', typeof bar.clone())
+    }
+
+    const def testAllocatePolymorphic(self) {
+
+        class Foo {
+            def make(self) {
+                return self.allocate()
+            }
+        }
+
+        class Bar : Foo {}
+
+        let bar = Bar()
+        let result = bar.make()
+
+        self.expectEqual('Bar', typeof result)
+    }
+
+    const def testAllocateFromClass(self) {
+
+        class Foo {
+            @const def make() {
+                return Foo.allocate()
+            }
+        }
+
+        let obj = Foo.make()
+
+        self.expectEqual('Foo', typeof obj)
+    }
+
+    const def testAllocateCloneCopy(self) {
+
+        class Foo {
+            final x = 0
+
+            def clone(self) {
+                let other = self.allocate()
+                other.x = self.x
+                return other
+            }
+        }
+
+        let foo = Foo()
+        foo.x = 99
+
+        let other = foo.clone()
+
+        self.expectEqual(99, other.x)
+        self.expectIsNotSame(foo, other)
+    }
+
+    const def testAllocateSelfReference(self) {
+
+        class Foo {
+            final selfRef = null
+
+            def clone(self) {
+                let other = self.allocate()
+                other.selfRef = other
+                return other
+            }
+        }
+
+        let foo = Foo()
+        let other = foo.clone()
+
+        self.expectIsSame(other.selfRef, other)
     }
 }

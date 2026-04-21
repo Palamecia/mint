@@ -5,6 +5,7 @@
 #include "mint/compiler/compiler.h"
 #include "mint/memory/data.h"
 #include "mint/memory/garbagecollector.h"
+#include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/bufferstream.h"
 #include <gtest/gtest.h>
@@ -20,7 +21,8 @@ TEST(buildtool, resolve_class_description) {
 	mint::Compiler compiler(scheduler.ast());
 	mint::BuildContext context(stream, compiler, scheduler.ast().create_module(mint::Module::State::ready));
 
-	context.start_class_description("A");
+	context.start_class_description("A",
+	    mint::Reference::global | mint::Reference::const_address | mint::Reference::const_value);
 	context.create_member(mint::Reference::default_flags, mint::Symbol("mbr"),
 	    mint::GarbageCollector::instance().alloc<mint::None>());
 	context.resolve_class_description();
@@ -29,7 +31,8 @@ TEST(buildtool, resolve_class_description) {
 	ASSERT_NE(nullptr, a_desc);
 	EXPECT_NO_THROW(a_desc->generate());
 
-	context.start_class_description("B");
+	context.start_class_description("B",
+	    mint::Reference::global | mint::Reference::const_address | mint::Reference::const_value);
 	context.create_member(mint::Reference::default_flags, mint::Symbol("mbr"),
 	    mint::GarbageCollector::instance().alloc<mint::None>());
 	context.resolve_class_description();
@@ -38,7 +41,8 @@ TEST(buildtool, resolve_class_description) {
 	ASSERT_NE(nullptr, b_desc);
 	EXPECT_NO_THROW(b_desc->generate());
 
-	context.start_class_description("C");
+	context.start_class_description("C",
+	    mint::Reference::global | mint::Reference::const_address | mint::Reference::const_value);
 	context.append_symbol_to_base_class_path("A");
 	context.save_base_class_path();
 	context.append_symbol_to_base_class_path("B");
@@ -51,7 +55,8 @@ TEST(buildtool, resolve_class_description) {
 	ASSERT_NE(nullptr, c_desc);
 	EXPECT_NO_THROW(c_desc->generate());
 
-	context.start_class_description("D");
+	context.start_class_description("D",
+	    mint::Reference::global | mint::Reference::const_address | mint::Reference::const_value);
 	context.append_symbol_to_base_class_path("A");
 	context.save_base_class_path();
 	context.append_symbol_to_base_class_path("B");

@@ -31,6 +31,8 @@
 
 namespace mint {
 
+class ClassDescription;
+
 union MINT_EXPORT Node {
 	enum class Command : std::uint8_t {
 		load_module,
@@ -72,7 +74,7 @@ union MINT_EXPORT Node {
 
 		open_package,
 		close_package,
-		register_class,
+		declare_class,
 
 		move_operator,
 		copy_operator,
@@ -183,6 +185,7 @@ union MINT_EXPORT Node {
 	Node(int parameter);
 	Node(const Symbol* symbol);
 	Node(const Reference* constant);
+	Node(ClassDescription* class_description);
 
 	[[nodiscard]] Command as_command() const {
 		return command;
@@ -200,10 +203,15 @@ union MINT_EXPORT Node {
 		return *constant;
 	}
 
+	[[nodiscard]] ClassDescription& as_class() const {
+		return *class_description;
+	}
+
 	Command command;
 	int parameter;
 	const Symbol* symbol;
 	const Reference* constant;
+	ClassDescription* class_description;
 };
 
 }

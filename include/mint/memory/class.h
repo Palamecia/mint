@@ -32,7 +32,6 @@
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 
-#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <functional>

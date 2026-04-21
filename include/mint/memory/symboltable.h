@@ -63,6 +63,7 @@ public:
 
 	[[nodiscard]] Class* get_metadata() const;
 	[[nodiscard]] PackageData& get_package() const;
+	[[nodiscard]] GlobalData& get_global_data() const;
 
 	inline void open_package(PackageData& package);
 	inline void close_package();

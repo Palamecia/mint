@@ -533,6 +533,86 @@ class MyClass {
 > [!NOTE]
 > The [[mint.type]] module provides a `clone` function that calls the `clone` method of the provided object and falls back to the standard copy mechanism if not defined.
 
+## Internal types
+
+A user-defined type like **enum** or **class** can be declared in a [[function body|Function-definition]]. These local types behave exactly like regular user-defined types but are only visible within the scope in which they are declared.
+
+```mn
+def func() {
+
+    enum Foo {}
+
+    class Bar {}
+
+    defined Foo  // gives true
+    defined Bar  // gives true
+}
+
+defined Foo      // gives false
+defined Bar      // gives false
+```
+
+Local classes support all standard features, including fields, methods, and inheritance:
+
+```mn
+const def func() {
+
+    class Base {
+        const def name(self) {
+            return 'Base'
+        }
+    }
+
+    class Derived : Base {}
+
+    let obj = Derived()
+    typeof obj  // gives 'Derived'
+}
+```
+
+Local classes defined within the same scope can reference each other, as well as themselves, from within their method bodies. Name resolution follows the lexical scope in which the classes are defined.
+
+```mn
+const def func() {
+
+    class A {
+        def makeB(self) {
+            return B()
+        }
+    }
+
+    class B {
+        def name(self) {
+            return 'B'
+        }
+    }
+
+    let a = A()
+    let b = a.makeB()
+
+    b.name()  // gives 'B'
+}
+```
+
+They can safely escape their defining scope by being returned or stored, as they do not rely on any external execution context.
+
+To export a local type to the global scope, the type definition can be prefixed with an `@`:
+
+```mn
+def func() {
+
+    @ enum Foo {}
+
+    @ class Bar {}
+
+    defined Foo  // gives true
+    defined Bar  // gives true
+}
+
+defined Foo      // gives true
+defined Bar      // gives true
+```
+
 ---
 
 <div align="right">

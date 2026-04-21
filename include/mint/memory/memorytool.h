@@ -24,6 +24,7 @@
 #ifndef MINT_MEMORY_MEMORYTOOL_H
 #define MINT_MEMORY_MEMORYTOOL_H
 
+#include "mint/ast/classregister.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
 #include "mint/memory/object.h"
@@ -74,7 +75,7 @@ MINT_EXPORT bool has_signature(Function::Mapping& mapping, int signature);
 MINT_EXPORT bool has_signature(const Reference& reference, int signature);
 
 MINT_EXPORT WeakReference get_symbol(Cursor& cursor, const Symbol& symbol);
-MINT_EXPORT WeakReference get_symbol(SymbolTable& symbols, GlobalData& globals, const Symbol& symbol);
+MINT_EXPORT WeakReference get_symbol(SymbolTable& symbols, const Symbol& symbol);
 MINT_EXPORT std::tuple<WeakReference, Class*> get_member(Cursor& cursor, const Reference& reference,
     const Symbol& member);
 MINT_EXPORT std::tuple<WeakReference, Class*> get_operator(Cursor& cursor, const Reference& reference,
@@ -90,6 +91,7 @@ MINT_EXPORT bool is_private_accessible(const Cursor& cursor, const Class& owner)
 MINT_EXPORT bool is_package_accessible(const Cursor& cursor, const Class& owner);
 
 MINT_EXPORT Symbol var_symbol(Cursor& cursor);
+MINT_EXPORT void declare_class(Cursor& cursor, ClassDescription& desc, Reference::Flags flags);
 MINT_EXPORT void declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags flags);
 MINT_EXPORT void declare_symbol(Cursor& cursor, const Symbol& symbol, std::size_t index, Reference::Flags flags);
 MINT_EXPORT void declare_function(Cursor& cursor, const Symbol& symbol, Reference::Flags flags);

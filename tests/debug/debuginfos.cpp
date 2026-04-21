@@ -81,7 +81,7 @@ if defined symbol {
 
 	ASSERT_TRUE(compiler.build(stream, mint::Module::Info {
 	                                       .id = mint::Module::invalid_id,
-	                                       .module = &module,
+	                                       .bytecode = &module,
 	                                       .debug_info = &infos,
 	                                   }));
 	EXPECT_EQ(3, infos.line_number(0));

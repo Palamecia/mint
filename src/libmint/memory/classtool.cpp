@@ -27,14 +27,12 @@
 #include "mint/ast/symbol.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/globaldata.h"
 #include "mint/memory/garbagecollector.h"
 #include "mint/system/error.h"
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
-#include <memory>
 #include <optional>
 #include <ranges>
 #include <span>
@@ -46,14 +44,9 @@ using namespace mint;
 
 Class& mint::create_enum(AbstractSyntaxTree& ast, const std::string& name,
     std::span<const std::pair<Symbol, std::optional<std::intmax_t>>> values) {
-	return create_enum(ast.global_data(), name, values);
-}
-
-Class& mint::create_enum(PackageData& package, const std::string& name,
-    std::span<const std::pair<Symbol, std::optional<std::intmax_t>>> values) {
 
 	std::size_t next_enum_value = 0;
-	auto desc = std::make_unique<ClassDescription>(package, Reference::default_flags, name);
+	auto* desc = ast.main().bytecode->make_class(ast, name);
 	const Reference::Flags flags = Reference::const_value | Reference::const_address | Reference::global;
 
 	for (const auto& [symbol, value] : values) {
@@ -70,29 +63,17 @@ Class& mint::create_enum(PackageData& package, const std::string& name,
 		}
 	}
 
-	auto& desc_ref = *desc;
-	package.register_class(package.create_class(std::move(desc)));
-	return desc_ref.generate();
+	return desc->generate();
 }
 
 Class& mint::create_enum(AbstractSyntaxTree& ast, const std::string& name,
     std::initializer_list<std::pair<Symbol, std::optional<std::intmax_t>>> values) {
-	return create_enum(ast.global_data(), name, std::span(values.begin(), values.end()));
-}
-
-Class& mint::create_enum(PackageData& package, const std::string& name,
-    std::initializer_list<std::pair<Symbol, std::optional<std::intmax_t>>> values) {
-	return create_enum(package, name, std::span(values.begin(), values.end()));
+	return create_enum(ast, name, std::span(values.begin(), values.end()));
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
     std::span<const std::pair<Symbol, WeakReference>> members) {
-	return create_class(ast.global_data(), name, std::span<ClassRegister::Path>(), members);
-}
-
-Class& mint::create_class(PackageData& package, const std::string& name,
-    std::span<const std::pair<Symbol, WeakReference>> members) {
-	return create_class(package, name, std::span<ClassRegister::Path>(), members);
+	return create_class(ast, name, std::span<ClassRegister::Path>(), members);
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
@@ -100,51 +81,33 @@ Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
     std::span<const std::pair<Symbol, WeakReference>> members) {
 	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
 	    std::views::transform(bases, &ClassDescription::get_path));
-	return create_class(ast.global_data(), name, std::span(bases_path), members);
-}
-
-Class& mint::create_class(PackageData& package, const std::string& name,
-    std::span<const std::reference_wrapper<ClassDescription>> bases,
-    std::span<const std::pair<Symbol, WeakReference>> members) {
-	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
-	    std::views::transform(bases, &ClassDescription::get_path));
-	return create_class(package, name, std::span(bases_path), members);
+	return create_class(ast, name, std::span(bases_path), members);
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name, std::span<const ClassRegister::Path> bases,
     std::span<const std::pair<Symbol, WeakReference>> members) {
-	return create_class(ast.global_data(), name, bases, members);
-}
 
-Class& mint::create_class(PackageData& package, const std::string& name, std::span<const ClassRegister::Path> bases,
-    std::span<const std::pair<Symbol, WeakReference>> members) {
-
-	auto desc = std::make_unique<ClassDescription>(package, Reference::default_flags, name);
+	auto* desc = ast.main().bytecode->make_class(ast, name);
 
 	for (const auto& base : bases) {
 		desc->add_base(base);
 	}
 
 	for (const auto& [symbol, member] : members) {
-		if (!desc->create_member(symbol, member)) {
+		if (is_stateful_function(member)) [[unlikely]] {
+			error("{}: members can not use stateful functions", symbol.str());
+		}
+		if (!desc->create_member(symbol, member)) [[unlikely]] {
 			error("{}: member was already defined for class '{}'", symbol.str(), name);
 		}
 	}
 
-	auto& desc_ref = *desc;
-	package.register_class(package.create_class(std::move(desc)));
-	return desc_ref.generate();
+	return desc->generate();
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
     std::initializer_list<std::pair<Symbol, WeakReference>> members) {
-	return create_class(ast.global_data(), name, std::span<ClassRegister::Path>(),
-	    std::span(members.begin(), members.end()));
-}
-
-Class& mint::create_class(PackageData& package, const std::string& name,
-    std::initializer_list<std::pair<Symbol, WeakReference>> members) {
-	return create_class(package, name, std::span<ClassRegister::Path>(), std::span(members.begin(), members.end()));
+	return create_class(ast, name, std::span<ClassRegister::Path>(), std::span(members.begin(), members.end()));
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
@@ -152,26 +115,11 @@ Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
     std::initializer_list<std::pair<Symbol, WeakReference>> members) {
 	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
 	    std::views::transform(bases, &ClassDescription::get_path));
-	return create_class(ast.global_data(), name, std::span(bases_path), std::span(members.begin(), members.end()));
-}
-
-Class& mint::create_class(PackageData& package, const std::string& name,
-    std::initializer_list<std::reference_wrapper<mint::ClassDescription>> bases,
-    std::initializer_list<std::pair<Symbol, WeakReference>> members) {
-	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
-	    std::views::transform(bases, &ClassDescription::get_path));
-	return create_class(package, name, std::span(bases_path), std::span(members.begin(), members.end()));
+	return create_class(ast, name, std::span(bases_path), std::span(members.begin(), members.end()));
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
     std::initializer_list<mint::ClassRegister::Path> bases,
     std::initializer_list<std::pair<Symbol, WeakReference>> members) {
-	return create_class(ast.global_data(), name, std::span(bases.begin(), bases.end()),
-	    std::span(members.begin(), members.end()));
-}
-
-Class& mint::create_class(PackageData& package, const std::string& name,
-    std::initializer_list<mint::ClassRegister::Path> bases,
-    std::initializer_list<std::pair<Symbol, WeakReference>> members) {
-	return create_class(package, name, std::span(bases.begin(), bases.end()), std::span(members.begin(), members.end()));
+	return create_class(ast, name, std::span(bases.begin(), bases.end()), std::span(members.begin(), members.end()));
 }

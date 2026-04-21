@@ -22,6 +22,7 @@
  */
 
 #include "mint/ast/module.h"
+#include "mint/ast/classregister.h"
 #include "mint/ast/node.h"
 #include "mint/ast/symbol.h"
 #include "mint/memory/data.h"
@@ -33,6 +34,7 @@
 #include <cstring>
 #include <ranges>
 #include <string>
+#include <utility>
 #include <vector>
 
 using namespace mint;
@@ -98,6 +100,10 @@ Reference* Module::make_constant(Data& data) {
 	    .get();
 }
 
+ClassDescription* mint::Module::make_class(AbstractSyntaxTree& ast, const std::string& name) {
+	return _classes.emplace_back(std::make_unique<ClassDescription>(ast, name)).get();
+}
+
 Symbol* Module::make_symbol(const std::string& name) {
 	auto it = _symbols.find(name);
 	if (it == _symbols.end()) {
@@ -106,9 +112,30 @@ Symbol* Module::make_symbol(const std::string& name) {
 	return it->second.get();
 }
 
+void Module::add_internal_register(std::unique_ptr<ClassRegister>&& class_register) {
+	_internal_registers.emplace_back(std::move(class_register));
+}
+
+void Module::cleanup_memory() {
+	for (const auto& class_register : _internal_registers) {
+		class_register->cleanup_memory();
+	}
+	_constants.clear();
+}
+
+void Module::cleanup_metadata() {
+	for (const auto& class_register : _internal_registers) {
+		class_register->cleanup_metadata();
+	}
+	_classes.clear();
+}
+
 void Module::mark() {
 	for (const auto& constant : _constants) {
 		constant->data().mark();
+	}
+	for (const auto& desc : _classes) {
+		desc->mark();
 	}
 }
 
@@ -117,11 +144,11 @@ void Module::push_node(const Node& node) {
 }
 
 void Module::push_nodes(const std::vector<Node>& nodes) {
-	_tree.insert(_tree.end(), nodes.begin(), nodes.end());
+	_tree.append_range(nodes);
 }
 
 void Module::push_nodes(const std::initializer_list<Node>& nodes) {
-	_tree.insert(_tree.end(), nodes.begin(), nodes.end());
+	_tree.append_range(nodes);
 }
 
 void Module::replace_node(std::size_t offset, const Node& node) {

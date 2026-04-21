@@ -43,21 +43,22 @@
 
 namespace mint {
 
+class MINT_EXPORT FunctionData : public ClassRegister {
+public:
+	FunctionData(AbstractSyntaxTree& ast);
+
+	[[nodiscard]] const FunctionData* get_function_data() const override;
+	[[nodiscard]] FunctionData* get_function_data() override;
+};
+
 class MINT_EXPORT PackageData : public ClassRegister {
 public:
-	explicit PackageData(AbstractSyntaxTree& ast, const std::string& name, PackageData* owner = nullptr);
-	PackageData(PackageData&&) = delete;
-	PackageData(const PackageData&) = delete;
-	~PackageData() override;
-
-	PackageData& operator=(PackageData&&) = delete;
-	PackageData& operator=(const PackageData&) = delete;
+	PackageData(AbstractSyntaxTree& ast, const std::string& name);
 
 	[[nodiscard]] Symbol name() const;
 	[[nodiscard]] std::string full_name() const;
 	[[nodiscard]] Path get_path() const;
 
-	[[nodiscard]] PackageData* get_owner_package() const;
 	[[nodiscard]] PackageData& get_package(const Symbol& name);
 	[[nodiscard]] PackageData* find_package(const Symbol& name) const;
 
@@ -68,7 +69,6 @@ public:
 		    });
 	}
 
-	void register_class(Id id);
 	[[nodiscard]] Class* find_class(const Symbol& name) const;
 
 	[[nodiscard]] auto classes() {
@@ -83,12 +83,16 @@ public:
 	[[nodiscard]] inline const SymbolTable& symbols() const;
 	[[nodiscard]] inline SymbolTable& symbols();
 
+	[[nodiscard]] ClassRegister* locate(const Symbol& symbol) const override;
+
+	[[nodiscard]] const PackageData* get_package_data() const override;
+	[[nodiscard]] PackageData* get_package_data() override;
+
 	void cleanup_memory() override;
 	void cleanup_metadata() override;
 
 private:
 	Symbol _name;
-	PackageData* _owner;
 	std::unordered_map<Symbol, std::unique_ptr<PackageData>> _packages;
 	SymbolTable _symbols;
 };

@@ -316,6 +316,8 @@ private:
 	static LocalPool<Function> g_pool;
 };
 
+MINT_EXPORT bool is_stateful_function(const Reference& object);
+
 class MINT_EXPORT Coroutine : public Data {
 	template<typename Type>
 	friend class LocalPool;

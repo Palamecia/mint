@@ -22,6 +22,7 @@
  */
 
 #include "mint/ast/node.h"
+#include "mint/ast/classregister.h"
 #include "mint/ast/symbol.h"
 #include "mint/memory/reference.h"
 
@@ -38,3 +39,6 @@ Node::Node(const Symbol* symbol) :
 
 Node::Node(const Reference* constant) :
     constant(constant) {}
+
+Node::Node(ClassDescription* class_description) :
+    class_description(class_description) {}

@@ -41,5 +41,5 @@ std::unique_ptr<Cursor> mint::load_module(const std::string& module, AbstractSyn
 	if (infos.id == Module::invalid_id) [[unlikely]] {
 		error("module '{}' not found", module);
 	}
-	return std::make_unique<Cursor>(ast, *infos.module);
+	return std::make_unique<Cursor>(ast, *infos.bytecode);
 }

@@ -144,7 +144,7 @@ public:
 	void open_package(const std::string& name);
 	void close_package();
 
-	void start_class_description(const std::string& name, Reference::Flags flags = Reference::default_flags);
+	void start_class_description(const std::string& name, Reference::Flags flags);
 	void append_symbol_to_base_class_path(const std::string& symbol);
 	void save_base_class_path();
 	bool create_member(Reference::Flags flags, const Symbol& symbol, Data* value);
@@ -152,7 +152,7 @@ public:
 	bool update_member(Reference::Flags flags, const Symbol& symbol, Data& value);
 	void resolve_class_description();
 
-	void start_enum_description(const std::string& name, Reference::Flags flags = Reference::default_flags);
+	void start_enum_description(const std::string& name, Reference::Flags flags);
 	void set_current_enum_value(int value);
 	int next_enum_value();
 	void resolve_enum_description();
@@ -189,6 +189,7 @@ public:
 	void push_node(std::size_t parameter);
 	void push_node(const char* symbol);
 	void push_node(Data& constant);
+	void push_node(ClassDescription* desc);
 	[[nodiscard]] std::size_t next_offset() const;
 
 	void start_operator(Class::Operator op);

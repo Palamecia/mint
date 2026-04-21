@@ -314,6 +314,15 @@ void Function::mark() {
 	}
 }
 
+bool mint::is_stateful_function(const Reference& object) {
+	if (object.data().format() != Data::Format::function) {
+		return false;
+	}
+	return std::ranges::any_of(std::views::values(object.data<Function>().mapping), [](auto& signature) {
+		return signature.template context<Function::Stateful>() != nullptr;
+	});
+}
+
 Coroutine::Coroutine(std::unique_ptr<SavedState>&& state, std::size_t stack_size) :
     _saved_state(std::move(state)),
     _stored_stack(std::from_range,

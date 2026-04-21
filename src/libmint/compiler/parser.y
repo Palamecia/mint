@@ -459,8 +459,21 @@ package_block_rule:
 	};
 
 class_rule:
-    class_token symbol_token {
-		context.start_class_description($2);
+    type_modifier_rule class_token symbol_token {
+		if (context.is_in_function()) {
+			context.start_class_description($3, Reference::const_address | Reference::const_value | context.retrieve_modifiers());
+		}
+		else {
+			context.start_class_description($3, Reference::global | Reference::const_address | Reference::const_value | context.retrieve_modifiers());
+		}
+	}
+	| class_token symbol_token {
+		if (context.is_in_function()) {
+			context.start_class_description($2, Reference::const_address | Reference::const_value);
+		}
+		else {
+			context.start_class_description($2, Reference::global | Reference::const_address | Reference::const_value);
+		}
 	};
 
 parent_rule:
@@ -491,7 +504,7 @@ class_desc_rule:
 member_class_rule:
 	class_rule
 	| member_type_modifier_rule class_token symbol_token {
-		context.start_class_description($3, context.retrieve_modifiers());
+		context.start_class_description($3, Reference::global | Reference::const_address | Reference::const_value | context.retrieve_modifiers());
 	};
 
 member_class_desc_rule:
@@ -502,7 +515,7 @@ member_class_desc_rule:
 member_enum_rule:
 	enum_rule
 	| member_type_modifier_rule enum_token symbol_token {
-		context.start_enum_description($3, context.retrieve_modifiers());
+		context.start_enum_description($3, Reference::global | Reference::const_address | Reference::const_value | context.retrieve_modifiers());
 	};
 
 member_enum_desc_rule:
@@ -953,8 +966,21 @@ operator_desc_rule:
 	};
 
 enum_rule:
-    enum_token symbol_token {
-		context.start_enum_description($2);
+    type_modifier_rule enum_token symbol_token {
+		if (context.is_in_function()) {
+			context.start_enum_description($3, Reference::const_address | Reference::const_value | context.retrieve_modifiers());
+		}
+		else {
+			context.start_enum_description($3, Reference::global | Reference::const_address | Reference::const_value | context.retrieve_modifiers());
+		}
+	}
+	| enum_token symbol_token {
+		if (context.is_in_function()) {
+			context.start_enum_description($2, Reference::const_address | Reference::const_value);
+		}
+		else {
+			context.start_enum_description($2, Reference::global | Reference::const_address | Reference::const_value);
+		}
 	};
 
 enum_desc_rule:
@@ -985,6 +1011,11 @@ enum_item_rule:
 	}
 	| line_end_token {
 		context.commit_line();
+	};
+
+type_modifier_rule:
+    at_token {
+		context.start_modifiers(Reference::global);
 	};
 
 generator_expr_rule:

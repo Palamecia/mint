@@ -22,6 +22,7 @@
  */
 
 #include "mint/memory/memorytool.h"
+#include "mint/ast/classregister.h"
 #include "mint/ast/printer.h"
 #include "mint/ast/symbol.h"
 #include "mint/memory/class.h"
@@ -597,13 +598,21 @@ bool mint::has_signature(const Reference& reference, int signature) {
 }
 
 WeakReference mint::get_symbol(Cursor& cursor, const Symbol& symbol) {
-	return get_symbol(cursor.symbols(), cursor.ast().global_data(), symbol);
+	return get_symbol(cursor.symbols(), symbol);
 }
 
-WeakReference mint::get_symbol(SymbolTable& symbols, GlobalData& globals, const Symbol& symbol) {
+WeakReference mint::get_symbol(SymbolTable& symbols, const Symbol& symbol) {
 	if (auto it = symbols.find(symbol); it != symbols.end()) {
 		return it->second;
 	}
+	if (const auto* metadata = symbols.get_metadata()) {
+		if (const auto* locals = metadata->get_description().get_root_register().get_function_data()) {
+			if (auto* desc = locals->find_class_description(symbol)) {
+				return create_alias(desc->generate());
+			}
+		}
+	}
+	const auto& globals = symbols.get_global_data();
 	if (auto it = globals.symbols().find(symbol); it != globals.symbols().end()) {
 		return it->second;
 	}
@@ -791,6 +800,18 @@ Symbol mint::var_symbol(Cursor& cursor) {
 	const auto var = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
 	return Symbol(to_string(var));
+}
+
+void mint::declare_class(Cursor& cursor, ClassDescription& desc, Reference::Flags flags) {
+
+	auto&& symbol = desc.name();
+	auto& symbols = (flags & Reference::global) ? cursor.symbols().get_package().symbols() : cursor.symbols();
+
+	if (!ensure_not_defined(symbol, symbols)) [[unlikely]] {
+		error("multiple definition of class '{}'", symbol.str());
+	}
+
+	symbols.emplace(symbol, make_weak_reference<Object>(flags, desc.generate()));
 }
 
 void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags flags) {

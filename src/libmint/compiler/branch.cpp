@@ -128,30 +128,30 @@ void Branch::forward_jumps(Branch& parent, std::size_t offset) {
 
 MainBranch::MainBranch(AbstractSyntaxTree& ast, const Module::Info& data) :
 #ifdef MINT_BUILD_TYPE_DEBUG
-    _offset(data.module->next_node_offset()),
+    _offset(data.bytecode->next_node_offset()),
 #endif
     _ast(ast),
     _data(data) {
 }
 
 void MainBranch::push_node(const Node& node) {
-	_data.module->push_node(node);
+	_data.bytecode->push_node(node);
 }
 
 void MainBranch::push_nodes(const std::vector<Node>& nodes) {
-	_data.module->push_nodes(nodes);
+	_data.bytecode->push_nodes(nodes);
 }
 
 void MainBranch::replace_node(std::size_t offset, const Node& node) {
-	_data.module->node_at(offset) = node;
+	_data.bytecode->node_at(offset) = node;
 }
 
 std::size_t MainBranch::next_node_offset() const {
-	return _data.module->next_node_offset();
+	return _data.bytecode->next_node_offset();
 }
 
 Node& MainBranch::node_at(std::size_t offset) {
-	return _data.module->node_at(offset);
+	return _data.bytecode->node_at(offset);
 }
 
 void MainBranch::on_new_line(std::size_t offset, std::size_t line_number) {
@@ -159,13 +159,13 @@ void MainBranch::on_new_line(std::size_t offset, std::size_t line_number) {
 }
 
 void MainBranch::on_new_line(std::size_t line_number) {
-	_data.debug_info->new_line(_data.module, line_number);
+	_data.debug_info->new_line(_data.bytecode, line_number);
 }
 
 void MainBranch::build() {
 #if defined(MINT_BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
 	if (_data.id != Module::invalid_id) {
-		auto& module = *_data.module;
+		auto& module = *_data.bytecode;
 		auto cursor = Cursor(_ast, module);
 		mint::print(stdout, std::format("## MODULE: {} ({})\n", _data.id, _ast.get().get_module_name(module)));
 		cursor.jmp(_offset);

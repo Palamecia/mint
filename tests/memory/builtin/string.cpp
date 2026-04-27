@@ -136,3 +136,22 @@ TEST(string, split) {
 	    array_get_item(result.data<mint::Array>(), 3).data<mint::Object>().metadata.metatype());
 	EXPECT_EQ("t", array_get_item(result.data<mint::Array>(), 3).data<mint::String>().str);
 }
+
+TEST(string, format) {
+
+	mint::Scheduler scheduler({});
+	auto thread = scheduler.enable_testing();
+
+	mint::WeakReference result = scheduler.invoke(mint::create_string(scheduler.ast(), "{}, {:04}, {:.2f}, {{ok}}"),
+	    mint::Symbol("format"), mint::create_string(scheduler.ast(), "value"), mint::create_signed_number(7),
+	    mint::create_number(3.5));
+	ASSERT_EQ(mint::Data::Format::object, result.data().format());
+	ASSERT_EQ(mint::Class::Metatype::string, result.data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("value, 0007, 3.50, {ok}", result.data<mint::String>().str);
+
+	result = scheduler.invoke(mint::create_string(scheduler.ast(), "{1} then {0}"), mint::Symbol("format"),
+	    mint::create_string(scheduler.ast(), "left"), mint::create_string(scheduler.ast(), "right"));
+	ASSERT_EQ(mint::Data::Format::object, result.data().format());
+	ASSERT_EQ(mint::Class::Metatype::string, result.data<mint::Object>().metadata.metatype());
+	EXPECT_EQ("right then left", result.data<mint::String>().str);
+}

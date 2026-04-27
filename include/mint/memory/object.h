@@ -70,6 +70,8 @@ private:
 	static LocalPool<Number> g_pool;
 };
 
+MINT_EXPORT bool is_integer(const Reference& ref);
+
 class MINT_EXPORT Boolean : public Data {
 	template<typename Type>
 	friend class LocalPool;

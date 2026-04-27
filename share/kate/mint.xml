@@ -26,14 +26,16 @@
 				<RegExpr String="(\\&apos;)" attribute="StringEscape" context="#stay"/>
 				<RegExpr String="(&apos;)" attribute="String" context="#pop"/>
 				<RegExpr String="(\\.)" attribute="StringEscape" context="#stay"/>
-				<RegExpr String="(%(?:s|d|i|u|f|g|e|x))" attribute="StringFormat" context="#stay"/>
+				<RegExpr String="(%[-\+ #0]*(?:\d*|\*?)(?:\.(?:\d*|\*?))?(?:c|s|P|p|A|a|B|b|O|o|X|x|d|i|u|E|e|F|f|G|g|%))" attribute="StringFormat" context="#stay"/>
+				<RegExpr String="(\{\d*(?:\:[-\+ #0]*(?:\d*|(\{\})?)(?:\.(?:\d*|(\{\})?))?(?:c|s|P|p|A|a|B|b|O|o|X|x|d|i|u|E|e|F|f|G|g)?)?\})" attribute="StringFormat" context="#stay"/>
 			</context>
 			<context attribute="String" lineEndContext="#stay" name="strings_double_quote_rule">
 				<RegExpr String="(\\\\)" attribute="StringEscape" context="#stay"/>
 				<RegExpr String="(\\&quot;)" attribute="StringEscape" context="#stay"/>
 				<RegExpr String="(&quot;)" attribute="String" context="#pop"/>
 				<RegExpr String="(\\.)" attribute="StringEscape" context="#stay"/>
-				<RegExpr String="(%(?:s|d|i|u|f|g|e|x))" attribute="StringFormat" context="#stay"/>
+				<RegExpr String="(%[-\+ #0]*(?:\d*|\*?)(?:\.(?:\d*|\*?))?(?:c|s|P|p|A|a|B|b|O|o|X|x|d|i|u|E|e|F|f|G|g|%))" attribute="StringFormat" context="#stay"/>
+				<RegExpr String="(\{\d*(?:\:[-\+ #0]*(?:\d*|(\{\})?)(?:\.(?:\d*|(\{\})?))?(?:c|s|P|p|A|a|B|b|O|o|X|x|d|i|u|E|e|F|f|G|g)?)?\})" attribute="StringFormat" context="#stay"/>
 			</context>
 			<context attribute="String" lineEndContext="#stay" name="regex_rule">
 				<RegExpr String="(\\\\)" attribute="String" context="#stay"/>

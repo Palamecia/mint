@@ -266,7 +266,7 @@ package System {
 			@const def unescapeString(str) {
 				if defined str {
 					var unescapedString = str
-					while var match = RegexMatch(/%([0-9a-fA-F]{2})/.match(unescapedString)) {
+					while let match = RegexMatch(/%([0-9a-fA-F]{2})/.match(unescapedString)) {
 					    unescapedString.replace(match.position(0), match.length(0), '%c' % ('0x' + match.capturedText(1)).toNumber())
 					}
 					return unescapedString
@@ -304,7 +304,7 @@ package System {
 				self.params = {}
 				for var param in query.split('&') {
 					var (name, value) = param.split('=')
-					self.param[System.Url.Parser.unescapeString(name)] = System.Url.Parser.unescapeString(value)
+					self.params[System.Url.Parser.unescapeString(name)] = System.Url.Parser.unescapeString(value)
 				}
 			}
 

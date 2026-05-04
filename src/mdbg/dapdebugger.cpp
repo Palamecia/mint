@@ -201,13 +201,13 @@ bool DapDebugger::check(Debugger& debugger, mint::CursorDebugger& cursor) {
 	while (const auto message = _reader->next_message()) {
 		std::println(Logger::default_logger(), "From client: {}", message->encode());
 		switch (message->get_type()) {
-		case DapMessage::request:
+		case DapMessage::Type::request:
 			if (!dispatch_request(static_cast<DapRequestMessage&>(*message), debugger, cursor)) {
 				std::println(Logger::default_logger(), "Unknown request");
 			}
 			break;
-		case DapMessage::response:
-		case DapMessage::event:
+		case DapMessage::Type::response:
+		case DapMessage::Type::event:
 			break;
 		}
 	}

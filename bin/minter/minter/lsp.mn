@@ -94,10 +94,11 @@ class MintLspServer {
 					self.consume(message)
 				}
 			} catch error {
+				log.error("Failed to read from stream: %s", error.toString())
 				if typeof error == 'DocumentStream.InvalidDocument' {
-					log.error("Failed to read from stream")
-					log.error(error.getError())
+					log.error("Document error: %s", error.getError())
 				}
+				// Continue trying to read despite errors
 			}
 		}
 	}
@@ -108,10 +109,10 @@ class MintLspServer {
 	 * message (dict): The JSON RPC message sent by the client
 	 */
 	const def consume(self, message) {
-		
-		const JSONRPC_VERSION = '2.0'
 
-		if 'jsonrpc' not in message or message['jsonrpc'] != JSONRPC_VERSION {
+		const JsonRpcVersion = '2.0'
+
+		if 'jsonrpc' not in message or message['jsonrpc'] != JsonRpcVersion {
 			log.warning("Unknown message type %s", message.toString())
 			return none
 		}
@@ -121,12 +122,8 @@ class MintLspServer {
 				log.debug("Handling notification from client %s", message.toString())
 				self.onRpcNotification(message['method'], message.get('params'))
 			} catch error {
-				log.error("Failed to handle request %s", message['method'])
+				log.error("Failed to handle notification %s", message['method'])
 				log.error(error.toString())
-				self.jsonRpcEndpoint({
-					'jsonrpc': JSONRPC_VERSION,
-					'error': error.toHash()
-				})
 			}
 		} elif 'method' not in message {
 			try {
@@ -140,18 +137,16 @@ class MintLspServer {
 			try {
 				log.debug("Handling request from client %s", message.toString())
 				var result = self.onRpcRequest(message['id'], message['method'], message.get('params'))
-				if defined result {
-					self.jsonRpcEndpoint({
-						"jsonrpc": JSONRPC_VERSION,
-						"result": result,
-						"id": message['id']
-					})
-				}
+				self.jsonRpcEndpoint({
+					"jsonrpc": JsonRpcVersion,
+					"result": result,
+					"id": message['id']
+				})
 			} catch error {
 				log.error("Failed to handle request %s (%s)", message['method'], message['id'])
 				log.error(error.toString())
 				self.jsonRpcEndpoint({
-					'jsonrpc': JSONRPC_VERSION,
+					'jsonrpc': JsonRpcVersion,
 					'id': message['id'],
 					'error': error.toHash()
 				})
@@ -162,7 +157,7 @@ class MintLspServer {
 	var def onRpcNotification(self, method, params) {
 		if self.shutdown and method != 'exit' {
 			// exit is the only allowed method during shutdown
-			log.debug("Ignoring non-exit method during shutdown: %s", item)
+			log.debug("Ignoring non-exit method during shutdown: %s", method)
 			raise Network.JsonRpc.InvalidRequest(method)
 		}
 		const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
@@ -179,7 +174,7 @@ class MintLspServer {
 	var def onRpcRequest(self, id, method, params) {
 		if self.shutdown and method != 'exit' {
 			// exit is the only allowed method during shutdown
-			log.debug("Ignoring non-exit method during shutdown: %s", item)
+			log.debug("Ignoring non-exit method during shutdown: %s", method)
 			raise Network.JsonRpc.InvalidRequest(method)
 		}
 		const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
@@ -195,15 +190,45 @@ class MintLspServer {
 	}
 
 	- const def getWorkspaceFromUrl(self, uri) {
-		if var url = System.Url(uri) {
-			var path = url.getPath()
-			var parts = path.split('/')
-			for let name in parts.reversed() {
-				if let workspace = self.workspaces.get(name) {
-					return workspace
+
+		if uri in self.workspaces {
+			return self.workspaces[uri]
+		}
+
+		let url = System.Url(uri)
+		let targetPath = none
+		if not defined url {
+			if defined uri and not uri.isEmpty() {
+				let path = System.File(uri)?.getAbsolutePath()
+				if defined path {
+					url = System.Url.fromFilePath(path)
+					targetPath = path
+				}
+			}
+		} else {
+			targetPath = url.toFile()?.getAbsolutePath()
+		}
+
+		let bestWorkspace = none
+		let bestLength = -1
+
+		for let workspace in self.workspaces.values() {
+			if let rootUri = workspace.getRootUri() {
+				let rootString = rootUri.toString()
+				if defined uri and uri.startsWith(rootString) and rootString.size() > bestLength {
+					bestWorkspace = workspace
+					bestLength = rootString.size()
+				}
+			}
+			if let rootPath = workspace.getRootPath() {
+				if defined targetPath and targetPath.startsWith(rootPath) and rootPath.size() > bestLength {
+					bestWorkspace = workspace
+					bestLength = rootPath.size()
 				}
 			}
 		}
+
+		return bestWorkspace
 	}
 
 	/**
@@ -221,7 +246,7 @@ class MintLspServer {
 	}
 
 	const def capabilities(self, rootUri) {
-		if var workspace = self.getWorkspaceFromUrl(rootUri) {
+		if let workspace = self.getWorkspaceFromUrl(rootUri) {
 			return {
 				'codeActionProvider': self.hasCapability('onCodeActions', workspace),
 				/*'codeLensProvider': {
@@ -237,7 +262,7 @@ class MintLspServer {
 				'documentSymbolProvider': self.hasCapability('onDocumentSymbols', workspace),
 				'definitionProvider': self.hasCapability('onDefinitions', workspace),
 				'executeCommandProvider': {
-					'commands': self.flatten(self.hook('getCommands', workspace))
+					'commands': self.flatten(self.hook('getCommands', rootUri))
 				},
 				'hoverProvider': self.hasCapability('onHover', workspace),
 				'referencesProvider': self.hasCapability('onReferences', workspace),
@@ -281,19 +306,14 @@ class MintLspServer {
 		var initializationOptions = params.get('initializationOptions', {})
 
 		log.debug('Language server initialized with %s %s %s %s', processId, rootUri, rootPath, initializationOptions)
+		if not rootUri {
+			rootUri = rootPath
+		}
 		if rootUri {
 			let config = MintLspConfig(rootUri, initializationOptions, processId, capabilities)
 			let workspace = MintLspWorkspace(rootUri, Callback(self, self.jsonRpcEndpoint), config)
-			let name = (rootUri.split('/'))[-1]
 			log.debug('Updated workspace for %s', workspace.getRootPath())
-			self.workspaces[name] = workspace
-		} elif rootPath {
-			let config = MintLspConfig(rootPath, initializationOptions, processId, capabilities)
-			let workspace = MintLspWorkspace(rootPath, Callback(self, self.jsonRpcEndpoint), config)
-			let name = (rootPath.split('/'))[-1]
-			log.debug('Updated workspace for %s', workspace.getRootPath())
-			self.workspaces[name] = workspace
-			rootUri = rootPath
+			self.workspaces[rootUri] = workspace
 		}
 		for var folder in params.get('workspaceFolders') {
 			let uri = folder.get('uri')
@@ -302,9 +322,8 @@ class MintLspServer {
 			}
 			let config = MintLspConfig(uri, initializationOptions, processId, capabilities)
 			let workspace = MintLspWorkspace(uri, Callback(self, self.jsonRpcEndpoint), config)
-			let name = folder.get('name')
 			log.debug('Updated workspace for %s', workspace.getRootPath())
-			self.workspaces[name] = workspace
+			self.workspaces[uri] = workspace
 		}
 
 		self.hook('onInitialize', rootUri)
@@ -359,8 +378,9 @@ class MintLspServer {
 
 	- const def rpc_textDocument_didOpen(self, params) {
 		var textDocument = params['textDocument']
-		var workspace = self.getWorkspaceFromUrl(textDocument['uri'])
-		workspace.createDocument(textDocument['uri'], textDocument['text'], textDocument.get('version'))
+		if let workspace = self.getWorkspaceFromUrl(textDocument['uri']) {
+			workspace.createDocument(textDocument['uri'], textDocument['text'], textDocument.get('version'))
+		}
 		self.hook('onDocumentDidOpen', textDocument['uri'])
 		self.lint(textDocument['uri'], true)
 	}
@@ -368,9 +388,10 @@ class MintLspServer {
 	- const def rpc_textDocument_didChange(self, params) {
 		var contentChanges = params['contentChanges']
 		var textDocument = params['textDocument']
-		var workspace = self.getWorkspaceFromUrl(textDocument['uri'])
-		for change in contentChanges {
-			workspace.updateDocument(textDocument['uri'], change, version=textDocument.get('version'))
+		if let workspace = self.getWorkspaceFromUrl(textDocument['uri']) {
+			for change in contentChanges {
+				workspace.updateDocument(textDocument['uri'], change, version=textDocument.get('version'))
+			}
 		}
 		self.lint(textDocument['uri'], false)
 	}
@@ -495,14 +516,30 @@ class MintLspServer {
 		for let addedInfo in added {
 			if 'uri' in addedInfo {
 				let added_uri = addedInfo['uri']
-				workspace_config = config.Config(added_uri, self.config._init_opts, self.config._process_id, self.config._capabilities)
+				let workspace_config = MintLspConfig(added_uri, self.config.getInitOptions(), self.config.getProcessId(), self.config.getCapabilities())
 				workspace_config.update(self.config._settings)
 				self.workspaces[added_uri] = MintLspWorkspace(added_uri, self.jsonRpcEndpoint, workspace_config)
 			}
 		}
 
-		var rootWorkspaceRemoved = removed.anyOf(def [self] (removedInfo) { return removedInfo['uri'] == self.rootUri })
-		var workspaceAdded = not added.isEmpty() and added[0].in('uri')
+		var rootWorkspaceRemoved = removed.anyOf(def [self] (removedInfo) {
+			var uri = removedInfo.get('uri')
+			if not defined uri {
+				return false
+			}
+			if uri == self.rootUri {
+				return true
+			}
+			if let workspace = self.workspaces.get(self.rootUri) {
+				if uri == workspace.getRootUri()?.toString() {
+					return true
+				}
+				var removedPath = System.Url(uri)?.toFile()?.getAbsolutePath()
+				return defined removedPath and removedPath == workspace.getRootPath()
+			}
+			return false
+		})
+		var workspaceAdded = not added.isEmpty() and 'uri' in added[0]
 		if rootWorkspaceRemoved and workspaceAdded {
 			let added_uri = added[0]['uri']
 			self.rootUri = added_uri
@@ -525,11 +562,13 @@ class MintLspServer {
 
 		// Migrate documents that are on the root workspace and have a better
 		// match now
-		var docUris = self.workspace._docs.keys()
+		var docUris = self.workspace.documents ? self.workspace.documents.keys() : []
 		for let uri in docUris {
-			let doc = self.workspace._docs.pop(uri)
+			let doc = self.workspace.documents.pop(uri)
 			let newWorkspace = self.getWorkspaceFromUrl(uri)
-			newWorkspace._docs[uri] = doc
+			if newWorkspace {
+				newWorkspace.documents[uri] = doc
+			}
 		}
 	}
 
@@ -541,7 +580,7 @@ class MintLspServer {
 			let uri = d.get('uri', '')
 			if uri.endsWith('.mn') {
 				changedMintFiles.insert(uri)
-			} elif uri.endsWith(CONFIG_FILEs) {
+			} elif uri.endsWith(MintLspConfig.ConfigFileName) {
 				configChanged = true
 			}
 		}
@@ -590,7 +629,7 @@ class MintLspServer {
 	 * Calls hookName and returns a list of results from all registered handlers
 	 */
 	- const def hook(self, hookName, docUri, ...) {
-		log.debug('Call hook for %s', hookName)
+		log.debug('Call hook for %s on %s', hookName, docUri)
 		if let workspace = self.getWorkspaceFromUrl(docUri) {
 			let document = workspace.getDocument(docUri)
 			if let config = workspace.getConfig() {
@@ -643,8 +682,8 @@ $def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = 
 		}
 	}
 
-	// Construct a custom wrapper class around the user's handler_class
-	var wrapper_class = type(typeof MintLspServerClass + 'Handler', [Network.JsonRpc.RequestHandler], {
+	// Construct a custom wrapper class around the user's MintLspServerClass
+	const WrapperClass = type(typeof MintLspServerClass + 'Handler', [Network.JsonRpc.RequestHandler], {
 		'new': def [MintLspServerClass, checkParentProcess] (self, endpoint) {
 			if self = Network.JsonRpc.RequestHandler.new(self, endpoint) {
 				self.delegate = MintLspServerClass(self, checkParentProcess)
@@ -679,7 +718,7 @@ $def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = 
 	var endpoint = Network.TcpIp(scheduler, address, port)
 	endpoint.setSocketOption(Network.SocketOption.REUSEADDR, true)
 
-	var server = Network.JsonRpc.Server(endpoint, wrapper_class)
+	var server = Network.JsonRpc.Server(endpoint, WrapperClass)
 
 	try {
 		server.watch()
@@ -710,6 +749,54 @@ $def startWSLangServer(port, checkParentProcess, MintLspServerClass = MintLspSer
  */
 $def startIOLangServer(checkParentProcess, MintLspServerClass = MintLspServer) {
 	log.info('Starting %s IO language server', typeof MintLspServerClass)
-	var server = MintLspServerClass(Network.SynchronousChannel(Event.SystemPipe(System.stdin, System.stdout), Network.JsonRpc.Serializer), checkParentProcess)
+	class SystemPipeEndPoint : Network.EndPoint {
+		const def new(self, readFd, writeFd) {
+			if self.pipe = Event.SystemPipe(readFd, writeFd) {
+				return self
+			}
+		}
+
+		const def getState(const self) {
+			return Network.EndPoint.State.Bound
+		}
+
+		const def read(self) {
+			try {
+				return self.pipe.read()
+			} catch error {
+				return none
+			}
+		}
+
+		const def write(self, data) {
+			try {
+				let count = data.size()
+				self.pipe.write(data)
+				return (true, count)
+			} catch error {
+				return (false, 0)
+			}
+		}
+
+		const def close(self) {
+			self.pipe.close()
+		}
+
+		- final pipe = null
+	}
+	log.debug("Creating SystemPipeEndPoint")
+	let endpoint = SystemPipeEndPoint(System.stdin, System.stdout)
+	if not endpoint {
+		log.error("Failed to create SystemPipeEndPoint")
+		return none
+	}
+	log.debug("Creating SynchronousChannel")
+	let channel = Network.SynchronousChannel(endpoint, Network.JsonRpc.Serializer)
+	if not channel {
+		log.error("Failed to create SynchronousChannel")
+		return none
+	}
+	log.info("Creating and starting MintLspServer")
+	var server = MintLspServerClass(channel, checkParentProcess)
 	server.start()
 }

@@ -271,7 +271,7 @@ package System {
 		 * 
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def birthDate(const self) {
+		const def getBirthDate(const self) {
 			let (date, errno) = System.File.g_lib.call('mint_file_birth_time', self.path)
 			if errno {
 				raise Exception.SystemError(errno, self)
@@ -284,7 +284,7 @@ package System {
 		 * 
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def lastReadDate(const self) {
+		const def getLastReadDate(const self) {
 			let (date, errno) = System.File.g_lib.call('mint_file_last_read_time', self.path)
 			if errno {
 				raise Exception.SystemError(errno, self)
@@ -297,7 +297,7 @@ package System {
 		 * 
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def lastWriteDate(const self) {
+		const def getLastWriteDate(const self) {
 			let (date, errno) = System.File.g_lib.call('mint_file_last_write_time', self.path)
 			if errno {
 				raise Exception.SystemError(errno, self)

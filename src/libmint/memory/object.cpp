@@ -470,10 +470,16 @@ void Coroutine::exit(Cursor& cursor) {
 }
 
 void Coroutine::mark() {
-	Data::mark();
-	for (const Reference& item : _stored_stack) {
-		if (this != &item.data()) {
+	if (!marked_bit()) {
+		Data::mark();
+		if (_saved_state) {
+			_saved_state->stack_frame->mark();
+		}
+		for (const auto& item : _stored_stack) {
 			item.data().mark();
+		}
+		if (_parent_saved_state) {
+			_parent_saved_state->stack_frame->mark();
 		}
 	}
 }

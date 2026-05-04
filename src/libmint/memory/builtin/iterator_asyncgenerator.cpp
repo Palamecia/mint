@@ -53,6 +53,9 @@ std::unique_ptr<IteratorData> AsyncGeneratorData::copy() {
 void AsyncGeneratorData::mark() {
 	ItemsIteratorData::mark();
 	_coroutine.get().mark();
+	if (_state) {
+		_state->stack_frame->mark();
+	}
 	for (auto& ref : _stored_stack) {
 		ref.data().mark();
 	}

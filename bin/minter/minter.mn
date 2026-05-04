@@ -37,13 +37,13 @@ load minter.lsp
 class Config {
     stdio = false
     tcp = false
-    pipe = ''
-    socket = ''
+    pipe = null
+    socket = null
     host = "127.0.0.1"
     port = 2087
     checkParentProcess = false
 
-    logFile = ''
+    logFile = null
     verbose = 0
 }
 
@@ -100,16 +100,14 @@ const def addArguments(parser, config) {
 
 const def configureLogger(verbose = 0, logFile = none) {
 
-    var logFormatter = Logger.Formatter()
+    class StdErrorStream {
+        def write(self, data) {
+            print(System.stderr, data)
+        }
+    }
 
-    var logHandler =: (if logFile => \
-        Logger.Handler(System.open(logFile, 'w')) \
-    else => \
-        Logger.Handler(type('__stderr_stream__', [], {
-            'write': def (self, data) {
-                System.IO.writeError(data)
-            }
-        })()))
+    var logFormatter = Logger.Formatter()
+    var logHandler = Logger.Handler(logFile ? System.open(logFile, 'w') : StdErrorStream())
 
     if logHandler {
         logHandler.setFormatter(logFormatter)
@@ -155,9 +153,9 @@ const def main(args) {
         startIOLangServer(config.checkParentProcess, MintLspServer)
     } elif config.tcp {
         startTcpLangServer(config.host, config.port, config.checkParentProcess, MintLspServer)
-    } elif not config.pipe.isEmpty() {
+    } elif config.pipe {
         startPipeLangServer(config.host, config.port, config.checkParentProcess, MintLspServer)
-    } elif not config.socket.isEmpty() {
+    } elif config.socket {
         startWSLangServer(config.socket, config.checkParentProcess, MintLspServer)
     } else {
         startIOLangServer(config.checkParentProcess, MintLspServer)

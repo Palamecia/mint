@@ -751,10 +751,10 @@ class XmlDomNode {
 	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def insert(self, index, node) {
-		if typeof self not in ('Serializer.XmlDomDocument', 'Serializer.XmlDomElement') {
+		if (typeof self) not in ('Serializer.XmlDomDocument', 'Serializer.XmlDomElement') {
 			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
-		if not Serializer.XmlDomCharacterData.isBaseOf(node) and typeof node not in ('Serializer.XmlDomElement', 'Serializer.XmlDomDtd') {
+		if not Serializer.XmlDomCharacterData.isBaseOf(node) and (typeof node) not in ('Serializer.XmlDomElement', 'Serializer.XmlDomDtd') {
 			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
 		if typeof node == 'Serializer.XmlDomText' and typeof self != 'Serializer.XmlDomDocument' {
@@ -773,10 +773,10 @@ class XmlDomNode {
 	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def appendChild(self, node) {
-		if typeof self not in ('Serializer.XmlDomDocument', 'Serializer.XmlDomElement') {
+		if (typeof self) not in ('Serializer.XmlDomDocument', 'Serializer.XmlDomElement') {
 			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
-		if not Serializer.XmlDomCharacterData.isBaseOf(node) and typeof node not in ('Serializer.XmlDomElement', 'Serializer.XmlDomDtd') {
+		if not Serializer.XmlDomCharacterData.isBaseOf(node) and (typeof node) not in ('Serializer.XmlDomElement', 'Serializer.XmlDomDtd') {
 			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
 		if typeof node == 'Serializer.XmlDomText' and typeof self != 'Serializer.XmlDomDocument' {
@@ -810,7 +810,7 @@ class XmlDomNode {
 	 * An instance of {Serializer.XmlDomException} is raised on error.
 	 */
 	const def replace(self, index, node) {
-		if not Serializer.XmlDomCharacterData.isBaseOf(node) and typeof node not in ('Serializer.XmlDomElement', 'Serializer.XmlDomDtd') {
+		if not Serializer.XmlDomCharacterData.isBaseOf(node) and (typeof node) not in ('Serializer.XmlDomElement', 'Serializer.XmlDomDtd') {
 			raise Serializer.XmlDomException(Serializer.XmlDomException.Code.HIERARCHY_REQUEST_ERR)
 		}
 		if typeof node == 'Serializer.XmlDomText' and typeof self != 'Serializer.XmlDomDocument' {

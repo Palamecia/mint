@@ -39,11 +39,15 @@ class MintLspWorkspace {
     @const ShowMessage = 'window/showMessage'
 
     class Document {
-            
+
         const def new(self, uri, workspace, source = none, version = none, local = true, extra_sys_path = none) {
             self.version = version
-            self.uri = System.Url(uri)
-            self.path = self.uri.toFile()?.getPath()
+            var uriObject = System.Url(uri)
+            if not defined uriObject and defined uri and not uri.isEmpty() {
+                uriObject = System.Url.fromFilePath(uri)
+            }
+            self.uri = uriObject
+            self.path = self.uri?.toFile()?.getPath() or System.File(uri)?.getAbsolutePath()
             self.dot_path = self.path?.toModulePath()
             self.filename = System.File(self.path)?.getBaseName()
 
@@ -58,6 +62,10 @@ class MintLspWorkspace {
 
         const def setVersion(self, version) {
             self.version = version
+        }
+
+        const def getUri(const self) {
+            return self.uri
         }
 
         const def getPath(const self) {
@@ -216,7 +224,7 @@ class MintLspWorkspace {
     }
 
     const def isLocal(self) {
-        return ['', 'file'].in(self.rootUriScheme) and System.File(self.rootPath).exists()
+        return self.rootUriScheme in ['', 'file'] and System.File(self.rootPath).exists()
     }
 
     /**
@@ -370,6 +378,7 @@ class MintLspWorkspace {
         if defined self.__rope_autoimport {
             self.__rope_autoimport.close()
         }
+        self.documents.clear()
     }
 
     - final _config = none

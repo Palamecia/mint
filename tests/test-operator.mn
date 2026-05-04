@@ -63,7 +63,7 @@ class OperatorTest : Test.Case {
 		self.expectEqual(0, subOperator(2, 2))
 		self.expectEqual(0, subOperator(2, '2'))
 
-		self.expectEqual(false, (membersof '').in('-'))
+		self.expectEqual(false, '-' in (membersof ''))
 	}
 
 	const def testEq(self) {
@@ -111,5 +111,26 @@ class OperatorTest : Test.Case {
 		self.expectEqual(false, hashKeyCompareOperator(null, null))
 		self.expectEqual(false, hashKeyCompareOperator(null, none))
 		self.expectEqual(true, hashKeyCompareOperator(none, null))
+	}
+
+	const def testInExpression(self) {
+		self.expectEqual(true, 2 in [1, 2, 3])
+		self.expectEqual(false, 4 in [1, 2, 3])
+		self.expectEqual(true, 4 not in [1, 2, 3])
+
+		let found = 'e' in 'test'
+		self.expectEqual(true, found)
+		self.expectEqual('found', (3 in 0..5) ? 'found' : 'missing')
+		self.expectEqual(true, (2 in [1, 2, 3]) && (4 in 0..5))
+		self.expectEqual(true, 1 in 0..1 or 2 in 2..3)
+		self.expectEqual(false, 1 in 0..0 or 2 in 3..4)
+	}
+
+	const def testForInStillIterates(self) {
+		var values = []
+		for value in 0..3 {
+			values << value
+		}
+		self.expectEqual([0, 1, 2, 3], values)
 	}
 }

@@ -27,9 +27,11 @@
 #include "mint/system/assert.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <cstddef>
 #include <cstdlib>
+#include <new>
 
 namespace mint {
 
@@ -61,9 +63,11 @@ struct PoolAllocator {
 
 	PoolAllocator(PoolAllocator&& other) noexcept :
 	    _head(other._head),
-	    _free_list(other._free_list) {
+	    _free_list(other._free_list),
+	    _blocks(other._blocks) {
 		other._free_list = nullptr;
 		other._head = nullptr;
+		other._blocks = nullptr;
 	}
 
 	~PoolAllocator() {
@@ -76,15 +80,18 @@ struct PoolAllocator {
 		reset();
 		_head = other._head;
 		_free_list = other._free_list;
+		_blocks = other._blocks;
 		_next_to_allocate = other._next_to_allocate;
 		other._free_list = nullptr;
 		other._head = nullptr;
+		other._blocks = nullptr;
 		return *this;
 	}
 
 	void swap(PoolAllocator& other) noexcept {
 		std::swap(_head, other._head);
 		std::swap(_free_list, other._free_list);
+		std::swap(_blocks, other._blocks);
 	}
 
 	bool operator==(const PoolAllocator& other) {
@@ -97,121 +104,139 @@ struct PoolAllocator {
 
 	pointer allocate() {
 
-		value_type* item = _head;
+		auto* item = _head;
 
 		if (item == nullptr) [[unlikely]] {
 			_next_to_allocate = std::min(_next_to_allocate * 2, max_size);
-			const std::size_t bytes = alignment + (aligned_size * _next_to_allocate);
-			add(assert_not_null<std::bad_alloc>(std::malloc(bytes)), bytes);
+			const std::size_t bytes = sizeof(BlockHeader) + alignment + (aligned_size * _next_to_allocate);
+			add(assert_not_null<std::bad_alloc>(std::malloc(bytes)), bytes, _next_to_allocate);
 			item = _head;
 		}
 
+		auto* block = get_block_header(item);
+		block->allocated_count++;
 		_head = *reinterpret_cast<value_type**>(item);
 		return item;
 	}
 
-	pointer allocate(size_type size) {
-		if (size == 1) {
-			return allocate();
-		}
-
-		value_type* item = _head;
-		value_type** prev = nullptr;
-		size_type available = 0;
-
-		for (value_type* next = item; next && available < size; next = *next) {
-			if (*reinterpret_cast<value_type**>(next) == next + 1) {
-				++available;
-			}
-			else {
-				item = *reinterpret_cast<value_type**>(next);
-				available = 0;
-				prev = &next;
-			}
-		}
-
-		if (available < size) {
-			const std::size_t bytes = alignment + (aligned_size * size);
-			item = add_array(assert_not_null<std::bad_alloc>(std::malloc(bytes)), bytes);
-		}
-		else if (prev) {
-			*prev = *reinterpret_cast<value_type**>(item[size - 1]);
-		}
-		else {
-			_head = *reinterpret_cast<value_type**>(item[size - 1]);
-		}
-
-		return item;
-	}
-
 	void deallocate(pointer item) {
+		auto* block = get_block_header(item);
+		block->allocated_count--;
+
 		*reinterpret_cast<value_type**>(item) = _head;
 		_head = item;
-	}
 
-	void deallocate(pointer item, size_type size) {
-		if (size == 1) {
-			deallocate(item);
-		}
-		else {
-			for (std::size_t i = 0; i < size - 1; ++i) {
-				*reinterpret_cast<value_type**>(item[i]) = item[i + 1];
-			}
-			*reinterpret_cast<value_type**>(item[size - 1]) = _head;
-			_head = item;
+		// Free the block if all items are deallocated
+		if (block->allocated_count == 0 && block != _blocks) {
+			remove_block(block);
 		}
 	}
 
 	void reset() {
 
-		while (_free_list) {
-			value_type* item = *_free_list;
-			std::free(_free_list);
-			_free_list = reinterpret_cast<value_type**>(item);
+		while (auto* block = _blocks) {
+			_blocks = block->next_block;
+			std::free(block);
 		}
 
 		_head = nullptr;
+		_free_list = nullptr;
 	}
 
 protected:
-	void add(void* address, const size_type size) {
+	struct BlockHeader {
+		BlockHeader* next_block = nullptr;
+		value_type** free_list_ptr = nullptr;
+		std::size_t allocated_count = 0;
+		std::size_t total_count = 0;
+		std::uint8_t* block_start = nullptr;
+	};
 
-		assert(size >= alignment);
+	BlockHeader* get_block_header(value_type* item) {
+		// Traverse back through the free list to find the block header
+		const auto* item_ptr = reinterpret_cast<std::uint8_t*>(item);
 
-		const std::size_t count = (size - alignment) / aligned_size;
-		auto** data = reinterpret_cast<value_type**>(address);
+		// The block starts at a multiple of the aligned size from the header
+		// We need to find which block contains this item
+		for (BlockHeader* block = _blocks; block != nullptr; block = block->next_block) {
+			const auto* block_items_start = block->block_start;
+			const auto* block_items_end = block_items_start + (block->total_count * aligned_size);
 
-		auto*** x = reinterpret_cast<value_type***>(data);
-		*x = _free_list;
-		_free_list = data;
-
-		auto* const head_item = reinterpret_cast<value_type*>(reinterpret_cast<std::uint8_t*>(address) + alignment);
-		auto* const head_data = reinterpret_cast<std::uint8_t*>(head_item);
-
-		for (std::size_t i = 0; i < count; ++i) {
-			*reinterpret_cast<std::uint8_t**>(head_data + (i * aligned_size)) = head_data + (i + 1) * aligned_size;
+			if (item_ptr >= block_items_start && item_ptr < block_items_end) {
+				return block;
+			}
 		}
 
-		*reinterpret_cast<value_type**>(head_data + ((count - 1) * aligned_size)) = _head;
-		_head = head_item;
+		// Should never reach here if item is valid
+		assert(false);
+		return nullptr;
 	}
 
-	value_type* add_array(void* address, const size_type size) {
+	void remove_block(BlockHeader* block) {
+		// Remove block from the linked list and free its memory
+		if (block == _blocks) {
+			return; // Don't remove the first block
+		}
 
-		assert(size >= alignment);
+		BlockHeader** prev = &_blocks;
+		for (BlockHeader* current = _blocks; current != nullptr; current = current->next_block) {
+			if (current == block) {
+				*prev = block->next_block;
 
-		auto** data = reinterpret_cast<value_type**>(address);
+				// Remove all items from this block from the free list
+				const auto* block_start = block->block_start;
+				const auto* block_end = block_start + (block->total_count * aligned_size);
 
-		auto*** x = reinterpret_cast<value_type***>(data);
-		*x = _free_list;
-		_free_list = data;
+				// Clean up the free list
+				value_type** prev_ptr = &_head;
+				while (*prev_ptr) {
+					const auto* item_ptr = reinterpret_cast<std::uint8_t*>(*prev_ptr);
+					if (item_ptr >= block_start && item_ptr < block_end) {
+						*prev_ptr = *reinterpret_cast<value_type**>(*prev_ptr);
+					}
+					else {
+						prev_ptr = reinterpret_cast<value_type**>(*prev_ptr);
+					}
+				}
 
-		return reinterpret_cast<value_type*>(reinterpret_cast<std::uint8_t*>(address) + alignment);
+				std::free(block);
+				return;
+			}
+			prev = &current->next_block;
+		}
+	}
+
+	void add(void* address, const size_type size, std::size_t count) {
+
+		assert(size >= sizeof(BlockHeader) + alignment);
+
+		auto* header = reinterpret_cast<BlockHeader*>(address);
+		auto* block_start = reinterpret_cast<std::uint8_t*>(address) + sizeof(BlockHeader) + alignment;
+
+		header->next_block = _blocks;
+		header->allocated_count = 0;
+		header->total_count = count;
+		header->block_start = block_start;
+		_blocks = header;
+
+		// Create linked list of free items in this block
+		for (std::size_t i = 0; i < count; ++i) {
+			auto* item_ptr = reinterpret_cast<std::uint8_t*>(block_start) + (i * aligned_size);
+			if (i < count - 1) {
+				*reinterpret_cast<std::uint8_t**>(item_ptr) = item_ptr + aligned_size;
+			}
+			else {
+				*reinterpret_cast<value_type**>(item_ptr) = _head;
+			}
+		}
+
+		_head = reinterpret_cast<value_type*>(block_start);
 	}
 
 private:
 	value_type* _head = nullptr;
 	value_type** _free_list = nullptr;
+	BlockHeader* _blocks = nullptr;
 	std::size_t _next_to_allocate = min_size;
 };
 

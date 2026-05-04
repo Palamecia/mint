@@ -1,0 +1,83 @@
+load test.case
+
+class TestIf : Test.Case {
+    const def testIfElifInBooleanOperators(self) {
+
+        let result = 0
+
+        if 1 in 0..0 or 2 in 2..3 {
+            result = 1
+        } elif 3 in 4..5 and 5 in 5..6 {
+            result = 2
+        } else {
+            result = 3
+        }
+
+        self.expectEqual(1, result)
+    }
+
+    const def testIfElseLetSameName(self) {
+
+        let result = 0
+
+        if false {
+            let x = 1
+            result = result + x
+        } elif true {
+            let x = 2
+            result = result + x
+        } else {
+            let x = 3
+            result = result + x
+        }
+
+        self.expectEqual(2, result)
+        self.expectNotDefined(x)
+    }
+
+    const def testIfConditionAndElseSameName(self) {
+
+        let result = 0
+
+        if let x = 0..2 {
+            result = result + x
+        } else {
+            let x = 2
+            result = result + x
+        }
+
+        self.expectEqual(0, result)
+        self.expectNotDefined(x)
+    }
+    
+    const def testIfUnverifiedConditionAndElseSameName(self) {
+
+        let result = none
+
+        if let x = none {
+            result = false
+        } else {
+            let x = 42
+            result = x == 42
+        }
+
+        self.expectDefined(result)
+        self.expectEqual(true, result)
+        self.expectNotDefined(x)
+    }
+    
+    const def testIfUnverifiedConditionAndElifSameName(self) {
+
+        let result = none
+
+        if let x = none {
+            result = false
+        } elif let x = 42 {
+            result = x == 42
+        }
+
+        self.expectDefined(result)
+        self.expectEqual(true, result)
+        self.expectNotDefined(x)
+    }
+}

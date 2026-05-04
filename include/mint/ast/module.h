@@ -117,9 +117,9 @@ public:
 	void cleanup_memory();
 	void cleanup_metadata();
 
-protected:
 	void mark() override;
 
+protected:
 	void push_node(const Node& node);
 	void push_nodes(const std::vector<Node>& nodes);
 	void push_nodes(const std::initializer_list<Node>& nodes);

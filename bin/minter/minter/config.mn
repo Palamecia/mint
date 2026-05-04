@@ -31,6 +31,8 @@ load mint.lang
 
 class MintLspConfig {
 
+    @const ConfigFileName = '.minter'
+
     class PluginManager {
         const def new(self) {
             for let (_, type) in types() {
@@ -44,9 +46,10 @@ class MintLspConfig {
 
         const def getPlugins(const self) {
             var plugins = {}
-            for plugin in self.plugins {
+            for let plugin in self.plugins {
                 plugins[typeof plugin] = plugin
             }
+            // return plugins
         }
 
         const def hasHookFor(const self, hookName, disabledPlugins) {

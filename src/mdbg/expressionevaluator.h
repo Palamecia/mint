@@ -58,7 +58,16 @@ private:
 	enum class State : std::uint8_t {
 		read_operand,
 		read_operator,
-		read_member
+		read_member,
+		read_in_operator
+	};
+
+	enum class FrameKind : std::uint8_t {
+		root,
+		group_or_iterator,
+		array_literal,
+		hash_literal,
+		subscript
 	};
 
 	enum class Associativity : std::uint8_t {
@@ -74,6 +83,11 @@ private:
 
 	struct EvaluatorState {
 		State state = State::read_operand;
+		FrameKind kind = FrameKind::root;
+		std::size_t stack_base = 0;
+		bool saw_separator = false;
+		bool pending_hash_value = false;
+		std::size_t hash_pairs = 0;
 		std::vector<Priority> priority;
 	};
 
@@ -81,9 +95,15 @@ private:
 
 	void on_unary_operator(std::size_t level, void (*operation)(mint::Cursor&));
 	void on_binary_operator(std::size_t level, void (*operation)(mint::Cursor&));
+	void apply_operation(void (*operation)(mint::Cursor&));
+	void reduce_state(EvaluatorState& state);
+	void close_state(mint::Token close_token);
+	void on_separator(const std::string& token);
+	void on_hash_key_separator();
+	[[noreturn]] void parse_error(const std::string& message) const;
 
 	[[nodiscard]] State get_state() const;
-	void push_state(State state);
+	void push_state(State state, FrameKind kind);
 	void set_state(State state);
 	void pop_state();
 

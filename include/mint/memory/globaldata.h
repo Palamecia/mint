@@ -51,9 +51,15 @@ public:
 	[[nodiscard]] FunctionData* get_function_data() override;
 };
 
-class MINT_EXPORT PackageData : public ClassRegister {
+class MINT_EXPORT PackageData : public ClassRegister, public MemoryRoot {
 public:
+	PackageData(const PackageData&) = delete;
+	PackageData(PackageData&&) = delete;
 	PackageData(AbstractSyntaxTree& ast, const std::string& name);
+	~PackageData() override;
+
+	PackageData& operator=(const PackageData&) = delete;
+	PackageData& operator=(PackageData&&) = delete;
 
 	[[nodiscard]] Symbol name() const;
 	[[nodiscard]] std::string full_name() const;
@@ -90,6 +96,7 @@ public:
 
 	void cleanup_memory() override;
 	void cleanup_metadata() override;
+	void mark() override;
 
 private:
 	Symbol _name;

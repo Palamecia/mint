@@ -48,9 +48,11 @@
 #include <optional>
 #include <span>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <unordered_set>
+#include <utility>
 
 namespace {
 
@@ -227,8 +229,9 @@ void InteractiveDebugger::init_backtrace(CommandRunner::Command& command) {
 			print_debug_trace("{}", line.to_string());
 			if (with_context_lines) {
 				if (count < 0) {
-					print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count),
-					    line_number, debugger.ast().global_data(), mint::get_module_stream(module_name));
+					print_highlighted((std::cmp_less_equal(line_number, abs(count))) ? 1 : line_number + count,
+					    line_number + abs(count), line_number, debugger.ast().global_data(),
+					    mint::get_module_stream(module_name));
 				}
 				else {
 					print_highlighted(line_number, line_number + count, line_number, debugger.ast().global_data(),
@@ -314,8 +317,9 @@ void InteractiveDebugger::init_print(CommandRunner::Command& command) {
 
 	auto print_sources = [](Debugger& debugger, const std::string& module_name, std::size_t line_number, int count = 0) {
 		if (count < 0) {
-			print_highlighted((line_number <= abs(count)) ? 1 : line_number + count, line_number + abs(count),
-			    line_number, debugger.ast().global_data(), mint::get_module_stream(module_name));
+			print_highlighted((std::cmp_less_equal(line_number, abs(count))) ? 1 : line_number + count,
+			    line_number + abs(count), line_number, debugger.ast().global_data(),
+			    mint::get_module_stream(module_name));
 		}
 		else {
 			print_highlighted(line_number, line_number + count, line_number, debugger.ast().global_data(),
@@ -375,14 +379,16 @@ void InteractiveDebugger::init_list(CommandRunner::Command& command) {
 								if (slots_only && member.get().offset == mint::Class::MemberInfo::invalid_offset) {
 									continue;
 								}
-								auto& reference = mint::Class::MemberInfo::get(member, parent->data<mint::Object>());
+								const auto& reference = mint::Class::MemberInfo::get(member,
+								    parent->data<mint::Object>());
 								print_debug_trace("{} ({}) : {}", symbol.str(), type_name(reference),
 								    reference_value(reference));
 							}
 						}
 						else {
 							for (auto [symbol, member] : parent->data<mint::Object>().metadata.globals()) {
-								auto& reference = mint::Class::MemberInfo::get(member, parent->data<mint::Object>());
+								const auto& reference = mint::Class::MemberInfo::get(member,
+								    parent->data<mint::Object>());
 								print_debug_trace("{} ({}) : {}", symbol.str(), type_name(reference),
 								    reference_value(reference));
 							}
@@ -493,6 +499,9 @@ void InteractiveDebugger::init_eval(CommandRunner::Command& command) {
 			}
 		}
 		catch (mint::MintRuntimeError& error) {
+			print_debug_trace("Expression can not be evaluated: {}", error.what());
+		}
+		catch (std::runtime_error& error) {
 			print_debug_trace("Expression can not be evaluated: {}", error.what());
 		}
 	};

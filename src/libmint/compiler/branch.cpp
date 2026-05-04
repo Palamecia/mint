@@ -39,6 +39,7 @@
 #include "mint/system/stdio.h"
 #include <format>
 #include <iostream>
+#include <cstdio>
 #endif
 
 using namespace mint;
@@ -171,7 +172,7 @@ void MainBranch::build() {
 		cursor.jmp(_offset);
 		for (std::size_t offset = cursor.offset(); offset < module.next_node_offset(); offset = cursor.offset()) {
 			mint::print(stdout, std::format("LINE {} ", _data.debug_info->line_number(offset)));
-			if (dump_command(cursor, std::cout) == Node::exit_module) {
+			if (dump_command(cursor, std::cout) == Node::Command::exit_module) {
 				cursor.jmp(module.next_node_offset());
 			}
 		}

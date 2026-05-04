@@ -21,13 +21,10 @@ It is introduced by the `if` keyword followed by an expression. The statement op
 > [!NOTE]
 > The expression is considered inside the opened block by the `let` [[keyword|Variables#scope]].
 
-The if statement can use two kinds of expressions:
-
-* A simple expression: In this case, the result of the expression is [[cast|Type casting]] to a [[boolean|Built-in types#boolean]].
-* An "in" expression: In this case, the left part of the expression is passed to the `in` method of the object on the right side, and the result is [[cast|Type casting]] to a [[boolean|Built-in types#boolean]].
+The if statement evaluates its expression as a [[boolean|Built-in types#boolean]]. This includes ordinary search expressions using the [[`in` operator|Arithmetic-operations#search-operators]].
 
 > [!IMPORTANT]
-> If the object on the right side of the "in" expression does not overload the `in` method, the object is [[cast|Type casting]] to an [[iterator|Built-in types#iterator]] to use the iterator's method implementation. The method can also return an iterator. In this case, the iterator's `in` method implementation of the returned object is also used.
+> If the object on the right side of an `in` expression does not overload the `in` method, the object is [[cast|Type casting]] to an [[iterator|Built-in types#iterator]] to use the iterator's method implementation. The method can also return an iterator. In this case, the iterator's `in` method implementation of the returned object is also used.
 
 **Example**:
 

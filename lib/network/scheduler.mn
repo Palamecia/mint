@@ -134,7 +134,8 @@ package Network {
 			/**
 			 * Creates a new promise for the result of the `coroutine` operation.
 			 */
-			const def new(self, coroutine) {
+			const def new(self, scheduler, coroutine) {
+				self.scheduler = scheduler
 				self.coroutine = coroutine
 				return self
 			}
@@ -144,6 +145,7 @@ package Network {
 			 */
 			const async def start(self) {
 				self.result = await self.coroutine
+				self.scheduler.complete(self)
 			}
 
 			/**
@@ -169,6 +171,23 @@ package Network {
 			const def ()(self) {
 				return self.get()
 			}
+
+			/**
+			 * Returns `true` if `other` is equal to this promise; otherwise returns `false`.
+			 */
+			const def ==(const self, const other) {
+				return self is other
+			}
+
+			/**
+			 * Returns `false` if `other` is equal to this promise; otherwise returns `true`.
+			 */
+			const def !=(const self, const other) {
+				return not (self is other)
+			}
+
+			/// Internal associated scheduler.
+			- final scheduler = null
 
 			/// Internal associated coroutine.
 			- final coroutine = null
@@ -201,14 +220,14 @@ package Network {
 		 */
 		class Operation {
 			/**
-			 * Returns `true` if `other` is equal to this list; otherwise returns `false`.
+			 * Returns `true` if `other` is equal to this operation; otherwise returns `false`.
 			 */
 			const def ==(const self, const other) {
 				return self is other
 			}
 
 			/**
-			 * Returns `false` if `other` is equal to this list; otherwise returns `true`.
+			 * Returns `false` if `other` is equal to this operation; otherwise returns `true`.
 			 */
 			const def !=(const self, const other) {
 				return not (self is other)
@@ -320,9 +339,16 @@ package Network {
 		 * between ready coroutines.
 		 */
 		const def spawn(self, coroutine) {
-			let promise = Network.Scheduler.Promise(coroutine)
+			let promise = Network.Scheduler.Promise(self, coroutine)
 			self.waiting.push(promise)
 			return promise
+		}
+
+		/**
+		 * Removes a completed promise from the running set.
+		 */
+		const def complete(self, promise) {
+			self.running.remove(self.running.indexOf(promise))
 		}
 
 		/**
@@ -469,7 +495,9 @@ package Network {
 				self.pollEvents(timeout)
 				self.checkOperations()
 			} else {
-				Network.Scheduler.g_lib.call('mint_scheduler_spawn', self.waiting.shift().start())
+				let promise = self.waiting.shift()
+				self.running.push(promise)
+				Network.Scheduler.g_lib.call('mint_scheduler_spawn', promise.start())
 			}
 		}
 
@@ -490,7 +518,9 @@ package Network {
 		 */
 		const def runOne(self, timeout = 500) {
 			if not self.waiting.isEmpty() {
-				Network.Scheduler.g_lib.call('mint_scheduler_spawn', self.waiting.shift().start())
+				let promise = self.waiting.shift()
+				self.running.push(promise)
+				Network.Scheduler.g_lib.call('mint_scheduler_spawn', promise.start())
 			} 
 			while not self.operations.isEmpty() {
 				self.pollEvents(timeout)
@@ -519,6 +549,9 @@ package Network {
 
 		/// Internal list of waiting coroutines.
 		- final waiting = []
+
+		/// Internal list of running promises.
+		- final running = []
 
 		/// Internal list of waiting operations.
 		- final operations = []

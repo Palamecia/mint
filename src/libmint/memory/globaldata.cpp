@@ -54,7 +54,13 @@ FunctionData* FunctionData::get_function_data() {
 PackageData::PackageData(AbstractSyntaxTree& ast, const std::string& name) :
     ClassRegister(ast),
     _name(name),
-    _symbols(ast.global_data()) {}
+    _symbols(ast.global_data()) {
+	register_root();
+}
+
+PackageData::~PackageData() {
+	unregister_root();
+}
 
 Symbol PackageData::name() const {
 	return _name;
@@ -151,6 +157,10 @@ void PackageData::cleanup_metadata() {
 	}
 
 	_packages.clear();
+}
+
+void PackageData::mark() {
+	_symbols.mark();
 }
 
 GlobalData::GlobalData(AbstractSyntaxTree& ast) :

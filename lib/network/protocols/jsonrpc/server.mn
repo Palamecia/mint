@@ -766,13 +766,13 @@ package Network {
 			 */
 			var def onMessage(self, client) {
 				
-				const JSONRPC_VERSION = '2.0'
+				const JsonRpcVersion = '2.0'
 
 				while let message = client.read() {
 
 					let json = Serializer.JsonStream(message).read()
 
-					if 'jsonrpc' not in json or json['jsonrpc'] != JSONRPC_VERSION {
+					if 'jsonrpc' not in json or json['jsonrpc'] != JsonRpcVersion {
 						return none
 					}
 
@@ -785,14 +785,14 @@ package Network {
 							let result = self.onRpcRequest(json.get('id'), json['method'], json.get('params'))
 							if defined result {
 								self.write(Network.JsonRpc.Message({
-									"jsonrpc": JSONRPC_VERSION,
+									"jsonrpc": JsonRpcVersion,
 									"result": result,
 									"id": json.get('id')
 								}))
 							}
 						} catch error {
 							self.write(Network.JsonRpc.Message({
-								'jsonrpc': JSONRPC_VERSION,
+								'jsonrpc': JsonRpcVersion,
 								'id': json.get('id'),
 								'error': error.toHash()
 							}))

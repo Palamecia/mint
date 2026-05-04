@@ -98,29 +98,29 @@ void BuildContext::commit_expr_result() {
 
 std::size_t BuildContext::create_fast_scoped_symbol_index(const std::string& symbol) {
 
-	const Symbol* s = nullptr;
+	const Symbol* module_symbol = nullptr;
 	Context& context = current_context();
 
 	if (context.condition_scoped_symbols) {
-		s = _data.bytecode->make_symbol(symbol);
-		context.condition_scoped_symbols->emplace_back(s);
+		module_symbol = _data.bytecode->make_symbol(symbol);
+		context.condition_scoped_symbols->emplace_back(module_symbol);
 	}
 	else if (context.range_loop_scoped_symbols) {
-		s = _data.bytecode->make_symbol(symbol);
-		context.range_loop_scoped_symbols->emplace_back(s);
+		module_symbol = _data.bytecode->make_symbol(symbol);
+		context.range_loop_scoped_symbols->emplace_back(module_symbol);
 	}
 	else if (!context.blocks.empty()) {
 		auto& block = context.blocks.back();
-		s = _data.bytecode->make_symbol(symbol);
-		block->block_scoped_symbols.push_back(s);
+		module_symbol = _data.bytecode->make_symbol(symbol);
+		block->block_scoped_symbols.push_back(module_symbol);
 	}
 
 	if (Definition* def = current_definition()) {
 		if (def->with_fast) {
-			if (s == nullptr) {
-				s = _data.bytecode->make_symbol(symbol);
+			if (module_symbol == nullptr) {
+				module_symbol = _data.bytecode->make_symbol(symbol);
 			}
-			return mint::create_fast_symbol_index(*def, *s);
+			return mint::create_fast_symbol_index(*def, *module_symbol);
 		}
 	}
 
@@ -129,9 +129,11 @@ std::size_t BuildContext::create_fast_scoped_symbol_index(const std::string& sym
 
 std::size_t BuildContext::create_fast_symbol_index(const std::string& symbol) {
 
+	const Symbol* module_symbol = nullptr;
 	if (Definition* def = current_definition()) {
 		if (def->with_fast) {
-			return mint::create_fast_symbol_index(*def, *_data.bytecode->make_symbol(symbol));
+			module_symbol = _data.bytecode->make_symbol(symbol);
+			return mint::create_fast_symbol_index(*def, *module_symbol);
 		}
 	}
 
@@ -142,7 +144,8 @@ std::size_t BuildContext::fast_symbol_index(const std::string& symbol) {
 
 	if (Definition* def = current_definition()) {
 		if (def->with_fast) {
-			return mint::fast_symbol_index(*def, *_data.bytecode->make_symbol(symbol));
+			const Symbol* module_symbol = _data.bytecode->make_symbol(symbol);
+			return mint::fast_symbol_index(*def, *module_symbol);
 		}
 	}
 

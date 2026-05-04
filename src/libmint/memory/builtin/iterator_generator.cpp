@@ -52,6 +52,9 @@ std::unique_ptr<IteratorData> GeneratorData::copy() {
 
 void GeneratorData::mark() {
 	ItemsIteratorData::mark();
+	if (_state) {
+		_state->stack_frame->mark();
+	}
 	for (const Reference& item : _stored_stack) {
 		item.data().mark();
 	}

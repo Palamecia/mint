@@ -122,6 +122,18 @@ class TestLoop : Test.Case {
         self.expectEqual(3, result)
     }
 
+    const def testWhileInBooleanOperators(self) {
+
+        let count = 0
+
+        while 1 in 0..2 && 3 in 3..4 {
+            count = count + 1
+            break
+        }
+
+        self.expectEqual(1, count)
+    }
+
     const def testForBreakSkipsNext(self) {
 
         let nextCalls = 0

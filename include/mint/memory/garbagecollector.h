@@ -27,11 +27,11 @@
 #include "mint/config.h"
 #include "mint/memory/data.h"
 
+#include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <memory>
 #include <vector>
-#include <set>
 
 namespace mint {
 
@@ -57,7 +57,6 @@ public:
 
 	static constexpr std::size_t default_threshold = 7000;
 	static constexpr std::size_t threshold_growth_factor = 500;
-	static constexpr std::size_t default_stack_capacity = 0x4000;
 
 	static GarbageCollector& instance();
 
@@ -68,16 +67,17 @@ public:
 	std::size_t collect();
 	void clean();
 
+	[[nodiscard]] bool is_deferred() const noexcept;
+	void defer();
+	void resume();
+
 	inline void use(Data* data);
 	inline void release(Data* data);
-
-	std::vector<WeakReference>* create_stack();
-	void remove_stack(std::vector<WeakReference>* stack);
 
 	Reference& none_ref();
 	Reference& null_ref();
 
-	[[nodiscard]] inline bool is_threshold_exceded() const;
+	[[nodiscard]] inline bool is_threshold_exceeded() const;
 	[[nodiscard]] std::size_t get_threshold() const;
 	void set_threshold(std::size_t threshold);
 
@@ -99,7 +99,10 @@ private:
 	GarbageCollector();
 	~GarbageCollector();
 
-	std::set<std::vector<WeakReference>*> _stacks;
+	std::vector<Data*> _collecting;
+	std::size_t _defer_depth = 0;
+	bool _pending_collection = false;
+
 	std::unique_ptr<StrongReference> _none;
 	std::unique_ptr<StrongReference> _null;
 
@@ -124,7 +127,7 @@ private:
 			list.tail = node;
 		}
 		else {
-			list.head = (list).tail = node;
+			list.head = list.tail = node;
 		}
 	}
 
@@ -134,7 +137,7 @@ private:
 			node->_prev->_next = node->_next;
 		}
 		else {
-			(list).head = node->_next;
+			list.head = node->_next;
 		}
 		if (node->_next) {
 			node->_next->_prev = node->_prev;
@@ -143,6 +146,23 @@ private:
 			list.tail = node->_prev;
 		}
 	}
+};
+
+class MINT_EXPORT GarbageCollectorDeferScope {
+public:
+	GarbageCollectorDeferScope() {
+		GarbageCollector::instance().defer();
+	}
+
+	GarbageCollectorDeferScope(const GarbageCollectorDeferScope&) = delete;
+	GarbageCollectorDeferScope(GarbageCollectorDeferScope&&) = delete;
+
+	~GarbageCollectorDeferScope() {
+		GarbageCollector::instance().resume();
+	}
+
+	GarbageCollectorDeferScope& operator=(const GarbageCollectorDeferScope&) = delete;
+	GarbageCollectorDeferScope& operator=(GarbageCollectorDeferScope&&) = delete;
 };
 
 class MINT_EXPORT MemoryRoot {
@@ -156,9 +176,9 @@ public:
 	MemoryRoot& operator=(MemoryRoot&&) noexcept;
 	MemoryRoot& operator=(const MemoryRoot& other);
 
-protected:
 	virtual void mark() = 0;
 
+protected:
 	void register_root();
 	void unregister_root();
 
@@ -187,6 +207,9 @@ void GarbageCollector::use(Data* data) {
 }
 
 void GarbageCollector::release(Data* data) {
+	if (std::ranges::find(_collecting, data) != _collecting.end()) [[unlikely]] {
+		return;
+	}
 	if (!data->_info.collected && !--data->_info.refcount) {
 		data->_info.collected = true;
 		unregister_data(data);
@@ -194,7 +217,7 @@ void GarbageCollector::release(Data* data) {
 	}
 }
 
-bool GarbageCollector::is_threshold_exceded() const {
+bool GarbageCollector::is_threshold_exceeded() const {
 	return _threshold < _count;
 }
 

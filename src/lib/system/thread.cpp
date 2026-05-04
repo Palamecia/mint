@@ -67,7 +67,7 @@ mint::WeakReference mint_thread_start_member(mint::FunctionHelper& helper, const
 	const auto signature = static_cast<int>(args.data<mint::Iterator>().ctx.size());
 
 	if (mint::is_instance_of(method, mint::Data::Format::function)) {
-		if (auto* info = find_member_info(object.data<mint::Object>(), method)) {
+		if (const auto* info = find_member_info(object.data<mint::Object>(), method)) {
 			thread_cursor->waiting_calls().emplace(method, info->owner);
 		}
 		else {

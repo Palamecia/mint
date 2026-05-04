@@ -42,6 +42,7 @@
 	},
 	"main": "./client/out/extension",
 	"activationEvents": [
+		"onLanguage:mint",
 		"onDebugResolve:mint",
 		"onDebugDynamicConfigurations:mint",
 		"onDebugAdapterProtocolTracker:mint",

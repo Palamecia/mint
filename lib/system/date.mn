@@ -847,6 +847,46 @@ package System {
 		}
 
 		/**
+		 * Returns `true` if this date is earlier than the date described by `other`; otherwise returns `false`.
+		 */
+		const def <(const self, const other) {
+			if var date = System.Date(other) {
+				return self.toNumber() < date.toNumber()
+			}
+			return false
+		}
+
+		/**
+		 * Returns `true` if this date is later than the date described by `other`; otherwise returns `false`.
+		 */
+		const def >(const self, const other) {
+			if var date = System.Date(other) {
+				return self.toNumber() > date.toNumber()
+			}
+			return false
+		}
+
+		/**
+		 * Returns `true` if this date is earlier than or equal to the date described by `other`; otherwise returns `false`.
+		 */
+		const def <=(const self, const other) {
+			if var date = System.Date(other) {
+				return self.toNumber() <= date.toNumber()
+			}
+			return false
+		}
+
+		/**
+		 * Returns `true` if this date is later than or equal to the date described by `other`; otherwise returns `false`.
+		 */
+		const def >=(const self, const other) {
+			if var date = System.Date(other) {
+				return self.toNumber() >= date.toNumber()
+			}
+			return false
+		}
+
+		/**
 		 * Returns the pointer to the internal `std::chrono::sys_time<std::chrono::milliseconds>`
 		 * instance.
 		 */

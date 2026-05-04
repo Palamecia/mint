@@ -7,7 +7,9 @@ import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	TransportKind
+	TransportKind,
+	Trace,
+	State
 } from 'vscode-languageclient/node';
 
 let client: LanguageClient;
@@ -117,7 +119,6 @@ export function activate(context: vscode.ExtensionContext) {
 	// The server is implemented in mint
 	const serverDir = path.normalize(platform() === 'win32' ? 'C:/mint/bin' : '/bin');
 	const serverInterpreter = path.join(serverDir, platform() === 'win32' ? 'mint.exe' : 'mint');
-	const logFile = path.normalize(platform() === 'win32' ? 'C:/mint/minter.log' : '/tmp/minter.log');
 
 	// If the extension is launched in debug mode then the debug server options are used
 	// Otherwise the run options are used
@@ -125,13 +126,13 @@ export function activate(context: vscode.ExtensionContext) {
 		run: {
 			command: serverInterpreter,
 			transport: TransportKind.stdio,
-			args: ['minter', '--check-parent-process', '--log-file', logFile, '-vv'],
+			args: ['minter', '--check-parent-process', '-vv'],
 			options: { cwd: serverDir }
 		},
 		debug: {
 			command: serverInterpreter,
 			transport: TransportKind.stdio,
-			args: ['minter', '--check-parent-process', '--log-file', logFile, '-vv'],
+			args: ['minter', '--check-parent-process', '-vv'],
 			options: { cwd: serverDir }
 		}
 	};
@@ -154,8 +155,30 @@ export function activate(context: vscode.ExtensionContext) {
 		clientOptions
 	);
 
+	// Add error handling and logging
+	client.onDidChangeState((state) => {
+		console.log(`Minter client state changed: ${state.newState}`);
+		if (state.newState === State.Running) {
+			console.log('Minter language server is ready');
+		}
+	});
+
+	client.onNotification('window/logMessage', (params) => {
+		console.log('Server log:', params.message);
+	});
+
+	client.onNotification('window/showMessage', (params) => {
+		console.log('Server message:', params.message);
+	});
+
+	// Set trace
+	client.setTrace(Trace.Verbose);
+
 	// Start the client. This will also launch the server
-	client.start();
+	client.start().catch((error) => {
+		console.error('Failed to start Minter client:', error);
+		vscode.window.showErrorMessage(`Failed to start Minter client: ${error.message}`);
+	});
 }
 
 export function deactivate(): Thenable<void> | undefined {

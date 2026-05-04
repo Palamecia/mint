@@ -44,7 +44,7 @@ class GlobalData;
 class Iterator;
 class PackageData;
 
-class MINT_EXPORT SymbolTable : public MemoryRoot {
+class MINT_EXPORT SymbolTable {
 public:
 	using symbol_type = std::unordered_map<Symbol, Reference>::value_type;
 	using weak_symbol_type = std::unordered_map<Symbol, WeakReference>::value_type;
@@ -54,12 +54,12 @@ public:
 	using const_iterator = std::unordered_map<Symbol, WeakReference>::const_iterator;
 
 	explicit SymbolTable(GlobalData& global_data, Class* metadata = nullptr);
-	SymbolTable(SymbolTable&&) = delete;
 	SymbolTable(const SymbolTable&) = delete;
-	~SymbolTable() override;
+	SymbolTable(SymbolTable&&) = delete;
+	~SymbolTable() = default;
 
-	SymbolTable& operator=(SymbolTable&&) = delete;
 	SymbolTable& operator=(const SymbolTable&) = delete;
+	SymbolTable& operator=(SymbolTable&&) = delete;
 
 	[[nodiscard]] Class* get_metadata() const;
 	[[nodiscard]] PackageData& get_package() const;
@@ -95,8 +95,7 @@ public:
 	inline iterator erase(iterator position);
 	inline void clear();
 
-protected:
-	void mark() override {
+	void mark() {
 		for (auto& symbol : _symbols) {
 			symbol.second.data().mark();
 		}
@@ -106,12 +105,12 @@ private:
 	WeakReference& create_fast_reference(const Symbol& name, std::size_t index);
 	WeakReference& create_fast_reference(Reference::Flags flags, const Symbol& name, std::size_t index);
 
-	std::reference_wrapper<GlobalData> _global_data;
-	Class* _metadata;
-
-	std::vector<std::reference_wrapper<PackageData>> _package;
 	std::unique_ptr<std::unique_ptr<WeakReference>[]> _fasts;
 	std::unordered_map<Symbol, WeakReference> _symbols;
+
+	Class* _metadata;
+	std::reference_wrapper<GlobalData> _global_data;
+	std::vector<std::reference_wrapper<PackageData>> _package;
 };
 
 void SymbolTable::open_package(PackageData& package) {
@@ -194,15 +193,15 @@ std::pair<SymbolTable::iterator, bool> SymbolTable::emplace(const Symbol& name, 
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::insert(const strong_symbol_type& symbol) {
-	return _symbols.emplace(symbol.first, StrongReference(create_from, symbol.second));
+	return _symbols.emplace(symbol.first, WeakReference(create_from, symbol.second));
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::insert(const weak_symbol_type& symbol) {
-	return _symbols.emplace(symbol.first, StrongReference(create_from, symbol.second));
+	return _symbols.emplace(symbol.first, WeakReference(create_from, symbol.second));
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::insert(const symbol_type& symbol) {
-	return _symbols.emplace(symbol.first, StrongReference(create_from, symbol.second));
+	return _symbols.emplace(symbol.first, WeakReference(create_from, symbol.second));
 }
 
 std::size_t SymbolTable::erase(const Symbol& name) {
@@ -214,8 +213,8 @@ SymbolTable::iterator SymbolTable::erase(iterator position) {
 }
 
 void SymbolTable::clear() {
-	auto symbols = std::move(_symbols);
 	_fasts.reset();
+	_symbols.clear();
 }
 
 }

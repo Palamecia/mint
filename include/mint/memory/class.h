@@ -179,12 +179,6 @@ public:
 	void cleanup_memory();
 	void cleanup_metadata();
 
-protected:
-	void create_builtin_member(Operator op, WeakReference&& value = {});
-	void create_builtin_member(Operator op, std::pair<int, Module::Handle&> member);
-	void create_builtin_member(const Symbol& symbol, WeakReference&& value = {});
-	void create_builtin_member(const Symbol& symbol, std::pair<int, Module::Handle&> member);
-
 	void mark() override {
 		for (auto& member : _members) {
 			member.second->value.data().mark();
@@ -193,6 +187,12 @@ protected:
 			global.second->value.data().mark();
 		}
 	}
+
+protected:
+	void create_builtin_member(Operator op, WeakReference&& value = {});
+	void create_builtin_member(Operator op, std::pair<int, Module::Handle&> member);
+	void create_builtin_member(const Symbol& symbol, WeakReference&& value = {});
+	void create_builtin_member(const Symbol& symbol, std::pair<int, Module::Handle&> member);
 
 private:
 	Metatype _metatype;

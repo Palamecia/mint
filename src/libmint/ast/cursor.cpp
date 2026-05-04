@@ -57,6 +57,14 @@ PoolAllocator<Cursor::StackFrame> Cursor::g_pool;
 
 namespace {
 
+constexpr std::size_t default_stack_capacity = 0x4000;
+
+std::vector<WeakReference>* create_stack() {
+	auto* stack = new std::vector<WeakReference>();
+	stack->reserve(default_stack_capacity);
+	return stack;
+}
+
 void dump_module(LineInfoList& dumped_infos, AbstractSyntaxTree& ast, const Module& module, std::size_t offset) {
 
 	if (&module != &ThreadEntryPoint::instance()) {
@@ -127,14 +135,6 @@ Reference& Cursor::Call::function() {
 	return _function;
 }
 
-Cursor::WaitingCallStack::WaitingCallStack() {
-	register_root();
-}
-
-Cursor::WaitingCallStack::~WaitingCallStack() {
-	unregister_root();
-}
-
 void Cursor::WaitingCallStack::mark() {
 	for (auto& call : _calls) {
 		call.function().data().mark();
@@ -142,19 +142,22 @@ void Cursor::WaitingCallStack::mark() {
 }
 
 Cursor::Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent) :
-    _stack(parent ? parent->_stack : GarbageCollector::instance().create_stack()),
+    _stack(parent ? parent->_stack : create_stack()),
     _current_stack_frame(g_pool.allocate()),
     _ast(ast),
     _parent(parent),
     _child(nullptr) {
 
-	std::construct_at(_current_stack_frame, module);
-	_current_stack_frame->symbols = std::make_shared<SymbolTable>(_ast.get().global_data());
-
 	if (_parent) {
 		assert(_parent->_child == nullptr);
 		_parent->_child = this;
 	}
+	else {
+		register_root();
+	}
+
+	std::construct_at(_current_stack_frame, module);
+	_current_stack_frame->symbols = std::make_shared<SymbolTable>(_ast.get().global_data());
 }
 
 Cursor::Cursor(AbstractSyntaxTree& ast, Cursor* parent) :
@@ -167,7 +170,8 @@ Cursor::~Cursor() {
 		_parent->_child = nullptr;
 	}
 	else {
-		GarbageCollector::instance().remove_stack(_stack);
+		unregister_root();
+		delete _stack;
 	}
 
 	while (!_call_stack.empty()) {
@@ -526,5 +530,39 @@ void Cursor::cleanup() {
 	}
 }
 
+void Cursor::mark() {
+
+	// Only mark the stack of root cursors, as child cursors share the same stack and marking it multiple times would be
+	// redundant.
+	if (_parent == nullptr) {
+		for (auto& reference : *_stack) {
+			reference.data().mark();
+		}
+	}
+
+	for (auto* stack_frame : _call_stack) {
+		stack_frame->mark();
+	}
+
+	_current_stack_frame->mark();
+
+	if (_child) {
+		_child->mark();
+	}
+}
+
 Cursor::StackFrame::StackFrame(const Module& module) :
     module(module) {}
+
+void Cursor::StackFrame::mark() {
+	waiting_calls.mark();
+	if (symbols) {
+		symbols->mark();
+	}
+	if (generator) {
+		generator->data().mark();
+	}
+	if (coroutine) {
+		coroutine->data().mark();
+	}
+}

@@ -33,6 +33,7 @@
 #include <regex>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace {
@@ -45,7 +46,7 @@ std::string::size_type regex_find(const std::string& str, const std::regex& re,
 		if (from == std::string::npos) {
 			return pos;
 		}
-		if (from <= pos) {
+		if (std::cmp_less_equal(from, pos)) {
 			return pos;
 		}
 	}
@@ -54,7 +55,7 @@ std::string::size_type regex_find(const std::string& str, const std::regex& re,
 
 }
 
-const std::string DapMessage::content_length = "Content-Length: ";
+const std::string_view DapMessage::content_length = "Content-Length: ";
 int DapMessage::g_next_seq = 1;
 
 std::unique_ptr<DapMessage> DapMessage::decode(const std::string& data) {
@@ -99,7 +100,7 @@ std::string DapRequestMessage::encode() const {
 }
 
 DapMessage::Type DapRequestMessage::get_type() const {
-	return request;
+	return DapMessage::Type::request;
 }
 
 int DapRequestMessage::get_seq() const {
@@ -171,7 +172,7 @@ std::string DapResponseMessage::encode() const {
 }
 
 DapMessage::Type DapResponseMessage::get_type() const {
-	return response;
+	return DapMessage::Type::response;
 }
 
 int DapResponseMessage::get_seq() const {
@@ -204,7 +205,7 @@ std::string DapEventMessage::encode() const {
 }
 
 DapMessage::Type DapEventMessage::get_type() const {
-	return event;
+	return DapMessage::Type::event;
 }
 
 int DapEventMessage::get_seq() const {
@@ -251,5 +252,5 @@ std::size_t DapMessageReader::next_message_length(std::string::size_type& begin)
 
 void DapMessageWriter::append_message(std::unique_ptr<DapMessage> message) {
 	const std::string data = message->encode();
-	write(DapMessage::content_length + std::to_string(data.length()) + "\r\n\r\n" + data);
+	write(std::string(DapMessage::content_length) + std::to_string(data.length()) + "\r\n\r\n" + data);
 }

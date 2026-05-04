@@ -28,6 +28,7 @@
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/functiontool.h"
+#include "mint/memory/garbagecollector.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/symboltable.h"
@@ -45,7 +46,6 @@
 #include "mint/memory/operatortool.h"
 #include "mint/memory/memorytool.h"
 #include "mint/memory/casttool.h"
-#include "mint/memory/globaldata.h"
 #include "mint/system/assert.h"
 #include <atomic>
 #include <cassert>
@@ -442,6 +442,7 @@ public:
 	}
 
 	static void on_end_generator_expression(Cursor& cursor) {
+		auto scope = GarbageCollectorDeferScope();
 		assert(cursor.is_in_generator());
 		cursor.exit_call();
 	}
@@ -458,7 +459,7 @@ public:
 		assert(is_iterator(value));
 
 		if (!value.data<Iterator>().ctx.empty()) {
-			cursor.stack().back() = std::move(value.data<Iterator>().ctx.get());
+			cursor.stack().back() = value.data<Iterator>().ctx.get();
 		}
 		else {
 			cursor.stack().back() = create_none();
@@ -544,6 +545,8 @@ public:
 
 	static void on_resume_coroutine(Cursor& cursor) {
 
+		auto scope = GarbageCollectorDeferScope();
+
 		auto result = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
 
@@ -559,6 +562,7 @@ public:
 	}
 
 	static void on_exit_generator(Cursor& cursor) {
+		auto scope = GarbageCollectorDeferScope();
 		cursor.exit_call();
 	}
 
@@ -607,10 +611,12 @@ public:
 	}
 
 	static void on_call_builtin(Cursor& cursor, std::size_t index) {
+		auto scope = GarbageCollectorDeferScope();
 		cursor.ast().call_builtin_method(index, cursor);
 	}
 
 	static void on_call_global_builtin(Cursor& cursor, std::size_t index) {
+		auto scope = GarbageCollectorDeferScope();
 		cursor.ast().call_global_builtin_method(index, cursor);
 	}
 
@@ -674,6 +680,7 @@ public:
 	}
 
 	static void on_exit_call(Cursor& cursor) {
+		auto scope = GarbageCollectorDeferScope();
 		cursor.exit_call();
 	}
 
@@ -718,7 +725,7 @@ bool mint::debug_steps(CursorDebugger& cursor, DebugInterface& handle) {
 			}
 		}
 		static GarbageCollector& g_garbage_collector = GarbageCollector::instance();
-		if (g_garbage_collector.is_threshold_exceded()) {
+		if (g_garbage_collector.is_threshold_exceeded()) {
 			g_garbage_collector.collect();
 		}
 	}
@@ -736,7 +743,7 @@ bool mint::run_steps(Cursor& cursor) {
 			return false;
 		}
 		static GarbageCollector& g_garbage_collector = GarbageCollector::instance();
-		if (g_garbage_collector.is_threshold_exceded()) {
+		if (g_garbage_collector.is_threshold_exceeded()) {
 			g_garbage_collector.collect();
 		}
 	}

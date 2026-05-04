@@ -3,7 +3,6 @@
 
 #include "iterator_p.h"
 #include "mint/ast/cursor.h"
-#include "mint/ast/module.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/reference.h"
 #include <cstddef>

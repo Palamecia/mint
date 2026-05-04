@@ -38,8 +38,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
-#include <list>
 #include <memory>
+#include <utility>
 #include <vector>
 
 using namespace mint;
@@ -76,38 +76,39 @@ GarbageCollector& GarbageCollector::instance() {
 
 std::size_t GarbageCollector::collect() {
 
-	std::list<Data*> collected;
+	// if collection is deferred, mark that a collection is pending and return without collecting
+	if (_defer_depth != 0) {
+		_pending_collection = true;
+		return 0;
+	}
+
+	// if already collecting, do not start another collection
+	if (!_collecting.empty()) {
+		return 0;
+	}
 
 	// mark roots
-	for (MemoryRoot* root = _roots.head; root != nullptr; root = root->_next) {
+	for (auto* root = _roots.head; root != nullptr; root = root->_next) {
 		root->mark();
 	}
 
-	// mark stacks
-	for (const std::vector<WeakReference>* stack : _stacks) {
-		for (const WeakReference& reference : *stack) {
-			reference.data().mark();
-		}
-	}
-
 	// sweep
-	for (Data* data = _memory.head; data != nullptr; data = data->_next) {
+	for (auto* data = _memory.head; data != nullptr; data = data->_next) {
 		if (data->_info.reachable) {
 			data->_info.reachable = (data->_info.refcount == 0);
 		}
 		else {
 			data->_info.collected = true;
 			gc_list_remove_element(_memory, data);
-			collected.emplace_back(data);
+			_collecting.emplace_back(data);
 		}
 	}
 
 	// call destructors as possible
-	if (Scheduler* scheduler = Scheduler::instance()) {
-		for (Data* data : collected) {
-			if (data->format() == Data::Format::object) {
-				auto* object = static_cast<Object*>(data);
-				if (WeakReference* slots = object->data) {
+	if (auto* scheduler = Scheduler::instance()) {
+		for (auto* data : _collecting) {
+			if (auto* object = dynamic_cast<Object*>(data)) {
+				if (auto* slots = object->data) {
 					if (const auto* member = object->metadata.find_operator(Class::delete_operator)) {
 						if (is_instance_of(Class::MemberInfo::get(*member, slots), Data::Format::function)) {
 							scheduler->invoke(WeakReference(Reference::default_flags, *object), Class::delete_operator);
@@ -119,12 +120,14 @@ std::size_t GarbageCollector::collect() {
 	}
 
 	// free memory
-	for (Data* data : collected) {
+	for (auto* data : _collecting) {
 		GarbageCollector::destroy(data);
 	}
 
 	_threshold = std::max(_threshold, ((_count / threshold_growth_factor) + 1) * threshold_growth_factor);
 
+	auto collected = std::move(_collecting);
+	_collecting.clear();
 	return collected.size();
 }
 
@@ -134,7 +137,6 @@ void GarbageCollector::clean() {
 	_none.reset();
 	_null.reset();
 
-	assert(_stacks.empty());
 	assert(_roots.head == nullptr);
 
 	while (collect() > 0) {
@@ -142,6 +144,24 @@ void GarbageCollector::clean() {
 	}
 
 	assert(_memory.head == nullptr);
+}
+
+bool GarbageCollector::is_deferred() const noexcept {
+	return _defer_depth != 0;
+}
+
+void GarbageCollector::defer() {
+	++_defer_depth;
+}
+
+void GarbageCollector::resume() {
+
+	assert(_defer_depth > 0);
+
+	if (--_defer_depth == 0 && _pending_collection) {
+		_pending_collection = false;
+		collect();
+	}
 }
 
 void GarbageCollector::register_data(Data* data) {
@@ -168,17 +188,6 @@ void GarbageCollector::unregister_root(MemoryRoot* root) {
 	gc_list_remove_element(_roots, root);
 	assert(_roots.head == nullptr || _roots.head->_prev == nullptr);
 	assert(_roots.tail == nullptr || _roots.tail->_next == nullptr);
-}
-
-std::vector<WeakReference>* GarbageCollector::create_stack() {
-	auto* stack = new std::vector<WeakReference>();
-	stack->reserve(default_stack_capacity);
-	return *_stacks.emplace(stack).first;
-}
-
-void GarbageCollector::remove_stack(std::vector<WeakReference>* stack) {
-	_stacks.erase(stack);
-	delete stack;
 }
 
 Reference& GarbageCollector::none_ref() {

@@ -91,8 +91,8 @@ using namespace mint;
 %left caret_token
 %left amp_token
 %right equal_token question_token colon_token colon_equal_token equal_colon_token close_bracket_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token equal_right_angled_token
+%left dbl_equal_token exclamation_equal_token is_token in_token equal_tilde_token exclamation_tilde_token tpl_equal_token exclamation_dbl_equal_token
 %left dbl_dot_token tpl_dot_token
-%left dbl_equal_token exclamation_equal_token is_token equal_tilde_token exclamation_tilde_token tpl_equal_token exclamation_dbl_equal_token
 %left left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
 %left dbl_left_angled_token dbl_right_angled_token
 %left plus_token minus_token
@@ -1221,22 +1221,10 @@ if_cond_rule:
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
 		context.open_block(BuildContext::BlockType::if_type);
-	}
-	| if_rule find_rule {
-		context.resolve_condition();
-		context.push_node(Node::Command::zero_jump);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::if_type);
 	};
 
 if_cond_generator_rule:
 	if_generator_rule expr_rule {
-		context.resolve_condition();
-		context.push_node(Node::Command::zero_jump);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::if_type);
-	}
-	| if_generator_rule find_rule {
 		context.resolve_condition();
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
@@ -1246,14 +1234,6 @@ if_cond_generator_rule:
 elif_cond_rule:
 	elif_rule expr_rule {
 		context.resolve_condition();
-		context.close_block();
-		context.push_node(Node::Command::zero_jump);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::elif_type);
-	}
-	| elif_rule find_rule {
-		context.resolve_condition();
-		context.close_block();
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
 		context.open_block(BuildContext::BlockType::elif_type);
@@ -1272,6 +1252,7 @@ if_generator_rule:
 
 elif_rule:
     elif_token {
+		context.close_block();
 		context.push_node(Node::Command::jump);
 		context.start_jump_forward();
 		context.shift_jump_forward();
@@ -1533,22 +1514,10 @@ while_cond_rule:
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
 		context.open_block(BuildContext::BlockType::conditional_loop_type);
-	}
-	| while_rule find_rule {
-		context.resolve_condition();
-		context.push_node(Node::Command::zero_jump);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::conditional_loop_type);
 	};
 
 while_cond_generator_rule:
 	while_expr_rule expr_rule {
-		context.resolve_condition();
-		context.push_node(Node::Command::zero_jump);
-		context.start_jump_forward();
-		context.open_block(BuildContext::BlockType::conditional_loop_type);
-	}
-	| while_expr_rule find_rule {
 		context.resolve_condition();
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
@@ -1566,33 +1535,6 @@ while_rule:
     while_token {
 		context.start_jump_backward();
 		context.start_condition();
-	};
-
-find_rule:
-    expr_rule in_token find_init_rule {
-		context.start_jump_backward();
-		context.push_node(Node::Command::find_next);
-		context.push_node(Node::Command::find_check);
-		context.start_jump_forward();
-		context.push_node(Node::Command::jump);
-		context.resolve_jump_backward();
-		context.resolve_jump_forward();
-	}
-	| expr_rule exclamation_token in_token find_init_rule {
-		context.start_jump_backward();
-		context.push_node(Node::Command::find_next);
-		context.push_node(Node::Command::find_check);
-		context.start_jump_forward();
-		context.push_node(Node::Command::jump);
-		context.resolve_jump_backward();
-		context.resolve_jump_forward();
-		context.push_node(Node::Command::not_operator);
-	};
-
-find_init_rule:
-	expr_rule {
-		context.push_node(Node::Command::find_operator);
-		context.push_node(Node::Command::find_init);
 	};
 
 for_cond_rule:
@@ -2025,6 +1967,29 @@ expr_rule:
 	}
 	| expr_rule is_token expr_rule {
 		context.push_node(Node::Command::is_operator);
+	}
+	| expr_rule in_token expr_rule {
+		context.push_node(Node::Command::find_operator);
+		context.push_node(Node::Command::find_init);
+		context.start_jump_backward();
+		context.push_node(Node::Command::find_next);
+		context.push_node(Node::Command::find_check);
+		context.start_jump_forward();
+		context.push_node(Node::Command::jump);
+		context.resolve_jump_backward();
+		context.resolve_jump_forward();
+	}
+	| expr_rule exclamation_token in_token expr_rule %prec in_token {
+		context.push_node(Node::Command::find_operator);
+		context.push_node(Node::Command::find_init);
+		context.start_jump_backward();
+		context.push_node(Node::Command::find_next);
+		context.push_node(Node::Command::find_check);
+		context.start_jump_forward();
+		context.push_node(Node::Command::jump);
+		context.resolve_jump_backward();
+		context.resolve_jump_forward();
+		context.push_node(Node::Command::not_operator);
 	}
 	| expr_rule dbl_equal_token expr_rule {
 		context.push_node(Node::Command::eq_operator);

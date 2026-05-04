@@ -170,7 +170,6 @@ public:
 	StrongReference& operator=(const StrongReference& other) = default;
 	StrongReference& operator=(const WeakReference& other);
 
-protected:
 	void mark() override {
 		data().mark();
 	}

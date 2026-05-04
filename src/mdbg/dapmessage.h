@@ -33,16 +33,17 @@
 #include <optional>
 #include <string>
 #include <memory>
+#include <string_view>
 
 class DapMessage {
 public:
-	enum Type : std::uint8_t {
+	enum class Type : std::uint8_t {
 		request,
 		response,
 		event
 	};
 
-	static const std::string content_length;
+	static const std::string_view content_length;
 
 	DapMessage() = default;
 	DapMessage(const DapMessage&) = default;
@@ -81,10 +82,9 @@ private:
 	std::optional<const JsonObject> _arguments;
 };
 
-enum ErrorDestination : std::uint8_t {
-	user = 1,
-	telemetry = 2
-};
+using ErrorDestination = std::uint8_t;
+constexpr inline ErrorDestination user = 0x01;
+constexpr inline ErrorDestination telemetry = 0x02;
 
 class DapResponseMessage : public DapMessage {
 public:
@@ -128,13 +128,13 @@ private:
 template<class Visitor>
 void visit(Visitor&& visitor, const DapMessage& message) {
 	switch (message.get_type()) {
-	case DapMessage::request:
+	case DapMessage::Type::request:
 		std::invoke(std::forward<Visitor>(visitor), static_cast<const DapRequestMessage&>(message));
 		break;
-	case DapMessage::response:
+	case DapMessage::Type::response:
 		std::invoke(std::forward<Visitor>(visitor), static_cast<const DapResponseMessage&>(message));
 		break;
-	case DapMessage::event:
+	case DapMessage::Type::event:
 		std::invoke(std::forward<Visitor>(visitor), static_cast<const DapEventMessage&>(message));
 		break;
 	}

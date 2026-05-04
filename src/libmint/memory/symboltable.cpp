@@ -34,14 +34,8 @@
 using namespace mint;
 
 SymbolTable::SymbolTable(GlobalData& global_data, Class* metadata) :
-    _global_data(global_data),
-    _metadata(metadata) {
-	register_root();
-}
-
-SymbolTable::~SymbolTable() {
-	unregister_root();
-}
+    _metadata(metadata),
+    _global_data(global_data) {}
 
 Class* SymbolTable::get_metadata() const {
 	return _metadata;

@@ -41,6 +41,7 @@
 #include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/bufferstream.h"
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -145,6 +146,7 @@ WeakReference mint::create_boolean(bool value) {
 }
 
 WeakReference mint::create_alias(Class& type) {
+	assert(type.metatype() == Class::Metatype::object);
 	return make_weak_reference<Object>(create_flags, type);
 }
 

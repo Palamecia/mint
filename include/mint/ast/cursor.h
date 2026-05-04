@@ -49,7 +49,7 @@ namespace mint {
 struct SavedState;
 class AbstractSyntaxTree;
 
-class MINT_EXPORT Cursor {
+class MINT_EXPORT Cursor : public MemoryRoot {
 	friend class CursorDebugger;
 	friend struct SavedState;
 public:
@@ -84,13 +84,13 @@ public:
 		Flags _flags = standard_call;
 	};
 
-	class MINT_EXPORT WaitingCallStack : public MemoryRoot {
+	class MINT_EXPORT WaitingCallStack {
 		std::vector<Call> _calls;
 	public:
-		WaitingCallStack();
+		WaitingCallStack() = default;
 		WaitingCallStack(const WaitingCallStack&) = delete;
 		WaitingCallStack(WaitingCallStack&&) = delete;
-		~WaitingCallStack();
+		~WaitingCallStack() = default;
 
 		WaitingCallStack& operator=(const WaitingCallStack&) = delete;
 		WaitingCallStack& operator=(WaitingCallStack&&) = delete;
@@ -132,17 +132,17 @@ public:
 			std::swap(_calls, other._calls);
 		}
 
-		void mark() override;
+		void mark();
 	};
 
 	Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent = nullptr);
 	Cursor(AbstractSyntaxTree& ast, Cursor* parent = nullptr);
-	Cursor(Cursor&& other) = delete;
 	Cursor(const Cursor& other) = delete;
+	Cursor(Cursor&& other) = delete;
 	~Cursor();
 
-	Cursor& operator=(Cursor&& other) = delete;
 	Cursor& operator=(const Cursor& other) = delete;
+	Cursor& operator=(Cursor&& other) = delete;
 
 	std::unique_ptr<Cursor> make_thread();
 	[[nodiscard]] bool is_thread() const;
@@ -194,9 +194,13 @@ public:
 
 	void cleanup();
 
+	void mark() override;
+
 protected:
 	struct StackFrame {
 		explicit StackFrame(const Module& module);
+
+		void mark();
 
 		std::size_t iptr = 0;
 		const Module& module;

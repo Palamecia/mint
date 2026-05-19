@@ -49,7 +49,7 @@ namespace {
 
 void complete_pending_calls(mint::Cursor& cursor) {
 	while (cursor.call_in_progress()) {
-		if (!mint::run_step(cursor)) {
+		if (mint::run_step(cursor) != mint::ProcessStatus::paused) {
 			throw std::runtime_error("operator call did not complete");
 		}
 	}

@@ -711,17 +711,17 @@ ProcessorLocker::~ProcessorLocker() {
 	unlock_processor();
 }
 
-bool mint::debug_steps(CursorDebugger& cursor, DebugInterface& handle) {
+ProcessStatus mint::debug_steps(CursorDebugger& cursor, DebugInterface& handle) {
 
 	auto do_run_steps = DoRunSteps();
 
 	do {
 		for (std::size_t i = 0; i < quantum; ++i) {
 			if (!handle.debug(cursor)) {
-				return false;
+				return ProcessStatus::completed;
 			}
 			if (!do_run_steps.walk(cursor.cursor())) {
-				return false;
+				return ProcessStatus::completed;
 			}
 		}
 		static GarbageCollector& g_garbage_collector = GarbageCollector::instance();
@@ -731,16 +731,16 @@ bool mint::debug_steps(CursorDebugger& cursor, DebugInterface& handle) {
 	}
 	while (g_single_thread);
 
-	return true;
+	return ProcessStatus::paused;
 }
 
-bool mint::run_steps(Cursor& cursor) {
+ProcessStatus mint::run_steps(Cursor& cursor) {
 
 	auto do_run_steps = DoRunSteps();
 
 	do {
 		if (!do_run_steps.walk(cursor, quantum)) {
-			return false;
+			return ProcessStatus::completed;
 		}
 		static GarbageCollector& g_garbage_collector = GarbageCollector::instance();
 		if (g_garbage_collector.is_threshold_exceeded()) {
@@ -749,12 +749,15 @@ bool mint::run_steps(Cursor& cursor) {
 	}
 	while (g_single_thread);
 
-	return true;
+	return ProcessStatus::paused;
 }
 
-bool mint::run_step(Cursor& cursor) {
+ProcessStatus mint::run_step(Cursor& cursor) {
 	auto do_run_steps = DoRunSteps();
-	return do_run_steps.walk(cursor);
+	if (!do_run_steps.walk(cursor)) {
+		return ProcessStatus::completed;
+	}
+	return ProcessStatus::paused;
 }
 
 void mint::set_multi_thread(bool enabled) {

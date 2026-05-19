@@ -3,6 +3,7 @@
 
 #include "mint/debug/debuginterface.h"
 #include "mint/scheduler/process.h"
+#include "mint/scheduler/processor.h"
 
 namespace mint {
 
@@ -10,7 +11,7 @@ class ProcessDebugger {
 public:
 	ProcessDebugger(DebugInterface& handle, Process& process);
 
-	bool exec();
+	ProcessStatus exec();
 	void resume();
 
 private:

@@ -211,7 +211,7 @@ void Process::cleanup() {
 	_cursor->cleanup();
 }
 
-bool Process::exec() {
+ProcessStatus Process::exec() {
 
 	auto _ = ProcessorLocker();
 
@@ -221,12 +221,12 @@ bool Process::exec() {
 	catch (MintException& raised) {
 		if (_cursor.get() == &raised.cursor()) {
 			_cursor->raise(raised.take_exception());
-			return true;
+			return ProcessStatus::aborted;
 		}
 		throw;
 	}
 	catch (const MintRuntimeError&) {
-		return false;
+		return ProcessStatus::failed;
 	}
 }
 

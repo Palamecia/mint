@@ -26,6 +26,7 @@
 
 #include "mint/ast/cursor.h"
 #include "mint/config.h"
+#include "mint/scheduler/processor.h"
 
 #include <filesystem>
 #include <memory>
@@ -59,8 +60,8 @@ public:
 	virtual void setup();
 	virtual void cleanup();
 
-	bool exec();
-	bool resume();
+	[[nodiscard]] ProcessStatus exec();
+	[[nodiscard]] bool resume();
 
 	[[nodiscard]] ThreadId get_thread_id() const;
 	void set_thread_id(ThreadId id);

@@ -12,7 +12,7 @@
 
 #define WAIT_FOR_RESULT(__cursor) \
 	while (cursor.call_in_progress()) { \
-		ASSERT_TRUE(run_step(__cursor)); \
+		ASSERT_EQ(mint::ProcessStatus::paused, mint::run_step(__cursor)); \
 	}
 
 TEST(operatortool, call_overload) {

@@ -33,7 +33,7 @@ using namespace mint;
 ProcessDebugger::ProcessDebugger(DebugInterface& handle, Process& process) :
     _thread_locker(handle, process) {}
 
-bool mint::ProcessDebugger::exec() {
+ProcessStatus mint::ProcessDebugger::exec() {
 
 	const auto _ = ProcessorLocker();
 
@@ -44,12 +44,12 @@ bool mint::ProcessDebugger::exec() {
 		auto& cursor = _thread_locker.cursor();
 		if (&cursor.cursor() == &raised.cursor()) {
 			cursor.cursor().raise(raised.take_exception());
-			return true;
+			return ProcessStatus::aborted;
 		}
 		throw;
 	}
 	catch (const MintRuntimeError&) {
-		return false;
+		return ProcessStatus::failed;
 	}
 }
 

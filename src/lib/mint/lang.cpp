@@ -280,7 +280,14 @@ mint::Reference mint_lang_exec(mint::FunctionHelper& helper, const mint::Referen
 		process->setup();
 
 		do {
-			process->exec();
+			switch (process->exec()) {
+			case mint::ProcessStatus::paused:
+			case mint::ProcessStatus::completed:
+			case mint::ProcessStatus::aborted:
+			case mint::ProcessStatus::failed:
+				// TODO: handle statuses properly
+				break;
+			}
 		}
 		while (process->cursor().call_in_progress());
 
@@ -307,7 +314,14 @@ mint::Reference mint_lang_eval(mint::FunctionHelper& helper, const mint::Referen
 		process->setup();
 
 		do {
-			process->exec();
+			switch (process->exec()) {
+			case mint::ProcessStatus::completed:
+			case mint::ProcessStatus::paused:
+			case mint::ProcessStatus::aborted:
+			case mint::ProcessStatus::failed:
+				// TODO: handle statuses properly
+				break;
+			}
 		}
 		while (process->cursor().call_in_progress());
 

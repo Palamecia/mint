@@ -25,6 +25,7 @@
 #define MINT_SCHEDULER_PROCESSOR_H
 
 #include "mint/config.h"
+#include <cstdint>
 
 namespace mint {
 
@@ -43,9 +44,16 @@ public:
 	ProcessorLocker& operator=(ProcessorLocker&&) = delete;
 };
 
-MINT_EXPORT bool debug_steps(CursorDebugger& cursor, DebugInterface& handle);
-MINT_EXPORT bool run_steps(Cursor& cursor);
-MINT_EXPORT bool run_step(Cursor& cursor);
+enum class ProcessStatus : std::uint8_t {
+	paused,
+	completed,
+	aborted,
+	failed,
+};
+
+MINT_EXPORT ProcessStatus debug_steps(CursorDebugger& cursor, DebugInterface& handle);
+MINT_EXPORT ProcessStatus run_steps(Cursor& cursor);
+MINT_EXPORT ProcessStatus run_step(Cursor& cursor);
 
 MINT_EXPORT void set_multi_thread(bool enabled);
 MINT_EXPORT void lock_processor();

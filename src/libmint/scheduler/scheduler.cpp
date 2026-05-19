@@ -630,10 +630,14 @@ bool Scheduler::schedule(Process& thread) {
 		auto debug_thread = ProcessDebugger(*handle, thread);
 
 		while (is_running() || is_destructor(thread)) {
-			if (!debug_thread.exec()) {
+			switch (debug_thread.exec()) {
+			case ProcessStatus::completed:
+			case ProcessStatus::failed:
 				debug_thread.resume();
 				finalize_process(thread);
 				return true;
+			default:
+				break;
 			}
 		}
 
@@ -641,11 +645,17 @@ bool Scheduler::schedule(Process& thread) {
 	}
 	else {
 		while (is_running() || is_destructor(thread)) {
-			if (!thread.exec()) {
+			switch (thread.exec()) {
+			case ProcessStatus::completed:
+			case ProcessStatus::aborted:
+			case ProcessStatus::failed:
 				if (!resume(thread)) {
 					finalize_process(thread);
 					return true;
 				}
+				break;
+			default:
+				break;
 			}
 		}
 	}

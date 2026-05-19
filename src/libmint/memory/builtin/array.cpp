@@ -146,7 +146,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_array(cursor.ast());
+		Reference result = create_array(cursor.ast());
 
 		for (auto& value : self.data<Array>().values) {
 			result.data<Array>().values.push_back(array_get_item(value));
@@ -175,7 +175,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_array(cursor.ast());
+		Reference result = create_array(cursor.ast());
 
 		for (std::intmax_t i = 0; i < to_signed_integer(cursor, other); ++i) {
 			for (auto& value : self.data<Array>().values) {
@@ -244,7 +244,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 				std::swap(begin_index, end_index);
 			}
 
-			WeakReference result = create_array(cursor.ast());
+			Reference result = create_array(cursor.ast());
 
 			for (std::size_t i = begin_index; i <= end_index; ++i) {
 				result.data<Array>().values.emplace_back(array_get_item(self.data<Array>().values[i]));
@@ -255,9 +255,9 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		}
 		else {
 
-			WeakReference result = create_array(cursor.ast());
+			Reference result = create_array(cursor.ast());
 
-			while (std::optional<WeakReference>&& item = iterator_next(cursor, index.data<Iterator>())) {
+			while (std::optional<Reference>&& item = iterator_next(cursor, index.data<Iterator>())) {
 				result.data<Array>().values.emplace_back(array_get_item(
 				    self.data<Array>().values[array_index(self.data<Array>(), to_signed_integer(cursor, *item))]));
 			}
@@ -493,7 +493,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		const Reference& sep = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
 
-		WeakReference result = create_string(cursor.ast(),
+		Reference result = create_string(cursor.ast(),
 		    std::format("{}", std::views::transform(self.data<Array>().values,
 		                          [](auto& item) {
 			                          return to_string(item);
@@ -518,7 +518,7 @@ void mint::array_new(Cursor& cursor, std::size_t length) {
 	self.construct();
 
 	const auto from = std::prev(stack.end(),
-	    static_cast<std::vector<WeakReference>::difference_type>(length + call.extra_argument_count()));
+	    static_cast<std::vector<Reference>::difference_type>(length + call.extra_argument_count()));
 	const auto to = stack.end();
 	for (auto it = from; it != to; ++it) {
 		array_append(self, array_item(*it));
@@ -536,23 +536,23 @@ void mint::array_append(Array& array, Reference&& item) {
 	array.values.emplace_back(std::move(item));
 }
 
-WeakReference mint::array_insert(Array& array, intmax_t index, const Reference& item) {
+Reference mint::array_insert(Array& array, intmax_t index, const Reference& item) {
 	return *array.values.emplace(std::next(array.values.begin(), index), array_item(item));
 }
 
-WeakReference mint::array_insert(Array& array, intmax_t index, Reference&& item) {
+Reference mint::array_insert(Array& array, intmax_t index, Reference&& item) {
 	return *array.values.emplace(std::next(array.values.begin(), index), std::move(item));
 }
 
-WeakReference mint::array_get_item(Array& array, intmax_t index) {
+Reference mint::array_get_item(Array& array, intmax_t index) {
 	return array.values[array_index(array, index)];
 }
 
-WeakReference mint::array_get_item(const Array::values_type::iterator& it) {
+Reference mint::array_get_item(const Array::values_type::iterator& it) {
 	return *it;
 }
 
-WeakReference mint::array_get_item(Array::values_type::value_type& value) {
+Reference mint::array_get_item(Array::values_type::value_type& value) {
 	return value;
 }
 
@@ -568,9 +568,9 @@ std::size_t mint::array_index(const Array& array, intmax_t index) {
 	return i;
 }
 
-WeakReference mint::array_item(const Reference& item) {
+Reference mint::array_item(const Reference& item) {
 
-	WeakReference item_value;
+	Reference item_value;
 
 	if ((item.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
 		item_value.copy_data(item);

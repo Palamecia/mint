@@ -47,39 +47,39 @@ static const std::string member_info("MemberInfo");
 
 namespace {
 
-mint::WeakReference mint_type_to_number(mint::Cursor& cursor, const mint::Reference& value) {
+mint::Reference mint_type_to_number(mint::Cursor& cursor, const mint::Reference& value) {
 	return mint::create_number(to_number(cursor, value));
 }
 
-mint::WeakReference mint_type_to_boolean(mint::Cursor& /*cursor*/, const mint::Reference& value) {
+mint::Reference mint_type_to_boolean(mint::Cursor& /*cursor*/, const mint::Reference& value) {
 	return mint::create_boolean(to_boolean(value));
 }
 
-mint::WeakReference mint_type_to_string(mint::Cursor& cursor, const mint::Reference& value) {
+mint::Reference mint_type_to_string(mint::Cursor& cursor, const mint::Reference& value) {
 	return mint::create_string(cursor.ast(), to_string(value));
 }
 
-mint::WeakReference mint_type_to_regex(mint::Cursor& cursor, const mint::Reference& value) {
+mint::Reference mint_type_to_regex(mint::Cursor& cursor, const mint::Reference& value) {
 	return mint::create_regex(cursor.ast(), mint::to_string(value), mint::to_regex(value));
 }
 
-mint::WeakReference mint_type_to_array(mint::Cursor& cursor, const mint::Reference& value) {
+mint::Reference mint_type_to_array(mint::Cursor& cursor, const mint::Reference& value) {
 	return mint::create_array(cursor.ast(), mint::to_array(value));
 }
 
-mint::WeakReference mint_type_to_hash(mint::Cursor& cursor, const mint::Reference& value) {
+mint::Reference mint_type_to_hash(mint::Cursor& cursor, const mint::Reference& value) {
 	return mint::create_hash(cursor.ast(), mint::to_hash(value));
 }
 
-mint::WeakReference mint_lang_get_type(mint::Cursor& /*cursor*/, const mint::Reference& object) {
+mint::Reference mint_lang_get_type(mint::Cursor& /*cursor*/, const mint::Reference& object) {
 	if (is_instance_of(object, mint::Class::Metatype::object)) {
 		return mint::create_object(object.data<mint::Object>().metadata);
 	}
 	return {};
 }
 
-mint::WeakReference mint_lang_create_type(mint::Cursor& cursor, const mint::Reference& type,
-    const mint::Reference& bases, const mint::Reference& members) {
+mint::Reference mint_lang_create_type(mint::Cursor& cursor, const mint::Reference& type, const mint::Reference& bases,
+    const mint::Reference& members) {
 
 	auto base_list = std::vector<mint::ClassRegister::Path>();
 
@@ -94,7 +94,7 @@ mint::WeakReference mint_lang_create_type(mint::Cursor& cursor, const mint::Refe
 		}
 	}
 
-	auto member_list = std::vector<std::pair<mint::Symbol, mint::WeakReference>>();
+	auto member_list = std::vector<std::pair<mint::Symbol, mint::Reference>>();
 
 	for (auto& member : to_hash(members)) {
 		if (is_instance_of(member.first, symbols::member_info)) {
@@ -102,7 +102,7 @@ mint::WeakReference mint_lang_create_type(mint::Cursor& cursor, const mint::Refe
 			    to_string(get_member_ignore_visibility(member.first.data<mint::Object>(), symbols::name)));
 			const auto flags = to_integer<mint::Reference::Flags>(cursor,
 			    get_member_ignore_visibility(member.first.data<mint::Object>(), symbols::flags));
-			member_list.emplace_back(symbol, mint::WeakReference(flags, member.second.data()));
+			member_list.emplace_back(symbol, mint::Reference(flags, member.second.data()));
 		}
 		else {
 			member_list.emplace_back(mint::Symbol(to_string(member.first)), std::move(member.second));
@@ -112,11 +112,11 @@ mint::WeakReference mint_lang_create_type(mint::Cursor& cursor, const mint::Refe
 	return mint::create_alias(mint::create_class(cursor.ast(), to_string(type), base_list, member_list));
 }
 
-mint::WeakReference mint_type_get_member_info(mint::Cursor& cursor, const mint::Reference& type,
+mint::Reference mint_type_get_member_info(mint::Cursor& cursor, const mint::Reference& type,
     mint::Reference& member_name) {
 	if (is_instance_of(type, mint::Class::Metatype::object)) {
 		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
-			return create_iterator_from(cursor, mint::WeakReference(member_name),
+			return create_iterator_from(cursor, mint::Reference(member_name),
 			    mint::create_number(member->value.flags() & ~mint::Reference::temporary),
 			    mint::create_alias(member->owner));
 		}
@@ -124,7 +124,7 @@ mint::WeakReference mint_type_get_member_info(mint::Cursor& cursor, const mint::
 	return {};
 }
 
-mint::WeakReference mint_type_is_member_private(mint::Cursor& /*cursor*/, const mint::Reference& type,
+mint::Reference mint_type_is_member_private(mint::Cursor& /*cursor*/, const mint::Reference& type,
     const mint::Reference& member_name) {
 	if (is_instance_of(type, mint::Class::Metatype::object)) {
 		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
@@ -135,7 +135,7 @@ mint::WeakReference mint_type_is_member_private(mint::Cursor& /*cursor*/, const 
 	return {};
 }
 
-mint::WeakReference mint_type_is_member_protected(mint::Cursor& /*cursor*/, const mint::Reference& type,
+mint::Reference mint_type_is_member_protected(mint::Cursor& /*cursor*/, const mint::Reference& type,
     const mint::Reference& member_name) {
 	if (is_instance_of(type, mint::Class::Metatype::object)) {
 		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
@@ -146,7 +146,7 @@ mint::WeakReference mint_type_is_member_protected(mint::Cursor& /*cursor*/, cons
 	return {};
 }
 
-mint::WeakReference mint_type_get_member_owner(mint::Cursor& /*cursor*/, const mint::Reference& type,
+mint::Reference mint_type_get_member_owner(mint::Cursor& /*cursor*/, const mint::Reference& type,
     const mint::Reference& member_name) {
 	if (is_instance_of(type, mint::Class::Metatype::object)) {
 		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
@@ -156,29 +156,29 @@ mint::WeakReference mint_type_get_member_owner(mint::Cursor& /*cursor*/, const m
 	return {};
 }
 
-mint::WeakReference mint_type_is_trivially_copyable(mint::Cursor& /*cursor*/, const mint::Reference& type) {
+mint::Reference mint_type_is_trivially_copyable(mint::Cursor& /*cursor*/, const mint::Reference& type) {
 	if (!mint::is_instance_of(type, mint::Data::Format::object)) {
 		return mint::create_boolean(true);
 	}
 	return mint::create_boolean(type.data<mint::Object>().metadata.is_trivially_copyable());
 }
 
-mint::WeakReference mint_type_deep_copy(mint::Cursor& /*cursor*/, const mint::Reference& value) {
+mint::Reference mint_type_deep_copy(mint::Cursor& /*cursor*/, const mint::Reference& value) {
 	return {mint::copy_from, value};
 }
 
-mint::WeakReference mint_type_is_class(mint::Cursor& /*cursor*/, const mint::Reference& object) {
+mint::Reference mint_type_is_class(mint::Cursor& /*cursor*/, const mint::Reference& object) {
 	return mint::create_boolean(mint::is_class(object));
 }
 
-mint::WeakReference mint_type_is_object(mint::Cursor& /*cursor*/, const mint::Reference& object) {
+mint::Reference mint_type_is_object(mint::Cursor& /*cursor*/, const mint::Reference& object) {
 	if (mint::is_instance_of(object, mint::Data::Format::object)) {
 		return mint::create_boolean(mint::is_object(object.data<mint::Object>()));
 	}
 	return mint::create_boolean(true);
 }
 
-mint::WeakReference mint_type_super(mint::Cursor& cursor, const mint::Reference& type) {
+mint::Reference mint_type_super(mint::Cursor& cursor, const mint::Reference& type) {
 	if (type.data().format() == mint::Data::Format::object) {
 		return mint::create_array(cursor.ast(),
 		    {std::from_range, std::views::transform(type.data<mint::Object>().metadata.bases(), [](mint::Class& base) {
@@ -188,7 +188,7 @@ mint::WeakReference mint_type_super(mint::Cursor& cursor, const mint::Reference&
 	return mint::create_array(cursor.ast());
 }
 
-mint::WeakReference mint_type_is_base_of(mint::Cursor& /*cursor*/, const mint::Reference& base,
+mint::Reference mint_type_is_base_of(mint::Cursor& /*cursor*/, const mint::Reference& base,
     const mint::Reference& type) {
 	if (base.data().format() == mint::Data::Format::object && type.data().format() == mint::Data::Format::object) {
 		return mint::create_boolean(base.data<mint::Object>().metadata.is_base_of(type.data<mint::Object>().metadata));
@@ -196,7 +196,7 @@ mint::WeakReference mint_type_is_base_of(mint::Cursor& /*cursor*/, const mint::R
 	return mint::create_boolean(false);
 }
 
-mint::WeakReference mint_type_is_base_or_same(mint::Cursor& /*cursor*/, const mint::Reference& base,
+mint::Reference mint_type_is_base_or_same(mint::Cursor& /*cursor*/, const mint::Reference& base,
     const mint::Reference& type) {
 	if (base.data().format() == mint::Data::Format::object && type.data().format() == mint::Data::Format::object) {
 		return mint::create_boolean(
@@ -205,7 +205,7 @@ mint::WeakReference mint_type_is_base_or_same(mint::Cursor& /*cursor*/, const mi
 	return mint::create_boolean(false);
 }
 
-mint::WeakReference mint_type_is_instance_of(mint::Cursor& /*cursor*/, const mint::Reference& object,
+mint::Reference mint_type_is_instance_of(mint::Cursor& /*cursor*/, const mint::Reference& object,
     const mint::Reference& type) {
 	if (object.data().format() == mint::Data::Format::object && type.data().format() == mint::Data::Format::object) {
 		return mint::create_boolean(object.data<mint::Object>().metadata.is_same(type.data<mint::Object>().metadata));

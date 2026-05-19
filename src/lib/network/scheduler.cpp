@@ -56,7 +56,7 @@
 
 namespace {
 
-mint::WeakReference mint_scheduler_pollfd_new(mint::Cursor& cursor, const mint::Reference& socket) {
+mint::Reference mint_scheduler_pollfd_new(mint::Cursor& cursor, const mint::Reference& socket) {
 	return mint::create_c_object(cursor.ast(), new PollFd {
 	                                               .fd = mint::to_integer<SOCKET>(cursor, socket),
 	                                               .events = 0,
@@ -67,7 +67,7 @@ mint::WeakReference mint_scheduler_pollfd_new(mint::Cursor& cursor, const mint::
 	                                           });
 }
 
-mint::WeakReference mint_scheduler_pollfd_delete(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
+mint::Reference mint_scheduler_pollfd_delete(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
 #ifdef MINT_OS_WINDOWS
 	WSACloseEvent(fd.data<mint::LibObject<PollFd>>().ptr->handle);
 #endif
@@ -75,21 +75,21 @@ mint::WeakReference mint_scheduler_pollfd_delete(mint::Cursor& /*cursor*/, const
 	return {};
 }
 
-mint::WeakReference mint_scheduler_set_events(mint::Cursor& cursor, const mint::Reference& fd,
+mint::Reference mint_scheduler_set_events(mint::Cursor& cursor, const mint::Reference& fd,
     const mint::Reference& events) {
 	fd.data<mint::LibObject<PollFd>>().ptr->events = mint::to_integer<short>(cursor, events);
 	return {};
 }
 
-mint::WeakReference mint_scheduler_get_events(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
+mint::Reference mint_scheduler_get_events(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
 	return mint::create_number(fd.data<mint::LibObject<PollFd>>().ptr->events);
 }
 
-mint::WeakReference mint_scheduler_get_revents(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
+mint::Reference mint_scheduler_get_revents(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
 	return mint::create_number(fd.data<mint::LibObject<PollFd>>().ptr->revents);
 }
 
-mint::WeakReference mint_scheduler_poll(mint::Cursor& cursor, const mint::Reference& handles,
+mint::Reference mint_scheduler_poll(mint::Cursor& cursor, const mint::Reference& handles,
     const mint::Reference& timeout) {
 
 	auto fdset = std::vector(std::from_range,
@@ -480,7 +480,7 @@ MINT_RAW_FUNCTION(mint_scheduler_spawn, 1, cursor) {
 	cursor.stack().pop_back();
 
 	if (mint::is_instance_of(coroutine, mint::Data::Format::coroutine)) {
-		coroutine.data<mint::Coroutine>().call(cursor, mint::WeakReference(coroutine));
+		coroutine.data<mint::Coroutine>().call(cursor, mint::Reference(coroutine));
 	}
 	else {
 		cursor.stack().emplace_back(mint::create_none());
@@ -521,7 +521,7 @@ MINT_RAW_FUNCTION(mint_scheduler_raise, 2, cursor) {
 
 	assert(mint::is_instance_of(coroutine, mint::Data::Format::coroutine));
 	coroutine.data<mint::Coroutine>().resume(cursor);
-	cursor.raise(mint::WeakReference(error));
+	cursor.raise(mint::Reference(error));
 }
 
 MINT_RAW_FUNCTION(mint_scheduler_resume, 1, cursor) {

@@ -41,17 +41,16 @@ using namespace mint;
 
 namespace {
 
-WeakReference sub_match_to_iterator(Cursor& cursor, const std::string& str, const std::smatch& match,
-    std::size_t index) {
+Reference sub_match_to_iterator(Cursor& cursor, const std::string& str, const std::smatch& match, std::size_t index) {
 	const auto match_str = match[index].str();
 	return create_iterator_from(cursor, create_string(cursor.ast(), match_str),
 	    create_unsigned_number(utf8_byte_index_to_code_point_index(str, match.position(index))),
 	    create_unsigned_number(utf8_code_point_count(match_str)));
 }
 
-WeakReference match_to_iterator(Cursor& cursor, const std::string& str, const std::smatch& match) {
+Reference match_to_iterator(Cursor& cursor, const std::string& str, const std::smatch& match) {
 
-	WeakReference result = create_iterator(cursor.ast());
+	Reference result = create_iterator(cursor.ast());
 
 	for (std::size_t index = 0; index < match.size(); ++index) {
 		iterator_yield(cursor, result.data<Iterator>(), sub_match_to_iterator(cursor, str, match, index));

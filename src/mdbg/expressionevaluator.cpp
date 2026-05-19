@@ -96,7 +96,7 @@ ExpressionEvaluator::~ExpressionEvaluator() {
 
 void ExpressionEvaluator::setup_locals(const mint::SymbolTable& symbols) {
 	for (const auto& [symbol, reference] : symbols) {
-		_cursor->symbols().emplace(symbol, mint::WeakReference(mint::copy_from, reference));
+		_cursor->symbols().emplace(symbol, mint::Reference(mint::copy_from, reference));
 	}
 }
 

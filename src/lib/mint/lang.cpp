@@ -66,7 +66,7 @@ void find_module_recursive_helper(mint::AbstractSyntaxTree& ast, mint::Array& re
 	}
 }
 
-mint::WeakReference mint_lang_modules_roots(mint::Cursor& cursor) {
+mint::Reference mint_lang_modules_roots(mint::Cursor& cursor) {
 	return mint::create_array(cursor.ast(),
 	    {std::from_range, std::views::transform(mint::FileSystem::instance().library_path(),
 	                          [&ast = cursor.ast()](const std::filesystem::path& path) {
@@ -74,10 +74,10 @@ mint::WeakReference mint_lang_modules_roots(mint::Cursor& cursor) {
 	                          })});
 }
 
-mint::WeakReference mint_lang_modules_list(mint::Cursor& cursor, const mint::Reference& module_path) {
+mint::Reference mint_lang_modules_list(mint::Cursor& cursor, const mint::Reference& module_path) {
 
 	const auto module_path_str = to_string(module_path);
-	mint::WeakReference result = mint::create_array(cursor.ast());
+	mint::Reference result = mint::create_array(cursor.ast());
 
 	for (const std::filesystem::path& path : mint::FileSystem::instance().library_path()) {
 		if (const auto root_path = std::filesystem::absolute(path); module_path_str.empty()) {
@@ -95,11 +95,11 @@ mint::WeakReference mint_lang_modules_list(mint::Cursor& cursor, const mint::Ref
 	return result;
 }
 
-mint::WeakReference mint_lang_main_module_path(mint::Cursor& cursor) {
+mint::Reference mint_lang_main_module_path(mint::Cursor& cursor) {
 	return mint::create_string(cursor.ast(), mint::FileSystem::instance().get_main_module_path().generic_string());
 }
 
-mint::WeakReference mint_lang_to_module_path(mint::Cursor& cursor, const mint::Reference& file_path) {
+mint::Reference mint_lang_to_module_path(mint::Cursor& cursor, const mint::Reference& file_path) {
 
 	const auto file_path_str = to_string(file_path);
 
@@ -115,7 +115,7 @@ mint::WeakReference mint_lang_to_module_path(mint::Cursor& cursor, const mint::R
 	return {};
 }
 
-mint::WeakReference mint_lang_to_file_path(mint::Cursor& cursor, const mint::Reference& module_path) {
+mint::Reference mint_lang_to_file_path(mint::Cursor& cursor, const mint::Reference& module_path) {
 
 	const std::filesystem::path file_path = std::filesystem::absolute(mint::to_system_path(to_string(module_path)));
 
@@ -126,9 +126,9 @@ mint::WeakReference mint_lang_to_file_path(mint::Cursor& cursor, const mint::Ref
 	return {};
 }
 
-mint::WeakReference mint_lang_get_object_locals(mint::Cursor& cursor, const mint::Reference& object) {
+mint::Reference mint_lang_get_object_locals(mint::Cursor& cursor, const mint::Reference& object) {
 
-	mint::WeakReference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.ast());
 
 	if (mint::is_instance_of(object, mint::Data::Format::object)) {
 		for (const auto& [symbol, member] : object.data<mint::Object>().metadata.members()) {
@@ -142,9 +142,9 @@ mint::WeakReference mint_lang_get_object_locals(mint::Cursor& cursor, const mint
 	return result;
 }
 
-mint::WeakReference mint_lang_get_object_globals(mint::Cursor& cursor, const mint::Reference& object) {
+mint::Reference mint_lang_get_object_globals(mint::Cursor& cursor, const mint::Reference& object) {
 
-	mint::WeakReference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.ast());
 
 	switch (object.data().format()) {
 	case mint::Data::Format::object:
@@ -167,9 +167,9 @@ mint::WeakReference mint_lang_get_object_globals(mint::Cursor& cursor, const min
 	return result;
 }
 
-mint::WeakReference mint_lang_get_globals(mint::Cursor& cursor) {
+mint::Reference mint_lang_get_globals(mint::Cursor& cursor) {
 
-	mint::WeakReference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.ast());
 
 	for (const auto& [symbol, member] : cursor.ast().global_data().symbols()) {
 		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()), member);
@@ -178,9 +178,9 @@ mint::WeakReference mint_lang_get_globals(mint::Cursor& cursor) {
 	return result;
 }
 
-mint::WeakReference mint_lang_get_object_types(mint::Cursor& cursor, const mint::Reference& object) {
+mint::Reference mint_lang_get_object_types(mint::Cursor& cursor, const mint::Reference& object) {
 
-	mint::WeakReference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.ast());
 
 	switch (object.data().format()) {
 	case mint::Data::Format::object:
@@ -204,9 +204,9 @@ mint::WeakReference mint_lang_get_object_types(mint::Cursor& cursor, const mint:
 	return result;
 }
 
-mint::WeakReference mint_lang_get_types(mint::Cursor& cursor) {
+mint::Reference mint_lang_get_types(mint::Cursor& cursor) {
 
-	mint::WeakReference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.ast());
 
 	for (const auto& [symbol, type] : cursor.ast().global_data().classes()) {
 		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
@@ -216,12 +216,12 @@ mint::WeakReference mint_lang_get_types(mint::Cursor& cursor) {
 	return result;
 }
 
-mint::WeakReference mint_at_exit(mint::FunctionHelper& helper, const mint::Reference& callback) {
+mint::Reference mint_at_exit(mint::FunctionHelper& helper, const mint::Reference& callback) {
 
 	struct Callback {
-		Callback(mint::Scheduler& scheduler, mint::WeakReference&& function) :
+		Callback(mint::Scheduler& scheduler, const mint::Reference& function) :
 		    _scheduler(scheduler),
-		    _function(std::make_shared<mint::StrongReference>(std::move(function))) {}
+		    _function(std::make_shared<mint::RootReference>(function)) {}
 
 		void operator()(int status) {
 			_scheduler.get().invoke(*_function, mint::create_number(status));
@@ -229,7 +229,7 @@ mint::WeakReference mint_at_exit(mint::FunctionHelper& helper, const mint::Refer
 
 	private:
 		std::reference_wrapper<mint::Scheduler> _scheduler;
-		std::shared_ptr<mint::StrongReference> _function;
+		std::shared_ptr<mint::RootReference> _function;
 	};
 
 	mint::Scheduler& scheduler = helper.scheduler();
@@ -237,15 +237,15 @@ mint::WeakReference mint_at_exit(mint::FunctionHelper& helper, const mint::Refer
 	return {};
 }
 
-mint::WeakReference mint_at_error(mint::FunctionHelper& helper, const mint::Reference& callback) {
+mint::Reference mint_at_error(mint::FunctionHelper& helper, const mint::Reference& callback) {
 
 	struct Callback {
-		Callback(mint::Scheduler& scheduler, mint::WeakReference&& function) :
+		Callback(mint::Scheduler& scheduler, const mint::Reference& function) :
 		    _scheduler(scheduler),
-		    _function(std::make_shared<mint::StrongReference>(std::move(function))) {}
+		    _function(std::make_shared<mint::RootReference>(function)) {}
 
 		void operator()(const std::string& message) {
-			mint::WeakReference backtrace = mint::create_array(_scheduler.get().ast());
+			mint::Reference backtrace = mint::create_array(_scheduler.get().ast());
 			if (const mint::Process* process = mint::Scheduler::current_process()) {
 				for (const mint::LineInfo& info : process->cursor().dump()) {
 					array_append(backtrace.data<mint::Array>(),
@@ -260,14 +260,14 @@ mint::WeakReference mint_at_error(mint::FunctionHelper& helper, const mint::Refe
 
 	private:
 		std::reference_wrapper<mint::Scheduler> _scheduler;
-		std::shared_ptr<mint::StrongReference> _function;
+		std::shared_ptr<mint::RootReference> _function;
 	};
 
 	mint::add_error_callback(Callback(helper.scheduler(), callback));
 	return {};
 }
 
-mint::WeakReference mint_lang_exec(mint::FunctionHelper& helper, const mint::Reference& src,
+mint::Reference mint_lang_exec(mint::FunctionHelper& helper, const mint::Reference& src,
     const mint::Reference& context) {
 
 	if (auto process = mint::Process::from_buffer(helper.scheduler(), to_string(src) + "\n")) {
@@ -291,7 +291,7 @@ mint::WeakReference mint_lang_exec(mint::FunctionHelper& helper, const mint::Ref
 	return {};
 }
 
-mint::WeakReference mint_lang_eval(mint::FunctionHelper& helper, const mint::Reference& src,
+mint::Reference mint_lang_eval(mint::FunctionHelper& helper, const mint::Reference& src,
     const mint::Reference& context) {
 
 	if (auto process = mint::Process::from_buffer(helper.scheduler(), to_string(src) + "\n")) {
@@ -369,7 +369,7 @@ MINT_RAW_FUNCTION(mint_lang_get_locals, 0, cursor) {
 	cursor.exit_call();
 	cursor.exit_call();
 
-	mint::WeakReference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.ast());
 
 	for (auto& symbol : cursor.symbols()) {
 		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.first.str()), symbol.second);

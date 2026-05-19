@@ -51,7 +51,7 @@ public:
 private:
 	std::reference_wrapper<Class> _owner;
 	Object* _object;
-	StrongReference _member;
+	RootReference _member;
 };
 
 MINT_EXPORT bool is_destructor(Process& process);

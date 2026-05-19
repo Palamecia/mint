@@ -40,7 +40,7 @@ private:
 	std::reference_wrapper<Coroutine> _coroutine;
 	std::unique_ptr<mint::SavedState> _state;
 
-	std::vector<mint::WeakReference> _stored_stack;
+	std::vector<mint::Reference> _stored_stack;
 	std::size_t _stack_size;
 };
 

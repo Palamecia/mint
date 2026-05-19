@@ -299,16 +299,16 @@ std::string string_format_percent(Cursor& cursor, std::string_view format, Itera
 	return dest;
 }
 
-std::vector<WeakReference> collect_format_arguments(const Iterator& args) {
-	auto result = std::vector<WeakReference>();
+std::vector<Reference> collect_format_arguments(const Iterator& args) {
+	auto result = std::vector<Reference>();
 	for (const auto& item : args.ctx.view()) {
 		result.emplace_back(item);
 	}
 	return result;
 }
 
-std::pair<std::optional<WeakReference>, std::string_view> parse_format_field(Cursor& cursor, std::string_view field,
-    const std::vector<WeakReference>& values, Iterator& args) {
+std::pair<std::optional<Reference>, std::string_view> parse_format_field(Cursor& cursor, std::string_view field,
+    const std::vector<Reference>& values, Iterator& args) {
 
 	auto offset = 0uz;
 	while ((offset < field.size()) && std::isdigit(static_cast<unsigned char>(field[offset]))) {
@@ -587,7 +587,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		const auto& rvalue = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_string(cursor.ast(), self.data<String>().str + to_string(rvalue));
+		Reference result = create_string(cursor.ast(), self.data<String>().str + to_string(rvalue));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -665,7 +665,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		const Reference& rvalue = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_boolean(self.data<String>().str == to_string(rvalue));
+		Reference result = create_boolean(self.data<String>().str == to_string(rvalue));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -677,7 +677,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		const Reference& rvalue = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_boolean(self.data<String>().str != to_string(rvalue));
+		Reference result = create_boolean(self.data<String>().str != to_string(rvalue));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -689,7 +689,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		const Reference& rvalue = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_boolean(self.data<String>().str < to_string(rvalue));
+		Reference result = create_boolean(self.data<String>().str < to_string(rvalue));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -701,7 +701,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		const Reference& rvalue = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_boolean(self.data<String>().str > to_string(rvalue));
+		Reference result = create_boolean(self.data<String>().str > to_string(rvalue));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -713,7 +713,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		const Reference& rvalue = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_boolean(self.data<String>().str <= to_string(rvalue));
+		Reference result = create_boolean(self.data<String>().str <= to_string(rvalue));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -725,7 +725,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		const Reference& rvalue = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_boolean(self.data<String>().str >= to_string(rvalue));
+		Reference result = create_boolean(self.data<String>().str >= to_string(rvalue));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -734,7 +734,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 	create_builtin_member(not_operator, ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
-		WeakReference result = create_boolean(self.data<String>().str.empty());
+		Reference result = create_boolean(self.data<String>().str.empty());
 
 		cursor.stack().pop_back();
 		cursor.stack().emplace_back(std::forward<Reference>(result));
@@ -745,7 +745,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		const auto& index = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_string(cursor.ast());
+		Reference result = create_string(cursor.ast());
 
 		if (!is_iterator(index)) {
 			std::string& string_ref = self.data<String>().str;
@@ -774,7 +774,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 		else {
 			std::string& string_ref = self.data<String>().str;
-			while (std::optional<WeakReference>&& item = iterator_next(cursor, index.data<Iterator>())) {
+			while (std::optional<Reference>&& item = iterator_next(cursor, index.data<Iterator>())) {
 				result.data<String>().str += *(
 				    utf8iterator(string_ref.begin()) + string_index(string_ref, to_signed_integer(cursor, *item)));
 			}
@@ -888,7 +888,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const auto base = get_stack_base(cursor);
 		const Reference& value = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_boolean(self.data<String>().str.find(to_string(value)) != std::string::npos);
+		Reference result = create_boolean(self.data<String>().str.find(to_string(value)) != std::string::npos);
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -1064,7 +1064,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			pos = self.data<String>().str.find(to_string(other));
 		}
 
-		WeakReference result = pos != std::string::npos
+		Reference result = pos != std::string::npos
 		                           ? create_unsigned_number(
 		                                 utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
 		                           : create_none();
@@ -1100,7 +1100,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			}
 		}
 
-		WeakReference result = pos != std::string::npos
+		Reference result = pos != std::string::npos
 		                           ? create_unsigned_number(
 		                                 utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
 		                           : create_none();
@@ -1129,7 +1129,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			pos = self.data<String>().str.rfind(to_string(other));
 		}
 
-		WeakReference result = pos != std::string::npos
+		Reference result = pos != std::string::npos
 		                           ? create_unsigned_number(
 		                                 utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
 		                           : create_none();
@@ -1164,7 +1164,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			}
 		}
 
-		WeakReference result = pos != std::string::npos
+		Reference result = pos != std::string::npos
 		                           ? create_unsigned_number(
 		                                 utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
 		                           : create_none();
@@ -1231,7 +1231,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const auto base = get_stack_base(cursor);
 		const Reference& sep = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_array(cursor.ast());
+		Reference result = create_array(cursor.ast());
 
 		const auto sep_str = to_string(sep);
 		const auto self_str = self.data<String>().str;

@@ -187,7 +187,7 @@ std::unique_ptr<Process> Process::from_standard_input(Scheduler& scheduler) {
 void Process::parse_argument(const std::string& arg) {
 	auto args = _cursor->symbols().find("va_args");
 	if (args == _cursor->symbols().end()) {
-		auto va_args = make_weak_reference<Iterator>(Reference::default_flags, _cursor->ast());
+		auto va_args = make_reference<Iterator>(Reference::default_flags, _cursor->ast());
 		va_args.data<Iterator>().construct();
 		args = _cursor->symbols().emplace("va_args", std::move(va_args)).first;
 	}

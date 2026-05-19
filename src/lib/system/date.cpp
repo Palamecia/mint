@@ -706,13 +706,13 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 	return {time_zone, time_point};
 }
 
-mint::WeakReference mint_date_current_timepoint(mint::Cursor& cursor) {
+mint::Reference mint_date_current_timepoint(mint::Cursor& cursor) {
 	return mint::create_c_object(cursor.ast(),
 	    new std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
 	        std::chrono::system_clock::now().time_since_epoch())));
 }
 
-mint::WeakReference mint_date_set_current(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
+mint::Reference mint_date_set_current(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
 
 	const auto time_point = std::chrono::sys_time(
 	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
@@ -760,12 +760,12 @@ mint::WeakReference mint_date_set_current(mint::Cursor& /*cursor*/, const mint::
 	return {};
 }
 
-mint::WeakReference mint_date_delete(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
+mint::Reference mint_date_delete(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
 	delete duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr;
 	return {};
 }
 
-mint::WeakReference mint_date_set_seconds(mint::Cursor& cursor, const mint::Reference& duration,
+mint::Reference mint_date_set_seconds(mint::Cursor& cursor, const mint::Reference& duration,
     mint::Reference& value) {
 	*duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr =
 	    std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -773,19 +773,19 @@ mint::WeakReference mint_date_set_seconds(mint::Cursor& cursor, const mint::Refe
 	return {};
 }
 
-mint::WeakReference mint_date_timepoint_to_seconds(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
+mint::Reference mint_date_timepoint_to_seconds(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
 	return mint::create_signed_number(std::chrono::duration_cast<std::chrono::seconds>(
 	    duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr->time_since_epoch())
 	        .count());
 }
 
-mint::WeakReference mint_date_seconds_to_timepoint(mint::Cursor& cursor, const mint::Reference& value) {
+mint::Reference mint_date_seconds_to_timepoint(mint::Cursor& cursor, const mint::Reference& value) {
 	return mint::create_c_object(cursor.ast(),
 	    new std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
 	        std::chrono::seconds(to_integer<std::chrono::seconds::rep>(cursor, value)))));
 }
 
-mint::WeakReference mint_date_set_milliseconds(mint::Cursor& cursor, const mint::Reference& duration,
+mint::Reference mint_date_set_milliseconds(mint::Cursor& cursor, const mint::Reference& duration,
     mint::Reference& value) {
 	*duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr =
 	    std::chrono::sys_time<std::chrono::milliseconds>(
@@ -793,26 +793,26 @@ mint::WeakReference mint_date_set_milliseconds(mint::Cursor& cursor, const mint:
 	return {};
 }
 
-mint::WeakReference mint_date_timepoint_to_milliseconds(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
+mint::Reference mint_date_timepoint_to_milliseconds(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
 	return mint::create_signed_number(duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>()
 	        .ptr->time_since_epoch()
 	        .count());
 }
 
-mint::WeakReference mint_date_milliseconds_to_timepoint(mint::Cursor& cursor, const mint::Reference& value) {
+mint::Reference mint_date_milliseconds_to_timepoint(mint::Cursor& cursor, const mint::Reference& value) {
 	return mint::create_c_object(cursor.ast(),
 	    new std::chrono::sys_time<std::chrono::milliseconds>(
 	        std::chrono::milliseconds(to_integer<std::chrono::milliseconds::rep>(cursor, value))));
 }
 
-mint::WeakReference mint_date_equals(mint::Cursor& /*cursor*/, const mint::Reference& self,
+mint::Reference mint_date_equals(mint::Cursor& /*cursor*/, const mint::Reference& self,
     const mint::Reference& other) {
 	return mint::create_boolean(
 	    (*self.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr)
 	    == (*other.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr));
 }
 
-mint::WeakReference mint_parse_iso_date(mint::Cursor& cursor, const mint::Reference& date) {
+mint::Reference mint_parse_iso_date(mint::Cursor& cursor, const mint::Reference& date) {
 	try {
 		const auto [timezone, timepoint] = parse_iso_date(mint::to_string(date));
 		return mint::create_iterator_from(cursor,
@@ -824,11 +824,11 @@ mint::WeakReference mint_parse_iso_date(mint::Cursor& cursor, const mint::Refere
 	}
 }
 
-mint::WeakReference mint_date_is_leap(mint::Cursor& cursor, const mint::Reference& year) {
+mint::Reference mint_date_is_leap(mint::Cursor& cursor, const mint::Reference& year) {
 	return mint::create_boolean(std::chrono::year(mint::to_integer<int>(cursor, year)).is_leap());
 }
 
-mint::WeakReference mint_date_days_in_month(mint::Cursor& cursor, const mint::Reference& year,
+mint::Reference mint_date_days_in_month(mint::Cursor& cursor, const mint::Reference& year,
     const mint::Reference& month) {
 	return mint::create_unsigned_number(
 	    static_cast<unsigned>(std::chrono::year_month_day_last(std::chrono::year(mint::to_integer<int>(cursor, year)),

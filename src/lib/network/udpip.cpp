@@ -62,9 +62,9 @@
 
 namespace {
 
-mint::WeakReference mint_udp_ip_socket_open(mint::Cursor& cursor, const mint::Reference& ip_version) {
+mint::Reference mint_udp_ip_socket_open(mint::Cursor& cursor, const mint::Reference& ip_version) {
 
-	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.ast());
 	auto socket_fd = INVALID_SOCKET;
 
 	switch (mint::to_integer<int>(cursor, ip_version)) {
@@ -97,11 +97,11 @@ mint::WeakReference mint_udp_ip_socket_open(mint::Cursor& cursor, const mint::Re
 	return result;
 }
 
-mint::WeakReference mint_udp_ip_socket_sendto(mint::FunctionHelper& helper, const mint::Reference& socket,
+mint::Reference mint_udp_ip_socket_sendto(mint::FunctionHelper& helper, const mint::Reference& socket,
     mint::Reference& address, const mint::Reference& port, const mint::Reference& ip_version,
     const mint::Reference& buffer) {
 
-	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().ast());
 
 	const auto socket_fd = to_integer<SOCKET>(helper.cursor(), socket);
 	const std::string address_str = to_string(address);
@@ -214,10 +214,10 @@ mint::WeakReference mint_udp_ip_socket_sendto(mint::FunctionHelper& helper, cons
 	return result;
 }
 
-mint::WeakReference mint_udp_ip_socket_recvfrom(mint::FunctionHelper& helper, const mint::Reference& socket,
+mint::Reference mint_udp_ip_socket_recvfrom(mint::FunctionHelper& helper, const mint::Reference& socket,
     mint::Reference& buffer) {
 
-	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().ast());
 
 	const auto socket_fd = to_integer<SOCKET>(helper.cursor(), socket);
 	std::vector<std::uint8_t>* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
@@ -301,10 +301,10 @@ mint::WeakReference mint_udp_ip_socket_recvfrom(mint::FunctionHelper& helper, co
 	return result;
 }
 
-mint::WeakReference mint_udp_ip_socket_send(mint::FunctionHelper& helper, const mint::Reference& socket,
+mint::Reference mint_udp_ip_socket_send(mint::FunctionHelper& helper, const mint::Reference& socket,
     mint::Reference& buffer) {
 
-	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().ast());
 
 	const auto socket_fd = to_integer<SOCKET>(helper.cursor(), socket);
 	std::vector<std::uint8_t>* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
@@ -357,10 +357,10 @@ mint::WeakReference mint_udp_ip_socket_send(mint::FunctionHelper& helper, const 
 	return result;
 }
 
-mint::WeakReference mint_udp_ip_socket_recv(mint::FunctionHelper& helper, const mint::Reference& socket,
+mint::Reference mint_udp_ip_socket_recv(mint::FunctionHelper& helper, const mint::Reference& socket,
     mint::Reference& buffer) {
 
-	mint::WeakReference result = create_iterator(helper.cursor().ast());
+	mint::Reference result = create_iterator(helper.cursor().ast());
 
 	const auto socket_fd = to_integer<SOCKET>(helper.cursor(), socket);
 	std::vector<std::uint8_t>* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;

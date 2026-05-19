@@ -11,13 +11,13 @@
 namespace mint::internal {
 
 class ItemsIteratorViewData : public IteratorViewData {
-	mint::WeakReference* _data;
+	mint::Reference* _data;
 	std::size_t _capacity;
 	std::size_t _size;
 	std::size_t _pos;
 	std::size_t _cur = 0;
 public:
-	ItemsIteratorViewData(mint::WeakReference* data, std::size_t capacity, std::size_t size, std::size_t pos);
+	ItemsIteratorViewData(mint::Reference* data, std::size_t capacity, std::size_t size, std::size_t pos);
 	ItemsIteratorViewData(ItemsIteratorViewData&&) = delete;
 	ItemsIteratorViewData(const ItemsIteratorViewData&) = delete;
 	virtual ~ItemsIteratorViewData() = default;
@@ -35,8 +35,8 @@ public:
 };
 
 class ItemsIteratorData : public IteratorData {
-	static std::allocator<WeakReference> g_allocator;
-	mint::WeakReference* _data;
+	static std::allocator<Reference> g_allocator;
+	mint::Reference* _data;
 	std::size_t _capacity;
 	std::size_t _size = 0;
 	std::size_t _pos = 0;

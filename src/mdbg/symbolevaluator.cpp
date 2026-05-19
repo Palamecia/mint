@@ -37,7 +37,7 @@
 SymbolEvaluator::SymbolEvaluator(mint::Cursor& cursor) :
     _cursor(cursor) {}
 
-const std::optional<mint::WeakReference>& SymbolEvaluator::get_reference() const {
+const std::optional<mint::Reference>& SymbolEvaluator::get_reference() const {
 	return _reference;
 }
 
@@ -88,7 +88,7 @@ bool SymbolEvaluator::on_token(mint::Token type, const std::string& token, std::
 	return true;
 }
 
-std::optional<mint::WeakReference> SymbolEvaluator::get_symbol_reference(mint::SymbolTable& symbols,
+std::optional<mint::Reference> SymbolEvaluator::get_symbol_reference(mint::SymbolTable& symbols,
     const mint::Symbol& symbol) {
 
 	if (auto it = symbols.find(symbol); it != symbols.end()) {
@@ -103,7 +103,7 @@ std::optional<mint::WeakReference> SymbolEvaluator::get_symbol_reference(mint::S
 	return std::nullopt;
 }
 
-std::optional<mint::WeakReference> SymbolEvaluator::get_member_reference(const mint::Reference& reference,
+std::optional<mint::Reference> SymbolEvaluator::get_member_reference(const mint::Reference& reference,
     const mint::Symbol& member) {
 	switch (reference.data().format()) {
 	case mint::Data::Format::package:
@@ -124,7 +124,7 @@ std::optional<mint::WeakReference> SymbolEvaluator::get_member_reference(const m
 				}
 				constexpr auto flags = mint::Reference::const_address | mint::Reference::const_value
 				                       | mint::Reference::global;
-				return mint::WeakReference(flags, info->value.data());
+				return mint::Reference(flags, info->value.data());
 			}
 
 			if (auto* info = object.metadata.find_global(member)) {
@@ -135,7 +135,7 @@ std::optional<mint::WeakReference> SymbolEvaluator::get_member_reference(const m
 			    package = package->get_owner_package()) {
 				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
 					constexpr auto flags = mint::Reference::const_address | mint::Reference::const_value;
-					return mint::WeakReference(flags, it->second.data());
+					return mint::Reference(flags, it->second.data());
 				}
 			}
 		}
@@ -145,7 +145,7 @@ std::optional<mint::WeakReference> SymbolEvaluator::get_member_reference(const m
 		mint::GlobalData& externals = _cursor.get().ast().global_data();
 		if (auto it = externals.symbols().find(member); it != externals.symbols().end()) {
 			constexpr auto flags = mint::Reference::const_address | mint::Reference::const_value;
-			return mint::WeakReference(flags, it->second.data());
+			return mint::Reference(flags, it->second.data());
 		}
 	}
 

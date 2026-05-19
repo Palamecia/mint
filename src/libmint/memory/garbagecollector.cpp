@@ -111,7 +111,7 @@ std::size_t GarbageCollector::collect() {
 				if (auto* slots = object->data) {
 					if (const auto* member = object->metadata.find_operator(Class::delete_operator)) {
 						if (is_instance_of(Class::MemberInfo::get(*member, slots), Data::Format::function)) {
-							scheduler->invoke(WeakReference(Reference::default_flags, *object), Class::delete_operator);
+							scheduler->invoke(Reference(Reference::default_flags, *object), Class::delete_operator);
 						}
 					}
 				}
@@ -192,13 +192,13 @@ void GarbageCollector::unregister_root(MemoryRoot* root) {
 
 Reference& GarbageCollector::none_ref() {
 	return _none ? *_none
-	             : *(_none = std::make_unique<StrongReference>(Reference::const_address | Reference::const_value,
+	             : *(_none = std::make_unique<RootReference>(Reference::const_address | Reference::const_value,
 	                     *new None));
 }
 
 Reference& GarbageCollector::null_ref() {
 	return _null ? *_null
-	             : *(_null = std::make_unique<StrongReference>(Reference::const_address | Reference::const_value,
+	             : *(_null = std::make_unique<RootReference>(Reference::const_address | Reference::const_value,
 	                     *new Null));
 }
 
@@ -297,7 +297,7 @@ void GarbageCollector::free(Data* ptr) {
 	case Data::Format::object:
 		if (Scheduler* scheduler = Scheduler::instance()) {
 			auto* object = static_cast<Object*>(ptr);
-			if (WeakReference* slots = object->data) {
+			if (Reference* slots = object->data) {
 				if (const auto* member = object->metadata.find_operator(Class::delete_operator)) {
 					const auto& member_ref = Class::MemberInfo::get(*member, slots);
 					if (member_ref.data().format() == Data::Format::function) {

@@ -27,7 +27,7 @@
 
 namespace {
 
-mint::WeakReference mint_operator_hash_key_compare(mint::Cursor& /*cursor*/, const mint::Reference& left,
+mint::Reference mint_operator_hash_key_compare(mint::Cursor& /*cursor*/, const mint::Reference& left,
     const mint::Reference& right) {
 	static constexpr mint::Hash::compare_to comparator;
 	return mint::create_boolean(comparator(left, right));

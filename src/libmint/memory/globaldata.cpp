@@ -88,7 +88,7 @@ PackageData& PackageData::get_package(const Symbol& name) {
 		constexpr auto flags = Reference::global | Reference::const_address | Reference::const_value;
 		auto package = std::make_unique<PackageData>(ast(), name.str());
 		package->set_owner_register(this);
-		_symbols.emplace(name, make_weak_reference<Package>(flags, *package));
+		_symbols.emplace(name, make_reference<Package>(flags, *package));
 		it = _packages.emplace(name, std::move(package)).first;
 	}
 	return *it->second;

@@ -249,11 +249,11 @@ const Class::MemberInfo& Class::make_allocate_method_reference(AbstractSyntaxTre
 	            .emplace(builtin_symbols::allocate_method,
 	                make_member_info({
 	                    .owner = std::ref(*this),
-	                    .value = make_weak_reference<Function>(Reference::const_address | Reference::const_value
-	                                                               | Reference::global | Reference::protected_visibility,
+	                    .value = make_reference<Function>(Reference::const_address | Reference::const_value
+	                                                          | Reference::global | Reference::protected_visibility,
 	                        ast.create_global_builtin_method(*this, 0,
 	                            [](Class& metadata, Cursor& cursor) {
-		                            auto instance = make_weak_reference<Object>(Reference::temporary, metadata);
+		                            auto instance = make_reference<Object>(Reference::temporary, metadata);
 		                            instance.data<Object>().construct();
 		                            cursor.stack().emplace_back(std::move(instance));
 	                            })),
@@ -289,7 +289,7 @@ void Class::cleanup_metadata() {
 	_globals.clear();
 }
 
-void Class::create_builtin_member(Operator op, WeakReference&& value) {
+void Class::create_builtin_member(Operator op, Reference&& value) {
 	const auto op_index = static_cast<std::size_t>(op);
 	assert(op_index < _operators.size());
 	assert(_operators[op_index] == nullptr);
@@ -322,14 +322,14 @@ void Class::create_builtin_member(Operator op, std::pair<int, Module::Handle&> m
 	else {
 		auto info = make_member_info({
 		    .owner = *this,
-		    .value = make_weak_reference<Function>(Reference::const_address | Reference::const_value, member),
+		    .value = make_reference<Function>(Reference::const_address | Reference::const_value, member),
 		});
 		_operators[op_index] = info.get();
 		_members.emplace(get_operator_symbol(op), std::move(info));
 	}
 }
 
-void Class::create_builtin_member(const Symbol& symbol, WeakReference&& value) {
+void Class::create_builtin_member(const Symbol& symbol, Reference&& value) {
 	assert(!_members.contains(symbol));
 	if (ClassRegister::is_slot(value)) {
 		auto info = make_member_info({
@@ -356,7 +356,7 @@ void Class::create_builtin_member(const Symbol& symbol, std::pair<int, Module::H
 		_members.emplace(symbol,
 		    make_member_info({
 		        .owner = *this,
-		        .value = make_weak_reference<Function>(Reference::const_address | Reference::const_value, member),
+		        .value = make_reference<Function>(Reference::const_address | Reference::const_value, member),
 		    }));
 	}
 }

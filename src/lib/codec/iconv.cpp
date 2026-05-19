@@ -65,7 +65,7 @@ const mint::Symbol need_more("NeedMore");
 
 }
 
-mint::WeakReference mint_iconv_open(mint::Cursor& cursor, const mint::Reference& encoding) {
+mint::Reference mint_iconv_open(mint::Cursor& cursor, const mint::Reference& encoding) {
 	return mint::create_c_object(cursor.ast(),
 	    new IconvContext {
 	        .decode_cd = iconv_open("UTF-8", encoding.data<mint::String>().str.c_str()),
@@ -73,14 +73,14 @@ mint::WeakReference mint_iconv_open(mint::Cursor& cursor, const mint::Reference&
 	    });
 }
 
-mint::WeakReference mint_iconv_close(mint::Cursor& /*cursor*/, const mint::Reference& context) {
+mint::Reference mint_iconv_close(mint::Cursor& /*cursor*/, const mint::Reference& context) {
 	iconv_close(context.data<mint::LibObject<IconvContext>>().ptr->decode_cd);
 	iconv_close(context.data<mint::LibObject<IconvContext>>().ptr->encode_cd);
 	delete context.data<mint::LibObject<IconvContext>>().ptr;
 	return {};
 }
 
-mint::WeakReference mint_iconv_decode(mint::FunctionHelper& helper, const mint::Reference& context,
+mint::Reference mint_iconv_decode(mint::FunctionHelper& helper, const mint::Reference& context,
     mint::Reference& buffer, const mint::Reference& stream) {
 
 	iconv_t cd = context.data<mint::LibObject<IconvContext>>().ptr->decode_cd;
@@ -123,7 +123,7 @@ mint::WeakReference mint_iconv_decode(mint::FunctionHelper& helper, const mint::
 	}
 }
 
-mint::WeakReference mint_iconv_encode(mint::FunctionHelper& helper, const mint::Reference& context,
+mint::Reference mint_iconv_encode(mint::FunctionHelper& helper, const mint::Reference& context,
     mint::Reference& buffer, const mint::Reference& stream) {
 
 	iconv_t cd = context.data<mint::LibObject<IconvContext>>().ptr->encode_cd;

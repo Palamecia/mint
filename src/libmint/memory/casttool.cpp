@@ -79,7 +79,7 @@ double mint::to_number(Cursor& cursor, const Reference& ref) {
 	case Data::Format::none:
 		error("invalid conversion from 'none' to 'number'");
 	case Data::Format::null:
-		cursor.raise(ref);
+		cursor.raise(Reference(ref));
 		break;
 	case Data::Format::number:
 		return ref.data<Number>().value;
@@ -96,7 +96,7 @@ double mint::to_number(Cursor& cursor, const Reference& ref) {
 			}
 		case Class::Metatype::iterator:
 		case Class::Metatype::async_iterator:
-			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
+			if (std::optional<Reference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
 			return to_number(cursor, create_none());
@@ -141,7 +141,7 @@ double mint::to_number(Cursor& cursor, Reference&& ref) {
 			}
 		case Class::Metatype::iterator:
 		case Class::Metatype::async_iterator:
-			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
+			if (std::optional<Reference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_number(cursor, *item);
 			}
 			return to_number(cursor, create_none());
@@ -169,7 +169,7 @@ std::intmax_t mint::to_signed_integer(Cursor& cursor, const Reference& ref) {
 	case Data::Format::none:
 		error("invalid conversion from 'none' to 'number'");
 	case Data::Format::null:
-		cursor.raise(ref);
+		cursor.raise(Reference(ref));
 		break;
 	case Data::Format::number:
 		return to_signed_integer(ref.data<Number>().value);
@@ -186,7 +186,7 @@ std::intmax_t mint::to_signed_integer(Cursor& cursor, const Reference& ref) {
 			}
 		case Class::Metatype::iterator:
 		case Class::Metatype::async_iterator:
-			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
+			if (std::optional<Reference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_signed_integer(cursor, *item);
 			}
 			return to_signed_integer(cursor, create_none());
@@ -227,7 +227,7 @@ std::intmax_t mint::to_signed_integer(Cursor& cursor, Reference&& ref) {
 		case Class::Metatype::iterator:
 		case Class::Metatype::async_iterator:
 			try {
-				if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
+				if (std::optional<Reference>&& item = iterator_get(ref.data<Iterator>())) {
 					return to_signed_integer(cursor, *item);
 				}
 				return to_signed_integer(cursor, create_none());
@@ -259,7 +259,7 @@ std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, const Reference& ref) {
 	case Data::Format::none:
 		error("invalid conversion from 'none' to 'number'");
 	case Data::Format::null:
-		cursor.raise(ref);
+		cursor.raise(Reference(ref));
 		break;
 	case Data::Format::number:
 		return to_unsigned_integer(ref.data<Number>().value);
@@ -276,7 +276,7 @@ std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, const Reference& ref) {
 			}
 		case Class::Metatype::iterator:
 		case Class::Metatype::async_iterator:
-			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
+			if (std::optional<Reference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_unsigned_integer(cursor, *item);
 			}
 			return to_unsigned_integer(cursor, create_none());
@@ -321,7 +321,7 @@ std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, Reference&& ref) {
 			}
 		case Class::Metatype::iterator:
 		case Class::Metatype::async_iterator:
-			if (std::optional<WeakReference>&& item = iterator_get(ref.data<Iterator>())) {
+			if (std::optional<Reference>&& item = iterator_get(ref.data<Iterator>())) {
 				return to_unsigned_integer(cursor, *item);
 			}
 			return to_unsigned_integer(cursor, create_none());
@@ -544,7 +544,7 @@ Hash::values_type mint::to_hash(const Reference& ref) {
 		case Class::Metatype::array:
 			for (std::size_t i = 0; i < ref.data<Array>().values.size(); ++i) {
 				constexpr auto flags = Reference::const_address | Reference::const_value | Reference::temporary;
-				result.emplace(make_weak_reference<Number>(flags, i), array_get_item(ref.data<Array>().values.at(i)));
+				result.emplace(make_reference<Number>(flags, i), array_get_item(ref.data<Array>().values.at(i)));
 			}
 			return result;
 		case Class::Metatype::hash:
@@ -555,7 +555,7 @@ Hash::values_type mint::to_hash(const Reference& ref) {
 		case Class::Metatype::iterator:
 		case Class::Metatype::async_iterator:
 			for (const Reference& item : ref.data<Iterator>().ctx) {
-				result.emplace(hash_key(item), WeakReference());
+				result.emplace(hash_key(item), Reference());
 			}
 			return result;
 		default:
@@ -568,7 +568,7 @@ Hash::values_type mint::to_hash(const Reference& ref) {
 		}
 		[[fallthrough]];
 	default:
-		result.emplace(hash_key(ref), WeakReference());
+		result.emplace(hash_key(ref), Reference());
 	}
 	return result;
 }

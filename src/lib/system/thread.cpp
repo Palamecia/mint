@@ -52,14 +52,14 @@ std::thread* get_thread_handle(const mint::Scheduler& scheduler, mint::Process::
 	return nullptr;
 }
 
-mint::WeakReference mint_thread_current_id(mint::Cursor& /*cursor*/) {
+mint::Reference mint_thread_current_id(mint::Cursor& /*cursor*/) {
 	if (const mint::Process* process = mint::Scheduler::current_process()) {
 		return mint::create_number(process->get_thread_id());
 	}
 	return {};
 }
 
-mint::WeakReference mint_thread_start_member(mint::FunctionHelper& helper, const mint::Reference& object,
+mint::Reference mint_thread_start_member(mint::FunctionHelper& helper, const mint::Reference& object,
     const mint::Reference& method, const mint::Reference& args) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
@@ -83,7 +83,7 @@ mint::WeakReference mint_thread_start_member(mint::FunctionHelper& helper, const
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_member_operator(*thread_cursor, signature);
-	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().ast());
 	try {
 		const auto thread_id = scheduler.create_thread(std::move(thread_cursor));
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(thread_id));
@@ -95,7 +95,7 @@ mint::WeakReference mint_thread_start_member(mint::FunctionHelper& helper, const
 	return result;
 }
 
-mint::WeakReference mint_thread_start(mint::FunctionHelper& helper, const mint::Reference& func,
+mint::Reference mint_thread_start(mint::FunctionHelper& helper, const mint::Reference& func,
     const mint::Reference& args) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
@@ -106,7 +106,7 @@ mint::WeakReference mint_thread_start(mint::FunctionHelper& helper, const mint::
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_operator(*thread_cursor, signature);
-	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().ast());
 	try {
 		const auto thread_id = scheduler.create_thread(std::move(thread_cursor));
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(thread_id));
@@ -118,13 +118,13 @@ mint::WeakReference mint_thread_start(mint::FunctionHelper& helper, const mint::
 	return result;
 }
 
-mint::WeakReference mint_thread_is_running(mint::FunctionHelper& helper, const mint::Reference& thread_id) {
+mint::Reference mint_thread_is_running(mint::FunctionHelper& helper, const mint::Reference& thread_id) {
 	return mint::create_boolean(
 	    get_thread_handle(helper.scheduler(), mint::to_integer<mint::Process::ThreadId>(helper.cursor(), thread_id))
 	    != nullptr);
 }
 
-mint::WeakReference mint_thread_is_joinable(mint::FunctionHelper& helper, const mint::Reference& thread_id) {
+mint::Reference mint_thread_is_joinable(mint::FunctionHelper& helper, const mint::Reference& thread_id) {
 	if (const auto* handle = get_thread_handle(helper.scheduler(),
 	        mint::to_integer<mint::Process::ThreadId>(helper.cursor(), thread_id))) {
 		return mint::create_boolean(handle->joinable());
@@ -132,7 +132,7 @@ mint::WeakReference mint_thread_is_joinable(mint::FunctionHelper& helper, const 
 	return mint::create_boolean(false);
 }
 
-mint::WeakReference mint_thread_join(mint::FunctionHelper& helper, const mint::Reference& thread_id) {
+mint::Reference mint_thread_join(mint::FunctionHelper& helper, const mint::Reference& thread_id) {
 	try {
 		mint::Scheduler& scheduler = helper.scheduler();
 		mint::unlock_processor();
@@ -145,14 +145,14 @@ mint::WeakReference mint_thread_join(mint::FunctionHelper& helper, const mint::R
 	return {};
 }
 
-mint::WeakReference mint_thread_wait(mint::Cursor& /*cursor*/) {
+mint::Reference mint_thread_wait(mint::Cursor& /*cursor*/) {
 	mint::unlock_processor();
 	std::this_thread::yield();
 	mint::lock_processor();
 	return {};
 }
 
-mint::WeakReference mint_thread_sleep(mint::Cursor& cursor, const mint::Reference& time) {
+mint::Reference mint_thread_sleep(mint::Cursor& cursor, const mint::Reference& time) {
 	mint::unlock_processor();
 	std::this_thread::sleep_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)));
 	mint::lock_processor();

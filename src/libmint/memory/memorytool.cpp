@@ -80,7 +80,7 @@ Cursor::Call& setup_member_call(Cursor& cursor, Reference& reference) {
 	if (mint::is_class(*object)) {
 
 		if (metadata->metatype() == Class::Metatype::object) {
-			auto instance = WeakReference(copy_from, reference.flags() | Reference::temporary, reference.data());
+			auto instance = Reference(copy_from, reference.flags() | Reference::temporary, reference.data());
 			object = &instance.data<Object>();
 			object->construct();
 			reference = std::move(instance);
@@ -376,10 +376,10 @@ void mint::capture_as_symbol(Cursor& cursor, const Symbol& symbol) {
 
 	for (auto& signature : stateful_signatures) {
 		if ((reference.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
-			signature.capture(symbol, WeakReference(copy_from, Reference::default_flags, reference.data()));
+			signature.capture(symbol, Reference(copy_from, Reference::default_flags, reference.data()));
 		}
 		else {
-			signature.capture(symbol, WeakReference(Reference::default_flags, reference.data()));
+			signature.capture(symbol, Reference(Reference::default_flags, reference.data()));
 		}
 	}
 }
@@ -417,7 +417,7 @@ void mint::init_call(Cursor& cursor, const Reference& function) {
 		cursor.waiting_calls().emplace(function);
 	}
 	else {
-		WeakReference member = function;
+		Reference member = function;
 		setup_member_call(cursor, member);
 	}
 }
@@ -445,8 +445,8 @@ void mint::init_member_call(Cursor& cursor, const Symbol& member, const Class::M
 
 	assert(cursor.stack().back().data().format() == Data::Format::object);
 	auto& object = cursor.stack().back().data<Object>();
-	WeakReference function = is_object(object) ? get_accessible_member(cursor, member, info, object)
-	                                           : get_accessible_class_member(cursor, member, info, object.metadata);
+	Reference function = is_object(object) ? get_accessible_member(cursor, member, info, object)
+	                                       : get_accessible_class_member(cursor, member, info, object.metadata);
 
 	if (function.flags() & Reference::global) {
 		cursor.stack().pop_back();
@@ -597,11 +597,11 @@ bool mint::has_signature(const Reference& reference, int signature) {
 	return false;
 }
 
-WeakReference mint::get_symbol(Cursor& cursor, const Symbol& symbol) {
+Reference mint::get_symbol(Cursor& cursor, const Symbol& symbol) {
 	return get_symbol(cursor.symbols(), symbol);
 }
 
-WeakReference mint::get_symbol(SymbolTable& symbols, const Symbol& symbol) {
+Reference mint::get_symbol(SymbolTable& symbols, const Symbol& symbol) {
 	if (auto it = symbols.find(symbol); it != symbols.end()) {
 		return it->second;
 	}
@@ -619,7 +619,7 @@ WeakReference mint::get_symbol(SymbolTable& symbols, const Symbol& symbol) {
 	return symbols[symbol];
 }
 
-std::tuple<WeakReference, Class*> mint::get_member(Cursor& cursor, const Reference& reference, const Symbol& member) {
+std::tuple<Reference, Class*> mint::get_member(Cursor& cursor, const Reference& reference, const Symbol& member) {
 
 	switch (reference.data().format()) {
 	case Data::Format::package:
@@ -644,7 +644,7 @@ std::tuple<WeakReference, Class*> mint::get_member(Cursor& cursor, const Referen
 
 				constexpr auto flags = Reference::const_address | Reference::const_value | Reference::global;
 				const auto& result = get_accessible_class_member(cursor, member, *info, object.metadata);
-				return {WeakReference(flags, result.data()), &info->owner.get()};
+				return {Reference(flags, result.data()), &info->owner.get()};
 			}
 
 			if (const auto* info = object.metadata.find_global(member)) {
@@ -655,8 +655,7 @@ std::tuple<WeakReference, Class*> mint::get_member(Cursor& cursor, const Referen
 			for (PackageData* package = &object.metadata.get_package(); package != nullptr;
 			    package = package->get_owner_package()) {
 				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
-					return {WeakReference(Reference::const_address | Reference::const_value, it->second.data()),
-					    nullptr};
+					return {Reference(Reference::const_address | Reference::const_value, it->second.data()), nullptr};
 				}
 			}
 
@@ -678,7 +677,7 @@ std::tuple<WeakReference, Class*> mint::get_member(Cursor& cursor, const Referen
 	default:
 		GlobalData& externals = cursor.ast().global_data();
 		if (auto it = externals.symbols().find(member); it != externals.symbols().end()) {
-			return {WeakReference(Reference::const_address | Reference::const_value, it->second.data()), nullptr};
+			return {Reference(Reference::const_address | Reference::const_value, it->second.data()), nullptr};
 		}
 		error("non class values doesn't have member '{}'", member.str());
 	}
@@ -686,7 +685,7 @@ std::tuple<WeakReference, Class*> mint::get_member(Cursor& cursor, const Referen
 	return {};
 }
 
-std::tuple<WeakReference, Class*> mint::get_operator(Cursor& cursor, const Reference& reference, Class::Operator op) {
+std::tuple<Reference, Class*> mint::get_operator(Cursor& cursor, const Reference& reference, Class::Operator op) {
 
 	switch (reference.data().format()) {
 	case Data::Format::object:
@@ -699,7 +698,7 @@ std::tuple<WeakReference, Class*> mint::get_operator(Cursor& cursor, const Refer
 
 			constexpr auto flags = Reference::const_address | Reference::const_value | Reference::global;
 			const auto& result = get_accessible_class_member(cursor, op, *info, object.metadata);
-			return {WeakReference(flags, result.data()), &info->owner.get()};
+			return {Reference(flags, result.data()), &info->owner.get()};
 		}
 
 		if (is_object(reference.data<Object>())) {
@@ -811,7 +810,7 @@ void mint::declare_class(Cursor& cursor, ClassDescription& desc, Reference::Flag
 		error("multiple definition of class '{}'", symbol.str());
 	}
 
-	symbols.emplace(symbol, make_weak_reference<Object>(flags, desc.generate()));
+	symbols.emplace(symbol, make_reference<Object>(flags, desc.generate()));
 }
 
 void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags flags) {
@@ -824,7 +823,7 @@ void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags
 			error("symbol '{}' was already defined in global context", symbol.str());
 		}
 
-		cursor.stack().emplace_back(package.symbols().emplace(symbol, WeakReference(flags)).first->second);
+		cursor.stack().emplace_back(package.symbols().emplace(symbol, Reference(flags)).first->second);
 	}
 	else {
 
@@ -832,7 +831,7 @@ void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags
 			error("symbol '{}' was already defined in this context", symbol.str());
 		}
 
-		cursor.stack().emplace_back(cursor.symbols().emplace(symbol, WeakReference(flags)).first->second);
+		cursor.stack().emplace_back(cursor.symbols().emplace(symbol, Reference(flags)).first->second);
 	}
 }
 
@@ -868,7 +867,7 @@ void mint::declare_function(Cursor& cursor, const Symbol& symbol, Reference::Fla
 	if (it != symbols.end()) {
 		switch (it->second.data().format()) {
 		case Data::Format::none:
-			it->second = make_weak_reference<Function>(flags);
+			it->second = make_reference<Function>(flags);
 			break;
 		case Data::Format::function:
 			if (flags != it->second.flags()) [[unlikely]] {
@@ -881,7 +880,7 @@ void mint::declare_function(Cursor& cursor, const Symbol& symbol, Reference::Fla
 		}
 	}
 	else {
-		it = symbols.emplace(symbol, make_weak_reference<Function>(flags)).first;
+		it = symbols.emplace(symbol, make_reference<Function>(flags)).first;
 	}
 
 	cursor.stack().emplace_back(it->second);

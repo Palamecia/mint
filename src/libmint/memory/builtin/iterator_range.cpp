@@ -68,14 +68,13 @@ constexpr RangeFunctions range_data_descending_functions = {
         },
 };
 
-WeakReference creat_item(double value) {
-	return make_weak_reference<Number>(Reference::default_flags, value);
+Reference creat_item(double value) {
+	return make_reference<Number>(Reference::default_flags, value);
 }
 
 }
 
-RangeIteratorViewData::RangeIteratorViewData(const RangeFunctions& func, mint::WeakReference& head,
-    mint::WeakReference& tail) :
+RangeIteratorViewData::RangeIteratorViewData(const RangeFunctions& func, mint::Reference& head, mint::Reference& tail) :
     _func(func),
     _head(head),
     _tail(tail),
@@ -146,7 +145,7 @@ void RangeIteratorData::reserve(std::size_t /*capacity*/) {
 
 void RangeIteratorData::yield(Cursor& /*cursor*/, Iterator::Context::value_type&& value,
     Iterator::ResumeKind /*resume_kind*/) {
-	const auto consumer = WeakReference(std::move(value));
+	const auto consumer = Reference(std::move(value));
 	assert(false);
 }
 

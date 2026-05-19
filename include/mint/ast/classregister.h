@@ -160,12 +160,12 @@ public:
 
 private:
 	std::unique_ptr<Class::MemberInfo> create_member_info(const Class::MemberInfo& member);
-	Class::MemberInfo* update_member_info(const Symbol& symbol, WeakReference& value,
+	Class::MemberInfo* update_member_info(const Symbol& symbol, Reference& value,
 	    std::unordered_map<Symbol, std::vector<std::reference_wrapper<const Reference>>>& member_overrides);
 
 	Symbol _name;
 	std::vector<Path> _bases;
-	std::unordered_map<Symbol, WeakReference> _members;
+	std::unordered_map<Symbol, Reference> _members;
 
 	std::unique_ptr<Class> _metadata;
 	std::vector<std::reference_wrapper<Class>> _bases_metadata;

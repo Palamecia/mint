@@ -78,7 +78,7 @@ public:
 		Reference& function();
 
 	private:
-		WeakReference _function;
+		Reference _function;
 		Class* _metadata = nullptr;
 		int _extra_args = 0;
 		Flags _flags = standard_call;
@@ -173,7 +173,7 @@ public:
 	void close_printer();
 	Printer* printer();
 
-	[[nodiscard]] inline std::vector<WeakReference>& stack();
+	[[nodiscard]] inline std::vector<Reference>& stack();
 	[[nodiscard]] inline WaitingCallStack& waiting_calls();
 	[[nodiscard]] inline const SymbolTable& symbols() const;
 	[[nodiscard]] inline SymbolTable& symbols();
@@ -185,7 +185,7 @@ public:
 
 	void set_retrieve_point(std::size_t offset);
 	void unset_retrieve_point();
-	void raise(WeakReference&& exception);
+	void raise(Reference&& exception);
 
 	void resume();
 	void retrieve();
@@ -207,8 +207,8 @@ protected:
 
 		WaitingCallStack waiting_calls;
 		std::shared_ptr<SymbolTable> symbols;
-		std::unique_ptr<WeakReference> generator;
-		std::unique_ptr<WeakReference> coroutine;
+		std::unique_ptr<Reference> generator;
+		std::unique_ptr<Reference> coroutine;
 		std::vector<std::unique_ptr<Printer>> printers;
 	};
 
@@ -223,7 +223,7 @@ private:
 	using retrieve_point_stack_t = std::stack<RetrievePoint, std::vector<RetrievePoint>>;
 	static PoolAllocator<StackFrame> g_pool;
 
-	std::vector<WeakReference>* _stack;
+	std::vector<Reference>* _stack;
 	StackFrame* _current_stack_frame;
 
 	std::reference_wrapper<AbstractSyntaxTree> _ast;
@@ -238,11 +238,11 @@ inline std::size_t get_stack_base(Cursor& cursor) {
 	return cursor.stack().size() - 1;
 }
 
-inline WeakReference&& move_from_stack(Cursor& cursor, std::size_t index) {
+inline Reference&& move_from_stack(Cursor& cursor, std::size_t index) {
 	return std::move(cursor.stack()[index]);
 }
 
-inline WeakReference& load_from_stack(Cursor& cursor, std::size_t index) {
+inline Reference& load_from_stack(Cursor& cursor, std::size_t index) {
 	return cursor.stack()[index];
 }
 
@@ -263,7 +263,7 @@ const Node& Cursor::next() {
 	return _current_stack_frame->module.node_at(_current_stack_frame->iptr++);
 }
 
-std::vector<WeakReference>& Cursor::stack() {
+std::vector<Reference>& Cursor::stack() {
 	return *_stack;
 }
 

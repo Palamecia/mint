@@ -50,7 +50,7 @@ struct ErrorCatcher {
 	int on_error = -1;
 };
 
-mint::WeakReference mint_test_error_catcher_install(mint::FunctionHelper& helper) {
+mint::Reference mint_test_error_catcher_install(mint::FunctionHelper& helper) {
 
 	auto& cursor = helper.cursor();
 	auto& scheduler = helper.scheduler();
@@ -67,7 +67,7 @@ mint::WeakReference mint_test_error_catcher_install(mint::FunctionHelper& helper
 	    });
 }
 
-mint::WeakReference mint_test_error_catcher_remove(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+mint::Reference mint_test_error_catcher_remove(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	mint::remove_error_callback(d_ptr.data<mint::LibObject<ErrorCatcher>>().ptr->on_error);
 	mint::restore_error_callbacks(std::move(d_ptr.data<mint::LibObject<ErrorCatcher>>().ptr->error_callbacks));
 	delete d_ptr.data<mint::LibObject<ErrorCatcher>>().ptr;

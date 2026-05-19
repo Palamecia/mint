@@ -54,6 +54,15 @@ void Reference::Info::set_data(Data* data) {
 	g_garbage_collector.release(data);
 }
 
+Reference::Reference() :
+    Reference(default_flags, Info::alloc<None>()) {}
+
+Reference::Reference(Flags flags) :
+    Reference(flags, Info::alloc<None>()) {}
+
+Reference::Reference(Flags flags, Data& data) :
+    Reference(flags, &data) {}
+
 Reference::Reference(Flags flags, Data* data) :
     _info(std::make_shared<Info>(flags, data)) {}
 
@@ -69,78 +78,51 @@ std::shared_ptr<Reference::Info> Reference::info() const {
 	return _info;
 }
 
-WeakReference::WeakReference() :
-    Reference(default_flags, Info::alloc<None>()) {}
-
-WeakReference::WeakReference(Flags flags) :
-    Reference(flags, Info::alloc<None>()) {}
-
-WeakReference::WeakReference(Flags flags, Data& data) :
-    Reference(flags, &data) {}
-
-WeakReference::WeakReference(const Reference& other) :
-    Reference(other) {}
-
-WeakReference::WeakReference(Reference&& other) noexcept :
-    Reference(std::move(other)) {}
-
-WeakReference::~WeakReference() {}
-
-StrongReference::StrongReference() :
+RootReference::RootReference() :
     Reference(default_flags, Info::alloc<None>()) {
 	register_root();
 }
 
-StrongReference::StrongReference(Flags flags) :
+RootReference::RootReference(Flags flags) :
     Reference(flags, Info::alloc<None>()) {
 	register_root();
 }
 
-StrongReference::StrongReference(Flags flags, Data& data) :
+RootReference::RootReference(Flags flags, Data& data) :
     Reference(flags, &data) {
 	register_root();
 }
 
-StrongReference::StrongReference(const StrongReference& other) :
+RootReference::RootReference(const RootReference& other) :
     Reference(other) {
 	register_root();
 }
 
-StrongReference::StrongReference(const WeakReference& other) :
+RootReference::RootReference(const Reference& other) :
     Reference(other) {
 	register_root();
 }
 
-StrongReference::StrongReference(const Reference& other) :
-    Reference(other) {
-	register_root();
-}
-
-StrongReference::StrongReference(StrongReference&& other) noexcept :
+RootReference::RootReference(RootReference&& other) noexcept :
     Reference(std::move(other)) {
 	register_root();
 }
 
-StrongReference::StrongReference(WeakReference&& other) noexcept :
+RootReference::RootReference(Reference&& other) noexcept :
     Reference(std::move(other)) {
 	register_root();
 }
 
-StrongReference::StrongReference(Reference&& other) noexcept :
-    Reference(std::move(other)) {
-	register_root();
-}
-
-StrongReference::~StrongReference() {
+RootReference::~RootReference() {
 	unregister_root();
 }
 
-StrongReference& StrongReference::operator=(WeakReference&& other) noexcept {
+RootReference& RootReference::operator=(Reference&& other) noexcept {
 	Reference::operator=(std::move(other));
 	return *this;
 }
 
-StrongReference& StrongReference::operator=(const WeakReference& other) {
+RootReference& RootReference::operator=(const Reference& other) {
 	Reference::operator=(other);
 	return *this;
 }

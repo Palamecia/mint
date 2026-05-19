@@ -38,16 +38,16 @@ namespace mint {
 class MemoryRoot;
 class Object;
 class Reference;
-class StrongReference;
-class WeakReference;
+class RootReference;
+class Reference;
 
 class MINT_EXPORT GarbageCollector {
 	friend class Data;
 	friend class MemoryRoot;
 	friend class Destructor;
 	friend class Reference;
-	friend class WeakReference;
-	friend class StrongReference;
+	friend class Reference;
+	friend class RootReference;
 public:
 	GarbageCollector(GarbageCollector&& other) = delete;
 	GarbageCollector(const GarbageCollector& other) = delete;
@@ -103,8 +103,8 @@ private:
 	std::size_t _defer_depth = 0;
 	bool _pending_collection = false;
 
-	std::unique_ptr<StrongReference> _none;
-	std::unique_ptr<StrongReference> _null;
+	std::unique_ptr<RootReference> _none;
+	std::unique_ptr<RootReference> _null;
 
 	struct {
 		MemoryRoot* head = nullptr;

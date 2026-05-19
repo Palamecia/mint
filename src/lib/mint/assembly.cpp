@@ -37,9 +37,9 @@
 
 namespace {
 
-mint::WeakReference mint_assembly_from_function(mint::Cursor& cursor, const mint::Reference& object) {
+mint::Reference mint_assembly_from_function(mint::Cursor& cursor, const mint::Reference& object) {
 
-	mint::WeakReference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.ast());
 
 	for (auto& signature : object.data<mint::Function>().mapping) {
 
@@ -61,7 +61,7 @@ mint::WeakReference mint_assembly_from_function(mint::Cursor& cursor, const mint
 	return result;
 }
 
-mint::WeakReference mint_assembly_from_module(mint::Cursor& cursor, const mint::Reference& object) {
+mint::Reference mint_assembly_from_module(mint::Cursor& cursor, const mint::Reference& object) {
 
 	auto dump_cursor = load_module(object.data<mint::String>().str, cursor.ast());
 	auto stream = std::stringstream();

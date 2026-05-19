@@ -81,7 +81,7 @@ static const std::string data_stream("Serializer.DataStream");
 
 namespace {
 
-mint::WeakReference get_d_ptr(const mint::Reference& reference) {
+mint::Reference get_d_ptr(const mint::Reference& reference) {
 	if (auto& object = reference.data<mint::Object>(); auto* member = object.metadata.find_member(symbols::d_ptr)) {
 		return mint::Class::MemberInfo::get(*member, object);
 	}
@@ -110,69 +110,69 @@ std::size_t write_to_term(FILE* stream, const std::string& data) {
 	return static_cast<std::size_t>(amount);
 }
 
-mint::WeakReference mint_terminal_new(mint::Cursor& cursor) {
+mint::Reference mint_terminal_new(mint::Cursor& cursor) {
 	return mint::create_c_object(cursor.ast(), new mint::Terminal);
 }
 
-mint::WeakReference mint_terminal_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
+mint::Reference mint_terminal_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
 	delete self.data<mint::LibObject<mint::Terminal>>().ptr;
 	return {};
 }
 
-mint::WeakReference mint_terminal_get_width(mint::Cursor& /*cursor*/) {
+mint::Reference mint_terminal_get_width(mint::Cursor& /*cursor*/) {
 	return mint::create_unsigned_number(mint::Terminal::get_width());
 }
 
-mint::WeakReference mint_terminal_get_height(mint::Cursor& /*cursor*/) {
+mint::Reference mint_terminal_get_height(mint::Cursor& /*cursor*/) {
 	return mint::create_unsigned_number(mint::Terminal::get_height());
 }
 
-mint::WeakReference mint_terminal_get_cursor_row(mint::Cursor& /*cursor*/) {
+mint::Reference mint_terminal_get_cursor_row(mint::Cursor& /*cursor*/) {
 	return mint::create_unsigned_number(mint::Terminal::get_cursor_row());
 }
 
-mint::WeakReference mint_terminal_get_cursor_column(mint::Cursor& /*cursor*/) {
+mint::Reference mint_terminal_get_cursor_column(mint::Cursor& /*cursor*/) {
 	return mint::create_unsigned_number(mint::Terminal::get_cursor_column());
 }
 
-mint::WeakReference mint_terminal_set_cursor_pos(mint::Cursor& cursor, const mint::Reference& row,
+mint::Reference mint_terminal_set_cursor_pos(mint::Cursor& cursor, const mint::Reference& row,
     const mint::Reference& column) {
 	mint::Terminal::set_cursor_pos(to_integer<std::size_t>(cursor, row), to_integer<std::size_t>(cursor, column));
 	return {};
 }
 
-mint::WeakReference mint_terminal_move_cursor_left(mint::Cursor& cursor, const mint::Reference& count) {
+mint::Reference mint_terminal_move_cursor_left(mint::Cursor& cursor, const mint::Reference& count) {
 	mint::Terminal::move_cursor_left(to_integer<std::size_t>(cursor, count));
 	return {};
 }
 
-mint::WeakReference mint_terminal_move_cursor_right(mint::Cursor& cursor, const mint::Reference& count) {
+mint::Reference mint_terminal_move_cursor_right(mint::Cursor& cursor, const mint::Reference& count) {
 	mint::Terminal::move_cursor_right(to_integer<std::size_t>(cursor, count));
 	return {};
 }
 
-mint::WeakReference mint_terminal_move_cursor_up(mint::Cursor& cursor, const mint::Reference& count) {
+mint::Reference mint_terminal_move_cursor_up(mint::Cursor& cursor, const mint::Reference& count) {
 	mint::Terminal::move_cursor_up(to_integer<std::size_t>(cursor, count));
 	return {};
 }
 
-mint::WeakReference mint_terminal_move_cursor_down(mint::Cursor& cursor, const mint::Reference& count) {
+mint::Reference mint_terminal_move_cursor_down(mint::Cursor& cursor, const mint::Reference& count) {
 	mint::Terminal::move_cursor_down(to_integer<std::size_t>(cursor, count));
 	return {};
 }
 
-mint::WeakReference mint_terminal_move_cursor_to_start_of_line(mint::Cursor& /*cursor*/) {
+mint::Reference mint_terminal_move_cursor_to_start_of_line(mint::Cursor& /*cursor*/) {
 	mint::Terminal::move_cursor_to_start_of_line();
 	return {};
 }
 
-mint::WeakReference mint_terminal_set_prompt(mint::FunctionHelper& helper, const mint::Reference& self,
+mint::Reference mint_terminal_set_prompt(mint::FunctionHelper& helper, const mint::Reference& self,
     mint::Reference& function) {
 
 	struct Callback {
-		Callback(mint::Scheduler& scheduler, mint::WeakReference&& function) :
+		Callback(mint::Scheduler& scheduler, mint::Reference&& function) :
 		    _scheduler(scheduler),
-		    _function(std::make_shared<mint::StrongReference>(std::move(function))) {}
+		    _function(std::make_shared<mint::RootReference>(std::move(function))) {}
 
 		std::string operator()(std::size_t row_number) {
 			if (has_signature(*_function, 1)) {
@@ -183,20 +183,20 @@ mint::WeakReference mint_terminal_set_prompt(mint::FunctionHelper& helper, const
 
 	private:
 		std::reference_wrapper<mint::Scheduler> _scheduler;
-		std::shared_ptr<mint::StrongReference> _function;
+		std::shared_ptr<mint::RootReference> _function;
 	};
 
 	self.data<mint::LibObject<mint::Terminal>>().ptr->set_prompt(Callback(helper.scheduler(), std::move(function)));
 	return {};
 }
 
-mint::WeakReference mint_terminal_set_highlighter(mint::FunctionHelper& helper, const mint::Reference& self,
+mint::Reference mint_terminal_set_highlighter(mint::FunctionHelper& helper, const mint::Reference& self,
     mint::Reference& function) {
 
 	struct Callback {
-		Callback(mint::Scheduler& scheduler, mint::WeakReference&& function) :
+		Callback(mint::Scheduler& scheduler, mint::Reference&& function) :
 		    _scheduler(scheduler),
-		    _function(std::make_shared<mint::StrongReference>(std::move(function))) {}
+		    _function(std::make_shared<mint::RootReference>(std::move(function))) {}
 
 		std::string operator()(std::string_view str, std::string_view::size_type pos) {
 			return to_string(_scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().ast(), str),
@@ -205,20 +205,20 @@ mint::WeakReference mint_terminal_set_highlighter(mint::FunctionHelper& helper, 
 
 	private:
 		std::reference_wrapper<mint::Scheduler> _scheduler;
-		std::shared_ptr<mint::StrongReference> _function;
+		std::shared_ptr<mint::RootReference> _function;
 	};
 
 	self.data<mint::LibObject<mint::Terminal>>().ptr->set_highlighter(Callback(helper.scheduler(), std::move(function)));
 	return {};
 }
 
-mint::WeakReference mint_terminal_set_completion_generator(mint::FunctionHelper& helper, const mint::Reference& self,
+mint::Reference mint_terminal_set_completion_generator(mint::FunctionHelper& helper, const mint::Reference& self,
     mint::Reference& function) {
 
 	struct Callback {
-		Callback(mint::Scheduler& scheduler, mint::WeakReference&& function) :
+		Callback(mint::Scheduler& scheduler, mint::Reference&& function) :
 		    _scheduler(scheduler),
-		    _function(std::make_shared<mint::StrongReference>(std::move(function))) {}
+		    _function(std::make_shared<mint::RootReference>(std::move(function))) {}
 
 		std::optional<std::vector<mint::Completion>> operator()(std::string_view str, std::string_view::size_type pos) {
 			auto result = _scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().ast(), str),
@@ -229,8 +229,8 @@ mint::WeakReference mint_terminal_set_completion_generator(mint::FunctionHelper&
 			auto results = std::vector<mint::Completion>();
 			auto& cursor = mint::Scheduler::current_process()->cursor();
 			auto it = mint::create_iterator_over(cursor, result);
-			while (std::optional<mint::WeakReference> item = mint::iterator_next(cursor, it.data<mint::Iterator>())) {
-				if (std::optional<mint::WeakReference> token = iterator_next(cursor, item->data<mint::Iterator>())) {
+			while (std::optional<mint::Reference> item = mint::iterator_next(cursor, it.data<mint::Iterator>())) {
+				if (std::optional<mint::Reference> token = iterator_next(cursor, item->data<mint::Iterator>())) {
 					results.push_back({
 					    .offset = to_integer<std::string::size_type>(mint::Scheduler::current_process()->cursor(),
 					        iterator_next(cursor, item->data<mint::Iterator>())
@@ -244,7 +244,7 @@ mint::WeakReference mint_terminal_set_completion_generator(mint::FunctionHelper&
 
 	private:
 		std::reference_wrapper<mint::Scheduler> _scheduler;
-		std::shared_ptr<mint::StrongReference> _function;
+		std::shared_ptr<mint::RootReference> _function;
 	};
 
 	self.data<mint::LibObject<mint::Terminal>>().ptr->set_completion_generator(
@@ -252,15 +252,15 @@ mint::WeakReference mint_terminal_set_completion_generator(mint::FunctionHelper&
 	return {};
 }
 
-mint::WeakReference mint_terminal_set_brace_matcher(mint::FunctionHelper& helper, const mint::Reference& self,
+mint::Reference mint_terminal_set_brace_matcher(mint::FunctionHelper& helper, const mint::Reference& self,
     mint::Reference& function) {
 
 	if (has_signature(function, 2)) {
 
 		struct Callback {
-			Callback(mint::Scheduler& scheduler, mint::WeakReference&& function) :
+			Callback(mint::Scheduler& scheduler, mint::Reference&& function) :
 			    _scheduler(scheduler),
-			    _function(std::make_shared<mint::StrongReference>(std::move(function))) {}
+			    _function(std::make_shared<mint::RootReference>(std::move(function))) {}
 
 			std::pair<std::string_view::size_type, bool> operator()(std::string_view str,
 			    std::string_view::size_type pos) {
@@ -277,7 +277,7 @@ mint::WeakReference mint_terminal_set_brace_matcher(mint::FunctionHelper& helper
 			}
 		private:
 			std::reference_wrapper<mint::Scheduler> _scheduler;
-			std::shared_ptr<mint::StrongReference> _function;
+			std::shared_ptr<mint::RootReference> _function;
 		};
 
 		self.data<mint::LibObject<mint::Terminal>>().ptr->set_brace_matcher(
@@ -289,24 +289,24 @@ mint::WeakReference mint_terminal_set_brace_matcher(mint::FunctionHelper& helper
 	return {};
 }
 
-mint::WeakReference mint_terminal_edit_line(mint::Cursor& cursor, const mint::Reference& self) {
+mint::Reference mint_terminal_edit_line(mint::Cursor& cursor, const mint::Reference& self) {
 	if (auto input = self.data<mint::LibObject<mint::Terminal>>().ptr->read_line()) {
 		return mint::create_string(cursor.ast(), *input);
 	}
 	return {};
 }
 
-mint::WeakReference mint_terminal_flush(mint::Cursor& /*cursor*/) {
+mint::Reference mint_terminal_flush(mint::Cursor& /*cursor*/) {
 	std::fflush(stdout);
 	std::fflush(stderr);
 	return {};
 }
 
-mint::WeakReference mint_terminal_is_terminal(mint::Cursor& cursor, const mint::Reference& stream) {
+mint::Reference mint_terminal_is_terminal(mint::Cursor& cursor, const mint::Reference& stream) {
 	return mint::create_boolean(mint::is_term(to_integer<int>(cursor, stream)));
 }
 
-mint::WeakReference mint_terminal_readchar(mint::Cursor& cursor) {
+mint::Reference mint_terminal_readchar(mint::Cursor& cursor) {
 
 	const int fd = fileno(stdin);
 	std::array<char, mint::utf8_code_point_length_max + 1> buffer = {};
@@ -325,21 +325,21 @@ mint::WeakReference mint_terminal_readchar(mint::Cursor& cursor) {
 	return {};
 }
 
-mint::WeakReference mint_terminal_readline(mint::Cursor& cursor) {
+mint::Reference mint_terminal_readline(mint::Cursor& cursor) {
 	if (!std::feof(stdin)) {
 		return mint::create_string(cursor.ast(), mint::get_line(stdin));
 	}
 	return {};
 }
 
-mint::WeakReference mint_terminal_read(mint::Cursor& cursor, const mint::Reference& delim) {
+mint::Reference mint_terminal_read(mint::Cursor& cursor, const mint::Reference& delim) {
 	if (!std::feof(stdin)) {
 		return mint::create_string(cursor.ast(), mint::get_delim(mint::to_string(delim).front(), stdin));
 	}
 	return {};
 }
 
-mint::WeakReference mint_terminal_write(mint::Cursor& cursor, const mint::Reference& data) {
+mint::Reference mint_terminal_write(mint::Cursor& cursor, const mint::Reference& data) {
 	try {
 		if (is_instance_of(data, symbols::data_stream)) {
 			return create_iterator_from(cursor,
@@ -356,7 +356,7 @@ mint::WeakReference mint_terminal_write(mint::Cursor& cursor, const mint::Refere
 	}
 }
 
-mint::WeakReference mint_terminal_write_error(mint::Cursor& cursor, const mint::Reference& data) {
+mint::Reference mint_terminal_write_error(mint::Cursor& cursor, const mint::Reference& data) {
 	try {
 		if (is_instance_of(data, symbols::data_stream)) {
 			return create_iterator_from(cursor,
@@ -373,7 +373,7 @@ mint::WeakReference mint_terminal_write_error(mint::Cursor& cursor, const mint::
 	}
 }
 
-mint::WeakReference mint_terminal_get_stdin_handle(mint::Cursor& cursor) {
+mint::Reference mint_terminal_get_stdin_handle(mint::Cursor& cursor) {
 #ifdef MINT_OS_WINDOWS
 	return mint::create_handle(cursor.ast(), GetStdHandle(STD_INPUT_HANDLE));
 #else
@@ -381,7 +381,7 @@ mint::WeakReference mint_terminal_get_stdin_handle(mint::Cursor& cursor) {
 #endif
 }
 
-mint::WeakReference mint_terminal_wait(mint::Cursor& cursor, const mint::Reference& timeout) {
+mint::Reference mint_terminal_wait(mint::Cursor& cursor, const mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 	mint::handle_t handle = GetStdHandle(STD_INPUT_HANDLE);
 	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
@@ -405,12 +405,12 @@ mint::WeakReference mint_terminal_wait(mint::Cursor& cursor, const mint::Referen
 #endif
 }
 
-mint::WeakReference mint_terminal_clear_to_end_of_line(mint::Cursor& /*cursor*/) {
+mint::Reference mint_terminal_clear_to_end_of_line(mint::Cursor& /*cursor*/) {
 	mint::Terminal::clear_to_end_of_line();
 	return {};
 }
 
-mint::WeakReference mint_terminal_clear_line(mint::Cursor& /*cursor*/) {
+mint::Reference mint_terminal_clear_line(mint::Cursor& /*cursor*/) {
 	mint::Terminal::clear_line();
 	return {};
 }

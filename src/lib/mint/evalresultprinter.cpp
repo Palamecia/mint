@@ -36,7 +36,7 @@ void EvalResultPrinter::print(const mint::Reference& reference) {
 	_results.emplace_back(mint::create_from, reference);
 }
 
-mint::WeakReference EvalResultPrinter::result() {
+mint::Reference EvalResultPrinter::result() {
 	switch (_results.size()) {
 	case 0:
 		return mint::create_none();
@@ -48,7 +48,7 @@ mint::WeakReference EvalResultPrinter::result() {
 		break;
 	}
 
-	mint::WeakReference reference = mint::create_iterator(_cursor.get().ast());
+	mint::Reference reference = mint::create_iterator(_cursor.get().ast());
 
 	for (mint::Reference& item : _results) {
 		mint::iterator_yield(_cursor, reference.data<mint::Iterator>(), std::move(item));

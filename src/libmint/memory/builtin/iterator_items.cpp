@@ -44,9 +44,9 @@
 using namespace mint::internal;
 using namespace mint;
 
-std::allocator<WeakReference> ItemsIteratorData::g_allocator;
+std::allocator<Reference> ItemsIteratorData::g_allocator;
 
-ItemsIteratorViewData::ItemsIteratorViewData(mint::WeakReference* data, std::size_t capacity, std::size_t size,
+ItemsIteratorViewData::ItemsIteratorViewData(mint::Reference* data, std::size_t capacity, std::size_t size,
     std::size_t pos) :
     _data(data),
     _capacity(capacity),
@@ -113,8 +113,8 @@ ItemsIteratorData::ItemsIteratorData(Cursor& cursor, const Reference& ref) {
 			_capacity = ref.data<Hash>().values.size();
 			_data = g_allocator.allocate(_capacity);
 			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value,
-				    cursor.ast(), 2);
+				auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value, cursor.ast(),
+				    2);
 				element.data<Iterator>().ctx.yield(cursor, hash_get_key(item));
 				element.data<Iterator>().ctx.yield(cursor, hash_get_value(item));
 				element.data<Iterator>().construct();
@@ -170,8 +170,8 @@ ItemsIteratorData::ItemsIteratorData(Cursor& cursor, Reference&& ref) {
 			_capacity = ref.data<Hash>().values.size();
 			_data = g_allocator.allocate(_capacity);
 			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value,
-				    cursor.ast(), 2);
+				auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value, cursor.ast(),
+				    2);
 				element.data<Iterator>().ctx.yield(cursor, hash_get_key(item));
 				element.data<Iterator>().ctx.yield(cursor, hash_get_value(item));
 				element.data<Iterator>().construct();
@@ -255,14 +255,14 @@ std::size_t ItemsIteratorData::capacity() const {
 void ItemsIteratorData::reserve(std::size_t capacity) {
 	if (_capacity < capacity) {
 
-		WeakReference* data = _data;
+		Reference* data = _data;
 		std::swap(_capacity, capacity);
 		_data = g_allocator.allocate(_capacity);
 
 		for (std::size_t i = 0; i < _size; ++i) {
-			WeakReference* item = data + ((_pos + i) % capacity);
+			Reference* item = data + ((_pos + i) % capacity);
 			std::construct_at(_data + i, std::move(*item));
-			item->~WeakReference();
+			item->~Reference();
 		}
 
 		g_allocator.deallocate(data, capacity);
@@ -306,13 +306,13 @@ bool ItemsIteratorData::empty() const {
 void ItemsIteratorData::increase_size() {
 
 	const std::size_t capacity = _capacity;
-	WeakReference* data = _data;
+	Reference* data = _data;
 
 	_capacity = std::min(capacity * 2, std::numeric_limits<std::size_t>::max());
 	_data = g_allocator.allocate(_capacity);
 
 	for (std::size_t i = 0; i < _size; ++i) {
-		WeakReference* item = data + ((_pos + i) % capacity);
+		Reference* item = data + ((_pos + i) % capacity);
 		std::construct_at(_data + i, std::move(*item));
 		std::destroy_at(item);
 	}

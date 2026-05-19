@@ -48,7 +48,7 @@ public:
 	void cleanup() override;
 
 private:
-	StrongReference _reference;
+	RootReference _reference;
 	bool _handled;
 };
 
@@ -74,7 +74,7 @@ public:
 
 private:
 	std::reference_wrapper<Cursor> _cursor;
-	StrongReference _reference;
+	RootReference _reference;
 };
 
 }

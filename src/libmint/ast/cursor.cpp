@@ -59,8 +59,8 @@ namespace {
 
 constexpr std::size_t default_stack_capacity = 0x4000;
 
-std::vector<WeakReference>* create_stack() {
-	auto* stack = new std::vector<WeakReference>();
+std::vector<Reference>* create_stack() {
+	auto* stack = new std::vector<Reference>();
 	stack->reserve(default_stack_capacity);
 	return stack;
 }
@@ -222,7 +222,7 @@ void Cursor::call_generator_expression(std::size_t offset) {
 
 	const auto stack_base = _stack->size();
 
-	expression_stack_frame->generator = std::make_unique<WeakReference>(Reference::default_flags,
+	expression_stack_frame->generator = std::make_unique<Reference>(Reference::default_flags,
 	    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
 	_stack->emplace_back(*expression_stack_frame->generator);
 	expression_stack_frame->generator->data<Iterator>().construct();
@@ -243,16 +243,16 @@ void Cursor::call_async_generator_expression(std::size_t offset) {
 
 	const auto stack_base = _stack->size();
 
-	expression_stack_frame->coroutine = std::make_unique<WeakReference>(Reference::default_flags,
+	expression_stack_frame->coroutine = std::make_unique<Reference>(Reference::default_flags,
 	    std::in_place_type<Coroutine>, std::make_unique<SavedState>(*this, expression_stack_frame), stack_base);
 
-	expression_stack_frame->generator = std::make_unique<WeakReference>(Reference::default_flags,
+	expression_stack_frame->generator = std::make_unique<Reference>(Reference::default_flags,
 	    std::in_place_type<Iterator>, from_async_generator, _ast, expression_stack_frame->coroutine->data<Coroutine>(),
 	    stack_base + 1);
 	_stack->emplace_back(*expression_stack_frame->generator);
 	expression_stack_frame->generator->data<Iterator>().construct();
 
-	expression_stack_frame->coroutine->data<Coroutine>().await(*this, WeakReference(*expression_stack_frame->coroutine));
+	expression_stack_frame->coroutine->data<Coroutine>().await(*this, Reference(*expression_stack_frame->coroutine));
 }
 
 void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) {
@@ -271,11 +271,11 @@ void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) 
 
 	if (handle.async) {
 
-		call_stack_frame->coroutine = std::make_unique<WeakReference>(Reference::default_flags,
+		call_stack_frame->coroutine = std::make_unique<Reference>(Reference::default_flags,
 		    std::in_place_type<Coroutine>, std::make_unique<SavedState>(*this, call_stack_frame), stack_base);
 
 		if (handle.generator) {
-			call_stack_frame->generator = std::make_unique<WeakReference>(Reference::default_flags,
+			call_stack_frame->generator = std::make_unique<Reference>(Reference::default_flags,
 			    std::in_place_type<Iterator>, from_async_generator, _ast,
 			    call_stack_frame->coroutine->data<Coroutine>(), stack_base + 1);
 			_stack->emplace(std::next(_stack->begin(), static_cast<std::ptrdiff_t>(stack_base)),
@@ -288,7 +288,7 @@ void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) 
 	else {
 
 		if (handle.generator) {
-			call_stack_frame->generator = std::make_unique<WeakReference>(Reference::default_flags,
+			call_stack_frame->generator = std::make_unique<Reference>(Reference::default_flags,
 			    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
 			_stack->emplace(std::next(_stack->begin(), static_cast<std::ptrdiff_t>(stack_base)),
 			    *call_stack_frame->generator);
@@ -439,7 +439,7 @@ void Cursor::unset_retrieve_point() {
 	_retrieve_points.pop();
 }
 
-void Cursor::raise(WeakReference&& exception) {
+void Cursor::raise(Reference&& exception) {
 
 	if (!_retrieve_points.empty()) {
 

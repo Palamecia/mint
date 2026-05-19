@@ -83,8 +83,8 @@ consteval bool is_valid_signature(std::string_view argc) {
 #define MINT_EXPORT_FUNCTION_OVERLOAD(__func, __argc, ...) \
 	extern "C" MINT_DECL_EXPORT void __func##_##__argc(mint::Cursor& cursor) { \
 		static_assert(mint::internal::is_valid_signature(#__argc)); \
-		static_assert((__argc) == mint::FunctionHelper::FunctionInfo<mint::WeakReference(__VA_ARGS__)>::argc); \
-		mint::FunctionHelper::call<static_cast<mint::WeakReference (*)(__VA_ARGS__)>(__func)>(cursor); \
+		static_assert((__argc) == mint::FunctionHelper::FunctionInfo<mint::Reference(__VA_ARGS__)>::argc); \
+		mint::FunctionHelper::call<static_cast<mint::Reference (*)(__VA_ARGS__)>(__func)>(cursor); \
 	}
 
 namespace mint {
@@ -124,8 +124,8 @@ public:
 		return _reference;
 	}
 
-	[[nodiscard]] WeakReference copy() const;
-	[[nodiscard]] WeakReference share();
+	[[nodiscard]] Reference copy() const;
+	[[nodiscard]] Reference share();
 };
 
 class MINT_EXPORT FunctionHelper {
@@ -134,7 +134,7 @@ class MINT_EXPORT FunctionHelper {
 	std::size_t _top;
 public:
 	Cursor& cursor();
-	std::span<WeakReference> parameters();
+	std::span<Reference> parameters();
 
 	template<class T>
 	constexpr T parameter(std::size_t index) {
@@ -170,41 +170,41 @@ public:
 	template<typename T>
 	struct FunctionInfo;
 
-	template<std::convertible_to<WeakReference> Ret, typename... Args>
+	template<std::convertible_to<Reference> Ret, typename... Args>
 	struct FunctionInfo<Ret (*)(Cursor&, Args...)> {
 		static constexpr std::size_t argc = sizeof...(Args);
 		static constexpr bool use_helper = false;
 	};
 
-	template<std::convertible_to<WeakReference> Ret, typename... Args>
+	template<std::convertible_to<Reference> Ret, typename... Args>
 	struct FunctionInfo<Ret(Cursor&, Args...)> : public FunctionInfo<Ret (*)(Cursor&, Args...)> {};
 
-	template<std::convertible_to<WeakReference> Ret, typename... Args>
+	template<std::convertible_to<Reference> Ret, typename... Args>
 	struct FunctionInfo<Ret (*)(FunctionHelper&, Args...)> {
 		static constexpr std::size_t argc = sizeof...(Args);
 		static constexpr bool use_helper = true;
 	};
 
-	template<std::convertible_to<WeakReference> Ret, typename... Args>
+	template<std::convertible_to<Reference> Ret, typename... Args>
 	struct FunctionInfo<Ret(FunctionHelper&, Args...)> : public FunctionInfo<Ret (*)(FunctionHelper&, Args...)> {};
 
 	template<auto function_ref>
 	struct FunctionCaller {
-		template<std::convertible_to<WeakReference> Ret, typename... Args>
-		static WeakReference call_impl(FunctionHelper& helper, Ret (*func)(Cursor&, Args...)) {
+		template<std::convertible_to<Reference> Ret, typename... Args>
+		static Reference call_impl(FunctionHelper& helper, Ret (*func)(Cursor&, Args...)) {
 			return [func]<std::size_t... i>(FunctionHelper& helper, std::index_sequence<i...>) {
 				return func(helper.cursor(), helper.parameter<Args>(i)...);
 			}(helper, std::index_sequence_for<Args...>());
 		}
 
-		template<std::convertible_to<WeakReference> Ret, typename... Args>
-		static WeakReference call_impl(FunctionHelper& helper, Ret (*func)(FunctionHelper&, Args...)) {
+		template<std::convertible_to<Reference> Ret, typename... Args>
+		static Reference call_impl(FunctionHelper& helper, Ret (*func)(FunctionHelper&, Args...)) {
 			return [func]<std::size_t... i>(FunctionHelper& helper, std::index_sequence<i...>) {
 				return func(helper, helper.parameter<Args>(i)...);
 			}(helper, std::index_sequence_for<Args...>());
 		}
 
-		static WeakReference call(FunctionHelper& helper) {
+		static Reference call(FunctionHelper& helper) {
 			return call_impl(helper, function_ref);
 		}
 	};
@@ -221,87 +221,87 @@ private:
 	void return_value(Reference&& value);
 };
 
-MINT_EXPORT WeakReference create_function();
-MINT_EXPORT WeakReference create_function(Function::Mapping mapping);
-MINT_EXPORT WeakReference create_function(int signature, Function::Signature&& handle);
-MINT_EXPORT WeakReference create_function(const std::pair<int, Function::Signature>& mapping);
-MINT_EXPORT WeakReference create_function(AbstractSyntaxTree& ast, Module::Info& module, int signature,
+MINT_EXPORT Reference create_function();
+MINT_EXPORT Reference create_function(Function::Mapping mapping);
+MINT_EXPORT Reference create_function(int signature, Function::Signature&& handle);
+MINT_EXPORT Reference create_function(const std::pair<int, Function::Signature>& mapping);
+MINT_EXPORT Reference create_function(AbstractSyntaxTree& ast, Module::Info& module, int signature,
     const std::string& function);
 
-MINT_EXPORT WeakReference create_none();
-MINT_EXPORT WeakReference create_null();
+MINT_EXPORT Reference create_none();
+MINT_EXPORT Reference create_null();
 
-MINT_EXPORT WeakReference create_number(double value);
-MINT_EXPORT WeakReference create_signed_number(std::intmax_t value);
-MINT_EXPORT WeakReference create_unsigned_number(std::uintmax_t value);
-MINT_EXPORT WeakReference create_boolean(bool value);
+MINT_EXPORT Reference create_number(double value);
+MINT_EXPORT Reference create_signed_number(std::intmax_t value);
+MINT_EXPORT Reference create_unsigned_number(std::uintmax_t value);
+MINT_EXPORT Reference create_boolean(bool value);
 
-MINT_EXPORT WeakReference create_alias(Class& type);
-MINT_EXPORT WeakReference create_object(Class& type);
+MINT_EXPORT Reference create_alias(Class& type);
+MINT_EXPORT Reference create_object(Class& type);
 
-MINT_EXPORT WeakReference create_string(AbstractSyntaxTree& ast);
-MINT_EXPORT WeakReference create_string(AbstractSyntaxTree& ast, const char* value);
-MINT_EXPORT WeakReference create_string(AbstractSyntaxTree& ast, const std::string& value);
-MINT_EXPORT WeakReference create_string(AbstractSyntaxTree& ast, std::string_view value);
+MINT_EXPORT Reference create_string(AbstractSyntaxTree& ast);
+MINT_EXPORT Reference create_string(AbstractSyntaxTree& ast, const char* value);
+MINT_EXPORT Reference create_string(AbstractSyntaxTree& ast, const std::string& value);
+MINT_EXPORT Reference create_string(AbstractSyntaxTree& ast, std::string_view value);
 
-MINT_EXPORT WeakReference create_regex(AbstractSyntaxTree& ast);
-MINT_EXPORT WeakReference create_regex(AbstractSyntaxTree& ast, const std::string& value);
-MINT_EXPORT WeakReference create_regex(AbstractSyntaxTree& ast, const std::string& initializer, const std::regex& value);
+MINT_EXPORT Reference create_regex(AbstractSyntaxTree& ast);
+MINT_EXPORT Reference create_regex(AbstractSyntaxTree& ast, const std::string& value);
+MINT_EXPORT Reference create_regex(AbstractSyntaxTree& ast, const std::string& initializer, const std::regex& value);
 
-MINT_EXPORT WeakReference create_array(AbstractSyntaxTree& ast);
-MINT_EXPORT WeakReference create_array(AbstractSyntaxTree& ast, Array::values_type&& values);
-MINT_EXPORT WeakReference create_array(AbstractSyntaxTree& ast, std::initializer_list<WeakReference> items);
+MINT_EXPORT Reference create_array(AbstractSyntaxTree& ast);
+MINT_EXPORT Reference create_array(AbstractSyntaxTree& ast, Array::values_type&& values);
+MINT_EXPORT Reference create_array(AbstractSyntaxTree& ast, std::initializer_list<Reference> items);
 
-MINT_EXPORT WeakReference create_hash(AbstractSyntaxTree& ast);
-MINT_EXPORT WeakReference create_hash(AbstractSyntaxTree& ast, Hash::values_type&& values);
-MINT_EXPORT WeakReference create_hash(AbstractSyntaxTree& ast,
-    std::initializer_list<std::pair<WeakReference, WeakReference>> items);
+MINT_EXPORT Reference create_hash(AbstractSyntaxTree& ast);
+MINT_EXPORT Reference create_hash(AbstractSyntaxTree& ast, Hash::values_type&& values);
+MINT_EXPORT Reference create_hash(AbstractSyntaxTree& ast,
+    std::initializer_list<std::pair<Reference, Reference>> items);
 
-MINT_EXPORT WeakReference create_iterator(AbstractSyntaxTree& ast);
-MINT_EXPORT WeakReference create_iterator(FromGenerator from_generator, AbstractSyntaxTree& ast, std::size_t stack_size);
-MINT_EXPORT WeakReference create_iterator(FromInclusiveRange from_inclusive_range, AbstractSyntaxTree& ast,
+MINT_EXPORT Reference create_iterator(AbstractSyntaxTree& ast);
+MINT_EXPORT Reference create_iterator(FromGenerator from_generator, AbstractSyntaxTree& ast, std::size_t stack_size);
+MINT_EXPORT Reference create_iterator(FromInclusiveRange from_inclusive_range, AbstractSyntaxTree& ast,
     double begin, double end);
-MINT_EXPORT WeakReference create_iterator(FromExclusiveRange from_exclusive_range, AbstractSyntaxTree& ast,
+MINT_EXPORT Reference create_iterator(FromExclusiveRange from_exclusive_range, AbstractSyntaxTree& ast,
     double begin, double end);
 
-MINT_EXPORT WeakReference create_iterator_over(Cursor& cursor, const Reference& ref);
-MINT_EXPORT WeakReference create_iterator_over(Cursor& cursor, Reference&& ref);
+MINT_EXPORT Reference create_iterator_over(Cursor& cursor, const Reference& ref);
+MINT_EXPORT Reference create_iterator_over(Cursor& cursor, Reference&& ref);
 
 template<std::derived_from<Reference>... Items>
-WeakReference create_iterator_from(Cursor& cursor, Items... items) {
-	WeakReference ref = make_weak_reference<Iterator>(create_flags, cursor.ast(), sizeof...(items));
+Reference create_iterator_from(Cursor& cursor, Items... items) {
+	Reference ref = make_reference<Iterator>(create_flags, cursor.ast(), sizeof...(items));
 	(iterator_yield(cursor, ref.data<Iterator>(), std::forward<Items>(items)), ...);
 	ref.data<Iterator>().construct();
 	return ref;
 }
 
 template<class Type>
-WeakReference create_c_object(AbstractSyntaxTree& ast, Type* object) {
-	WeakReference ref = make_weak_reference<LibObject<Type>>(create_flags, ast, object);
+Reference create_c_object(AbstractSyntaxTree& ast, Type* object) {
+	Reference ref = make_reference<LibObject<Type>>(create_flags, ast, object);
 	ref.data<LibObject<Type>>().construct();
 	return ref;
 }
 
 #ifdef MINT_OS_WINDOWS
 using handle_t = HANDLE;
-MINT_EXPORT WeakReference create_handle(AbstractSyntaxTree& ast, handle_t handle);
+MINT_EXPORT Reference create_handle(AbstractSyntaxTree& ast, handle_t handle);
 MINT_EXPORT handle_t to_handle(const Reference& reference);
 MINT_EXPORT handle_t* to_handle_ptr(const Reference& reference);
 #else
 using handle_t = int;
-MINT_EXPORT WeakReference create_handle(AbstractSyntaxTree& ast, handle_t handle);
+MINT_EXPORT Reference create_handle(AbstractSyntaxTree& ast, handle_t handle);
 MINT_EXPORT handle_t to_handle(const Reference& reference);
 MINT_EXPORT handle_t* to_handle_ptr(const Reference& reference);
 #endif
 
 // ...
 
-MINT_EXPORT WeakReference get_member_ignore_visibility(AbstractSyntaxTree& ast, const Reference& reference,
+MINT_EXPORT Reference get_member_ignore_visibility(AbstractSyntaxTree& ast, const Reference& reference,
     const Symbol& member);
-MINT_EXPORT WeakReference get_member_ignore_visibility(PackageData& package, const Symbol& member);
-MINT_EXPORT WeakReference get_member_ignore_visibility(Object& object, const Symbol& member);
-MINT_EXPORT WeakReference get_global_ignore_visibility(Object& object, const Symbol& global);
-MINT_EXPORT WeakReference find_enum_value(Object& object, double value);
+MINT_EXPORT Reference get_member_ignore_visibility(PackageData& package, const Symbol& member);
+MINT_EXPORT Reference get_member_ignore_visibility(Object& object, const Symbol& member);
+MINT_EXPORT Reference get_global_ignore_visibility(Object& object, const Symbol& global);
+MINT_EXPORT Reference find_enum_value(Object& object, double value);
 
 }
 

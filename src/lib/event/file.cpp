@@ -154,10 +154,10 @@ bool mint_sflags(const char* mode, DWORD* desired_access, DWORD* creation_dispos
 }
 #endif
 
-mint::WeakReference mint_file_create(mint::Cursor& cursor, const mint::Reference& path, const mint::Reference& mode,
+mint::Reference mint_file_create(mint::Cursor& cursor, const mint::Reference& path, const mint::Reference& mode,
     mint::Reference& flags) {
 
-	mint::WeakReference handles = mint::create_iterator(cursor.ast());
+	mint::Reference handles = mint::create_iterator(cursor.ast());
 
 #ifdef MINT_OS_WINDOWS
 	DWORD desired_access = 0;
@@ -222,7 +222,7 @@ mint::WeakReference mint_file_create(mint::Cursor& cursor, const mint::Reference
 	return handles;
 }
 
-mint::WeakReference mint_file_close_file(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_file_close_file(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	CloseHandle(to_handle(handle));
 #else
@@ -231,7 +231,7 @@ mint::WeakReference mint_file_close_file(mint::Cursor& /*cursor*/, const mint::R
 	return {};
 }
 
-mint::WeakReference mint_file_close_event(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_file_close_event(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	CloseHandle(to_handle(handle));
 #else
@@ -240,7 +240,7 @@ mint::WeakReference mint_file_close_event(mint::Cursor& /*cursor*/, const mint::
 	return {};
 }
 
-mint::WeakReference mint_file_read(mint::Cursor& /*cursor*/, const mint::Reference& file_handle,
+mint::Reference mint_file_read(mint::Cursor& /*cursor*/, const mint::Reference& file_handle,
     const mint::Reference& event_handle, const mint::Reference& stream) {
 #ifdef MINT_OS_WINDOWS
 	DWORD count = 0;
@@ -269,7 +269,7 @@ mint::WeakReference mint_file_read(mint::Cursor& /*cursor*/, const mint::Referen
 	return {};
 }
 
-mint::WeakReference mint_file_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+mint::Reference mint_file_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
     const mint::Reference& stream) {
 #ifdef MINT_OS_WINDOWS
 	std::vector<std::uint8_t>* buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
@@ -281,7 +281,7 @@ mint::WeakReference mint_file_write(mint::Cursor& /*cursor*/, const mint::Refere
 	return {};
 }
 
-mint::WeakReference mint_file_wait(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& timeout) {
+mint::Reference mint_file_wait(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 
 	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)

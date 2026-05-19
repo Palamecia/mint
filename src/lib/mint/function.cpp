@@ -50,7 +50,7 @@ std::string get_member_name(mint::Class::MemberInfo& infos) {
 	return metadata.full_name() + ".<function>";
 }
 
-mint::WeakReference mint_get_member_info(mint::Cursor& cursor, const mint::Reference& object,
+mint::Reference mint_get_member_info(mint::Cursor& cursor, const mint::Reference& object,
     const mint::Reference& member) {
 	if (is_instance_of(object, mint::Data::Format::object)) {
 		if (const auto* infos = find_member_info(object.data<mint::Object>(), member)) {
@@ -60,7 +60,7 @@ mint::WeakReference mint_get_member_info(mint::Cursor& cursor, const mint::Refer
 	return {};
 }
 
-mint::WeakReference mint_function_name(mint::Cursor& cursor, const mint::Reference& infos) {
+mint::Reference mint_function_name(mint::Cursor& cursor, const mint::Reference& infos) {
 	return mint::create_string(cursor.ast(),
 	    get_member_name(*infos.data<mint::LibObject<mint::Class::MemberInfo>>().ptr));
 }

@@ -99,8 +99,8 @@ void for_each(Cursor& cursor, const Reference& ref, Function function) {
 		switch (ref.data<Object>().metadata.metatype()) {
 		case Class::Metatype::string:
 			for (const auto& item : views::utf8(ref.data<String>().str)) {
-				auto substr = make_weak_reference<String>(Reference::const_address | Reference::const_value,
-				    cursor.ast(), item);
+				auto substr = make_reference<String>(Reference::const_address | Reference::const_value, cursor.ast(),
+				    item);
 				substr.data<String>().construct();
 				function(std::move(substr));
 			}
@@ -112,8 +112,7 @@ void for_each(Cursor& cursor, const Reference& ref, Function function) {
 			break;
 		case Class::Metatype::hash:
 			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value,
-				    cursor.ast());
+				auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value, cursor.ast());
 				iterator_yield(cursor, element.data<Iterator>(), hash_get_key(item));
 				iterator_yield(cursor, element.data<Iterator>(), hash_get_value(item));
 				element.data<Iterator>().construct();
@@ -146,8 +145,8 @@ bool for_each_if(Cursor& cursor, const Reference& ref, Function function) {
 		switch (ref.data<Object>().metadata.metatype()) {
 		case Class::Metatype::string:
 			for (const auto& item : views::utf8(ref.data<String>().str)) {
-				auto substr = make_weak_reference<String>(Reference::const_address | Reference::const_value,
-				    cursor.ast(), item);
+				auto substr = make_reference<String>(Reference::const_address | Reference::const_value, cursor.ast(),
+				    item);
 				substr.data<String>().construct();
 				if (!function(std::move(substr))) [[unlikely]] {
 					return false;
@@ -163,8 +162,7 @@ bool for_each_if(Cursor& cursor, const Reference& ref, Function function) {
 			break;
 		case Class::Metatype::hash:
 			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_weak_reference<Iterator>(Reference::const_address | Reference::const_value,
-				    cursor.ast());
+				auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value, cursor.ast());
 				iterator_yield(cursor, element.data<Iterator>(), hash_get_key(item));
 				iterator_yield(cursor, element.data<Iterator>(), hash_get_value(item));
 				element.data<Iterator>().construct();

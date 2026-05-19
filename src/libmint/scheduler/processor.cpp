@@ -139,8 +139,8 @@ public:
 	}
 
 	static void on_clone_reference(Cursor& cursor) {
-		WeakReference reference = std::move(cursor.stack().back());
-		cursor.stack().back() = WeakReference(copy_from, reference);
+		Reference reference = std::move(cursor.stack().back());
+		cursor.stack().back() = Reference(copy_from, reference);
 		cursor.stack().emplace_back(std::move(reference));
 	}
 
@@ -181,7 +181,7 @@ public:
 	}
 
 	static void on_alloc_iterator(Cursor& cursor) {
-		cursor.waiting_calls().emplace(make_weak_reference<Iterator>(Reference::const_address, cursor.ast()));
+		cursor.waiting_calls().emplace(make_reference<Iterator>(Reference::const_address, cursor.ast()));
 	}
 
 	static void on_init_iterator(Cursor& cursor, std::size_t length) {
@@ -189,7 +189,7 @@ public:
 	}
 
 	static void on_alloc_array(Cursor& cursor) {
-		cursor.waiting_calls().emplace(make_weak_reference<Array>(Reference::const_address, cursor.ast()));
+		cursor.waiting_calls().emplace(make_reference<Array>(Reference::const_address, cursor.ast()));
 	}
 
 	static void on_init_array(Cursor& cursor, std::size_t length) {
@@ -197,7 +197,7 @@ public:
 	}
 
 	static void on_alloc_hash(Cursor& cursor) {
-		cursor.waiting_calls().emplace(make_weak_reference<Hash>(Reference::const_address, cursor.ast()));
+		cursor.waiting_calls().emplace(make_reference<Hash>(Reference::const_address, cursor.ast()));
 	}
 
 	static void on_init_hash(Cursor& cursor, std::size_t length) {
@@ -206,7 +206,7 @@ public:
 
 	static void on_create_lib(Cursor& cursor) {
 		constexpr auto flags = Reference::const_address | mint::Reference::const_value | Reference::temporary;
-		cursor.stack().emplace_back(make_weak_reference<Library>(flags, cursor.ast()));
+		cursor.stack().emplace_back(make_reference<Library>(flags, cursor.ast()));
 	}
 
 	static void on_regex_match(Cursor& cursor) {
@@ -449,7 +449,7 @@ public:
 
 	static void on_end_async_generator_expression(Cursor& cursor) {
 		assert(cursor.is_in_generator() && cursor.is_in_coroutine());
-		const mint::WeakReference coroutine = cursor.coroutine();
+		const mint::Reference coroutine = cursor.coroutine();
 		coroutine.data<Coroutine>().exit(cursor);
 	}
 
@@ -520,7 +520,7 @@ public:
 	}
 
 	static void on_raise(Cursor& cursor) {
-		WeakReference exception = std::move(cursor.stack().back());
+		Reference exception = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
 		cursor.raise(std::move(exception));
 	}
@@ -551,14 +551,14 @@ public:
 		cursor.stack().pop_back();
 
 		assert(cursor.is_in_coroutine());
-		const mint::WeakReference coroutine = cursor.coroutine();
+		const mint::Reference coroutine = cursor.coroutine();
 		coroutine.data<Coroutine>().resume(cursor, std::move(result));
 	}
 
 	static void on_yield(Cursor& cursor) {
 		const auto item = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
-		iterator_yield(cursor, cursor.generator().data<Iterator>(), WeakReference(create_from, item));
+		iterator_yield(cursor, cursor.generator().data<Iterator>(), Reference(create_from, item));
 	}
 
 	static void on_exit_generator(Cursor& cursor) {
@@ -568,26 +568,26 @@ public:
 
 	static void on_exit_async_generator(Cursor& cursor) {
 		assert(cursor.is_in_coroutine());
-		const mint::WeakReference coroutine = cursor.coroutine();
+		const mint::Reference coroutine = cursor.coroutine();
 		coroutine.data<Coroutine>().exit(cursor);
 	}
 
 	static void on_yield_exit_generator(Cursor& cursor) {
 		const auto item = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
-		iterator_return(cursor, cursor.generator().data<Iterator>(), WeakReference(create_from, item));
+		iterator_return(cursor, cursor.generator().data<Iterator>(), Reference(create_from, item));
 	}
 
 	static void on_yield_exit_async_generator(Cursor& cursor) {
 		const auto item = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
-		iterator_resume(cursor, cursor.generator().data<Iterator>(), WeakReference(create_from, item));
+		iterator_resume(cursor, cursor.generator().data<Iterator>(), Reference(create_from, item));
 	}
 
 	static void on_init_capture(Cursor& cursor) {
 		auto& function = cursor.stack().back();
 		assert(is_instance_of(function, Data::Format::function));
-		cursor.stack().back() = WeakReference(copy_from, function.flags() | Reference::temporary, function.data());
+		cursor.stack().back() = Reference(copy_from, function.flags() | Reference::temporary, function.data());
 	}
 
 	static void on_capture_symbol(Cursor& cursor, const Symbol& symbol) {

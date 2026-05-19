@@ -58,20 +58,20 @@ using Locale = std::remove_pointer_t<MSVCRT__locale_t>;
 using Locale = std::remove_pointer_t<locale_t>;
 #endif
 
-mint::WeakReference mint_locale_current_name(mint::Cursor& cursor) {
+mint::Reference mint_locale_current_name(mint::Cursor& cursor) {
 	return mint::create_string(cursor.ast(), std::locale().name());
 }
 
-mint::WeakReference mint_locale_set_current_name(mint::Cursor& /*cursor*/, const mint::Reference& name) {
+mint::Reference mint_locale_set_current_name(mint::Cursor& /*cursor*/, const mint::Reference& name) {
 	if (std::setlocale(LC_ALL, to_string(name).c_str()) == nullptr) {
 		return mint::create_number(errno);
 	}
 	return {};
 }
 
-mint::WeakReference mint_locale_list(mint::Cursor& cursor) {
+mint::Reference mint_locale_list(mint::Cursor& cursor) {
 	if (std::int32_t count = 0; const auto* locales = icu::Locale::getAvailableLocales(count)) {
-		mint::WeakReference result = mint::create_array(cursor.ast());
+		mint::Reference result = mint::create_array(cursor.ast());
 		for (const auto& locale : std::span(locales, count)) {
 			array_append(result.data<mint::Array>(), mint::create_string(cursor.ast(), locale.getName()));
 		}
@@ -80,7 +80,7 @@ mint::WeakReference mint_locale_list(mint::Cursor& cursor) {
 	return {};
 }
 
-mint::WeakReference mint_locale_create(mint::Cursor& cursor, const mint::Reference& name) {
+mint::Reference mint_locale_create(mint::Cursor& cursor, const mint::Reference& name) {
 #ifdef MINT_OS_WINDOWS
 	if (MSVCRT__locale_t locale = MSVCRT__create_locale(MSVCRT_LC_ALL, to_string(name).c_str())) {
 		return mint::create_c_object(cursor.ast(), locale);
@@ -93,7 +93,7 @@ mint::WeakReference mint_locale_create(mint::Cursor& cursor, const mint::Referen
 	return {};
 }
 
-mint::WeakReference mint_locale_delete(mint::Cursor& /*cursor*/, const mint::Reference& locale) {
+mint::Reference mint_locale_delete(mint::Cursor& /*cursor*/, const mint::Reference& locale) {
 #ifdef MINT_OS_WINDOWS
 	MSVCRT__free_locale(locale.data<mint::LibObject<std::remove_pointer_t<MSVCRT__locale_t>>>().ptr);
 #else
@@ -102,7 +102,7 @@ mint::WeakReference mint_locale_delete(mint::Cursor& /*cursor*/, const mint::Ref
 	return {};
 }
 
-mint::WeakReference mint_locale_day_name(mint::Cursor& cursor, const mint::Reference& locale,
+mint::Reference mint_locale_day_name(mint::Cursor& cursor, const mint::Reference& locale,
     const mint::Reference& day, mint::Reference& format) {
 
 	static constexpr std::size_t day_count = 7;
@@ -122,7 +122,7 @@ mint::WeakReference mint_locale_day_name(mint::Cursor& cursor, const mint::Refer
 	return {};
 }
 
-mint::WeakReference mint_locale_month_name(mint::Cursor& cursor, const mint::Reference& locale,
+mint::Reference mint_locale_month_name(mint::Cursor& cursor, const mint::Reference& locale,
     const mint::Reference& month, mint::Reference& format) {
 
 	static constexpr std::size_t month_count = 12;
@@ -142,15 +142,15 @@ mint::WeakReference mint_locale_month_name(mint::Cursor& cursor, const mint::Ref
 	return {};
 }
 
-mint::WeakReference mint_locale_am_name(mint::Cursor& cursor, const mint::Reference& locale) {
+mint::Reference mint_locale_am_name(mint::Cursor& cursor, const mint::Reference& locale) {
 	return mint::create_string(cursor.ast(), nl_langinfo_l(AM_STR, locale.data<mint::LibObject<Locale>>().ptr));
 }
 
-mint::WeakReference mint_locale_pm_name(mint::Cursor& cursor, const mint::Reference& locale) {
+mint::Reference mint_locale_pm_name(mint::Cursor& cursor, const mint::Reference& locale) {
 	return mint::create_string(cursor.ast(), nl_langinfo_l(PM_STR, locale.data<mint::LibObject<Locale>>().ptr));
 }
 
-mint::WeakReference mint_locale_date_format(mint::Cursor& cursor, const mint::Reference& locale,
+mint::Reference mint_locale_date_format(mint::Cursor& cursor, const mint::Reference& locale,
     const mint::Reference& format) {
 
 	static constexpr std::size_t format_count = 4;

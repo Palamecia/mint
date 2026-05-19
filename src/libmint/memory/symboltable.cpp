@@ -52,11 +52,11 @@ GlobalData& SymbolTable::get_global_data() const {
 	return _global_data;
 }
 
-WeakReference& SymbolTable::create_fast_reference(const Symbol& name, std::size_t index) {
-	return *(_fasts[index] = std::make_unique<WeakReference>(get_symbol(*this, name)));
+Reference& SymbolTable::create_fast_reference(const Symbol& name, std::size_t index) {
+	return *(_fasts[index] = std::make_unique<Reference>(get_symbol(*this, name)));
 }
 
-WeakReference& SymbolTable::create_fast_reference(Reference::Flags flags, const Symbol& name, std::size_t index) {
-	return *(_fasts[index] = std::make_unique<WeakReference>(
-	             _symbols.insert_or_assign(name, WeakReference(flags)).first->second));
+Reference& SymbolTable::create_fast_reference(Reference::Flags flags, const Symbol& name, std::size_t index) {
+	return *(
+	    _fasts[index] = std::make_unique<Reference>(_symbols.insert_or_assign(name, Reference(flags)).first->second));
 }

@@ -72,7 +72,7 @@ std::string windows_to_utf8(const std::wstring& str) {
 }
 #endif
 
-mint::WeakReference mint_os_get_type(mint::FunctionHelper& helper) {
+mint::Reference mint_os_get_type(mint::FunctionHelper& helper) {
 
 	const mint::ReferenceHelper os_type = helper.reference(symbols::system).member(symbols::os_type);
 
@@ -87,16 +87,16 @@ mint::WeakReference mint_os_get_type(mint::FunctionHelper& helper) {
 #endif
 }
 
-mint::WeakReference mint_os_get_name(mint::Cursor& /*cursor*/) {
+mint::Reference mint_os_get_name(mint::Cursor& /*cursor*/) {
 	return {};
 }
 
-mint::WeakReference mint_os_get_version(mint::Cursor& /*cursor*/) {
+mint::Reference mint_os_get_version(mint::Cursor& /*cursor*/) {
 	return {};
 }
 
-mint::WeakReference mint_os_get_environment(mint::Cursor& cursor, const mint::Reference& name,
-    mint::WeakReference& default_value) {
+mint::Reference mint_os_get_environment(mint::Cursor& cursor, const mint::Reference& name,
+    mint::Reference& default_value) {
 #ifdef MINT_OS_WINDOWS
 	std::array<wchar_t, 32767> buffer;
 	std::wstring name_str = utf8_to_windows(to_string(name));
@@ -112,7 +112,7 @@ mint::WeakReference mint_os_get_environment(mint::Cursor& cursor, const mint::Re
 	return std::move(default_value);
 }
 
-mint::WeakReference mint_os_set_environment(mint::Cursor& /*cursor*/, const mint::Reference& name,
+mint::Reference mint_os_set_environment(mint::Cursor& /*cursor*/, const mint::Reference& name,
     const mint::Reference& value) {
 #ifdef MINT_OS_WINDOWS
 	std::wstring name_str = utf8_to_windows(to_string(name));
@@ -130,7 +130,7 @@ mint::WeakReference mint_os_set_environment(mint::Cursor& /*cursor*/, const mint
 	return {};
 }
 
-mint::WeakReference mint_os_unset_environment(mint::Cursor& /*cursor*/, const mint::Reference& name) {
+mint::Reference mint_os_unset_environment(mint::Cursor& /*cursor*/, const mint::Reference& name) {
 #ifdef MINT_OS_WINDOWS
 	std::wstring name_str = utf8_to_windows(to_string(name));
 	if (!SetEnvironmentVariableW(name_str.c_str(), nullptr)) {

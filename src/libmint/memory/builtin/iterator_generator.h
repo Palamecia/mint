@@ -44,7 +44,7 @@ private:
 	ExecutionMode _execution_mode = ExecutionMode::interruptible;
 	std::unique_ptr<mint::SavedState> _state;
 
-	std::vector<mint::WeakReference> _stored_stack;
+	std::vector<mint::Reference> _stored_stack;
 	std::size_t _stack_size;
 };
 

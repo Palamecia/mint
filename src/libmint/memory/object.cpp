@@ -51,7 +51,7 @@
 
 using namespace mint;
 
-std::allocator<WeakReference> Object::g_allocator;
+std::allocator<Reference> Object::g_allocator;
 
 Number::Number(double value) :
     value(value) {}
@@ -113,7 +113,7 @@ void Object::construct(const Object& other, std::unordered_map<const Data*, Data
 		for (const auto& member : metadata.slots()) {
 
 			const auto& target_ref = other.data[member.get().offset];
-			WeakReference* member_ref = data + member.get().offset;
+			Reference* member_ref = data + member.get().offset;
 			auto i = memory_map.find(&target_ref.data());
 
 			if (i == memory_map.end()) {
@@ -152,7 +152,7 @@ void Object::construct(const Object& other, std::unordered_map<const Data*, Data
 							    target_ref.data<Library>());
 							break;
 						case Class::Metatype::libobject:
-							member_ref = std::construct_at(member_ref, WeakReference(copy_from, target_ref));
+							member_ref = std::construct_at(member_ref, Reference(copy_from, target_ref));
 							memory_map.emplace(&target_ref.data(), &member_ref->data());
 							continue;
 						}
@@ -336,7 +336,7 @@ Coroutine::Coroutine(std::unique_ptr<SavedState>&& state, std::size_t stack_size
 	_saved_state->cursor.get().stack().resize(stack_size);
 }
 
-void Coroutine::call(Cursor& cursor, WeakReference&& self) {
+void Coroutine::call(Cursor& cursor, Reference&& self) {
 
 	if (_state != State::ready) {
 		error("cannot reuse already awaited coroutine");
@@ -355,7 +355,7 @@ void Coroutine::call(Cursor& cursor, WeakReference&& self) {
 	_state = State::running;
 }
 
-void Coroutine::await(Cursor& cursor, WeakReference&& self) {
+void Coroutine::await(Cursor& cursor, Reference&& self) {
 
 	if (_state != State::ready) {
 		error("cannot reuse already awaited coroutine");
@@ -406,7 +406,7 @@ void Coroutine::resume(Cursor& cursor, std::unique_ptr<mint::SavedState>&& state
 	}
 }
 
-void Coroutine::resume(Cursor& cursor, WeakReference&& value) {
+void Coroutine::resume(Cursor& cursor, Reference&& value) {
 
 	assert(_state == State::running);
 

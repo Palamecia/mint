@@ -62,7 +62,7 @@ ClockType to_clock_type(mint::Cursor& cursor, const mint::Reference& value) {
 	return static_cast<ClockType>(to_integer<std::underlying_type_t<ClockType>>(cursor, value));
 }
 
-mint::WeakReference mint_timer_create(mint::Cursor& cursor, const mint::Reference& clock_type) {
+mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& clock_type) {
 
 #ifdef MINT_OS_WINDOWS
 
@@ -93,7 +93,7 @@ mint::WeakReference mint_timer_create(mint::Cursor& cursor, const mint::Referenc
 	return {};
 }
 
-mint::WeakReference mint_timer_close(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_timer_close(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	CloseHandle(mint::to_handle(handle));
 	g_timers.erase(mint::to_handle(handle));
@@ -103,7 +103,7 @@ mint::WeakReference mint_timer_close(mint::Cursor& /*cursor*/, const mint::Refer
 	return {};
 }
 
-mint::WeakReference mint_timer_start(mint::Cursor& cursor, const mint::Reference& handle,
+mint::Reference mint_timer_start(mint::Cursor& cursor, const mint::Reference& handle,
     const mint::Reference& duration) {
 #ifdef MINT_OS_WINDOWS
 
@@ -138,7 +138,7 @@ mint::WeakReference mint_timer_start(mint::Cursor& cursor, const mint::Reference
 #endif
 }
 
-mint::WeakReference mint_timer_stop(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_timer_stop(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	if (CancelWaitableTimer(mint::to_handle(handle))) {
 		g_timers.at(mint::to_handle(handle)).running = false;
@@ -154,7 +154,7 @@ mint::WeakReference mint_timer_stop(mint::Cursor& /*cursor*/, const mint::Refere
 	return {};
 }
 
-mint::WeakReference mint_timer_is_running(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_timer_is_running(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 
 	TimerData& data = g_timers.at(mint::to_handle(handle));
@@ -194,7 +194,7 @@ mint::WeakReference mint_timer_is_running(mint::Cursor& /*cursor*/, const mint::
 #endif
 }
 
-mint::WeakReference mint_timer_clear(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_timer_clear(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	ResetEvent(to_handle(handle));
 #else
@@ -206,7 +206,7 @@ mint::WeakReference mint_timer_clear(mint::Cursor& /*cursor*/, const mint::Refer
 	return {};
 }
 
-mint::WeakReference mint_timer_wait(mint::Cursor& cursor, const mint::Reference& handle,
+mint::Reference mint_timer_wait(mint::Cursor& cursor, const mint::Reference& handle,
     const mint::Reference& timeout) {
 
 #ifdef MINT_OS_WINDOWS

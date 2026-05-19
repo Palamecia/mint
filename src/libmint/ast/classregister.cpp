@@ -441,7 +441,7 @@ Class& ClassDescription::generate() {
 
 		_metadata->_globals.emplace(symbol, make_member_info({
 		                                        .owner = std::ref(*_metadata),
-		                                        .value = make_weak_reference<Object>(flags, desc.generate()),
+		                                        .value = make_reference<Object>(flags, desc.generate()),
 		                                    }));
 	}
 
@@ -484,7 +484,7 @@ std::unique_ptr<Class::MemberInfo> mint::ClassDescription::create_member_info(co
 	});
 }
 
-Class::MemberInfo* mint::ClassDescription::update_member_info(const Symbol& symbol, WeakReference& value,
+Class::MemberInfo* mint::ClassDescription::update_member_info(const Symbol& symbol, Reference& value,
     std::unordered_map<Symbol, std::vector<std::reference_wrapper<const Reference>>>& member_overrides) {
 	auto& members = _metadata->_members;
 	auto it = members.find(symbol);

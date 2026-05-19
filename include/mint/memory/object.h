@@ -108,7 +108,7 @@ public:
 	}
 
 	Class& metadata;
-	WeakReference* data = nullptr;
+	Reference* data = nullptr;
 
 	void construct();
 	void construct(const Object& other);
@@ -119,7 +119,7 @@ public:
 private:
 	void construct(const Object& other, std::unordered_map<const Data*, Data*>& memory_map);
 
-	static std::allocator<WeakReference> g_allocator;
+	static std::allocator<Reference> g_allocator;
 	static LocalPool<Object> g_pool;
 };
 
@@ -216,7 +216,7 @@ public:
 		}
 
 	private:
-		std::unordered_map<Symbol, WeakReference> _capture;
+		std::unordered_map<Symbol, Reference> _capture;
 	};
 
 	class MINT_EXPORT Signature {
@@ -342,13 +342,13 @@ public:
 	[[nodiscard]] inline State state() const;
 	[[nodiscard]] inline SymbolTable& symbols();
 
-	void call(Cursor& cursor, WeakReference&& self);
-	void await(Cursor& cursor, WeakReference&& self);
+	void call(Cursor& cursor, Reference&& self);
+	void await(Cursor& cursor, Reference&& self);
 
 	std::unique_ptr<mint::SavedState> yield(Cursor& cursor);
 	void resume(Cursor& cursor, std::unique_ptr<mint::SavedState>&& state);
 
-	void resume(Cursor& cursor, WeakReference&& value);
+	void resume(Cursor& cursor, Reference&& value);
 	void resume(Cursor& cursor);
 
 	void suspend(Cursor& cursor);
@@ -365,7 +365,7 @@ private:
 	};
 
 	std::unique_ptr<SavedState> _saved_state;
-	std::vector<mint::WeakReference> _stored_stack;
+	std::vector<mint::Reference> _stored_stack;
 	std::size_t _stack_offset = 0;
 
 	std::unique_ptr<SavedState> _parent_saved_state;

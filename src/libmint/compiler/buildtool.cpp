@@ -721,7 +721,7 @@ bool BuildContext::create_member(Reference::Flags flags, const Symbol& symbol, D
 }
 
 bool BuildContext::create_member(Reference::Flags flags, const Symbol& symbol, Data& value) {
-	if (!current_context().classes.top().first->create_member(symbol, WeakReference(flags, value))) {
+	if (!current_context().classes.top().first->create_member(symbol, Reference(flags, value))) {
 		parse_error(symbol.str() + ": member was already defined");
 		return false;
 	}
@@ -729,7 +729,7 @@ bool BuildContext::create_member(Reference::Flags flags, const Symbol& symbol, D
 }
 
 bool BuildContext::update_member(Reference::Flags flags, const Symbol& symbol, Data& value) {
-	if (!current_context().classes.top().first->update_member(symbol, WeakReference(flags, value))) {
+	if (!current_context().classes.top().first->update_member(symbol, Reference(flags, value))) {
 		parse_error(symbol.str() + ": member was already defined");
 		return false;
 	}

@@ -95,8 +95,7 @@ Module::Handle& Module::make_builtin_async_handle(PackageData& package, std::siz
 }
 
 Reference* Module::make_constant(Data& data) {
-	return _constants
-	    .emplace_back(std::make_unique<WeakReference>(Reference::const_address | Reference::const_value, data))
+	return _constants.emplace_back(std::make_unique<Reference>(Reference::const_address | Reference::const_value, data))
 	    .get();
 }
 

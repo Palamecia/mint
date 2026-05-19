@@ -53,7 +53,7 @@ TEST(memorytool, is_class) {
 	mint::Scheduler scheduler({});
 	auto process = scheduler.enable_testing();
 
-	const auto ref = mint::make_weak_reference<mint::String>(mint::create_flags, scheduler.ast());
+	const auto ref = mint::make_reference<mint::String>(mint::create_flags, scheduler.ast());
 	EXPECT_TRUE(is_class(ref.data<mint::String>()));
 
 	ref.data<mint::String>().construct();
@@ -65,7 +65,7 @@ TEST(memorytool, is_object) {
 	mint::Scheduler scheduler({});
 	auto process = scheduler.enable_testing();
 
-	const auto ref = mint::make_weak_reference<mint::String>(mint::create_flags, scheduler.ast());
+	const auto ref = mint::make_reference<mint::String>(mint::create_flags, scheduler.ast());
 	EXPECT_FALSE(is_object(ref.data<mint::String>()));
 
 	ref.data<mint::String>().construct();

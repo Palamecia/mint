@@ -51,13 +51,13 @@ Class& mint::create_enum(AbstractSyntaxTree& ast, const std::string& name,
 
 	for (const auto& [symbol, value] : values) {
 		if (value.has_value()) {
-			if (!desc->create_member(symbol, make_weak_reference<Number>(flags, *value))) {
+			if (!desc->create_member(symbol, make_reference<Number>(flags, *value))) {
 				error("{}: member was already defined for enum '{}'", symbol.str(), name);
 			}
 			next_enum_value = static_cast<std::size_t>(*value) + 1;
 		}
 		else {
-			if (!desc->create_member(symbol, make_weak_reference<Number>(flags, next_enum_value++))) {
+			if (!desc->create_member(symbol, make_reference<Number>(flags, next_enum_value++))) {
 				error("{}: member was already defined for enum '{}'", symbol.str(), name);
 			}
 		}
@@ -72,20 +72,20 @@ Class& mint::create_enum(AbstractSyntaxTree& ast, const std::string& name,
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
-    std::span<const std::pair<Symbol, WeakReference>> members) {
+    std::span<const std::pair<Symbol, Reference>> members) {
 	return create_class(ast, name, std::span<ClassRegister::Path>(), members);
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
     std::span<const std::reference_wrapper<ClassDescription>> bases,
-    std::span<const std::pair<Symbol, WeakReference>> members) {
+    std::span<const std::pair<Symbol, Reference>> members) {
 	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
 	    std::views::transform(bases, &ClassDescription::get_path));
 	return create_class(ast, name, std::span(bases_path), members);
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name, std::span<const ClassRegister::Path> bases,
-    std::span<const std::pair<Symbol, WeakReference>> members) {
+    std::span<const std::pair<Symbol, Reference>> members) {
 
 	auto* desc = ast.main().bytecode->make_class(ast, name);
 
@@ -106,13 +106,13 @@ Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name, std:
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
-    std::initializer_list<std::pair<Symbol, WeakReference>> members) {
+    std::initializer_list<std::pair<Symbol, Reference>> members) {
 	return create_class(ast, name, std::span<ClassRegister::Path>(), std::span(members.begin(), members.end()));
 }
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
     std::initializer_list<std::reference_wrapper<mint::ClassDescription>> bases,
-    std::initializer_list<std::pair<Symbol, WeakReference>> members) {
+    std::initializer_list<std::pair<Symbol, Reference>> members) {
 	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
 	    std::views::transform(bases, &ClassDescription::get_path));
 	return create_class(ast, name, std::span(bases_path), std::span(members.begin(), members.end()));
@@ -120,6 +120,6 @@ Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
 
 Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
     std::initializer_list<mint::ClassRegister::Path> bases,
-    std::initializer_list<std::pair<Symbol, WeakReference>> members) {
+    std::initializer_list<std::pair<Symbol, Reference>> members) {
 	return create_class(ast, name, std::span(bases.begin(), bases.end()), std::span(members.begin(), members.end()));
 }

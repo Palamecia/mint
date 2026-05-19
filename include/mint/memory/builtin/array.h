@@ -57,7 +57,7 @@ public:
 
 	void mark() override;
 
-	using values_type = std::vector<WeakReference>;
+	using values_type = std::vector<Reference>;
 	values_type values;
 
 private:
@@ -67,13 +67,13 @@ private:
 MINT_EXPORT void array_new(Cursor& cursor, std::size_t length);
 MINT_EXPORT void array_append(Array& array, const Reference& item);
 MINT_EXPORT void array_append(Array& array, Reference&& item);
-MINT_EXPORT WeakReference array_insert(Array& array, intmax_t index, const Reference& item);
-MINT_EXPORT WeakReference array_insert(Array& array, intmax_t index, Reference&& item);
-MINT_EXPORT WeakReference array_get_item(Array& array, intmax_t index);
-MINT_EXPORT WeakReference array_get_item(const Array::values_type::iterator& it);
-MINT_EXPORT WeakReference array_get_item(Array::values_type::value_type& value);
+MINT_EXPORT Reference array_insert(Array& array, intmax_t index, const Reference& item);
+MINT_EXPORT Reference array_insert(Array& array, intmax_t index, Reference&& item);
+MINT_EXPORT Reference array_get_item(Array& array, intmax_t index);
+MINT_EXPORT Reference array_get_item(const Array::values_type::iterator& it);
+MINT_EXPORT Reference array_get_item(Array::values_type::value_type& value);
 MINT_EXPORT std::size_t array_index(const Array& array, intmax_t index);
-MINT_EXPORT WeakReference array_item(const Reference& item);
+MINT_EXPORT Reference array_item(const Reference& item);
 
 }
 

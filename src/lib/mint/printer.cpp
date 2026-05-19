@@ -29,7 +29,7 @@
 
 namespace {
 
-mint::WeakReference mint_printer_write(mint::Cursor& /*cursor*/, const mint::Reference& object,
+mint::Reference mint_printer_write(mint::Cursor& /*cursor*/, const mint::Reference& object,
     const mint::Reference& data) {
 	mint::Printer* printer = object.data<mint::LibObject<mint::Printer>>().ptr;
 	printer->print(data);

@@ -107,7 +107,7 @@ TEST(fileprinter, print_package) {
 
 	{
 		auto package_data = mint::PackageData(scheduler.ast(), "test");
-		const auto package = mint::make_weak_reference<mint::Package>(mint::create_flags, package_data);
+		const auto package = mint::make_reference<mint::Package>(mint::create_flags, package_data);
 		auto printer = mint::FilePrinter(fd);
 		printer.print(package);
 	}

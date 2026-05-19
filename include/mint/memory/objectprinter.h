@@ -41,7 +41,7 @@ public:
 	void print(const Reference& reference) override;
 
 private:
-	StrongReference _object;
+	RootReference _object;
 	std::reference_wrapper<Cursor> _cursor;
 };
 

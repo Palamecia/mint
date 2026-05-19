@@ -60,7 +60,7 @@
 
 namespace {
 
-mint::WeakReference mint_pipe_create(mint::Cursor& cursor) {
+mint::Reference mint_pipe_create(mint::Cursor& cursor) {
 #ifdef MINT_OS_WINDOWS
 	std::array<HANDLE, 2> pipe {INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
 	SECURITY_ATTRIBUTES pipe_attributes {
@@ -88,7 +88,7 @@ mint::WeakReference mint_pipe_create(mint::Cursor& cursor) {
 	return {};
 }
 
-mint::WeakReference mint_pipe_close(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_pipe_close(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	CloseHandle(mint::to_handle(handle));
 #else
@@ -97,7 +97,7 @@ mint::WeakReference mint_pipe_close(mint::Cursor& /*cursor*/, const mint::Refere
 	return {};
 }
 
-mint::WeakReference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+mint::Reference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& handle,
     const mint::Reference& stream) {
 #ifdef MINT_OS_WINDOWS
 	DWORD count = 0;
@@ -130,7 +130,7 @@ mint::WeakReference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Referen
 	return {};
 }
 
-mint::WeakReference mint_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+mint::Reference mint_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
     const mint::Reference& stream) {
 
 #ifdef MINT_OS_WINDOWS
@@ -148,7 +148,7 @@ mint::WeakReference mint_pipe_write(mint::Cursor& /*cursor*/, const mint::Refere
 	return {};
 }
 
-mint::WeakReference mint_pipe_wait(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& timeout) {
+mint::Reference mint_pipe_wait(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 	mint::handle_t h = to_handle(handle);
 	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
@@ -172,10 +172,10 @@ mint::WeakReference mint_pipe_wait(mint::Cursor& cursor, const mint::Reference& 
 #endif
 }
 
-mint::WeakReference mint_system_pipe_create(mint::Cursor& cursor, const mint::Reference& fd_read,
+mint::Reference mint_system_pipe_create(mint::Cursor& cursor, const mint::Reference& fd_read,
     const mint::Reference& fd_write) {
 
-	mint::WeakReference handles = mint::create_iterator(cursor.ast());
+	mint::Reference handles = mint::create_iterator(cursor.ast());
 
 #ifdef MINT_OS_WINDOWS
 	static const auto to_handle = [](int fd) {
@@ -222,7 +222,7 @@ mint::WeakReference mint_system_pipe_create(mint::Cursor& cursor, const mint::Re
 	return handles;
 }
 
-mint::WeakReference mint_system_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+mint::Reference mint_system_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& handle,
     const mint::Reference& stream) {
 
 	std::vector<std::uint8_t>* stream_buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
@@ -257,7 +257,7 @@ mint::WeakReference mint_system_pipe_read(mint::Cursor& /*cursor*/, const mint::
 	return {};
 }
 
-mint::WeakReference mint_system_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+mint::Reference mint_system_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
     const mint::Reference& stream) {
 
 	std::vector<std::uint8_t>* buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
@@ -271,7 +271,7 @@ mint::WeakReference mint_system_pipe_write(mint::Cursor& /*cursor*/, const mint:
 	return {};
 }
 
-mint::WeakReference mint_system_pipe_wait(mint::Cursor& cursor, const mint::Reference& handle,
+mint::Reference mint_system_pipe_wait(mint::Cursor& cursor, const mint::Reference& handle,
     mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 	mint::handle_t h = to_handle(handle);

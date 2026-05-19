@@ -34,7 +34,7 @@ MINT_RAW_FUNCTION(mint_coroutine_call, 1, cursor) {
 	cursor.stack().pop_back();
 
 	if (mint::is_instance_of(coroutine, mint::Data::Format::coroutine)) {
-		coroutine.data<mint::Coroutine>().call(cursor, mint::WeakReference(coroutine));
+		coroutine.data<mint::Coroutine>().call(cursor, mint::Reference(coroutine));
 	}
 	else {
 		cursor.stack().emplace_back(mint::create_none());

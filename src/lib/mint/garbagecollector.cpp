@@ -29,24 +29,24 @@
 
 namespace {
 
-mint::WeakReference mint_garbage_collector_collect(mint::Cursor& /*cursor*/) {
+mint::Reference mint_garbage_collector_collect(mint::Cursor& /*cursor*/) {
 	return mint::create_unsigned_number(mint::GarbageCollector::instance().collect());
 }
 
-mint::WeakReference mint_garbage_collector_get_threshold(mint::Cursor& /*cursor*/) {
+mint::Reference mint_garbage_collector_get_threshold(mint::Cursor& /*cursor*/) {
 	return mint::create_unsigned_number(mint::GarbageCollector::instance().get_threshold());
 }
 
-mint::WeakReference mint_garbage_collector_set_threshold(mint::Cursor& cursor, const mint::Reference& threshold) {
+mint::Reference mint_garbage_collector_set_threshold(mint::Cursor& cursor, const mint::Reference& threshold) {
 	mint::GarbageCollector::instance().set_threshold(mint::to_integer<std::size_t>(cursor, threshold));
 	return {};
 }
 
-mint::WeakReference mint_garbage_collector_get_refcount(mint::Cursor& /*cursor*/, const mint::Reference& object) {
+mint::Reference mint_garbage_collector_get_refcount(mint::Cursor& /*cursor*/, const mint::Reference& object) {
 	return mint::create_unsigned_number(mint::GarbageCollector::get_refcount(object.data()));
 }
 
-mint::WeakReference mint_garbage_collector_get_count(mint::Cursor& /*cursor*/) {
+mint::Reference mint_garbage_collector_get_count(mint::Cursor& /*cursor*/) {
 	return mint::create_unsigned_number(mint::GarbageCollector::instance().get_count());
 }
 

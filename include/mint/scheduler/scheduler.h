@@ -95,27 +95,27 @@ public:
 	void push_waiting_process(std::unique_ptr<Process>&& process);
 
 	template<class... Args>
-	WeakReference invoke(const Reference& function, Args... args);
-	WeakReference invoke(const Reference& function, std::vector<WeakReference>& parameters);
+	Reference invoke(const Reference& function, Args... args);
+	Reference invoke(const Reference& function, std::vector<Reference>& parameters);
 
 	template<class... Args>
-	WeakReference invoke(Class& type, Args... args);
-	WeakReference invoke(Class& type, std::vector<WeakReference>& parameters);
+	Reference invoke(Class& type, Args... args);
+	Reference invoke(Class& type, std::vector<Reference>& parameters);
 
 	template<class... Args>
-	WeakReference invoke(const Reference& object, const Symbol& method, Args... args);
-	WeakReference invoke(const Reference& object, const Symbol& method, std::vector<WeakReference>& parameters);
+	Reference invoke(const Reference& object, const Symbol& method, Args... args);
+	Reference invoke(const Reference& object, const Symbol& method, std::vector<Reference>& parameters);
 
 	template<class... Args>
-	WeakReference invoke(const Reference& object, Class::Operator op, Args... args);
-	WeakReference invoke(const Reference& object, Class::Operator op, std::vector<WeakReference>& parameters);
+	Reference invoke(const Reference& object, Class::Operator op, Args... args);
+	Reference invoke(const Reference& object, Class::Operator op, std::vector<Reference>& parameters);
 
 	template<class... Args>
-	WeakReference invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info, Args... args);
-	WeakReference invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
-	    std::vector<WeakReference>& parameters);
+	Reference invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info, Args... args);
+	Reference invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
+	    std::vector<Reference>& parameters);
 
-	std::future<WeakReference> create_async_thread(std::unique_ptr<Cursor>&& cursor);
+	std::future<Reference> create_async_thread(std::unique_ptr<Cursor>&& cursor);
 	Process::ThreadId create_thread(std::unique_ptr<Cursor>&& cursor);
 	Process* find_thread(Process::ThreadId id) const;
 	void join_thread(Process::ThreadId id);
@@ -160,41 +160,41 @@ private:
 };
 
 template<class... Args>
-WeakReference Scheduler::invoke(const Reference& function, Args... args) {
-	std::vector<WeakReference> parameters;
+Reference Scheduler::invoke(const Reference& function, Args... args) {
+	std::vector<Reference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);
 	return invoke(function, parameters);
 }
 
 template<class... Args>
-WeakReference Scheduler::invoke(Class& type, Args... args) {
-	std::vector<WeakReference> parameters;
+Reference Scheduler::invoke(Class& type, Args... args) {
+	std::vector<Reference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);
 	return invoke(type, parameters);
 }
 
 template<class... Args>
-WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, Args... args) {
-	std::vector<WeakReference> parameters;
+Reference Scheduler::invoke(const Reference& object, const Symbol& method, Args... args) {
+	std::vector<Reference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);
 	return invoke(object, method, parameters);
 }
 
 template<class... Args>
-WeakReference Scheduler::invoke(const Reference& object, Class::Operator op, Args... args) {
-	std::vector<WeakReference> parameters;
+Reference Scheduler::invoke(const Reference& object, Class::Operator op, Args... args) {
+	std::vector<Reference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);
 	return invoke(object, op, parameters);
 }
 
 template<class... Args>
-WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
+Reference Scheduler::invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
     Args... args) {
-	std::vector<WeakReference> parameters;
+	std::vector<Reference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);
 	return invoke(object, method, info, parameters);

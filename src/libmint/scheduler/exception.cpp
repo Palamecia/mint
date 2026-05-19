@@ -57,9 +57,9 @@ void Exception::setup() {
 		auto& object = _reference.data<Object>();
 		auto& metadata = object.metadata;
 
-		if (WeakReference* data = object.data) {
+		if (Reference* data = object.data) {
 			if (auto* member = metadata.find_member(builtin_symbols::show_method)) {
-				WeakReference handler = Class::MemberInfo::get(*member, data);
+				Reference handler = Class::MemberInfo::get(*member, data);
 				if (is_instance_of(handler, Data::Format::function)) {
 					auto* scheduler = Scheduler::instance();
 					assert_x(scheduler, __func__, "execution should be done using a scheduler");

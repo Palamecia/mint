@@ -36,7 +36,7 @@
 
 namespace {
 
-mint::WeakReference mint_event_create(mint::Cursor& cursor) {
+mint::Reference mint_event_create(mint::Cursor& cursor) {
 #ifdef MINT_OS_WINDOWS
 	if (HANDLE handle = CreateEvent(nullptr, TRUE, FALSE, nullptr); handle != INVALID_HANDLE_VALUE) {
 		return mint::create_handle(cursor.ast(), handle);
@@ -49,7 +49,7 @@ mint::WeakReference mint_event_create(mint::Cursor& cursor) {
 	return {};
 }
 
-mint::WeakReference mint_event_close(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_event_close(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	CloseHandle(mint::to_handle(handle));
 #else
@@ -58,7 +58,7 @@ mint::WeakReference mint_event_close(mint::Cursor& /*cursor*/, const mint::Refer
 	return {};
 }
 
-mint::WeakReference mint_event_is_set(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_event_is_set(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	return mint::create_boolean(WaitForSingleObject(mint::to_handle(handle), 0) == WAIT_OBJECT_0);
 #else
@@ -70,7 +70,7 @@ mint::WeakReference mint_event_is_set(mint::Cursor& /*cursor*/, const mint::Refe
 #endif
 }
 
-mint::WeakReference mint_event_set(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_event_set(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	return mint::create_boolean(SetEvent(to_handle(handle)));
 #else
@@ -80,7 +80,7 @@ mint::WeakReference mint_event_set(mint::Cursor& /*cursor*/, const mint::Referen
 #endif
 }
 
-mint::WeakReference mint_event_clear(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_event_clear(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	ResetEvent(mint::to_handle(handle));
 #else
@@ -91,7 +91,7 @@ mint::WeakReference mint_event_clear(mint::Cursor& /*cursor*/, const mint::Refer
 	return {};
 }
 
-mint::WeakReference mint_event_wait(mint::Cursor& cursor, const mint::Reference& handle,
+mint::Reference mint_event_wait(mint::Cursor& cursor, const mint::Reference& handle,
     const mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 

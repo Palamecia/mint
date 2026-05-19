@@ -136,7 +136,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 
 		const auto& rvalue = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_hash(cursor.ast());
+		Reference result = create_hash(cursor.ast());
 
 		for (auto& item : self.data<Hash>().values) {
 			hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
@@ -153,9 +153,9 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 	create_builtin_member(subscript_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
-		WeakReference& key = load_from_stack(cursor, base);
+		Reference& key = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		WeakReference result = hash_get_item(self.data<Hash>(), key);
+		Reference result = hash_get_item(self.data<Hash>(), key);
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -166,9 +166,9 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		const auto base = get_stack_base(cursor);
 
 		const auto& value = load_from_stack(cursor, base);
-		WeakReference& key = load_from_stack(cursor, base - 1);
+		Reference& key = load_from_stack(cursor, base - 1);
 		const auto& self = load_from_stack(cursor, base - 2);
-		WeakReference result = hash_get_item(self.data<Hash>(), key);
+		Reference result = hash_get_item(self.data<Hash>(), key);
 
 		result.move_data(value);
 
@@ -187,7 +187,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 
 		const auto& value = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		WeakReference result = create_boolean(self.data<Hash>().values.contains(value));
+		Reference result = create_boolean(self.data<Hash>().values.contains(value));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -201,7 +201,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		const auto& self = load_from_stack(cursor, base - 1);
 
 		auto i = self.data<Hash>().values.find(key);
-		WeakReference result = i != self.data<Hash>().values.end() ? hash_get_value(i) : create_none();
+		Reference result = i != self.data<Hash>().values.end() ? hash_get_value(i) : create_none();
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -216,7 +216,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		const auto& self = load_from_stack(cursor, base - 2);
 
 		auto i = self.data<Hash>().values.find(key);
-		WeakReference result = i != self.data<Hash>().values.end() ? hash_get_value(i) : WeakReference(default_value);
+		Reference result = i != self.data<Hash>().values.end() ? hash_get_value(i) : Reference(default_value);
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -286,7 +286,7 @@ void mint::hash_new(Cursor& cursor, std::size_t length) {
 	self.values.reserve(length);
 	self.construct();
 
-	const auto from = std::prev(stack.end(), static_cast<std::vector<WeakReference>::difference_type>(length * 2));
+	const auto from = std::prev(stack.end(), static_cast<std::vector<Reference>::difference_type>(length * 2));
 	const auto to = stack.end();
 	for (auto it = from; it != to; it = std::next(it, 2)) {
 		hash_insert(self, hash_key(*it), hash_value(*std::next(it)));
@@ -300,7 +300,7 @@ Hash::values_type::iterator mint::hash_insert(Hash& hash, const Hash::key_type& 
 	return hash.values.emplace(hash_key(key), hash_value(value)).first;
 }
 
-WeakReference mint::hash_get_item(Hash& hash, const Hash::key_type& key) {
+Reference mint::hash_get_item(Hash& hash, const Hash::key_type& key) {
 	auto i = hash.values.find(key);
 	if (i == hash.values.end()) {
 		i = hash_insert(hash, key, create_none());
@@ -308,7 +308,7 @@ WeakReference mint::hash_get_item(Hash& hash, const Hash::key_type& key) {
 	return i->second;
 }
 
-WeakReference mint::hash_get_item(Hash& hash, Hash::key_type& key) {
+Reference mint::hash_get_item(Hash& hash, Hash::key_type& key) {
 	auto i = hash.values.find(key);
 	if (i == hash.values.end()) {
 		i = hash_insert(hash, key, create_none());
@@ -316,19 +316,19 @@ WeakReference mint::hash_get_item(Hash& hash, Hash::key_type& key) {
 	return i->second;
 }
 
-WeakReference mint::hash_get_key(const Hash::values_type::iterator& it) {
+Reference mint::hash_get_key(const Hash::values_type::iterator& it) {
 	return {it->first};
 }
 
-WeakReference mint::hash_get_key(const Hash::values_type::value_type& item) {
+Reference mint::hash_get_key(const Hash::values_type::value_type& item) {
 	return {item.first};
 }
 
-WeakReference mint::hash_get_value(const Hash::values_type::iterator& it) {
+Reference mint::hash_get_value(const Hash::values_type::iterator& it) {
 	return it->second;
 }
 
-WeakReference mint::hash_get_value(Hash::values_type::value_type& item) {
+Reference mint::hash_get_value(Hash::values_type::value_type& item) {
 	return item.second;
 }
 
@@ -336,8 +336,8 @@ Hash::key_type mint::hash_key(const Reference& key) {
 	return {Reference::const_address | Reference::const_value, key.data()};
 }
 
-WeakReference mint::hash_value(const Reference& value) {
-	WeakReference item_value;
+Reference mint::hash_value(const Reference& value) {
+	Reference item_value;
 	if ((value.flags() & (Reference::const_value | Reference::temporary)) == Reference::const_value) {
 		item_value.copy_data(value);
 	}

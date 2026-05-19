@@ -46,7 +46,7 @@ static const mint::Symbol activated("activated");
 
 namespace {
 
-mint::WeakReference mint_watcher_poll(mint::Cursor& cursor, const mint::Reference& event_set,
+mint::Reference mint_watcher_poll(mint::Cursor& cursor, const mint::Reference& event_set,
     const mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 

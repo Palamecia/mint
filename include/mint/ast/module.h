@@ -128,7 +128,7 @@ protected:
 private:
 	std::vector<Node> _tree;
 	std::vector<std::unique_ptr<Handle>> _handles;
-	std::vector<std::unique_ptr<WeakReference>> _constants;
+	std::vector<std::unique_ptr<Reference>> _constants;
 	std::vector<std::unique_ptr<ClassDescription>> _classes;
 	std::vector<std::unique_ptr<ClassRegister>> _internal_registers;
 	std::unordered_map<std::string, std::unique_ptr<Symbol>> _symbols;
@@ -153,7 +153,7 @@ std::size_t Module::next_node_offset() const {
 template<std::derived_from<Data> Type, typename... Args>
 Reference* Module::make_constant(Args&&... args) {
 	return _constants
-	    .emplace_back(std::make_unique<WeakReference>(Reference::const_address | Reference::const_value,
+	    .emplace_back(std::make_unique<Reference>(Reference::const_address | Reference::const_value,
 	        std::in_place_type<Type>, std::forward<Args>(args)...))
 	    .get();
 }

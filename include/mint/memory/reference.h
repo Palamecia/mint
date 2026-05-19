@@ -99,6 +99,17 @@ public:
 		void set_data(Data* data);
 	};
 
+	Reference();
+	template<std::derived_from<Data> Type, typename... Args>
+	    requires std::constructible_from<Type, Args...>
+	Reference(Flags flags, std::in_place_type_t<Type> /*in_place_type*/, Args&&... args);
+	explicit Reference(Flags flags);
+	Reference(Flags flags, Data& data);
+	Reference(FromCreate /*create_from*/, const Reference& other);
+	Reference(FromCopy /*copy_from*/, const Reference& other);
+	Reference(FromCopy /*copy_from*/, Flags flags, const Data& data);
+	Reference(const Reference& other) = default;
+	Reference(Reference&& other) = default;
 	virtual ~Reference() = default;
 
 	Reference& operator=(Reference&& other) = default;
@@ -116,8 +127,6 @@ public:
 
 protected:
 	Reference(Flags flags, Data* data);
-	Reference(Reference&& other) = default;
-	Reference(const Reference& other) = default;
 
 	static LocalPool<Info> g_pool;
 
@@ -125,50 +134,27 @@ private:
 	std::shared_ptr<Info> _info;
 };
 
-class MINT_EXPORT WeakReference final : public Reference {
+class MINT_EXPORT RootReference final : public Reference, public MemoryRoot {
 public:
-	WeakReference();
+	RootReference();
 	template<std::derived_from<Data> Type, typename... Args>
 	    requires std::constructible_from<Type, Args...>
-	WeakReference(Flags flags, std::in_place_type_t<Type> /*in_place_type*/, Args&&... args);
-	explicit WeakReference(Flags flags);
-	WeakReference(Flags flags, Data& data);
-	WeakReference(FromCreate /*create_from*/, const Reference& other);
-	WeakReference(FromCopy /*copy_from*/, const Reference& other);
-	WeakReference(FromCopy /*copy_from*/, Flags flags, const Data& data);
-	WeakReference(const WeakReference& other) = default;
-	WeakReference(const Reference& other);
-	WeakReference(WeakReference&& other) = default;
-	WeakReference(Reference&& other) noexcept;
-	~WeakReference() override;
+	RootReference(Flags flags, std::in_place_type_t<Type> /*in_place_type*/, Args&&... args);
+	explicit RootReference(Flags flags);
+	RootReference(Flags flags, Data& data);
+	RootReference(FromCreate /*create_from*/, const Reference& other);
+	RootReference(FromCopy /*copy_from*/, const Reference& other);
+	RootReference(FromCopy /*copy_from*/, Flags flags, const Data& data);
+	RootReference(const RootReference& other);
+	RootReference(const Reference& other);
+	RootReference(RootReference&& other) noexcept;
+	RootReference(Reference&& other) noexcept;
+	~RootReference() override;
 
-	WeakReference& operator=(WeakReference&& other) = default;
-	WeakReference& operator=(const WeakReference& other) = default;
-};
-
-class MINT_EXPORT StrongReference final : public Reference, public MemoryRoot {
-public:
-	StrongReference();
-	template<std::derived_from<Data> Type, typename... Args>
-	    requires std::constructible_from<Type, Args...>
-	StrongReference(Flags flags, std::in_place_type_t<Type> /*in_place_type*/, Args&&... args);
-	explicit StrongReference(Flags flags);
-	StrongReference(Flags flags, Data& data);
-	StrongReference(FromCreate /*create_from*/, const Reference& other);
-	StrongReference(FromCopy /*copy_from*/, const Reference& other);
-	StrongReference(FromCopy /*copy_from*/, Flags flags, const Data& data);
-	StrongReference(const StrongReference& other);
-	StrongReference(const WeakReference& other);
-	StrongReference(const Reference& other);
-	StrongReference(StrongReference&& other) noexcept;
-	StrongReference(WeakReference&& other) noexcept;
-	StrongReference(Reference&& other) noexcept;
-	~StrongReference() override;
-
-	StrongReference& operator=(StrongReference&& other) = default;
-	StrongReference& operator=(WeakReference&& other) noexcept;
-	StrongReference& operator=(const StrongReference& other) = default;
-	StrongReference& operator=(const WeakReference& other);
+	RootReference& operator=(RootReference&& other) = default;
+	RootReference& operator=(Reference&& other) noexcept;
+	RootReference& operator=(const RootReference& other) = default;
+	RootReference& operator=(const Reference& other);
 
 	void mark() override {
 		data().mark();
@@ -186,48 +172,48 @@ Reference::Flags Reference::flags() const {
 
 template<std::derived_from<Data> Type, typename... Args>
     requires std::constructible_from<Type, Args...>
-WeakReference make_weak_reference(Reference::Flags flags, Args&&... args) {
-	return WeakReference(flags, std::in_place_type<Type>, std::forward<Args>(args)...);
+Reference make_reference(Reference::Flags flags, Args&&... args) {
+	return Reference(flags, std::in_place_type<Type>, std::forward<Args>(args)...);
 }
 
 template<std::derived_from<Data> Type, typename... Args>
     requires std::constructible_from<Type, Args...>
-WeakReference::WeakReference(Reference::Flags flags, std::in_place_type_t<Type> /*in_place_type*/, Args&&... args) :
+Reference::Reference(Reference::Flags flags, std::in_place_type_t<Type> /*in_place_type*/, Args&&... args) :
     Reference(flags, Info::alloc<Type>(std::forward<Args>(args)...)) {}
 
-inline WeakReference::WeakReference(FromCreate /*create_from*/, const Reference& other) :
+inline Reference::Reference(FromCreate /*create_from*/, const Reference& other) :
     Reference(other.flags(), &other.data()) {}
 
-inline WeakReference::WeakReference(FromCopy /*copy_from*/, const Reference& other) :
+inline Reference::Reference(FromCopy /*copy_from*/, const Reference& other) :
     Reference(other.flags(), Info::copy(other.data())) {}
 
-inline WeakReference::WeakReference(FromCopy /*copy_from*/, Flags flags, const Data& data) :
+inline Reference::Reference(FromCopy /*copy_from*/, Flags flags, const Data& data) :
     Reference(flags, Info::copy(data)) {}
 
 template<std::derived_from<Data> Type, typename... Args>
     requires std::constructible_from<Type, Args...>
-StrongReference make_strong_reference(Reference::Flags flags, Args&&... args) {
-	return StrongReference(flags, std::in_place_type<Type>, std::forward<Args>(args)...);
+RootReference make_root_reference(Reference::Flags flags, Args&&... args) {
+	return RootReference(flags, std::in_place_type<Type>, std::forward<Args>(args)...);
 }
 
 template<std::derived_from<Data> Type, typename... Args>
     requires std::constructible_from<Type, Args...>
-StrongReference::StrongReference(Reference::Flags flags, std::in_place_type_t<Type> /*in_place_type*/, Args&&... args) :
+RootReference::RootReference(Reference::Flags flags, std::in_place_type_t<Type> /*in_place_type*/, Args&&... args) :
     Reference(flags, Info::alloc<Type>(std::forward<Args>(args)...)) {
 	register_root();
 }
 
-inline StrongReference::StrongReference(FromCreate /*create_from*/, const Reference& other) :
+inline RootReference::RootReference(FromCreate /*create_from*/, const Reference& other) :
     Reference(other.flags(), &other.data()) {
 	register_root();
 }
 
-inline StrongReference::StrongReference(FromCopy /*copy_from*/, const Reference& other) :
+inline RootReference::RootReference(FromCopy /*copy_from*/, const Reference& other) :
     Reference(other.flags(), Info::copy(other.data())) {
 	register_root();
 }
 
-inline StrongReference::StrongReference(FromCopy /*copy_from*/, Flags flags, const Data& data) :
+inline RootReference::RootReference(FromCopy /*copy_from*/, Flags flags, const Data& data) :
     Reference(flags, Info::copy(data)) {
 	register_root();
 }

@@ -36,7 +36,7 @@
 
 namespace {
 
-mint::WeakReference mint_errno_setup(mint::Cursor& /*cursor*/, const mint::Reference& errno_enum) {
+mint::Reference mint_errno_setup(mint::Cursor& /*cursor*/, const mint::Reference& errno_enum) {
 
 #define BIND_ERRNO_VALUE(_enum, _errno) \
 	_enum.data<mint::Object>().metadata.find_global(#_errno)->value.data<mint::Number>().value = _errno
@@ -475,7 +475,7 @@ mint::WeakReference mint_errno_setup(mint::Cursor& /*cursor*/, const mint::Refer
 	return {};
 }
 
-mint::WeakReference mint_errno_strerror(mint::Cursor& cursor, const mint::Reference& error) {
+mint::Reference mint_errno_strerror(mint::Cursor& cursor, const mint::Reference& error) {
 	return mint::create_string(cursor.ast(), strerror(mint::to_integer<int>(cursor, error)));
 }
 

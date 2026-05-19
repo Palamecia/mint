@@ -46,8 +46,8 @@ public:
 class MINT_EXPORT Hash : public Object {
 	friend class GarbageCollector;
 public:
-	using key_type = WeakReference;
-	using value_type = WeakReference;
+	using key_type = Reference;
+	using value_type = Reference;
 
 	struct MINT_EXPORT hash {
 		std::size_t operator()(const key_type& value) const;
@@ -81,14 +81,14 @@ private:
 
 MINT_EXPORT void hash_new(Cursor& cursor, std::size_t length);
 MINT_EXPORT Hash::values_type::iterator hash_insert(Hash& hash, const Hash::key_type& key, const Reference& value);
-MINT_EXPORT WeakReference hash_get_item(Hash& hash, const Hash::key_type& key);
-MINT_EXPORT WeakReference hash_get_item(Hash& hash, Hash::key_type& key);
-MINT_EXPORT WeakReference hash_get_key(const Hash::values_type::iterator& it);
-MINT_EXPORT WeakReference hash_get_key(const Hash::values_type::value_type& item);
-MINT_EXPORT WeakReference hash_get_value(const Hash::values_type::iterator& it);
-MINT_EXPORT WeakReference hash_get_value(Hash::values_type::value_type& item);
+MINT_EXPORT Reference hash_get_item(Hash& hash, const Hash::key_type& key);
+MINT_EXPORT Reference hash_get_item(Hash& hash, Hash::key_type& key);
+MINT_EXPORT Reference hash_get_key(const Hash::values_type::iterator& it);
+MINT_EXPORT Reference hash_get_key(const Hash::values_type::value_type& item);
+MINT_EXPORT Reference hash_get_value(const Hash::values_type::iterator& it);
+MINT_EXPORT Reference hash_get_value(Hash::values_type::value_type& item);
 MINT_EXPORT Hash::key_type hash_key(const Reference& key);
-MINT_EXPORT WeakReference hash_value(const Reference& value);
+MINT_EXPORT Reference hash_value(const Reference& value);
 
 }
 

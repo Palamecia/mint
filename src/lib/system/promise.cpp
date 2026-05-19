@@ -42,7 +42,7 @@
 
 namespace {
 
-mint::WeakReference mint_promise_start_member(mint::FunctionHelper& helper, const mint::Reference& object,
+mint::Reference mint_promise_start_member(mint::FunctionHelper& helper, const mint::Reference& object,
     const mint::Reference& method, const mint::Reference& args) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
@@ -62,10 +62,10 @@ mint::WeakReference mint_promise_start_member(mint::FunctionHelper& helper, cons
 
 	mint::call_member_operator(*thread_cursor, signature);
 	return mint::create_c_object(helper.cursor().ast(),
-	    new std::future<mint::WeakReference>(scheduler.create_async_thread(std::move(thread_cursor))));
+	    new std::future<mint::Reference>(scheduler.create_async_thread(std::move(thread_cursor))));
 }
 
-mint::WeakReference mint_promise_start(mint::FunctionHelper& helper, const mint::Reference& func,
+mint::Reference mint_promise_start(mint::FunctionHelper& helper, const mint::Reference& func,
     const mint::Reference& args) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
@@ -77,33 +77,33 @@ mint::WeakReference mint_promise_start(mint::FunctionHelper& helper, const mint:
 
 	mint::call_operator(*thread_cursor, signature);
 	return create_c_object(helper.cursor().ast(),
-	    new std::future<mint::WeakReference>(scheduler.create_async_thread(std::move(thread_cursor))));
+	    new std::future<mint::Reference>(scheduler.create_async_thread(std::move(thread_cursor))));
 }
 
-mint::WeakReference mint_promise_spawn(mint::FunctionHelper& helper, const mint::Reference& coroutine) {
+mint::Reference mint_promise_spawn(mint::FunctionHelper& helper, const mint::Reference& coroutine) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
 	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
 
 	if (mint::is_instance_of(coroutine, mint::Data::Format::coroutine)) {
-		coroutine.data<mint::Coroutine>().call(*thread_cursor, mint::WeakReference(coroutine));
+		coroutine.data<mint::Coroutine>().call(*thread_cursor, mint::Reference(coroutine));
 	}
 	else {
 		thread_cursor->stack().emplace_back(coroutine);
 	}
 
 	return create_c_object(helper.cursor().ast(),
-	    new std::future<mint::WeakReference>(scheduler.create_async_thread(std::move(thread_cursor))));
+	    new std::future<mint::Reference>(scheduler.create_async_thread(std::move(thread_cursor))));
 }
 
-mint::WeakReference mint_promise_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	delete d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr;
+mint::Reference mint_promise_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+	delete d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr;
 	return {};
 }
 
-mint::WeakReference mint_promise_wait_for(mint::Cursor& cursor, const mint::Reference& d_ptr,
+mint::Reference mint_promise_wait_for(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& time) {
-	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr; promise->valid()) {
+	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
 		mint::unlock_processor();
 		switch (promise->wait_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)))) {
 		case std::future_status::deferred:
@@ -118,8 +118,8 @@ mint::WeakReference mint_promise_wait_for(mint::Cursor& cursor, const mint::Refe
 	return mint::create_boolean(true);
 }
 
-mint::WeakReference mint_promise_wait(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr; promise->valid()) {
+mint::Reference mint_promise_wait(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
 		mint::unlock_processor();
 		promise->wait();
 		mint::lock_processor();
@@ -127,12 +127,12 @@ mint::WeakReference mint_promise_wait(mint::Cursor& /*cursor*/, const mint::Refe
 	return {};
 }
 
-mint::WeakReference mint_promise_is_valid(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return mint::create_boolean(d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr->valid());
+mint::Reference mint_promise_is_valid(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+	return mint::create_boolean(d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr->valid());
 }
 
-mint::WeakReference mint_promise_get(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return d_ptr.data<mint::LibObject<std::future<mint::WeakReference>>>().ptr->get();
+mint::Reference mint_promise_get(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+	return d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr->get();
 }
 
 }

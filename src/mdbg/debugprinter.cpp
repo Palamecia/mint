@@ -163,7 +163,7 @@ std::string reference_value(const mint::Reference& reference) {
 		        return object_value(object);
 	        },
 	        [](mint::Data& object) -> std::string {
-		        if (mint::is_instance_of(mint::WeakReference(mint::Reference::default_flags, object),
+		        if (mint::is_instance_of(mint::Reference(mint::Reference::default_flags, object),
 		                mint::Class::Metatype::libobject)) {
 			        return object_value(object);
 		        }

@@ -36,11 +36,11 @@ public:
 
 	void print(const mint::Reference& reference) override;
 
-	[[nodiscard]] mint::WeakReference result();
+	[[nodiscard]] mint::Reference result();
 
 private:
 	std::reference_wrapper<mint::Cursor> _cursor;
-	std::vector<mint::WeakReference> _results;
+	std::vector<mint::Reference> _results;
 };
 
 #endif // EVALRESULTPRINTER_H

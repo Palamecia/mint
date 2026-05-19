@@ -92,7 +92,7 @@ std::chrono::zoned_time<Duration> to_zoned_time(mint::Cursor& cursor, const mint
 	return {};
 }
 
-mint::WeakReference mint_timezone_locate(mint::Cursor& cursor, const mint::Reference& name) {
+mint::Reference mint_timezone_locate(mint::Cursor& cursor, const mint::Reference& name) {
 	const auto name_str = to_string(name);
 	if (auto offset = to_offset(name_str)) {
 		return mint::create_signed_number(offset->count());
@@ -105,7 +105,7 @@ mint::WeakReference mint_timezone_locate(mint::Cursor& cursor, const mint::Refer
 	}
 }
 
-mint::WeakReference mint_timezone_get_name(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+mint::Reference mint_timezone_get_name(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 	if (mint::is_instance_of(d_ptr, mint::Class::Metatype::libobject)) {
 		return mint::create_string(cursor.ast(), d_ptr.data<mint::LibObject<std::chrono::time_zone>>().ptr->name());
 	}
@@ -119,7 +119,7 @@ mint::WeakReference mint_timezone_get_name(mint::Cursor& cursor, const mint::Ref
 	return {};
 }
 
-mint::WeakReference mint_timezone_match(mint::Cursor& cursor, const mint::Reference& self,
+mint::Reference mint_timezone_match(mint::Cursor& cursor, const mint::Reference& self,
     const mint::Reference& other) {
 	if (mint::is_instance_of(self, mint::Class::Metatype::libobject)
 	    && mint::is_instance_of(other, mint::Class::Metatype::libobject)) {
@@ -133,18 +133,18 @@ mint::WeakReference mint_timezone_match(mint::Cursor& cursor, const mint::Refere
 	return mint::create_boolean(false);
 }
 
-mint::WeakReference mint_timezone_current(mint::Cursor& cursor) {
+mint::Reference mint_timezone_current(mint::Cursor& cursor) {
 	return mint::create_c_object(cursor.ast(), std::chrono::current_zone());
 }
 
-mint::WeakReference mint_timezone_list(mint::Cursor& cursor) {
+mint::Reference mint_timezone_list(mint::Cursor& cursor) {
 	return mint::create_array(cursor.ast(),
 	    {std::from_range, std::views::transform(std::chrono::get_tzdb().zones, [&](const auto& time_zone) {
 		     return mint::create_string(cursor.ast(), time_zone.name());
 	     })});
 }
 
-mint::WeakReference mint_timezone_seconds_since_epoch(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_seconds_since_epoch(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     mint::Reference& year, const mint::Reference& mon, const mint::Reference& mday, const mint::Reference& hour,
     const mint::Reference& min, mint::Reference& sec) {
 
@@ -175,7 +175,7 @@ mint::WeakReference mint_timezone_seconds_since_epoch(mint::Cursor& cursor, cons
 	return {};
 }
 
-mint::WeakReference mint_timezone_milliseconds_since_epoch(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_milliseconds_since_epoch(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     mint::Reference& year, const mint::Reference& mon, const mint::Reference& mday, const mint::Reference& hour,
     const mint::Reference& min, mint::Reference& sec, const mint::Reference& msec) {
 
@@ -207,7 +207,7 @@ mint::WeakReference mint_timezone_milliseconds_since_epoch(mint::Cursor& cursor,
 	return {};
 }
 
-mint::WeakReference mint_timezone_time_from_time_point(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_time_from_time_point(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
@@ -229,7 +229,7 @@ mint::WeakReference mint_timezone_time_from_time_point(mint::Cursor& cursor, con
 	    mint::create_signed_number(static_cast<int>(time.subseconds().count())));
 }
 
-mint::WeakReference mint_timezone_time_from_seconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_time_from_seconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::seconds>(cursor, zoneinfo,
@@ -250,7 +250,7 @@ mint::WeakReference mint_timezone_time_from_seconds(mint::Cursor& cursor, const 
 	    mint::create_signed_number(time.minutes().count()), mint::create_signed_number(time.seconds().count()));
 }
 
-mint::WeakReference mint_timezone_time_from_milliseconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_time_from_milliseconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
@@ -273,7 +273,7 @@ mint::WeakReference mint_timezone_time_from_milliseconds(mint::Cursor& cursor, c
 	    mint::create_signed_number(static_cast<int>(time.subseconds().count())));
 }
 
-mint::WeakReference mint_timezone_week_day_from_time_point(mint::FunctionHelper& helper,
+mint::Reference mint_timezone_week_day_from_time_point(mint::FunctionHelper& helper,
     const mint::Reference& zoneinfo, const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(helper.cursor(), zoneinfo,
@@ -290,7 +290,7 @@ mint::WeakReference mint_timezone_week_day_from_time_point(mint::FunctionHelper&
 	    .share();
 }
 
-mint::WeakReference mint_timezone_week_day_from_seconds(mint::FunctionHelper& helper, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_week_day_from_seconds(mint::FunctionHelper& helper, const mint::Reference& zoneinfo,
     mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::seconds>(helper.cursor(), zoneinfo,
@@ -308,7 +308,7 @@ mint::WeakReference mint_timezone_week_day_from_seconds(mint::FunctionHelper& he
 	    .share();
 }
 
-mint::WeakReference mint_timezone_week_day_from_milliseconds(mint::FunctionHelper& helper,
+mint::Reference mint_timezone_week_day_from_milliseconds(mint::FunctionHelper& helper,
     const mint::Reference& zoneinfo, const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(helper.cursor(), zoneinfo,
@@ -326,7 +326,7 @@ mint::WeakReference mint_timezone_week_day_from_milliseconds(mint::FunctionHelpe
 	    .share();
 }
 
-mint::WeakReference mint_timezone_year_day_from_time_point(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_year_day_from_time_point(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
@@ -340,7 +340,7 @@ mint::WeakReference mint_timezone_year_day_from_time_point(mint::Cursor& cursor,
 	return mint::create_signed_number(day_of_year.count());
 }
 
-mint::WeakReference mint_timezone_year_day_from_seconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_year_day_from_seconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::seconds>(cursor, zoneinfo,
@@ -354,7 +354,7 @@ mint::WeakReference mint_timezone_year_day_from_seconds(mint::Cursor& cursor, co
 	return mint::create_signed_number(day_of_year.count());
 }
 
-mint::WeakReference mint_timezone_year_day_from_milliseconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_year_day_from_milliseconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
@@ -369,7 +369,7 @@ mint::WeakReference mint_timezone_year_day_from_milliseconds(mint::Cursor& curso
 	return mint::create_signed_number(day_of_year.count());
 }
 
-mint::WeakReference mint_timezone_is_dst_from_time_point(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_is_dst_from_time_point(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
@@ -378,7 +378,7 @@ mint::WeakReference mint_timezone_is_dst_from_time_point(mint::Cursor& cursor, c
 	return mint::create_boolean(zoned_time.get_info().save != std::chrono::minutes(0));
 }
 
-mint::WeakReference mint_timezone_is_dst_from_seconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_is_dst_from_seconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::seconds>(cursor, zoneinfo,
@@ -387,7 +387,7 @@ mint::WeakReference mint_timezone_is_dst_from_seconds(mint::Cursor& cursor, cons
 	return mint::create_boolean(zoned_time.get_info().save != std::chrono::minutes(0));
 }
 
-mint::WeakReference mint_timezone_is_dst_from_milliseconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
+mint::Reference mint_timezone_is_dst_from_milliseconds(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,

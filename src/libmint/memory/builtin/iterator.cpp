@@ -155,7 +155,7 @@ IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
 		const auto self = std::move(cursor.stack().back());
 
 		if (!self.data<Iterator>().ctx.empty()) {
-			cursor.stack().back() = WeakReference(create_from, self.data<Iterator>().ctx.get());
+			cursor.stack().back() = Reference(create_from, self.data<Iterator>().ctx.get());
 			// The next call can interrupt the current context,
 			// so the value must be pushed first
 			self.data<Iterator>().ctx.next(cursor);
@@ -166,7 +166,7 @@ IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
 	}));
 
 	create_builtin_member("value", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
-		if (std::optional<WeakReference>&& result = iterator_get(cursor.stack().back().data<Iterator>())) {
+		if (std::optional<Reference>&& result = iterator_get(cursor.stack().back().data<Iterator>())) {
 			cursor.stack().back() = std::move(*result);
 		}
 		else {
@@ -221,7 +221,7 @@ AsyncIteratorClass::AsyncIteratorClass(AbstractSyntaxTree& ast) :
 		const auto self = std::move(cursor.stack().back());
 
 		if (!self.data<Iterator>().ctx.empty()) {
-			cursor.stack().back() = WeakReference(create_from, self.data<Iterator>().ctx.get());
+			cursor.stack().back() = Reference(create_from, self.data<Iterator>().ctx.get());
 			// The next call can interrupt the current context,
 			// so the value must be pushed first
 			self.data<Iterator>().ctx.next(cursor);
@@ -232,7 +232,7 @@ AsyncIteratorClass::AsyncIteratorClass(AbstractSyntaxTree& ast) :
 	}));
 
 	create_builtin_member("value", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
-		if (std::optional<WeakReference>&& result = iterator_get(cursor.stack().back().data<Iterator>())) {
+		if (std::optional<Reference>&& result = iterator_get(cursor.stack().back().data<Iterator>())) {
 			cursor.stack().back() = std::move(*result);
 		}
 		else {
@@ -477,7 +477,7 @@ void mint::iterator_new(Cursor& cursor, std::size_t length) {
 	self.construct();
 
 	const auto from = std::prev(stack.end(),
-	    static_cast<std::vector<WeakReference>::difference_type>(length + call.extra_argument_count()));
+	    static_cast<std::vector<Reference>::difference_type>(length + call.extra_argument_count()));
 	const auto to = stack.end();
 	for (auto it = from; it != to; ++it) {
 		iterator_yield(cursor, self, std::move(*it));
@@ -500,21 +500,21 @@ void mint::iterator_resume(Cursor& cursor, Iterator& iterator, Reference&& item)
 
 	assert(cursor.is_in_coroutine());
 
-	const mint::WeakReference coroutine = cursor.coroutine();
+	const mint::Reference coroutine = cursor.coroutine();
 	iterator.ctx.yield(cursor, std::move(item), Iterator::ResumeKind::close);
 	coroutine.data<Coroutine>().exit(cursor);
 }
 
-std::optional<WeakReference> mint::iterator_get(Iterator& iterator) {
+std::optional<Reference> mint::iterator_get(Iterator& iterator) {
 	if (!iterator.ctx.empty()) {
 		return iterator.ctx.get();
 	}
 	return std::nullopt;
 }
 
-std::optional<WeakReference> mint::iterator_next(Cursor& cursor, Iterator& iterator) {
+std::optional<Reference> mint::iterator_next(Cursor& cursor, Iterator& iterator) {
 	if (!iterator.ctx.empty()) {
-		std::optional<WeakReference> item(iterator.ctx.get());
+		std::optional<Reference> item(iterator.ctx.get());
 		iterator.ctx.next(cursor);
 		return item;
 	}

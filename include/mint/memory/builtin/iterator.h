@@ -262,8 +262,8 @@ MINT_EXPORT void iterator_new(Cursor& cursor, std::size_t length);
 MINT_EXPORT void iterator_yield(Cursor& cursor, Iterator& iterator, Reference&& item);
 MINT_EXPORT void iterator_return(Cursor& cursor, Iterator& iterator, Reference&& item);
 MINT_EXPORT void iterator_resume(Cursor& cursor, Iterator& iterator, Reference&& item);
-MINT_EXPORT std::optional<WeakReference> iterator_get(Iterator& iterator);
-MINT_EXPORT std::optional<WeakReference> iterator_next(Cursor& cursor, Iterator& iterator);
+MINT_EXPORT std::optional<Reference> iterator_get(Iterator& iterator);
+MINT_EXPORT std::optional<Reference> iterator_next(Cursor& cursor, Iterator& iterator);
 
 }
 

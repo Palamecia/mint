@@ -74,7 +74,7 @@ void copy_to_buffer(std::vector<std::uint8_t>& buffer, const T* source) {
 	std::ranges::copy_n(std::bit_cast<const std::uint8_t*>(source), sizeof(T), std::back_inserter(buffer));
 }
 
-mint::WeakReference get_d_ptr(const mint::Reference& reference) {
+mint::Reference get_d_ptr(const mint::Reference& reference) {
 	if (auto& object = reference.data<mint::Object>(); auto* info = object.metadata.find_member(symbols::d_ptr)) {
 		return mint::Class::MemberInfo::get(*info, object);
 	}
@@ -170,13 +170,13 @@ bool base64_to_buffer(std::vector<std::uint8_t>* buffer, const std::string& data
 	return true;
 }
 
-mint::WeakReference mint_datastream_from_utf8_bytes(mint::Cursor& cursor, const mint::Reference& data,
+mint::Reference mint_datastream_from_utf8_bytes(mint::Cursor& cursor, const mint::Reference& data,
     const mint::Reference& bytes, mint::Reference& count) {
 
 	const std::intmax_t count_int = mint::to_signed_integer(cursor, count);
 	const std::string bytes_str = mint::to_string(bytes);
 	for (std::intmax_t index = 0; index < count_int; ++index) {
-		mint::WeakReference item = array_get_item(data.data<mint::Array>(), index);
+		mint::Reference item = array_get_item(data.data<mint::Array>(), index);
 		if (const auto data_index = array_index(data.data<mint::Array>(), index); data_index < bytes_str.size()) {
 			*get_d_ptr(item).data<mint::LibObject<std::uint8_t>>().ptr = bytes_str[data_index];
 		}
@@ -188,85 +188,85 @@ mint::WeakReference mint_datastream_from_utf8_bytes(mint::Cursor& cursor, const 
 	return data;
 }
 
-mint::WeakReference mint_datastream_create_buffer(mint::Cursor& cursor) {
+mint::Reference mint_datastream_create_buffer(mint::Cursor& cursor) {
 	return mint::create_c_object(cursor.ast(), new std::vector<std::uint8_t>());
 }
 
-mint::WeakReference mint_datastream_delete_buffer(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+mint::Reference mint_datastream_delete_buffer(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
 	delete buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 	return {};
 }
 
-mint::WeakReference mint_datastream_contains_int8(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_contains_int8(mint::Cursor& cursor, const mint::Reference& buffer,
     mint::Reference& count) {
 	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::int8_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-mint::WeakReference mint_datastream_contains_int16(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_contains_int16(mint::Cursor& cursor, const mint::Reference& buffer,
     mint::Reference& count) {
 	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::int16_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-mint::WeakReference mint_datastream_contains_int32(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_contains_int32(mint::Cursor& cursor, const mint::Reference& buffer,
     mint::Reference& count) {
 	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::int32_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-mint::WeakReference mint_datastream_contains_int64(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_contains_int64(mint::Cursor& cursor, const mint::Reference& buffer,
     mint::Reference& count) {
 	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::int64_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-mint::WeakReference mint_datastream_contains_uint8(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_contains_uint8(mint::Cursor& cursor, const mint::Reference& buffer,
     mint::Reference& count) {
 	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::uint8_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-mint::WeakReference mint_datastream_contains_uint16(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_contains_uint16(mint::Cursor& cursor, const mint::Reference& buffer,
     mint::Reference& count) {
 	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::uint16_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-mint::WeakReference mint_datastream_contains_uint32(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_contains_uint32(mint::Cursor& cursor, const mint::Reference& buffer,
     mint::Reference& count) {
 	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::uint32_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-mint::WeakReference mint_datastream_contains_uint64(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_contains_uint64(mint::Cursor& cursor, const mint::Reference& buffer,
     mint::Reference& count) {
 	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::uint64_t) * mint::to_unsigned_integer(cursor, count));
 }
 
-mint::WeakReference mint_datastream_contains_number(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+mint::Reference mint_datastream_contains_number(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
 	return mint::create_boolean(
 	    buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size() >= sizeof(mint::Number::value));
 }
 
-mint::WeakReference mint_datastream_contains_boolean(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+mint::Reference mint_datastream_contains_boolean(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
 	return mint::create_boolean(
 	    buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size() >= sizeof(mint::Boolean::value));
 }
 
-mint::WeakReference mint_datastream_contains_string(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+mint::Reference mint_datastream_contains_string(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
 	auto& buffer_data = *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 	return mint::create_boolean(std::ranges::find(buffer_data, 0) != buffer_data.end());
 }
 
-mint::WeakReference mint_datastream_get(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_get(mint::Cursor& cursor, const mint::Reference& buffer,
     const mint::Reference& data, const mint::Reference& count) {
 
 	auto* buffer_data = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data();
 
 	for (std::intmax_t index = 0; index < mint::to_signed_integer(cursor, count); ++index) {
-		mint::WeakReference item = array_get_item(data.data<mint::Array>(), index);
+		mint::Reference item = array_get_item(data.data<mint::Array>(), index);
 		if (mint::is_instance_of(item, mint::Class::Metatype::object)) {
 			auto& object = item.data<mint::Object>();
 			if (object.metadata.full_name() == symbols::int8) {
@@ -307,7 +307,7 @@ mint::WeakReference mint_datastream_get(mint::Cursor& cursor, const mint::Refere
 	return {};
 }
 
-mint::WeakReference mint_datastream_get_substr(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_get_substr(mint::Cursor& cursor, const mint::Reference& buffer,
     const mint::Reference& from, mint::Reference& length) {
 	std::vector<std::uint8_t>& buffer_data = *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 	return mint::create_string(cursor.ast(),
@@ -315,7 +315,7 @@ mint::WeakReference mint_datastream_get_substr(mint::Cursor& cursor, const mint:
 	        mint::to_unsigned_integer(cursor, length)));
 }
 
-mint::WeakReference mint_datastream_get(mint::Cursor& /*cursor*/, const mint::Reference& buffer,
+mint::Reference mint_datastream_get(mint::Cursor& /*cursor*/, const mint::Reference& buffer,
     const mint::Reference& data) {
 
 	auto* buffer_data = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data();
@@ -392,29 +392,29 @@ mint::WeakReference mint_datastream_get(mint::Cursor& /*cursor*/, const mint::Re
 	return {};
 }
 
-mint::WeakReference mint_datastream_to_base64(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+mint::Reference mint_datastream_to_base64(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 	return mint::create_string(cursor.ast(),
 	    buffer_to_base64(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr, base64_alphabet));
 }
 
-mint::WeakReference mint_datastream_to_base64url(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+mint::Reference mint_datastream_to_base64url(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 	return mint::create_string(cursor.ast(),
 	    buffer_to_base64(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr, base64_url_alphabet));
 }
 
-mint::WeakReference mint_datastream_write_base64(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
+mint::Reference mint_datastream_write_base64(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
     const mint::Reference& data) {
 	return mint::create_boolean(base64_to_buffer(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr,
 	    to_string(data), base64_alphabet));
 }
 
-mint::WeakReference mint_datastream_write_base64url(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
+mint::Reference mint_datastream_write_base64url(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
     const mint::Reference& data) {
 	return mint::create_boolean(base64_to_buffer(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr,
 	    to_string(data), base64_url_alphabet));
 }
 
-mint::WeakReference mint_datastream_read(mint::Cursor& /*cursor*/, const mint::Reference& buffer,
+mint::Reference mint_datastream_read(mint::Cursor& /*cursor*/, const mint::Reference& buffer,
     const mint::Reference& data) {
 
 	auto& buffer_object = *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
@@ -503,7 +503,7 @@ mint::WeakReference mint_datastream_read(mint::Cursor& /*cursor*/, const mint::R
 	return {};
 }
 
-mint::WeakReference mint_datastream_write(mint::Cursor& /*cursor*/, const mint::Reference& buffer,
+mint::Reference mint_datastream_write(mint::Cursor& /*cursor*/, const mint::Reference& buffer,
     const mint::Reference& data) {
 
 	auto& buffer_object = *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
@@ -591,18 +591,18 @@ mint::WeakReference mint_datastream_write(mint::Cursor& /*cursor*/, const mint::
 	return {};
 }
 
-mint::WeakReference mint_datastream_remove(mint::Cursor& cursor, const mint::Reference& buffer,
+mint::Reference mint_datastream_remove(mint::Cursor& cursor, const mint::Reference& buffer,
     const mint::Reference& count) {
 	std::vector<std::uint8_t>* self = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 	self->erase(self->begin(), std::next(self->begin(), mint::to_signed_integer(cursor, count)));
 	return {};
 }
 
-mint::WeakReference mint_datastream_size(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+mint::Reference mint_datastream_size(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
 	return mint::create_unsigned_number(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size());
 }
 
-mint::WeakReference mint_datastream_empty(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
+mint::Reference mint_datastream_empty(mint::Cursor& /*cursor*/, const mint::Reference& buffer) {
 	return mint::create_boolean(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->empty());
 }
 

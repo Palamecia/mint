@@ -87,7 +87,7 @@ protected:
 
 	bool on_module_path_token(const std::vector<std::string>& context, const std::string& token,
 	    std::string::size_type offset) override {
-		mint::WeakReference context_values = mint::create_array(_scheduler.get().ast(),
+		mint::Reference context_values = mint::create_array(_scheduler.get().ast(),
 		    {std::from_range, std::views::transform(context, [this](const std::string& context_symbol) {
 			     return mint::create_string(_scheduler.get().ast(), context_symbol);
 		     })});
@@ -97,7 +97,7 @@ protected:
 
 	bool on_symbol_token(const std::vector<std::string>& context, const std::string& token,
 	    std::string::size_type offset) override {
-		mint::WeakReference context_values = mint::create_array(_scheduler.get().ast(),
+		mint::Reference context_values = mint::create_array(_scheduler.get().ast(),
 		    {std::from_range, std::views::transform(context, [this](const std::string& context_symbol) {
 			     return mint::create_string(_scheduler.get().ast(), context_symbol);
 		     })});
@@ -106,7 +106,7 @@ protected:
 	}
 
 	bool on_symbol_token(const std::vector<std::string>& context, std::string::size_type offset) override {
-		mint::WeakReference context_values = mint::create_array(_scheduler.get().ast(),
+		mint::Reference context_values = mint::create_array(_scheduler.get().ast(),
 		    {std::from_range, std::views::transform(context, [this](const std::string& context_symbol) {
 			     return mint::create_string(_scheduler.get().ast(), context_symbol);
 		     })});
@@ -139,8 +139,8 @@ protected:
 
 private:
 	std::reference_wrapper<mint::Scheduler> _scheduler;
-	mint::WeakReference _lexical_handler_class;
-	mint::WeakReference _self;
+	mint::Reference _lexical_handler_class;
+	mint::Reference _self;
 };
 
 class LexicalHandlerStream : public mint::AbstractLexicalHandlerStream {
@@ -177,21 +177,21 @@ protected:
 
 private:
 	std::reference_wrapper<mint::Scheduler> _scheduler;
-	mint::WeakReference _self;
+	mint::Reference _self;
 	std::vector<int> _buffer;
 	bool _good = true;
 };
 
-mint::WeakReference mint_lexical_handler_new(mint::FunctionHelper& helper, const mint::Reference& self) {
+mint::Reference mint_lexical_handler_new(mint::FunctionHelper& helper, const mint::Reference& self) {
 	return mint::create_c_object(helper.cursor().ast(), new MintLexicalHandler(helper.scheduler(), self));
 }
 
-mint::WeakReference mint_lexical_handler_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
+mint::Reference mint_lexical_handler_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
 	delete self.data<mint::LibObject<MintLexicalHandler>>().ptr;
 	return {};
 }
 
-mint::WeakReference mint_lexical_handler_parse(mint::FunctionHelper& helper, const mint::Reference& self,
+mint::Reference mint_lexical_handler_parse(mint::FunctionHelper& helper, const mint::Reference& self,
     mint::Reference& stream) {
 	auto handler_stream = LexicalHandlerStream(helper.scheduler(), stream);
 	return mint::create_boolean(self.data<mint::LibObject<MintLexicalHandler>>().ptr->parse(handler_stream));

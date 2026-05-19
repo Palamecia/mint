@@ -84,7 +84,7 @@ AbstractMutex::Type to_abstract_mutex_type(mint::Cursor& cursor, const mint::Ref
 	    mint::to_integer<std::underlying_type_t<AbstractMutex::Type>>(cursor, value));
 }
 
-mint::WeakReference mint_mutex_create(mint::Cursor& cursor, const mint::Reference& type) {
+mint::Reference mint_mutex_create(mint::Cursor& cursor, const mint::Reference& type) {
 	switch (to_abstract_mutex_type(cursor, type)) {
 	case AbstractMutex::normal:
 		return mint::create_c_object(cursor.ast(), new Mutex);
@@ -94,12 +94,12 @@ mint::WeakReference mint_mutex_create(mint::Cursor& cursor, const mint::Referenc
 	return {};
 }
 
-mint::WeakReference mint_mutex_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
+mint::Reference mint_mutex_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
 	delete self.data<mint::LibObject<AbstractMutex>>().ptr;
 	return {};
 }
 
-mint::WeakReference mint_mutex_get_type(mint::FunctionHelper& helper, const mint::Reference& self) {
+mint::Reference mint_mutex_get_type(mint::FunctionHelper& helper, const mint::Reference& self) {
 	switch (self.data<mint::LibObject<AbstractMutex>>().ptr->type()) {
 	case AbstractMutex::normal:
 		return helper.reference(symbols::system)
@@ -117,7 +117,7 @@ mint::WeakReference mint_mutex_get_type(mint::FunctionHelper& helper, const mint
 	return {};
 }
 
-mint::WeakReference mint_mutex_lock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
+mint::Reference mint_mutex_lock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
 
 	mint::unlock_processor();
 
@@ -134,7 +134,7 @@ mint::WeakReference mint_mutex_lock(mint::Cursor& /*cursor*/, const mint::Refere
 	return {};
 }
 
-mint::WeakReference mint_mutex_unlock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
+mint::Reference mint_mutex_unlock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
 	switch (self.data<mint::LibObject<AbstractMutex>>().ptr->type()) {
 	case AbstractMutex::normal:
 		self.data<mint::LibObject<Mutex>>().ptr->handle.unlock();
@@ -146,7 +146,7 @@ mint::WeakReference mint_mutex_unlock(mint::Cursor& /*cursor*/, const mint::Refe
 	return {};
 }
 
-mint::WeakReference mint_mutex_try_lock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
+mint::Reference mint_mutex_try_lock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
 	switch (self.data<mint::LibObject<AbstractMutex>>().ptr->type()) {
 	case AbstractMutex::normal:
 		return mint::create_boolean(self.data<mint::LibObject<Mutex>>().ptr->handle.try_lock());

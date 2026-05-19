@@ -19,11 +19,11 @@ struct RangeFunctions {
 
 class RangeIteratorViewData : public IteratorViewData {
 	std::reference_wrapper<const RangeFunctions> _func;
-	mint::WeakReference _head;
-	mint::WeakReference _tail;
-	mint::WeakReference _cur;
+	mint::Reference _head;
+	mint::Reference _tail;
+	mint::Reference _cur;
 public:
-	RangeIteratorViewData(const RangeFunctions& func, mint::WeakReference& head, mint::WeakReference& tail);
+	RangeIteratorViewData(const RangeFunctions& func, mint::Reference& head, mint::Reference& tail);
 	RangeIteratorViewData(RangeIteratorViewData&&) = delete;
 	RangeIteratorViewData(const RangeIteratorViewData&) = delete;
 	virtual ~RangeIteratorViewData() = default;
@@ -42,8 +42,8 @@ public:
 
 class RangeIteratorData : public IteratorData {
 	std::reference_wrapper<const RangeFunctions> _func;
-	mint::WeakReference _head;
-	mint::WeakReference _tail;
+	mint::Reference _head;
+	mint::Reference _tail;
 public:
 	RangeIteratorData(double begin, double end);
 	RangeIteratorData(RangeIteratorData&&) = delete;

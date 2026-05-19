@@ -108,9 +108,9 @@ constexpr inline DWORD internal_kill_code = 0xDEAD;
 
 #endif
 
-mint::WeakReference mint_process_list(mint::Cursor& cursor) {
+mint::Reference mint_process_list(mint::Cursor& cursor) {
 
-	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.ast());
 
 #ifdef MINT_OS_WINDOWS
 	PROCESSENTRY32 pe = {sizeof(PROCESSENTRY32)};
@@ -141,11 +141,11 @@ mint::WeakReference mint_process_list(mint::Cursor& cursor) {
 	return result;
 }
 
-mint::WeakReference mint_process_exec(mint::Cursor& /*cursor*/, const mint::Reference& command) {
+mint::Reference mint_process_exec(mint::Cursor& /*cursor*/, const mint::Reference& command) {
 	return mint::create_signed_number(system(to_string(command).data()));
 }
 
-mint::WeakReference mint_process_get_handle(mint::Cursor& cursor, const mint::Reference& pid) {
+mint::Reference mint_process_get_handle(mint::Cursor& cursor, const mint::Reference& pid) {
 #ifdef MINT_OS_WINDOWS
 	const auto proc_id = mint::to_integer<DWORD>(cursor, pid);
 	HANDLE handle = OpenProcess(PROCESS_ALL_ACCESS, TRUE, proc_id);
@@ -161,7 +161,7 @@ mint::WeakReference mint_process_get_handle(mint::Cursor& cursor, const mint::Re
 #endif
 }
 
-mint::WeakReference mint_process_get_pid(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_process_get_pid(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 	if (handle.data().format() != mint::Data::Format::none) {
 #ifdef MINT_OS_WINDOWS
 		return mint::create_number(GetProcessId(to_handle(handle)));
@@ -172,7 +172,7 @@ mint::WeakReference mint_process_get_pid(mint::Cursor& /*cursor*/, const mint::R
 	return {};
 }
 
-mint::WeakReference mint_process_close_handle(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_process_close_handle(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	if (handle.data().format() != mint::Data::Format::none) {
 		CloseHandle(to_handle(handle));
@@ -183,11 +183,11 @@ mint::WeakReference mint_process_close_handle(mint::Cursor& /*cursor*/, const mi
 	return {};
 }
 
-mint::WeakReference mint_process_start(mint::Cursor& cursor, const mint::Reference& process,
+mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& process,
     const mint::Reference& arguments, mint::Reference& working_directory, const mint::Reference& environment,
     const mint::Reference& pipes) {
 
-	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.ast());
 
 #ifdef MINT_OS_WINDOWS
 
@@ -344,13 +344,13 @@ mint::WeakReference mint_process_start(mint::Cursor& cursor, const mint::Referen
 	return result;
 }
 
-mint::WeakReference mint_process_getcmdline(mint::Cursor& cursor, const mint::Reference& handle) {
+mint::Reference mint_process_getcmdline(mint::Cursor& cursor, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
-	mint::WeakReference results = mint::create_iterator(cursor.ast());
+	mint::Reference results = mint::create_iterator(cursor.ast());
 
 	if (LPWSTR cmd_line = mint::GetNtProcessCommandLine(to_handle(handle))) {
 
-		mint::WeakReference args = mint::create_array(cursor.ast());
+		mint::Reference args = mint::create_array(cursor.ast());
 
 		int argc = 0;
 		wchar_t** argv = CommandLineToArgvW(cmd_line, &argc);
@@ -372,8 +372,8 @@ mint::WeakReference mint_process_getcmdline(mint::Cursor& cursor, const mint::Re
 #else
 	const auto pid = static_cast<pid_t>(to_handle(handle));
 
-	mint::WeakReference results = create_iterator(cursor.ast());
-	mint::WeakReference args = create_array(cursor.ast());
+	mint::Reference results = create_iterator(cursor.ast());
+	mint::Reference args = create_array(cursor.ast());
 
 	auto cmdline_path = std::format("/proc/{}/cmdline", pid);
 	gsl::owner<FILE*> cmdline = mint::open_file(cmdline_path, "r");
@@ -400,7 +400,7 @@ mint::WeakReference mint_process_getcmdline(mint::Cursor& cursor, const mint::Re
 #endif
 }
 
-mint::WeakReference mint_process_getcwd(mint::Cursor& cursor, const mint::Reference& handle) {
+mint::Reference mint_process_getcwd(mint::Cursor& cursor, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	const auto length = mint::GetNtProcessCurrentDirectory(to_handle(handle), nullptr, 0);
 	auto current_directory_path = std::make_unique<WCHAR[]>(length);
@@ -422,9 +422,9 @@ mint::WeakReference mint_process_getcwd(mint::Cursor& cursor, const mint::Refere
 	return {};
 }
 
-mint::WeakReference mint_process_getenv(mint::Cursor& cursor, const mint::Reference& handle) {
+mint::Reference mint_process_getenv(mint::Cursor& cursor, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
-	mint::WeakReference results = mint::create_hash(cursor.ast());
+	mint::Reference results = mint::create_hash(cursor.ast());
 
 	if (LPWCH environment = mint::GetNtProcessEnvironmentStrings(to_handle(handle))) {
 		for (LPCWSTR buffer = environment; *buffer; buffer += lstrlenW(buffer) + 1) {
@@ -440,7 +440,7 @@ mint::WeakReference mint_process_getenv(mint::Cursor& cursor, const mint::Refere
 #else
 	const auto pid = static_cast<pid_t>(to_handle(handle));
 
-	mint::WeakReference results = mint::create_hash(cursor.ast());
+	mint::Reference results = mint::create_hash(cursor.ast());
 
 	const auto environ_path = std::format("/proc/{}/environ", pid);
 	gsl::owner<FILE*> environ = mint::open_file(environ_path, "r");
@@ -461,7 +461,7 @@ mint::WeakReference mint_process_getenv(mint::Cursor& cursor, const mint::Refere
 #endif
 }
 
-mint::WeakReference mint_process_getpid(mint::Cursor& /*cursor*/) {
+mint::Reference mint_process_getpid(mint::Cursor& /*cursor*/) {
 #ifdef MINT_OS_WINDOWS
 	return mint::create_number(GetCurrentProcessId());
 #else
@@ -469,7 +469,7 @@ mint::WeakReference mint_process_getpid(mint::Cursor& /*cursor*/) {
 #endif
 }
 
-mint::WeakReference mint_process_waitpid(mint::Cursor& /*cursor*/, const mint::Reference& handle,
+mint::Reference mint_process_waitpid(mint::Cursor& /*cursor*/, const mint::Reference& handle,
     const mint::Reference& wait_for_finished, const mint::Reference& exit_status, const mint::Reference& exit_code) {
 
 #ifdef MINT_OS_WINDOWS
@@ -514,7 +514,7 @@ mint::WeakReference mint_process_waitpid(mint::Cursor& /*cursor*/, const mint::R
 #endif
 }
 
-mint::WeakReference mint_process_kill(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_process_kill(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	if (!TerminateProcess(to_handle(handle), internal_kill_code)) {
 		return mint::create_number(mint::errno_from_error_code(mint::last_error_code()));
@@ -529,7 +529,7 @@ mint::WeakReference mint_process_kill(mint::Cursor& /*cursor*/, const mint::Refe
 	return {};
 }
 
-mint::WeakReference mint_process_terminate(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
+mint::Reference mint_process_terminate(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	if (!GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, GetProcessId(to_handle(handle)))) {
 		return mint::create_number(mint::errno_from_error_code(mint::last_error_code()));

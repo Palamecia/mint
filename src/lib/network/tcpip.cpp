@@ -55,9 +55,9 @@
 
 namespace {
 
-mint::WeakReference mint_tcp_ip_socket_open(mint::Cursor& cursor, const mint::Reference& ip_version) {
+mint::Reference mint_tcp_ip_socket_open(mint::Cursor& cursor, const mint::Reference& ip_version) {
 
-	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.ast());
 	auto socket_fd = INVALID_SOCKET;
 
 	switch (to_integer<int>(cursor, ip_version)) {
@@ -90,10 +90,10 @@ mint::WeakReference mint_tcp_ip_socket_open(mint::Cursor& cursor, const mint::Re
 	return result;
 }
 
-mint::WeakReference mint_tcp_ip_socket_send(mint::FunctionHelper& helper, const mint::Reference& socket,
+mint::Reference mint_tcp_ip_socket_send(mint::FunctionHelper& helper, const mint::Reference& socket,
     mint::Reference& buffer) {
 
-	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().ast());
 
 	const auto socket_fd = to_integer<SOCKET>(helper.cursor(), socket);
 	std::vector<std::uint8_t>* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
@@ -146,10 +146,10 @@ mint::WeakReference mint_tcp_ip_socket_send(mint::FunctionHelper& helper, const 
 	return result;
 }
 
-mint::WeakReference mint_tcp_ip_socket_recv(mint::FunctionHelper& helper, const mint::Reference& socket,
+mint::Reference mint_tcp_ip_socket_recv(mint::FunctionHelper& helper, const mint::Reference& socket,
     mint::Reference& buffer) {
 
-	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().ast());
 
 	const auto socket_fd = to_integer<SOCKET>(helper.cursor(), socket);
 	std::vector<std::uint8_t>* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
@@ -212,7 +212,7 @@ mint::WeakReference mint_tcp_ip_socket_recv(mint::FunctionHelper& helper, const 
 	return result;
 }
 
-mint::WeakReference mint_socket_setup_tcp_options(mint::Cursor& /*cursor*/, const mint::Reference& tcp_socket_option) {
+mint::Reference mint_socket_setup_tcp_options(mint::Cursor& /*cursor*/, const mint::Reference& tcp_socket_option) {
 
 #define BIND_TCP_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = TCP_##_option
@@ -233,10 +233,10 @@ mint::WeakReference mint_socket_setup_tcp_options(mint::Cursor& /*cursor*/, cons
 	return {};
 }
 
-mint::WeakReference mint_socket_get_tcp_option_number(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_get_tcp_option_number(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
 
-	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.ast());
 
 	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
 	const auto option_id = to_integer<int>(cursor, option);
@@ -253,7 +253,7 @@ mint::WeakReference mint_socket_get_tcp_option_number(mint::Cursor& cursor, cons
 	return result;
 }
 
-mint::WeakReference mint_socket_set_tcp_option_number(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_set_tcp_option_number(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option, const mint::Reference& value) {
 
 	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
@@ -267,10 +267,10 @@ mint::WeakReference mint_socket_set_tcp_option_number(mint::Cursor& cursor, cons
 	return {};
 }
 
-mint::WeakReference mint_socket_get_tcp_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_get_tcp_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
 
-	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.ast());
 
 	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
 	const auto option_id = to_integer<int>(cursor, option);
@@ -287,7 +287,7 @@ mint::WeakReference mint_socket_get_tcp_option_boolean(mint::Cursor& cursor, con
 	return result;
 }
 
-mint::WeakReference mint_socket_set_tcp_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_set_tcp_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option, const mint::Reference& value) {
 
 	const auto socket_fd = to_integer<SOCKET>(cursor, socket);

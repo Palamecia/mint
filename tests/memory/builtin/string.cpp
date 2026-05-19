@@ -16,7 +16,7 @@ TEST(string, subscript) {
 	auto thread = scheduler.enable_testing();
 	const auto string = mint::create_string(scheduler.ast(), "tëst");
 
-	mint::WeakReference result = scheduler.invoke(string, mint::Class::subscript_operator,
+	mint::Reference result = scheduler.invoke(string, mint::Class::subscript_operator,
 	    mint::create_signed_number(2));
 	ASSERT_EQ(mint::Data::Format::object, result.data().format());
 	ASSERT_EQ(mint::Class::Metatype::string, result.data<mint::Object>().metadata.metatype());
@@ -35,7 +35,7 @@ TEST(string, contains) {
 	auto thread = scheduler.enable_testing();
 	const auto string = mint::create_string(scheduler.ast(), "test");
 
-	mint::WeakReference result = scheduler.invoke(string, mint::Symbol("contains"),
+	mint::Reference result = scheduler.invoke(string, mint::Symbol("contains"),
 	    mint::create_string(scheduler.ast(), "es"));
 	ASSERT_EQ(mint::Data::Format::boolean, result.data().format());
 	EXPECT_EQ(true, result.data<mint::Boolean>().value);
@@ -51,7 +51,7 @@ TEST(string, starts_with) {
 	auto thread = scheduler.enable_testing();
 	const auto string = mint::create_string(scheduler.ast(), "test");
 
-	mint::WeakReference result = scheduler.invoke(string, mint::Symbol("startsWith"),
+	mint::Reference result = scheduler.invoke(string, mint::Symbol("startsWith"),
 	    mint::create_string(scheduler.ast(), "te"));
 	ASSERT_EQ(mint::Data::Format::boolean, result.data().format());
 	EXPECT_EQ(true, result.data<mint::Boolean>().value);
@@ -67,7 +67,7 @@ TEST(string, ends_with) {
 	auto thread = scheduler.enable_testing();
 	const auto string = mint::create_string(scheduler.ast(), "test");
 
-	mint::WeakReference result = scheduler.invoke(string, mint::Symbol("endsWith"),
+	mint::Reference result = scheduler.invoke(string, mint::Symbol("endsWith"),
 	    mint::create_string(scheduler.ast(), "st"));
 	ASSERT_EQ(mint::Data::Format::boolean, result.data().format());
 	EXPECT_EQ(true, result.data<mint::Boolean>().value);
@@ -86,8 +86,8 @@ TEST(string, split) {
 	mint::Scheduler scheduler({});
 	auto thread = scheduler.enable_testing();
 
-	mint::WeakReference string = mint::create_string(scheduler.ast(), "a, b, c");
-	mint::WeakReference result = scheduler.invoke(string, mint::Symbol("split"),
+	mint::Reference string = mint::create_string(scheduler.ast(), "a, b, c");
+	mint::Reference result = scheduler.invoke(string, mint::Symbol("split"),
 	    mint::create_string(scheduler.ast(), ", "));
 
 	ASSERT_EQ(mint::Data::Format::object, result.data().format());
@@ -142,7 +142,7 @@ TEST(string, format) {
 	mint::Scheduler scheduler({});
 	auto thread = scheduler.enable_testing();
 
-	mint::WeakReference result = scheduler.invoke(mint::create_string(scheduler.ast(), "{}, {:04}, {:.2f}, {{ok}}"),
+	mint::Reference result = scheduler.invoke(mint::create_string(scheduler.ast(), "{}, {:04}, {:.2f}, {{ok}}"),
 	    mint::Symbol("format"), mint::create_string(scheduler.ast(), "value"), mint::create_signed_number(7),
 	    mint::create_number(3.5));
 	ASSERT_EQ(mint::Data::Format::object, result.data().format());

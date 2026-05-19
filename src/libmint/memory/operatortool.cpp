@@ -74,13 +74,13 @@ bool mint::call_overload(Cursor& cursor, Class::Operator operator_overload, int 
 		case Data::Format::none:
 			error("invalid use of none value as a function");
 		case Data::Format::null:
-			cursor.raise(WeakReference(function));
+			cursor.raise(Reference(function));
 			break;
 		case Data::Format::number:
 		case Data::Format::boolean:
 		case Data::Format::object:
 			if (signature == 0) {
-				cursor.stack().back() = WeakReference(copy_from, function);
+				cursor.stack().back() = Reference(copy_from, function);
 			}
 			else {
 				error("{} copy doesn't take {} argument(s)", type_name(function), signature);
@@ -130,13 +130,13 @@ bool mint::call_overload(Cursor& cursor, const Symbol& operator_overload, int si
 		case Data::Format::none:
 			error("invalid use of none value as a function");
 		case Data::Format::null:
-			cursor.raise(WeakReference(function));
+			cursor.raise(Reference(function));
 			break;
 		case Data::Format::number:
 		case Data::Format::boolean:
 		case Data::Format::object:
 			if (signature == 0) {
-				cursor.stack().back() = WeakReference(copy_from, function);
+				cursor.stack().back() = Reference(copy_from, function);
 			}
 			else {
 				error("{} copy doesn't take {} argument(s)", type_name(function), signature);
@@ -204,7 +204,7 @@ void mint::copy_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value in assignment");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		lhs.data<Number>().value = to_number(cursor, rhs);
@@ -262,7 +262,7 @@ void mint::call_operator(Cursor& cursor, int signature) {
 		}
 		break;
 	case Data::Format::null:
-		cursor.raise(WeakReference(function));
+		cursor.raise(Reference(function));
 		break;
 	case Data::Format::number:
 	case Data::Format::boolean:
@@ -314,13 +314,13 @@ void mint::call_member_operator(Cursor& cursor, int signature) {
 		}
 		break;
 	case Data::Format::null:
-		cursor.raise(WeakReference(function));
+		cursor.raise(Reference(function));
 		break;
 	case Data::Format::number:
 	case Data::Format::boolean:
 	case Data::Format::object:
 		if (signature == 0) {
-			cursor.stack().back() = WeakReference(copy_from, function);
+			cursor.stack().back() = Reference(copy_from, function);
 		}
 		else {
 			error("{} copy doesn't take {} argument(s)", type_name(function), signature);
@@ -355,7 +355,7 @@ void mint::add_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '+'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		if (lhs.flags() & Reference::temporary) {
@@ -418,7 +418,7 @@ void mint::sub_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '-'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		if (lhs.flags() & Reference::temporary) {
@@ -467,7 +467,7 @@ void mint::mul_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '*'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		if (lhs.flags() & Reference::temporary) {
@@ -516,7 +516,7 @@ void mint::div_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '/'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		if (lhs.flags() & Reference::temporary) {
@@ -565,7 +565,7 @@ void mint::pow_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '**'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		if (lhs.flags() & Reference::temporary) {
@@ -604,7 +604,7 @@ void mint::mod_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '%'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		if (const auto divider = to_signed_integer(cursor, rhs)) {
@@ -644,7 +644,7 @@ void mint::is_operator(Cursor& cursor) {
 	const auto& rhs = load_from_stack(cursor, base);
 	const auto& lhs = load_from_stack(cursor, base - 1);
 
-	WeakReference result = create_boolean(&lhs.data() == &rhs.data());
+	Reference result = create_boolean(&lhs.data() == &rhs.data());
 	cursor.stack().pop_back();
 	cursor.stack().back() = std::move(result);
 }
@@ -832,7 +832,7 @@ void mint::lt_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '<'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		{
@@ -873,7 +873,7 @@ void mint::gt_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '>'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		{
@@ -914,7 +914,7 @@ void mint::le_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '<='(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		{
@@ -955,7 +955,7 @@ void mint::ge_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '>='(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		{
@@ -1111,7 +1111,7 @@ void mint::band_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '&'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		if (lhs.flags() & Reference::temporary) {
@@ -1162,7 +1162,7 @@ void mint::bor_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '|'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		if (lhs.flags() & Reference::temporary) {
@@ -1213,7 +1213,7 @@ void mint::xor_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '^'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		if (lhs.flags() & Reference::temporary) {
@@ -1265,7 +1265,7 @@ void mint::inc_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '++'(0)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(arg));
+		cursor.raise(Reference(arg));
 		break;
 	case Data::Format::number:
 		arg.move_data(create_number(arg.data<Number>().value + 1));
@@ -1299,7 +1299,7 @@ void mint::dec_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '--'(0)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(arg));
+		cursor.raise(Reference(arg));
 		break;
 	case Data::Format::number:
 		arg.move_data(create_number(arg.data<Number>().value - 1));
@@ -1359,7 +1359,7 @@ void mint::compl_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '~'(0)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(arg));
+		cursor.raise(Reference(arg));
 		break;
 	case Data::Format::number:
 		cursor.stack().back() = create_signed_number(~to_signed_integer(cursor, arg));
@@ -1389,7 +1389,7 @@ void mint::pos_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '+'(0)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(arg));
+		cursor.raise(Reference(arg));
 		break;
 	case Data::Format::number:
 		if (arg.flags() & Reference::temporary) {
@@ -1429,7 +1429,7 @@ void mint::neg_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '-'(0)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(arg));
+		cursor.raise(Reference(arg));
 		break;
 	case Data::Format::number:
 		if (arg.flags() & Reference::temporary) {
@@ -1472,7 +1472,7 @@ void mint::shift_left_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '<<'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		{
@@ -1515,7 +1515,7 @@ void mint::shift_right_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '>>'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		{
@@ -1557,7 +1557,7 @@ void mint::inclusive_range_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '..'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		{
@@ -1593,7 +1593,7 @@ void mint::exclusive_range_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '...'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		{
@@ -1625,7 +1625,7 @@ void mint::typeof_operator(Cursor& cursor) {
 void mint::membersof_operator(Cursor& cursor) {
 
 	auto& arg = cursor.stack().back();
-	WeakReference result = create_array(cursor.ast());
+	Reference result = create_array(cursor.ast());
 
 	switch (arg.data().format()) {
 	case Data::Format::object:
@@ -1688,7 +1688,7 @@ void mint::subscript_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '[]'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		if (lhs.flags() & Reference::temporary) {
@@ -1698,7 +1698,7 @@ void mint::subscript_operator(Cursor& cursor) {
 			cursor.stack().pop_back();
 		}
 		else {
-			WeakReference result = create_unsigned_number(
+			Reference result = create_unsigned_number(
 			    to_unsigned_integer(lhs.data<Number>().value / pow(decimal_base, to_number(cursor, rhs)))
 			    % decimal_base);
 			cursor.stack().pop_back();
@@ -1747,7 +1747,7 @@ void mint::subscript_move_operator(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '[]='(2)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
 		lhs.data<Number>().value -= (to_number(to_unsigned_integer(lhs.data<Number>().value
@@ -1783,7 +1783,7 @@ void mint::regex_match(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '=~'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::regex_match_operator, 1)) [[unlikely]] {
@@ -1810,7 +1810,7 @@ void mint::regex_unmatch(Cursor& cursor) {
 	case Data::Format::none:
 		error("invalid use of none value with operator '!~'(1)");
 	case Data::Format::null:
-		cursor.raise(WeakReference(lhs));
+		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::object:
 		if (!call_overload(cursor, Class::regex_unmatch_operator, 1)) [[unlikely]] {
@@ -2043,7 +2043,7 @@ void mint::find_next(Cursor& cursor) {
 	else {
 		assert(is_iterator(range));
 		auto& iterator = range.data<Iterator>();
-		if (std::optional<WeakReference>&& item = iterator_next(cursor, iterator)) {
+		if (std::optional<Reference>&& item = iterator_next(cursor, iterator)) {
 			cursor.stack().emplace_back(arg);
 			cursor.stack().emplace_back(*item);
 			eq_operator(cursor);
@@ -2128,7 +2128,7 @@ void mint::range_iterator_check(Cursor& cursor, std::size_t pos) {
 	const auto& range = load_from_stack(cursor, base);
 	const auto& target = load_from_stack(cursor, base - 1);
 
-	if (std::optional<WeakReference> item = iterator_get(range.data<Iterator>())) {
+	if (std::optional<Reference> item = iterator_get(range.data<Iterator>())) {
 
 		auto target_context = target.data<Iterator>().ctx;
 		auto it = target_context.begin();
@@ -2208,7 +2208,7 @@ std::size_t Hash::hash::operator()(const Hash::key_type& value) const {
 	case Data::Format::object:
 		switch (value.data<Object>().metadata.metatype()) {
 		case Class::Metatype::object:
-			return std::hash<WeakReference*> {}(value.data<Object>().data);
+			return std::hash<Reference*> {}(value.data<Object>().data);
 
 		case Class::Metatype::string:
 			return std::hash<std::string> {}(value.data<String>().str);

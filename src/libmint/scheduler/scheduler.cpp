@@ -156,7 +156,7 @@ void Scheduler::push_waiting_process(std::unique_ptr<Process>&& process) {
 	_configured_process.emplace(std::move(process));
 }
 
-WeakReference Scheduler::invoke(const Reference& function, std::vector<WeakReference>& parameters) {
+Reference Scheduler::invoke(const Reference& function, std::vector<Reference>& parameters) {
 
 	if (g_current.process.empty()) {
 		return {};
@@ -183,12 +183,12 @@ WeakReference Scheduler::invoke(const Reference& function, std::vector<WeakRefer
 		create_exception(raised.take_exception());
 	}
 
-	WeakReference result = std::move(cursor.stack().back());
+	Reference result = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
 	return result;
 }
 
-WeakReference Scheduler::invoke(Class& type, std::vector<WeakReference>& parameters) {
+Reference Scheduler::invoke(Class& type, std::vector<Reference>& parameters) {
 
 	if (g_current.process.empty()) {
 		return {};
@@ -220,7 +220,7 @@ WeakReference Scheduler::invoke(Class& type, std::vector<WeakReference>& paramet
 			create_exception(raised.take_exception());
 		}
 
-		WeakReference result = std::move(cursor.stack().back());
+		Reference result = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
 		return result;
 	}
@@ -228,7 +228,7 @@ WeakReference Scheduler::invoke(Class& type, std::vector<WeakReference>& paramet
 	return object;
 }
 
-WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, std::vector<WeakReference>& parameters) {
+Reference Scheduler::invoke(const Reference& object, const Symbol& method, std::vector<Reference>& parameters) {
 
 	if (g_current.process.empty()) {
 		return {};
@@ -256,12 +256,12 @@ WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, s
 		create_exception(raised.take_exception());
 	}
 
-	WeakReference result = std::move(cursor.stack().back());
+	Reference result = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
 	return result;
 }
 
-WeakReference Scheduler::invoke(const Reference& object, Class::Operator op, std::vector<WeakReference>& parameters) {
+Reference Scheduler::invoke(const Reference& object, Class::Operator op, std::vector<Reference>& parameters) {
 
 	if (g_current.process.empty()) {
 		return {};
@@ -289,13 +289,13 @@ WeakReference Scheduler::invoke(const Reference& object, Class::Operator op, std
 		create_exception(raised.take_exception());
 	}
 
-	WeakReference result = std::move(cursor.stack().back());
+	Reference result = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
 	return result;
 }
 
-WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
-    std::vector<WeakReference>& parameters) {
+Reference Scheduler::invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
+    std::vector<Reference>& parameters) {
 
 	if (g_current.process.empty()) {
 		return {};
@@ -323,7 +323,7 @@ WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, c
 		create_exception(raised.take_exception());
 	}
 
-	WeakReference result = std::move(cursor.stack().back());
+	Reference result = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
 	return result;
 }
@@ -331,7 +331,7 @@ WeakReference Scheduler::invoke(const Reference& object, const Symbol& method, c
 class Future : public Process {
 public:
 	struct ResultHandle {
-		WeakReference result;
+		Reference result;
 	};
 
 	explicit Future(std::unique_ptr<Cursor>&& cursor) :
@@ -354,11 +354,11 @@ private:
 	ResultHandle* _handle = nullptr;
 };
 
-std::future<WeakReference> Scheduler::create_async_thread(std::unique_ptr<Cursor>&& cursor) {
+std::future<Reference> Scheduler::create_async_thread(std::unique_ptr<Cursor>&& cursor) {
 	auto future = std::make_unique<Future>(std::move(cursor));
 	_thread_pool.start(*future);
 	return std::async(
-	    [this](std::unique_ptr<Future>&& future) -> WeakReference {
+	    [this](std::unique_ptr<Future>&& future) -> Reference {
 		    auto process = std::move(future);
 		    Future::ResultHandle handle;
 		    process->set_result_handle(&handle);

@@ -124,7 +124,7 @@ bool mint::set_socket_option(SOCKET socket, int level, int option, const void* v
 
 namespace {
 
-mint::WeakReference mint_socket_is_non_blocking(mint::Cursor& cursor, const mint::Reference& socket) {
+mint::Reference mint_socket_is_non_blocking(mint::Cursor& cursor, const mint::Reference& socket) {
 
 	bool status = false;
 	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
@@ -142,7 +142,7 @@ mint::WeakReference mint_socket_is_non_blocking(mint::Cursor& cursor, const mint
 	return mint::create_boolean(status);
 }
 
-mint::WeakReference mint_socket_set_non_blocking(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_set_non_blocking(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& enabled) {
 
 	bool success = false;
@@ -175,7 +175,7 @@ mint::WeakReference mint_socket_set_non_blocking(mint::Cursor& cursor, const min
 	return {};
 }
 
-mint::WeakReference mint_socket_setup_options(mint::Cursor& /*cursor*/, const mint::Reference& socket_option) {
+mint::Reference mint_socket_setup_options(mint::Cursor& /*cursor*/, const mint::Reference& socket_option) {
 
 #define BIND_SO_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = SO_##_option
@@ -270,10 +270,10 @@ mint::WeakReference mint_socket_setup_options(mint::Cursor& /*cursor*/, const mi
 	return {};
 }
 
-mint::WeakReference mint_socket_get_option_number(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_get_option_number(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
 
-	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.ast());
 
 	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
 	const auto option_id = mint::to_integer<int>(cursor, option);
@@ -290,7 +290,7 @@ mint::WeakReference mint_socket_get_option_number(mint::Cursor& cursor, const mi
 	return result;
 }
 
-mint::WeakReference mint_socket_set_option_number(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_set_option_number(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option, const mint::Reference& value) {
 
 	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
@@ -304,10 +304,10 @@ mint::WeakReference mint_socket_set_option_number(mint::Cursor& cursor, const mi
 	return {};
 }
 
-mint::WeakReference mint_socket_get_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_get_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
 
-	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.ast());
 
 	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
 	const auto option_id = mint::to_integer<int>(cursor, option);
@@ -324,7 +324,7 @@ mint::WeakReference mint_socket_get_option_boolean(mint::Cursor& cursor, const m
 	return result;
 }
 
-mint::WeakReference mint_socket_set_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_set_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option, const mint::Reference& value) {
 
 	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
@@ -338,10 +338,10 @@ mint::WeakReference mint_socket_set_option_boolean(mint::Cursor& cursor, const m
 	return {};
 }
 
-mint::WeakReference mint_socket_get_option_linger(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_get_option_linger(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
 
-	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.ast());
 
 	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
 	const auto option_id = mint::to_integer<int>(cursor, option);
@@ -359,7 +359,7 @@ mint::WeakReference mint_socket_get_option_linger(mint::Cursor& cursor, const mi
 	return result;
 }
 
-mint::WeakReference mint_socket_set_option_linger(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_set_option_linger(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option, const mint::Reference& value) {
 
 	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
@@ -373,10 +373,10 @@ mint::WeakReference mint_socket_set_option_linger(mint::Cursor& cursor, const mi
 	return {};
 }
 
-mint::WeakReference mint_socket_get_option_timeval(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_get_option_timeval(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
 
-	mint::WeakReference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.ast());
 
 	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
 	const auto option_id = mint::to_integer<int>(cursor, option);
@@ -394,7 +394,7 @@ mint::WeakReference mint_socket_get_option_timeval(mint::Cursor& cursor, const m
 	return result;
 }
 
-mint::WeakReference mint_socket_set_option_timeval(mint::Cursor& cursor, const mint::Reference& socket,
+mint::Reference mint_socket_set_option_timeval(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option, const mint::Reference& value) {
 
 	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
@@ -408,9 +408,9 @@ mint::WeakReference mint_socket_set_option_timeval(mint::Cursor& cursor, const m
 	return {};
 }
 
-mint::WeakReference mint_socket_finalize_connection(mint::FunctionHelper& helper, const mint::Reference& socket) {
+mint::Reference mint_socket_finalize_connection(mint::FunctionHelper& helper, const mint::Reference& socket) {
 
-	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().ast());
 
 	int error = EINVAL;
 	const auto socket_fd = mint::to_integer<SOCKET>(helper.cursor(), socket);
@@ -443,9 +443,9 @@ mint::WeakReference mint_socket_finalize_connection(mint::FunctionHelper& helper
 	return result;
 }
 
-mint::WeakReference mint_socket_shutdown(mint::FunctionHelper& helper, const mint::Reference& socket) {
+mint::Reference mint_socket_shutdown(mint::FunctionHelper& helper, const mint::Reference& socket) {
 
-	mint::WeakReference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().ast());
 
 #ifdef MINT_OS_WINDOWS
 	const int how = SD_BOTH;
@@ -487,7 +487,7 @@ mint::WeakReference mint_socket_shutdown(mint::FunctionHelper& helper, const min
 	return result;
 }
 
-mint::WeakReference mint_socket_close(mint::Cursor& cursor, const mint::Reference& socket) {
+mint::Reference mint_socket_close(mint::Cursor& cursor, const mint::Reference& socket) {
 
 	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
 
@@ -498,7 +498,7 @@ mint::WeakReference mint_socket_close(mint::Cursor& cursor, const mint::Referenc
 	return {};
 }
 
-mint::WeakReference mint_socket_get_error(mint::Cursor& cursor, const mint::Reference& socket) {
+mint::Reference mint_socket_get_error(mint::Cursor& cursor, const mint::Reference& socket) {
 
 	if (int error = 0; mint::get_socket_option(mint::to_integer<SOCKET>(cursor, socket), SO_ERROR, &error)) {
 		return mint::create_number(error);
@@ -507,11 +507,11 @@ mint::WeakReference mint_socket_get_error(mint::Cursor& cursor, const mint::Refe
 	return mint::create_number(errno_from_io_last_error());
 }
 
-mint::WeakReference mint_socket_strerror(mint::Cursor& cursor, const mint::Reference& error) {
+mint::Reference mint_socket_strerror(mint::Cursor& cursor, const mint::Reference& error) {
 	return mint::create_string(cursor.ast(), strerror(to_integer<int>(cursor, error)));
 }
 
-mint::WeakReference mint_socket_linger_create(mint::Cursor& cursor, const mint::Reference& enabled,
+mint::Reference mint_socket_linger_create(mint::Cursor& cursor, const mint::Reference& enabled,
     mint::Reference& linger_time) {
 	return mint::create_c_object(cursor.ast(), new linger {
 	                                               .l_onoff = to_boolean(enabled),
@@ -519,32 +519,32 @@ mint::WeakReference mint_socket_linger_create(mint::Cursor& cursor, const mint::
 	                                           });
 }
 
-mint::WeakReference mint_socket_linger_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+mint::Reference mint_socket_linger_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	delete d_ptr.data<mint::LibObject<linger>>().ptr;
 	return {};
 }
 
-mint::WeakReference mint_socket_linger_get_onoff(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+mint::Reference mint_socket_linger_get_onoff(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	return mint::create_boolean(d_ptr.data<mint::LibObject<linger>>().ptr->l_onoff);
 }
 
-mint::WeakReference mint_socket_linger_set_onoff(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
+mint::Reference mint_socket_linger_set_onoff(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
     mint::Reference& enabled) {
 	d_ptr.data<mint::LibObject<linger>>().ptr->l_onoff = to_boolean(enabled);
 	return {};
 }
 
-mint::WeakReference mint_socket_linger_get_linger(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+mint::Reference mint_socket_linger_get_linger(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	return mint::create_signed_number(d_ptr.data<mint::LibObject<linger>>().ptr->l_linger);
 }
 
-mint::WeakReference mint_socket_linger_set_linger(mint::Cursor& cursor, const mint::Reference& d_ptr,
+mint::Reference mint_socket_linger_set_linger(mint::Cursor& cursor, const mint::Reference& d_ptr,
     mint::Reference& linger_time) {
 	d_ptr.data<mint::LibObject<linger>>().ptr->l_linger = to_integer<u_short>(cursor, linger_time);
 	return {};
 }
 
-mint::WeakReference mint_socket_timeval_create(mint::Cursor& cursor, const mint::Reference& sec,
+mint::Reference mint_socket_timeval_create(mint::Cursor& cursor, const mint::Reference& sec,
     const mint::Reference& usec) {
 	return mint::create_c_object(cursor.ast(), new timeval {
 	                                               .tv_sec = to_integer<long>(cursor, sec),
@@ -552,26 +552,26 @@ mint::WeakReference mint_socket_timeval_create(mint::Cursor& cursor, const mint:
 	                                           });
 }
 
-mint::WeakReference mint_socket_timeval_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+mint::Reference mint_socket_timeval_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	delete d_ptr.data<mint::LibObject<timeval>>().ptr;
 	return {};
 }
 
-mint::WeakReference mint_socket_timeval_get_sec(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+mint::Reference mint_socket_timeval_get_sec(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	return mint::create_signed_number(d_ptr.data<mint::LibObject<timeval>>().ptr->tv_sec);
 }
 
-mint::WeakReference mint_socket_timeval_set_sec(mint::Cursor& cursor, const mint::Reference& d_ptr,
+mint::Reference mint_socket_timeval_set_sec(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& sec) {
 	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_sec = to_integer<long>(cursor, sec);
 	return {};
 }
 
-mint::WeakReference mint_socket_timeval_get_usec(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+mint::Reference mint_socket_timeval_get_usec(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	return mint::create_signed_number(d_ptr.data<mint::LibObject<timeval>>().ptr->tv_usec);
 }
 
-mint::WeakReference mint_socket_timeval_set_usec(mint::Cursor& cursor, const mint::Reference& d_ptr,
+mint::Reference mint_socket_timeval_set_usec(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& usec) {
 	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_usec = to_integer<long>(cursor, usec);
 	return {};

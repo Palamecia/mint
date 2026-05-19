@@ -39,7 +39,7 @@ class SymbolEvaluator : public mint::LexicalHandler {
 public:
 	SymbolEvaluator(mint::Cursor& cursor);
 
-	[[nodiscard]] const std::optional<mint::WeakReference>& get_reference() const;
+	[[nodiscard]] const std::optional<mint::Reference>& get_reference() const;
 	[[nodiscard]] std::string get_symbol_name() const;
 
 protected:
@@ -52,14 +52,14 @@ protected:
 	bool on_token(mint::Token type, const std::string& token, std::string::size_type offset) override;
 
 private:
-	std::optional<mint::WeakReference> get_symbol_reference(mint::SymbolTable& symbols, const mint::Symbol& symbol);
-	std::optional<mint::WeakReference> get_member_reference(const mint::Reference& reference,
+	std::optional<mint::Reference> get_symbol_reference(mint::SymbolTable& symbols, const mint::Symbol& symbol);
+	std::optional<mint::Reference> get_member_reference(const mint::Reference& reference,
 	    const mint::Symbol& member);
 
 	std::reference_wrapper<mint::Cursor> _cursor;
 	State _state = State::read_ident;
 
-	std::optional<mint::WeakReference> _reference;
+	std::optional<mint::Reference> _reference;
 	std::string _symbol_name;
 };
 

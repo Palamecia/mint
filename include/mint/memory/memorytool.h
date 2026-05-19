@@ -74,11 +74,11 @@ MINT_EXPORT Function::Mapping::const_iterator find_function_signature(Cursor& cu
 MINT_EXPORT bool has_signature(Function::Mapping& mapping, int signature);
 MINT_EXPORT bool has_signature(const Reference& reference, int signature);
 
-MINT_EXPORT WeakReference get_symbol(Cursor& cursor, const Symbol& symbol);
-MINT_EXPORT WeakReference get_symbol(SymbolTable& symbols, const Symbol& symbol);
-MINT_EXPORT std::tuple<WeakReference, Class*> get_member(Cursor& cursor, const Reference& reference,
+MINT_EXPORT Reference get_symbol(Cursor& cursor, const Symbol& symbol);
+MINT_EXPORT Reference get_symbol(SymbolTable& symbols, const Symbol& symbol);
+MINT_EXPORT std::tuple<Reference, Class*> get_member(Cursor& cursor, const Reference& reference,
     const Symbol& member);
-MINT_EXPORT std::tuple<WeakReference, Class*> get_operator(Cursor& cursor, const Reference& reference,
+MINT_EXPORT std::tuple<Reference, Class*> get_operator(Cursor& cursor, const Reference& reference,
     Class::Operator op);
 MINT_EXPORT void reduce_member(Cursor& cursor, Reference&& member);
 MINT_EXPORT std::optional<std::pair<Symbol, std::reference_wrapper<const Class::MemberInfo>>> find_member(Object& object,

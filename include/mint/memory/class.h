@@ -108,14 +108,14 @@ public:
 	struct MemberInfo {
 
 		static constexpr const std::size_t invalid_offset = std::numeric_limits<std::size_t>::max();
-		static inline const Reference& get(const MemberInfo& member, WeakReference* data);
-		static inline Reference& get(MemberInfo& member, WeakReference* data);
+		static inline const Reference& get(const MemberInfo& member, Reference* data);
+		static inline Reference& get(MemberInfo& member, Reference* data);
 		static inline const Reference& get(const MemberInfo& member, Object& object);
 		static inline Reference& get(MemberInfo& member, Object& object);
 
 		std::size_t offset = invalid_offset;
 		std::reference_wrapper<Class> owner;
-		WeakReference value;
+		Reference value;
 	};
 
 	Class(PackageData& package, std::string name, Metatype metatype = Metatype::object);
@@ -189,9 +189,9 @@ public:
 	}
 
 protected:
-	void create_builtin_member(Operator op, WeakReference&& value = {});
+	void create_builtin_member(Operator op, Reference&& value = {});
 	void create_builtin_member(Operator op, std::pair<int, Module::Handle&> member);
-	void create_builtin_member(const Symbol& symbol, WeakReference&& value = {});
+	void create_builtin_member(const Symbol& symbol, Reference&& value = {});
 	void create_builtin_member(const Symbol& symbol, std::pair<int, Module::Handle&> member);
 
 private:
@@ -208,11 +208,11 @@ private:
 	std::unordered_map<Symbol, std::unique_ptr<MemberInfo>> _globals;
 };
 
-const Reference& Class::MemberInfo::get(const MemberInfo& member, WeakReference* data) {
+const Reference& Class::MemberInfo::get(const MemberInfo& member, Reference* data) {
 	return member.offset == invalid_offset ? member.value : data[member.offset];
 }
 
-Reference& Class::MemberInfo::get(MemberInfo& member, WeakReference* data) {
+Reference& Class::MemberInfo::get(MemberInfo& member, Reference* data) {
 	return member.offset == invalid_offset ? member.value : data[member.offset];
 }
 

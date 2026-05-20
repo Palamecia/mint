@@ -116,10 +116,11 @@ Iterator& Iterator::operator=(Iterator&& other) noexcept {
 }
 
 void Iterator::mark() {
-	if (!marked_bit()) {
-		Object::mark();
-		ctx.mark();
+	if (marked_bit()) {
+		return;
 	}
+	Object::mark();
+	ctx.mark();
 }
 
 IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :

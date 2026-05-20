@@ -94,8 +94,8 @@ std::size_t GarbageCollector::collect() {
 
 	// sweep
 	for (auto* data = _memory.head; data != nullptr; data = data->_next) {
-		if (data->_info.reachable) {
-			data->_info.reachable = (data->_info.refcount == 0);
+		if (data->_info.reachable || data->_info.refcount == 0) {
+			data->_info.reachable = false;
 		}
 		else {
 			data->_info.collected = true;

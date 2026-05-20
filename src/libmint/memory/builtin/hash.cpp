@@ -73,12 +73,13 @@ Hash& Hash::operator=(const Hash& other) {
 }
 
 void Hash::mark() {
-	if (!marked_bit()) {
-		Object::mark();
-		for (auto& [key, value] : values) {
-			key.data().mark();
-			value.data().mark();
-		}
+	if (marked_bit()) {
+		return;
+	}
+	Object::mark();
+	for (auto& [key, value] : values) {
+		key.data().mark();
+		value.data().mark();
 	}
 }
 

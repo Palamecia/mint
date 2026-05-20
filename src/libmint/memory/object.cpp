@@ -180,12 +180,13 @@ void Object::construct(const Object& other, std::unordered_map<const Data*, Data
 }
 
 void Object::mark() {
-	if (!marked_bit()) {
-		Data::mark();
-		if (data) {
-			for (auto& slot : std::span(data, metadata.size())) {
-				slot.data().mark();
-			}
+	if (marked_bit()) {
+		return;
+	}
+	Data::mark();
+	if (data) {
+		for (auto& slot : std::span(data, metadata.size())) {
+			slot.data().mark();
 		}
 	}
 }
@@ -312,11 +313,12 @@ bool Function::Mapping::empty() const {
 }
 
 void Function::mark() {
-	if (!marked_bit()) {
-		Data::mark();
-		for (auto& signature : mapping) {
-			signature.second.mark();
-		}
+	if (marked_bit()) {
+		return;
+	}
+	Data::mark();
+	for (auto& signature : mapping) {
+		signature.second.mark();
 	}
 }
 
@@ -470,16 +472,17 @@ void Coroutine::exit(Cursor& cursor) {
 }
 
 void Coroutine::mark() {
-	if (!marked_bit()) {
-		Data::mark();
-		if (_saved_state) {
-			_saved_state->stack_frame->mark();
-		}
-		for (const auto& item : _stored_stack) {
-			item.data().mark();
-		}
-		if (_parent_saved_state) {
-			_parent_saved_state->stack_frame->mark();
-		}
+	if (marked_bit()) {
+		return;
+	}
+	Data::mark();
+	if (_saved_state) {
+		_saved_state->stack_frame->mark();
+	}
+	for (const auto& item : _stored_stack) {
+		item.data().mark();
+	}
+	if (_parent_saved_state) {
+		_parent_saved_state->stack_frame->mark();
 	}
 }

@@ -39,13 +39,11 @@ class MemoryRoot;
 class Object;
 class Reference;
 class RootReference;
-class Reference;
 
 class MINT_EXPORT GarbageCollector {
 	friend class Data;
 	friend class MemoryRoot;
 	friend class Destructor;
-	friend class Reference;
 	friend class Reference;
 	friend class RootReference;
 public:

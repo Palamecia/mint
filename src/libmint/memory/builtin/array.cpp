@@ -92,11 +92,12 @@ Array& Array::operator=(const Array& other) {
 }
 
 void Array::mark() {
-	if (!marked_bit()) {
-		Object::mark();
-		for (const auto& item : values) {
-			item.data().mark();
-		}
+	if (marked_bit()) {
+		return;
+	}
+	Object::mark();
+	for (const auto& item : values) {
+		item.data().mark();
 	}
 }
 

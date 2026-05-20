@@ -32,9 +32,9 @@
 namespace mint {
 
 struct MemoryInfo {
-	bool reachable = true;
-	bool collected = false;
 	std::size_t refcount = 0;
+	bool reachable = false;
+	bool collected = false;
 };
 
 class MINT_EXPORT Data {

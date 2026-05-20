@@ -221,7 +221,7 @@ ProcessStatus Process::exec() {
 	catch (MintException& raised) {
 		if (_cursor.get() == &raised.cursor()) {
 			_cursor->raise(raised.take_exception());
-			return ProcessStatus::aborted;
+			return ProcessStatus::paused;
 		}
 		throw;
 	}

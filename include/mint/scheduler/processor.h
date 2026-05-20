@@ -47,7 +47,6 @@ public:
 enum class ProcessStatus : std::uint8_t {
 	paused,
 	completed,
-	aborted,
 	failed,
 };
 

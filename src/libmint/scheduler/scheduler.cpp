@@ -647,7 +647,6 @@ bool Scheduler::schedule(Process& thread) {
 		while (is_running() || is_destructor(thread)) {
 			switch (thread.exec()) {
 			case ProcessStatus::completed:
-			case ProcessStatus::aborted:
 			case ProcessStatus::failed:
 				if (!resume(thread)) {
 					finalize_process(thread);

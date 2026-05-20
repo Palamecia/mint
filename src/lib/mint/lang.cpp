@@ -283,7 +283,6 @@ mint::Reference mint_lang_exec(mint::FunctionHelper& helper, const mint::Referen
 			switch (process->exec()) {
 			case mint::ProcessStatus::paused:
 			case mint::ProcessStatus::completed:
-			case mint::ProcessStatus::aborted:
 			case mint::ProcessStatus::failed:
 				// TODO: handle statuses properly
 				break;
@@ -317,7 +316,6 @@ mint::Reference mint_lang_eval(mint::FunctionHelper& helper, const mint::Referen
 			switch (process->exec()) {
 			case mint::ProcessStatus::completed:
 			case mint::ProcessStatus::paused:
-			case mint::ProcessStatus::aborted:
 			case mint::ProcessStatus::failed:
 				// TODO: handle statuses properly
 				break;

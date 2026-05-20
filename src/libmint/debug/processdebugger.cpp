@@ -44,7 +44,7 @@ ProcessStatus mint::ProcessDebugger::exec() {
 		auto& cursor = _thread_locker.cursor();
 		if (&cursor.cursor() == &raised.cursor()) {
 			cursor.cursor().raise(raised.take_exception());
-			return ProcessStatus::aborted;
+			return ProcessStatus::paused;
 		}
 		throw;
 	}

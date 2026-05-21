@@ -838,16 +838,21 @@ std::string mint::to_module_path(const std::filesystem::path& file_path) {
 }
 
 std::ifstream mint::get_module_stream(const std::string& module) {
-	return std::ifstream(to_system_path(module));
+	try {
+		return std::ifstream(to_system_path(module));
+	}
+	catch (const std::filesystem::filesystem_error&) {
+		return {};
+	}
 }
 
 std::string mint::get_module_line(const std::string& module, std::size_t line) {
 
-	std::string line_content;
-	std::ifstream stream = get_module_stream(module);
+	auto line_content = std::string();
+	auto stream = get_module_stream(module);
 
 	for (std::size_t i = 0; i < line; ++i) {
-		getline(stream, line_content, '\n');
+		std::getline(stream, line_content, '\n');
 	}
 
 	return line_content;

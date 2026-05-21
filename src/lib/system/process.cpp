@@ -80,6 +80,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 #endif
 
@@ -154,10 +155,9 @@ mint::Reference mint_process_get_handle(mint::Cursor& cursor, const mint::Refere
 		handle = OpenProcess(STANDARD_RIGHTS_REQUIRED, TRUE, proc_id);
 	}
 
-	return mint::create_c_object(cursor.ast(), handle);
+	return mint::create_handle(cursor.ast(), handle);
 #else
-	((void)cursor);
-	return {};
+	return mint::create_handle(cursor.ast(), to_integer<pid_t>(cursor, pid));
 #endif
 }
 
@@ -304,11 +304,9 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 			dup2(static_cast<int>(to_handle(array_get_item(stderr_pipe.data<mint::Array>(), 1))), STDERR_FILENO);
 		}
 		else {
-			struct rlimit limit;
-
+			auto limit = rlimit();
 			getrlimit(RLIMIT_NOFILE, &limit);
-
-			for (int fd = 3; fd < static_cast<int>(limit.rlim_cur); ++fd) {
+			for (int fd = 3; std::cmp_less(fd, limit.rlim_cur); ++fd) {
 				close(fd);
 			}
 		}

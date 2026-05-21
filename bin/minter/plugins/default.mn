@@ -103,8 +103,109 @@ class DefaultPlugin : MintLspPlugin {
         return visible
     }
 
-    - final const def checkScope(self, definitions, variables, references, diagnostics, parentVisible = {}) {
+    - final const def documentModuleName(self, documentInfo) {
+        if let moduleName = documentInfo.get('module') {
+            moduleName = moduleName.replace(System.FileSystem.Separator, '.').replace('/', '.')
+            if moduleName.endsWith('.mn') {
+                moduleName = moduleName[0...moduleName.size() - 3]
+            }
+            return moduleName
+        }
+        let moduleName = documentInfo.get('path', '').replace(System.FileSystem.Separator, '.').replace('/', '.')
+        if moduleName.endsWith('.mn') {
+            moduleName = moduleName[0...moduleName.size() - 3]
+        }
+        return moduleName
+    }
+
+    - final const def documentMatchesModule(self, documentInfo, moduleName) {
+        let documentModule = self.documentModuleName(documentInfo)
+        return documentModule == moduleName or documentModule.endsWith('.' + moduleName)
+    }
+
+    - final const def collectLoadedDocuments(self, documentInfo, documents, visited) {
+        let path = documentInfo.get('path')
+        if defined path and path in visited {
+            return none
+        }
+        if defined path {
+            visited[path] = true
+        }
+        documents << documentInfo
+
+        for let dependency in documentInfo.get('dependencies', []) {
+            let moduleName = dependency.get('module')
+            if not defined moduleName {
+                continue
+            }
+            for let (_, loadedInfo) in self.documents {
+                if self.documentMatchesModule(loadedInfo, moduleName) {
+                    self.collectLoadedDocuments(loadedInfo, documents, visited)
+                }
+            }
+        }
+    }
+
+    - final const def visibleDocuments(self, documentInfo) {
+        let documents = []
+        self.collectLoadedDocuments(documentInfo, documents, {})
+        return documents
+    }
+
+    - final const def visibleDeclarationsFromLoadedDocuments(self, documentInfo) {
         let visible = {}
+        let isCurrentDocument = true
+        for let loadedInfo in self.visibleDocuments(documentInfo) {
+            if isCurrentDocument {
+                isCurrentDocument = false
+                continue
+            }
+            visible = self.collectVisibleDeclarations(loadedInfo.get('definitions', {}), loadedInfo.get('variables', {}), visible)
+        }
+        return visible
+    }
+
+    - final const def hasDefinitionInContext(self, context, symbolPath, index = 0) {
+        if index >= symbolPath.size() {
+            return true
+        }
+
+        if let symbolDefinitions = context.get('definitions', {}).get(symbolPath[index]) {
+            for let definition in symbolDefinitions {
+                if self.hasDefinitionInContext(definition, symbolPath, index + 1) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    - final const def hasDefinition(self, symbol) {
+        let symbolPath = symbol.split('.')
+        for let (_, moduleInfo) in self.documents {
+            if self.hasDefinitionInContext(moduleInfo, symbolPath) {
+                return true
+            }
+        }
+        return false
+    }
+
+    - final const def createDiagnostic(self, ref, message) {
+        return {
+            'range': {
+                'start': { 'line': ref.get('line'), 'character': ref.get('character') },
+                'end': { 'line': ref.get('line'), 'character': ref.get('character') + ref.get('length') }
+            },
+            'severity': 1,
+            'message': message
+        }
+    }
+
+    - final const def checkScope(self, definitions, variables, references, diagnostics, parentVisible = {}, loadedVisible = {}) {
+        let visible = {}
+        for let (name, value) in loadedVisible {
+            visible[name] = value
+        }
         for let (name, value) in parentVisible {
             visible[name] = value
         }
@@ -121,23 +222,27 @@ class DefaultPlugin : MintLspPlugin {
                 continue
             }
 
-            if symbol not in visible {
+            let symbolPath = symbol.split('.')
+            let symbolName = symbolPath[0]
+            if symbolPath.size() > 1 and symbolName in visible {
                 for let ref in variableRefs {
-                    diagnostics << {
-                        'range': {
-                            'start': { 'line': ref.get('line'), 'character': ref.get('character') },
-                            'end': { 'line': ref.get('line'), 'character': ref.get('character') + ref.get('length') }
-                        },
-                        'severity': 1,
-                        'message': 'Undeclared variable: ' + symbol
+                    if ref.get('typedMemberAccess') and not self.hasDefinition(symbol) {
+                        diagnostics << self.createDiagnostic(ref, 'No member: ' + symbol)
                     }
+                }
+                continue
+            }
+
+            if symbolName not in visible {
+                for let ref in variableRefs {
+                    diagnostics << self.createDiagnostic(ref, 'Undeclared variable: ' + symbolName)
                 }
             }
         }
 
         for let (_, defs) in definitions {
             for let definition in defs {
-                self.checkScope(definition.get('definitions', {}), definition.get('variables', {}), definition.get('references', {}), diagnostics, visible)
+                self.checkScope(definition.get('definitions', {}), definition.get('variables', {}), definition.get('references', {}), diagnostics, visible, loadedVisible)
             }
         }
     }
@@ -149,7 +254,7 @@ class DefaultPlugin : MintLspPlugin {
             let variables = documentInfo.get('variables', {})
             let references = documentInfo.get('references', {})
 
-            self.checkScope(definitions, variables, references, diagnostics)
+            self.checkScope(definitions, variables, references, diagnostics, {}, self.visibleDeclarationsFromLoadedDocuments(documentInfo))
         }
         return diagnostics
     }
@@ -177,12 +282,13 @@ class DefaultPlugin : MintLspPlugin {
 
     const def onCompletions(self, config, workspace, document, position) {
         var items = []
-        // Add all symbols from all documents
-        for let (path, docInfo) in self.documents {
-            for let (symbol, ranges) in docInfo.get('symbols', {}) {
-                items << {
-                    'label': symbol,
-                    'kind': 6  // Function
+        if let documentInfo = self.documents.get(document.getPath()) {
+            for let docInfo in self.visibleDocuments(documentInfo) {
+                for let (symbol, ranges) in docInfo.get('symbols', {}) {
+                    items << {
+                        'label': symbol,
+                        'kind': 6  // Function
+                    }
                 }
             }
         }
@@ -192,10 +298,14 @@ class DefaultPlugin : MintLspPlugin {
     const def onHover(self, config, workspace, document, position) {
         if let documentInfo = self.documents.get(document.getPath()) {
             if let symbol = self.findSymbol(documentInfo.get('symbols'), position) {
-                return {
-                    'contents': {
-                        'kind': 'plaintext',
-                        'value': 'Symbol: ' + symbol
+                if let context = self.findContext(documentInfo.get('definitions', {}), position) {
+                    if let hover = self.findHover(document.getPath(), context, symbol) {
+                        return hover
+                    }
+                }
+                for let moduleInfo in self.visibleDocuments(documentInfo) {
+                    if let hover = self.findHover(moduleInfo.get('path'), moduleInfo, symbol) {
+                        return hover
                     }
                 }
             }
@@ -290,12 +400,15 @@ class DefaultPlugin : MintLspPlugin {
                 log.debug("Searching symbol '%s' (line: %d, character: %d)", symbol, position.get('line'), position.get('character'))
                 let symbolDefinitions = []
                 if let context = self.findContext(documentInfo.get('definitions', {}), position) {
-                    for let definition in self.listDefinitions(document, context, symbol) {
+                    for let definition in self.listDefinitions(document.getPath(), context, symbol) {
                         symbolDefinitions << definition
                     }
                 }
-                for let (path, moduleInfo) in self.documents {
-                    for let definition in self.listDefinitions(document, moduleInfo, symbol) {
+                if not symbolDefinitions.isEmpty() {
+                    return symbolDefinitions
+                }
+                for let moduleInfo in self.visibleDocuments(documentInfo) {
+                    for let definition in self.listDefinitions(moduleInfo.get('path'), moduleInfo, symbol) {
                         symbolDefinitions << definition
                     }
                 }
@@ -319,15 +432,15 @@ class DefaultPlugin : MintLspPlugin {
                     switch context.get('kind') {
                     case DefaultPlugin.Parser.SymbolKind.Function:
                         log.debug("Searching in context '%s'", self.findSymbol(documentInfo.get('symbols'), context))
-                        return [...self.listReferences(document.getPath(), context, symbol)]
+                        return [...self.listReferences(document.getPath(), context, symbol, includeDeclaration)]
                     default:
                         break
                     }
                 }
                 log.debug("Searching in module context")
                 let symbolReferences = []
-                for let (path, moduleInfo) in self.documents {
-                    for let reference in self.listReferences(path, moduleInfo, symbol) {
+                for let moduleInfo in self.visibleDocuments(documentInfo) {
+                    for let reference in self.listReferences(moduleInfo.get('path'), moduleInfo, symbol, includeDeclaration) {
                         symbolReferences << reference
                     }
                 }
@@ -428,82 +541,173 @@ class DefaultPlugin : MintLspPlugin {
         }
     }
 
-    - final const def listDefinitions(self, document, context, symbol) {
-        // First try to find in the specific context
-        if let symbolDefinitions = self.findDefinitions(context, symbol.split('.')) {
-            return [for let definition in symbolDefinitions => {
-                'uri': System.Url.fromFilePath(document.getPath()).toString(),
-                'range': {
-                    'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                    'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
-                }
-            }]
+    - final const def createLocation(self, path, item) {
+        let range = {
+            'start': { 'line': item.get('line'), 'character': item.get('character') },
+            'end': { 'line': item.get('line'), 'character': item.get('character') + item.get('length') }
         }
-        // Fall back to global search
-        let globalDefinitions = []
-        for let (path, moduleInfo) in self.documents {
-            if let symbolDefinitions = self.findDefinitions(moduleInfo, symbol.split('.')) {
-                for let definition in symbolDefinitions {
-                    globalDefinitions << {
-                        'uri': System.Url.fromFilePath(path).toString(),
-                        'range': {
-                            'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                            'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
-                        }
-                    }
-                }
-            }
+        return {
+            'uri': System.Url.fromFilePath(path).toString(),
+            'range': range,
+            'selectionRange': range
         }
-        if not globalDefinitions.isEmpty() {
-            return globalDefinitions
-        }
-        // Try single symbol
-        if let symbolDefinitions = self.findDefinitions(context, [symbol]) {
-            return [for let definition in symbolDefinitions => {
-                'uri': System.Url.fromFilePath(document.getPath()).toString(),
-                'range': {
-                    'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                    'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
-                }
-            }]
-        }
-        // Fall back to global search for single symbol
-        globalDefinitions = []
-        for let (path, moduleInfo) in self.documents {
-            if let symbolDefinitions = self.findDefinitions(moduleInfo, [symbol]) {
-                for let definition in symbolDefinitions {
-                    globalDefinitions << {
-                        'uri': System.Url.fromFilePath(path).toString(),
-                        'range': {
-                            'start': { 'line': definition.get('line'), 'character': definition.get('character') },
-                            'end': { 'line': definition.get('line'), 'character': definition.get('character') + definition.get('length') }
-                        }
-                    }
-                }
-            }
-        }
-        return globalDefinitions
     }
 
-    - final const def listReferences(self, path, context, symbol) {
-        if let symbolReferences = context.get('references', {}).get(symbol) {
-            for let reference in symbolReferences {
-                yield {
-                    'uri': System.Url.fromFilePath(path).toString(),
-                    'range': {
-                        'start': { 'line': reference.get('line'), 'character': reference.get('character') },
-                        'end': { 'line': reference.get('line'), 'character': reference.get('character') + reference.get('length') }
-                    },
-                    'selectionRange': {
-                        'start': { 'line': reference.get('line'), 'character': reference.get('character') },
-                        'end': { 'line': reference.get('line'), 'character': reference.get('character') + reference.get('length') }
-                    }
+    - final const def symbolKindName(self, kind) {
+        switch kind {
+        case DefaultPlugin.Parser.SymbolKind.Module:
+            return 'module'
+        case DefaultPlugin.Parser.SymbolKind.Package:
+            return 'package'
+        case DefaultPlugin.Parser.SymbolKind.Class:
+            return 'class'
+        case DefaultPlugin.Parser.SymbolKind.Enum:
+            return 'enum'
+        case DefaultPlugin.Parser.SymbolKind.Function:
+            return 'function'
+        case DefaultPlugin.Parser.SymbolKind.Variable:
+            return 'variable'
+        case DefaultPlugin.Parser.SymbolKind.Field:
+            return 'field'
+        case DefaultPlugin.Parser.SymbolKind.EnumMember:
+            return 'enum member'
+        }
+        return 'symbol'
+    }
+
+    - final const def hoverSnippet(self, name, item, typeName = none) {
+        switch item.get('kind') {
+        case DefaultPlugin.Parser.SymbolKind.Package:
+            return 'package ' + name
+        case DefaultPlugin.Parser.SymbolKind.Class:
+            return 'class ' + name
+        case DefaultPlugin.Parser.SymbolKind.Enum:
+            return 'enum ' + name
+        case DefaultPlugin.Parser.SymbolKind.Function:
+            return 'def ' + name + '(...)'
+        case DefaultPlugin.Parser.SymbolKind.Variable:
+            if defined typeName {
+                return 'let ' + name + ': ' + typeName
+            }
+            return 'let ' + name
+        }
+        return name
+    }
+
+    - final const def createHover(self, path, name, item, typeName = none) {
+        let lines = [
+            '```mint',
+            self.hoverSnippet(name, item, typeName),
+            '```',
+            '',
+            '**Kind:** ' + self.symbolKindName(item.get('kind')),
+            '**Defined:** `%s:%d`' % (path, item.get('line') + 1)
+        ]
+        if defined typeName {
+            lines.insert(-1, '**Type:** `%s`' % typeName)
+        }
+        return {
+            'contents': {
+                'kind': 'markdown',
+                'value': lines.join('\n')
+            }
+        }
+    }
+
+    - final const def findDefinitionItems(self, context, symbolPath, index = 0) {
+        if index >= symbolPath.size() {
+            yield context
+        } elif let symbolDefinitions = context.get('definitions', {}).get(symbolPath[index]) {
+            for let definition in symbolDefinitions {
+                for let item in self.findDefinitionItems(definition, symbolPath, index + 1) {
+                    yield item
                 }
             }
         }
-        for let (member, definitions) in context.get('definitions', {}) {
+    }
+
+    - final const def findDefinitionInfos(self, symbolPath) {
+        for let (path, moduleInfo) in self.documents {
+            for let definition in self.findDefinitionItems(moduleInfo, symbolPath) {
+                yield {
+                    'path': path,
+                    'item': definition
+                }
+            }
+        }
+    }
+
+    - final const def findDefinitionLocations(self, symbolPath) {
+        for let info in self.findDefinitionInfos(symbolPath) {
+            yield self.createLocation(info.get('path'), info.get('item'))
+        }
+    }
+
+    - final const def findHover(self, path, context, symbol) {
+        let symbolPath = symbol.split('.')
+        let rootSymbol = symbolPath[0]
+
+        if let variable = context.get('variables', {}).get(rootSymbol) {
+            let typeName = variable.get('type')
+            if symbolPath.size() == 1 {
+                return self.createHover(path, rootSymbol, variable, typeName)
+            } elif defined typeName {
+                let resolvedPath = typeName.split('.') + symbolPath[1...symbolPath.size()]
+                for let info in self.findDefinitionInfos(resolvedPath) {
+                    return self.createHover(info.get('path'), symbolPath[-1], info.get('item'))
+                }
+            }
+        }
+
+        for let definition in self.findDefinitionItems(context, symbolPath) {
+            return self.createHover(path, symbol, definition)
+        }
+    }
+
+    - final const def listDefinitions(self, path, context, symbol) {
+        let symbolPath = symbol.split('.')
+        let rootSymbol = symbolPath[0]
+
+        if let variable = context.get('variables', {}).get(rootSymbol) {
+            if symbolPath.size() == 1 {
+                yield self.createLocation(path, variable)
+            } elif 'type' in variable {
+                let resolvedPath = variable['type'].split('.') + symbolPath[1...symbolPath.size()]
+                for let location in self.findDefinitionLocations(resolvedPath) {
+                    yield location
+                }
+            }
+        }
+
+        for let definition in self.findDefinitionItems(context, symbolPath) {
+            yield self.createLocation(path, definition)
+        }
+    }
+
+    - final const def referenceMatches(self, symbol, symbolPath, referenceSymbol, reference) {
+        if referenceSymbol == symbol {
+            return true
+        }
+        return symbolPath.size() == 1 and reference.get('root') == symbol
+    }
+
+    - final const def listReferences(self, path, context, symbol, includeDeclaration = false) {
+        let symbolPath = symbol.split('.')
+        if includeDeclaration {
+            for let definition in self.listDefinitions(path, context, symbol) {
+                yield definition
+            }
+        }
+        for let (referenceSymbol, symbolReferences) in context.get('references', {}) {
+            for let reference in symbolReferences {
+                if self.referenceMatches(symbol, symbolPath, referenceSymbol, reference) {
+                    yield self.createLocation(path, reference)
+                }
+            }
+        }
+        for let (_, definitions) in context.get('definitions', {}) {
             for let definition in definitions {
-                for let memberReferences in self.listReferences(path, definition, symbol) {
+                for let memberReferences in self.listReferences(path, definition, symbol, includeDeclaration) {
                     yield memberReferences
                 }
             }
@@ -592,11 +796,15 @@ class DefaultPlugin : MintLspPlugin {
             self.lineOffset = 0
             let rootDir = System.Dir(config.getRootPath())
             let filePath = document.getUri()?.toFile()?.getPath()
-            let modulePath = rootDir.getRelativeFilePath(filePath).replace(System.FileSystem.Separator, '.')
+            let modulePath = rootDir.getRelativeFilePath(filePath).replace(System.FileSystem.Separator, '.').replace('/', '.')
+            if modulePath.endsWith('.mn') {
+                modulePath = modulePath[0...modulePath.size() - 3]
+            }
             self.createDefinition(modulePath, DefaultPlugin.Parser.SymbolKind.Module, 0, 0)
             if self.parse(document.getSource()) {
                 return {
                     'path': document.getPath(),
+                    'module': modulePath,
                     'dependencies': self.dependencies,
                     'definitions': self.definitions,
                     'references': self.references,
@@ -935,10 +1143,16 @@ class DefaultPlugin : MintLspPlugin {
             }
             if self.context {
                 let symbolPath = symbol.split('.')
+                if symbolPath.size() > 1 {
+                    symbolInfo['memberAccess'] = true
+                    symbolInfo['root'] = symbolPath[0]
+                }
                 let variable = self.context['definition']['variables'].get(symbolPath[0])
                 if defined variable and 'type' in variable {
                     symbolPath[0] = variable['type']
                     symbol = symbolPath.join('.')
+                    symbolInfo['typedMemberAccess'] = true
+                    symbolInfo['resolvedRoot'] = variable['type']
                 }
                 let references = self.context['definition']['references']
                 if symbol in references {

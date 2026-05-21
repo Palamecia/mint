@@ -163,6 +163,10 @@ class MintLspServer {
 		const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
 		log.debug("RPC call %s", callMethod)
 		if callMethod not in membersof self {
+			if method.startsWith('$/') {
+				log.debug("Ignoring unknown protocol notification: %s", method)
+				return none
+			}
 			raise Network.JsonRpc.MethodNotFound(method)
 		}
 		self.${callMethod}(params)
@@ -363,6 +367,15 @@ class MintLspServer {
 		}
 	}
 
+	- const def rpc___setTrace(self, params) {
+		self.traceValue = params.get('value', 'off')
+		log.debug('Trace value set to %s', self.traceValue)
+	}
+
+	- const def rpc___cancelRequest(self, params) {
+		log.debug('Cancel request received for %s', params.get('id'))
+	}
+
 	- const def rpc_completion_item__resolve(self, params) {
 		var completionItem = params.get('completionItem', {})
 		var docUri = completionItem.get('data', {}).get('docUri')
@@ -371,9 +384,10 @@ class MintLspServer {
 
 	- const def rpc_textDocument_didClose(self, params) {
 		var textDocument = params['textDocument']
-		var workspace = self.getWorkspaceFromUrl(textDocument['uri'])
-		workspace.publishDiagnostics(textDocument['uri'], [])
-		workspace.removeDocument(textDocument['uri'])
+		if let workspace = self.getWorkspaceFromUrl(textDocument['uri']) {
+			workspace.publishDiagnostics(textDocument['uri'], [])
+			workspace.removeDocument(textDocument['uri'])
+		}
 	}
 
 	- const def rpc_textDocument_didOpen(self, params) {
@@ -435,11 +449,18 @@ class MintLspServer {
 		return self.flatten(self.hook('onDocumentHighlight', textDocument['uri'], position)) or None
 	}
 
-	- const def rpc_textDocument_hover(self, params) {
-		var textDocument = params['textDocument']
-		var position = params['position']
-		return self.hook('onHover', textDocument['uri'], position) or {'contents': ''}
-	}
+        - const def rpc_textDocument_hover(self, params) {
+                var textDocument = params['textDocument']
+                var position = params['position']
+                if let hovers = self.hook('onHover', textDocument['uri'], position) {
+                        for let hover in hovers {
+                                if defined hover {
+                                        return hover
+                                }
+                        }
+                }
+                return {'contents': ''}
+        }
 
 	- const def rpc_textDocument_documentSymbol(self, params) {
 		var textDocument = params['textDocument']
@@ -663,6 +684,7 @@ class MintLspServer {
 	- final jsonRpcStream = null
 	- final shutdown = false
 	- final running = false
+	- final traceValue = 'off'
 }
 
 /**

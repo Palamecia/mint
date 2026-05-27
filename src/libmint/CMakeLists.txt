@@ -300,9 +300,8 @@ PUBLIC
 
 target_link_libraries(
 	mint-libmint
-PUBLIC
-	Microsoft.GSL::GSL
 PRIVATE
+	Microsoft.GSL::GSL
 	ICU::i18n
 	ICU::uc
 	ICU::data
@@ -326,7 +325,7 @@ endif()
 # Install
 install(
 	TARGETS mint-libmint
-	EXPORT mint-libmint-targets
+	EXPORT mint-targets
 	INCLUDES DESTINATION ${MINT_HEADERS_INSTALL_DIR}
 	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}
 	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}
@@ -342,8 +341,8 @@ install(
 )
 
 install(
-	EXPORT mint-libmint-targets
-	FILE mint-libmint-targets.cmake
+	EXPORT mint-targets
+	FILE mint-targets.cmake
 	NAMESPACE mint::
 	COMPONENT devel DESTINATION ${MINT_CMAKE_INSTALL_DIR}/mint
 )
@@ -351,7 +350,7 @@ install(
 include(CMakePackageConfigHelpers)
 
 configure_package_config_file(
-	${MINT_SHARE_DIR}/cmake/mint-config.cmake.in
+	mint-config.cmake.in
 	${CMAKE_CURRENT_BINARY_DIR}/mint-config.cmake
 	INSTALL_DESTINATION share/cmake/mint
 )

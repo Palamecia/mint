@@ -34,7 +34,6 @@
 #include <string_view>
 #include <cstring>
 #include <string>
-#include <gsl/pointers>
 
 namespace mint {
 
@@ -138,7 +137,7 @@ private:
 
 	hash_t _hash;
 	std::size_t _size;
-	gsl::owner<char*> _symbol {nullptr};
+	char* _symbol {nullptr};
 };
 
 namespace builtin_symbols {

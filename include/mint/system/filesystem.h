@@ -35,7 +35,6 @@
 #include <chrono>
 #include <string>
 #include <list>
-#include <gsl/gsl>
 
 #ifdef MINT_OS_WINDOWS
 using uid_t = std::intptr_t;
@@ -131,7 +130,7 @@ private:
 	std::filesystem::path _scripts_path;
 };
 
-MINT_EXPORT gsl::owner<FILE*> open_file(const std::filesystem::path& path, const char* mode);
+MINT_EXPORT FILE* open_file(const std::filesystem::path& path, const char* mode);
 
 }
 

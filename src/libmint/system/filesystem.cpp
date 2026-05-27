@@ -665,7 +665,7 @@ bool FileSystem::is_subpath(const std::filesystem::path& path, const std::filesy
 	return !relative_path.empty() && relative_path.native()[0] != '.';
 }
 
-gsl::owner<FILE*> mint::open_file(const std::filesystem::path& path, const char* mode) {
+FILE* mint::open_file(const std::filesystem::path& path, const char* mode) {
 #ifdef MINT_OS_WINDOWS
 	const std::wstring generic_path = path.generic_wstring();
 	const std::wstring mode_str = wchar_from_multi_byte(mode);

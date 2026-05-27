@@ -24,8 +24,8 @@
 #ifndef MINT_PROCESS_HIGHLIGHTER_H
 #define MINT_PROCESS_HIGHLIGHTER_H
 
-#include "mint/ast/classregister.h"
-#include "mint/compiler/lexicalhandler.h"
+#include "mint/ast/class_register.h"
+#include "mint/compiler/lexical_handler.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/reference.h"
 

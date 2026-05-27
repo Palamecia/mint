@@ -23,7 +23,7 @@
 
 #include "mint/ast/printer.h"
 #include "mint/memory/builtin/libobject.h"
-#include "mint/memory/functiontool.h"
+#include "mint/memory/function_tools.h"
 #include "mint/ast/cursor.h"
 #include "mint/memory/reference.h"
 

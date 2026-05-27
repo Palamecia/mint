@@ -22,8 +22,8 @@
  */
 
 #include "mint/memory/builtin/libobject.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/memory/reference.h"
 #include "mint/system/errno.h"
 #include "mint/system/utf8.h"
@@ -283,8 +283,7 @@ mint::Reference mint_file_group_id(mint::Cursor& cursor, const mint::Reference& 
 	}
 }
 
-mint::Reference mint_file_permission(mint::Cursor& cursor, const mint::Reference& path,
-    mint::Reference& permissions) {
+mint::Reference mint_file_permission(mint::Cursor& cursor, const mint::Reference& path, mint::Reference& permissions) {
 	try {
 		return create_iterator_from(cursor,
 		    mint::create_boolean(mint::FileSystem::check_file_permissions(to_string(path),
@@ -309,8 +308,7 @@ mint::Reference mint_file_create_symlink(mint::Cursor& /*cursor*/, const mint::R
 	}
 }
 
-mint::Reference mint_file_copy(mint::Cursor& /*cursor*/, const mint::Reference& source,
-    const mint::Reference& target) {
+mint::Reference mint_file_copy(mint::Cursor& /*cursor*/, const mint::Reference& source, const mint::Reference& target) {
 	try {
 		std::filesystem::copy(std::filesystem::absolute(to_string(source)),
 		    std::filesystem::absolute(to_string(target)),

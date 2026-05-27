@@ -26,8 +26,8 @@
 
 load minter.plugin
 load mint.string
-load mint.lexicalhandler
-load serializer.jsonstream
+load mint.lexical-handler
+load serializer.json-stream
 load system.file
 load system.uri
 

@@ -27,7 +27,7 @@
  * communication.
  */
 
-load serializer.datastream
+load serializer.data-stream
 
 package Event {
 	/**

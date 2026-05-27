@@ -24,7 +24,7 @@
 #ifndef MINT_SCHEDULER_OUTPUT_H
 #define MINT_SCHEDULER_OUTPUT_H
 
-#include "mint/ast/classregister.h"
+#include "mint/ast/class_register.h"
 #include "mint/ast/printer.h"
 #include "mint/config.h"
 #include <functional>

@@ -1,6 +1,6 @@
 load test.case
 load network.scheduler
-load network.endpoints.tcpip
+load network.endpoints.tcp-ip
 
 class NetworkEndPointTest : Test.Case {
     const def testOnTcpMessage(self) {

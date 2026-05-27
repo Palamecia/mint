@@ -23,8 +23,8 @@
 
 #include "mint/ast/cursor.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/cast_tools.h"
 
 #include <cstdint>
 #include <type_traits>
@@ -103,8 +103,7 @@ mint::Reference mint_timer_close(mint::Cursor& /*cursor*/, const mint::Reference
 	return {};
 }
 
-mint::Reference mint_timer_start(mint::Cursor& cursor, const mint::Reference& handle,
-    const mint::Reference& duration) {
+mint::Reference mint_timer_start(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& duration) {
 #ifdef MINT_OS_WINDOWS
 
 	LARGE_INTEGER timer_spec {
@@ -206,8 +205,7 @@ mint::Reference mint_timer_clear(mint::Cursor& /*cursor*/, const mint::Reference
 	return {};
 }
 
-mint::Reference mint_timer_wait(mint::Cursor& cursor, const mint::Reference& handle,
-    const mint::Reference& timeout) {
+mint::Reference mint_timer_wait(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& timeout) {
 
 #ifdef MINT_OS_WINDOWS
 

@@ -22,18 +22,18 @@
  */
 
 #include "debugger.h"
-#include "interactivedebugger.h"
-#include "dapdebugger.h"
-#include "dapstream.h"
+#include "interactive_debugger.h"
+#include "dap_debugger.h"
+#include "dap_stream.h"
 #include "mint/config.h"
-#include "mint/debug/cursordebugger.h"
-#include "mint/debug/debuginfo.h"
-#include "mint/debug/debuginterface.h"
+#include "mint/debug/cursor_debugger.h"
+#include "mint/debug/debug_info.h"
+#include "mint/debug/debug_interface.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/error.h"
 
 #include "mint/ast/module.h"
-#include "mint/debug/debugtool.h"
+#include "mint/debug/debug_tools.h"
 #include "mint/system/stdio.h"
 
 #include <cstddef>

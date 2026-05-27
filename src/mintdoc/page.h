@@ -24,7 +24,7 @@
 #ifndef MINTDOC_PAGE_H
 #define MINTDOC_PAGE_H
 
-#include "docnode.h"
+#include "doc_node.h"
 
 #include <memory>
 #include <string>

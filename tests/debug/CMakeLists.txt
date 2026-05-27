@@ -5,13 +5,13 @@ add_executable(test-debug)
 target_sources(
 	test-debug
 PRIVATE
-	debuginfos.cpp
+	debug_infos.cpp
 )
 
 target_link_libraries(
 	test-debug
 PRIVATE
-	libmint
+	mint::mint
 	GTest::gtest
 	GTest::gtest_main
 )

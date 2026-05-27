@@ -1,19 +1,27 @@
 project(mint-mint)
 
-add_library(mint-mint MODULE)
+add_library(mint-lib-module-mint MODULE)
+
+set_target_properties(
+	mint-lib-module-mint
+	PROPERTIES
+	PREFIX lib
+	OUTPUT_NAME mint-mint
+	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
+)
 
 target_sources(
-	mint-mint
+	mint-lib-module-mint
 PRIVATE
 	assembly.cpp
 	coroutine.cpp
-	evalresultprinter.cpp
-	evalresultprinter.h
+	eval_result_printer.cpp
+	eval_result_printer.h
 	function.cpp
-	garbagecollector.cpp
-	inttypes.cpp
+	garbage_collector.cpp
+	int_types.cpp
 	lang.cpp
-	lexicalhandler.cpp
+	lexical_handler.cpp
 	math.cpp
 	operator.cpp
 	printer.cpp
@@ -21,27 +29,20 @@ PRIVATE
 	type.cpp
 )
 
-set_target_properties(
-	mint-mint
-	PROPERTIES
-	PREFIX lib
-	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
-)
-
 target_link_libraries(
-	mint-mint
+	mint-lib-module-mint
 PRIVATE
-	libmint
+	mint::mint
 )
 
 # Install
 install(
-	TARGETS mint-mint
+	TARGETS mint-lib-module-mint
 	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 )
 
-add_dependencies(mint-mint module-mint)
-add_dependencies(mint-mint module-container)
-add_dependencies(mint-mint module-exception)
+add_dependencies(mint-lib-module-mint mint-module-mint)
+add_dependencies(mint-lib-module-mint mint-module-container)
+add_dependencies(mint-lib-module-mint mint-module-exception)

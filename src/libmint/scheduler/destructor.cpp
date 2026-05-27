@@ -22,12 +22,12 @@
  */
 
 #include "mint/scheduler/destructor.h"
-#include "mint/memory/garbagecollector.h"
+#include "mint/memory/garbage_collector.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/process.h"
 #include "mint/scheduler/processor.h"
-#include "mint/ast/abstractsyntaxtree.h"
-#include "mint/memory/operatortool.h"
+#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/memory/operator_tools.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/assert.h"
 #include <cassert>

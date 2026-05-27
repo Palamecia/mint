@@ -27,11 +27,11 @@
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
-#include "mint/memory/memorytool.h"
+#include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/system/errno.h"
 #include <algorithm>
 #include <cassert>

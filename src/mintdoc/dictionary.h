@@ -25,7 +25,7 @@
 #define MINTDOC_DICTIONARY_H
 
 #include "definition.h"
-#include "generators/abstractgenerator.h"
+#include "generators/abstract_generator.h"
 #include "module.h"
 #include "page.h"
 

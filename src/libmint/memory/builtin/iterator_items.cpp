@@ -30,7 +30,7 @@
 #include "mint/memory/builtin/string.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
-#include "mint/memory/functiontool.h"
+#include "mint/memory/function_tools.h"
 #include "mint/memory/reference.h"
 #include "mint/system/utf8.h"
 #include <algorithm>

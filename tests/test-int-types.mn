@@ -1,0 +1,1084 @@
+load test.case
+load mint.int-types
+
+class TestInt8 : Test.Case {
+	const def testCreate(self) {
+		self.expectEqual(0, number(int8(0)))
+		self.expectEqual(127, number(int8(127)))
+		self.expectEqual(-128, number(int8(128)))
+		self.expectEqual(-1, number(int8(255)))
+		self.expectEqual(0, number(int8(1024)))
+		self.expectEqual(0, number(int8(2048)))
+		self.expectEqual(15, number(int8('0x0F')))
+		self.expectEqual(-1, number(int8('0xFF')))
+	}
+
+	const def testCopy(self) {
+		c = d = int8(5)
+		d := 7
+		self.expectEqual(7, d.toNumber())
+		self.expectIsSame(c, d)
+	}
+
+	const def testCall(self) {
+		
+	}
+
+	const def testAdd(self) {
+		
+	}
+
+	const def testSub(self) {
+		
+	}
+
+	const def testMul(self) {
+		
+	}
+
+	const def testDiv(self) {
+		
+	}
+
+	const def testPow(self) {
+		
+	}
+
+	const def testMod(self) {
+		
+	}
+
+	const def testEq(self) {
+		
+	}
+
+	const def testNe(self) {
+		
+	}
+
+	const def testLt(self) {
+		
+	}
+
+	const def testGt(self) {
+		
+	}
+
+	const def testLe(self) {
+		
+	}
+
+	const def testGe(self) {
+		
+	}
+
+	const def testAnd(self) {
+		
+	}
+
+	const def testOr(self) {
+		
+	}
+
+	const def testBand(self) {
+		
+	}
+
+	const def testBor(self) {
+		
+	}
+
+	const def testXor(self) {
+		
+	}
+
+	const def testInc(self) {
+		
+	}
+
+	const def testDec(self) {
+		
+	}
+
+	const def testNot(self) {
+		
+	}
+
+	const def testCompl(self) {
+		
+	}
+
+	const def testPos(self) {
+		
+	}
+
+	const def testNeg(self) {
+		
+	}
+
+	const def testShiftLeft(self) {
+		
+	}
+
+	const def testShiftRight(self) {
+		
+	}
+
+	const def testInclusiveRange(self) {
+		
+	}
+
+	const def testExclusiveRange(self) {
+		
+	}
+
+	const def testSubscript(self) {
+		
+	}
+
+	const def testSubscriptMove(self) {
+		
+	}
+
+	const def testToNumber(self) {
+		
+	}
+}
+
+class TestInt16 : Test.Case {
+	const def testCreate(self) {
+
+	}
+
+	const def testCopy(self) {
+		
+	}
+
+	const def testCall(self) {
+		
+	}
+
+	const def testAdd(self) {
+		
+	}
+
+	const def testSub(self) {
+		
+	}
+
+	const def testMul(self) {
+		
+	}
+
+	const def testDiv(self) {
+		
+	}
+
+	const def testPow(self) {
+		
+	}
+
+	const def testMod(self) {
+		
+	}
+
+	const def testEq(self) {
+		
+	}
+
+	const def testNe(self) {
+		
+	}
+
+	const def testLt(self) {
+		
+	}
+
+	const def testGt(self) {
+		
+	}
+
+	const def testLe(self) {
+		
+	}
+
+	const def testGe(self) {
+		
+	}
+
+	const def testAnd(self) {
+		
+	}
+
+	const def testOr(self) {
+		
+	}
+
+	const def testBand(self) {
+		
+	}
+
+	const def testBor(self) {
+		
+	}
+
+	const def testXor(self) {
+		
+	}
+
+	const def testInc(self) {
+		
+	}
+
+	const def testDec(self) {
+		
+	}
+
+	const def testNot(self) {
+		
+	}
+
+	const def testCompl(self) {
+		
+	}
+
+	const def testPos(self) {
+		
+	}
+
+	const def testNeg(self) {
+		
+	}
+
+	const def testShiftLeft(self) {
+		
+	}
+
+	const def testShiftRight(self) {
+		
+	}
+
+	const def testInclusiveRange(self) {
+		
+	}
+
+	const def testExclusiveRange(self) {
+		
+	}
+
+	const def testSubscript(self) {
+		
+	}
+
+	const def testSubscriptMove(self) {
+		
+	}
+
+	const def testToNumber(self) {
+		
+	}
+}
+
+class TestInt32 : Test.Case {
+	const def testCreate(self) {
+
+	}
+
+	const def testCopy(self) {
+		
+	}
+
+	const def testCall(self) {
+		
+	}
+
+	const def testAdd(self) {
+		
+	}
+
+	const def testSub(self) {
+		
+	}
+
+	const def testMul(self) {
+		
+	}
+
+	const def testDiv(self) {
+		
+	}
+
+	const def testPow(self) {
+		
+	}
+
+	const def testMod(self) {
+		
+	}
+
+	const def testEq(self) {
+		
+	}
+
+	const def testNe(self) {
+		
+	}
+
+	const def testLt(self) {
+		
+	}
+
+	const def testGt(self) {
+		
+	}
+
+	const def testLe(self) {
+		
+	}
+
+	const def testGe(self) {
+		
+	}
+
+	const def testAnd(self) {
+		
+	}
+
+	const def testOr(self) {
+		
+	}
+
+	const def testBand(self) {
+		
+	}
+
+	const def testBor(self) {
+		
+	}
+
+	const def testXor(self) {
+		
+	}
+
+	const def testInc(self) {
+		
+	}
+
+	const def testDec(self) {
+		
+	}
+
+	const def testNot(self) {
+		
+	}
+
+	const def testCompl(self) {
+		
+	}
+
+	const def testPos(self) {
+		
+	}
+
+	const def testNeg(self) {
+		
+	}
+
+	const def testShiftLeft(self) {
+		
+	}
+
+	const def testShiftRight(self) {
+		
+	}
+
+	const def testInclusiveRange(self) {
+		
+	}
+
+	const def testExclusiveRange(self) {
+		
+	}
+
+	const def testSubscript(self) {
+		
+	}
+
+	const def testSubscriptMove(self) {
+		
+	}
+
+	const def testToNumber(self) {
+		
+	}
+}
+
+class TestInt64 : Test.Case {
+	const def testCreate(self) {
+
+	}
+
+	const def testCopy(self) {
+		
+	}
+
+	const def testCall(self) {
+		
+	}
+
+	const def testAdd(self) {
+		
+	}
+
+	const def testSub(self) {
+		
+	}
+
+	const def testMul(self) {
+		
+	}
+
+	const def testDiv(self) {
+		
+	}
+
+	const def testPow(self) {
+		
+	}
+
+	const def testMod(self) {
+		
+	}
+
+	const def testEq(self) {
+		
+	}
+
+	const def testNe(self) {
+		
+	}
+
+	const def testLt(self) {
+		
+	}
+
+	const def testGt(self) {
+		
+	}
+
+	const def testLe(self) {
+		
+	}
+
+	const def testGe(self) {
+		
+	}
+
+	const def testAnd(self) {
+		
+	}
+
+	const def testOr(self) {
+		
+	}
+
+	const def testBand(self) {
+		
+	}
+
+	const def testBor(self) {
+		
+	}
+
+	const def testXor(self) {
+		
+	}
+
+	const def testInc(self) {
+		
+	}
+
+	const def testDec(self) {
+		
+	}
+
+	const def testNot(self) {
+		
+	}
+
+	const def testCompl(self) {
+		
+	}
+
+	const def testPos(self) {
+		
+	}
+
+	const def testNeg(self) {
+		
+	}
+
+	const def testShiftLeft(self) {
+		
+	}
+
+	const def testShiftRight(self) {
+		
+	}
+
+	const def testInclusiveRange(self) {
+		
+	}
+
+	const def testExclusiveRange(self) {
+		
+	}
+
+	const def testSubscript(self) {
+		
+	}
+
+	const def testSubscriptMove(self) {
+		
+	}
+
+	const def testToNumber(self) {
+		
+	}
+}
+
+class TestUInt8 : Test.Case {
+	const def testCreate(self) {
+
+	}
+
+	const def testCopy(self) {
+		
+	}
+
+	const def testCall(self) {
+		
+	}
+
+	const def testAdd(self) {
+		
+	}
+
+	const def testSub(self) {
+		
+	}
+
+	const def testMul(self) {
+		
+	}
+
+	const def testDiv(self) {
+		
+	}
+
+	const def testPow(self) {
+		
+	}
+
+	const def testMod(self) {
+		
+	}
+
+	const def testEq(self) {
+		
+	}
+
+	const def testNe(self) {
+		
+	}
+
+	const def testLt(self) {
+		
+	}
+
+	const def testGt(self) {
+		
+	}
+
+	const def testLe(self) {
+		
+	}
+
+	const def testGe(self) {
+		
+	}
+
+	const def testAnd(self) {
+		
+	}
+
+	const def testOr(self) {
+		
+	}
+
+	const def testBand(self) {
+		
+	}
+
+	const def testBor(self) {
+		
+	}
+
+	const def testXor(self) {
+		
+	}
+
+	const def testInc(self) {
+		
+	}
+
+	const def testDec(self) {
+		
+	}
+
+	const def testNot(self) {
+		
+	}
+
+	const def testCompl(self) {
+		
+	}
+
+	const def testPos(self) {
+		
+	}
+
+	const def testNeg(self) {
+		
+	}
+
+	const def testShiftLeft(self) {
+		
+	}
+
+	const def testShiftRight(self) {
+		
+	}
+
+	const def testInclusiveRange(self) {
+		
+	}
+
+	const def testExclusiveRange(self) {
+		
+	}
+
+	const def testSubscript(self) {
+		
+	}
+
+	const def testSubscriptMove(self) {
+		
+	}
+
+	const def testToNumber(self) {
+		
+	}
+}
+
+class TestUInt16 : Test.Case {
+	const def testCreate(self) {
+
+	}
+
+	const def testCopy(self) {
+		
+	}
+
+	const def testCall(self) {
+		
+	}
+
+	const def testAdd(self) {
+		
+	}
+
+	const def testSub(self) {
+		
+	}
+
+	const def testMul(self) {
+		
+	}
+
+	const def testDiv(self) {
+		
+	}
+
+	const def testPow(self) {
+		
+	}
+
+	const def testMod(self) {
+		
+	}
+
+	const def testEq(self) {
+		
+	}
+
+	const def testNe(self) {
+		
+	}
+
+	const def testLt(self) {
+		
+	}
+
+	const def testGt(self) {
+		
+	}
+
+	const def testLe(self) {
+		
+	}
+
+	const def testGe(self) {
+		
+	}
+
+	const def testAnd(self) {
+		
+	}
+
+	const def testOr(self) {
+		
+	}
+
+	const def testBand(self) {
+		
+	}
+
+	const def testBor(self) {
+		
+	}
+
+	const def testXor(self) {
+		
+	}
+
+	const def testInc(self) {
+		
+	}
+
+	const def testDec(self) {
+		
+	}
+
+	const def testNot(self) {
+		
+	}
+
+	const def testCompl(self) {
+		
+	}
+
+	const def testPos(self) {
+		
+	}
+
+	const def testNeg(self) {
+		
+	}
+
+	const def testShiftLeft(self) {
+		
+	}
+
+	const def testShiftRight(self) {
+		
+	}
+
+	const def testInclusiveRange(self) {
+		
+	}
+
+	const def testExclusiveRange(self) {
+		
+	}
+
+	const def testSubscript(self) {
+		
+	}
+
+	const def testSubscriptMove(self) {
+		
+	}
+
+	const def testToNumber(self) {
+		
+	}
+}
+
+class TestUInt32 : Test.Case {
+	const def testCreate(self) {
+
+	}
+
+	const def testCopy(self) {
+		
+	}
+
+	const def testCall(self) {
+		
+	}
+
+	const def testAdd(self) {
+		
+	}
+
+	const def testSub(self) {
+		
+	}
+
+	const def testMul(self) {
+		
+	}
+
+	const def testDiv(self) {
+		
+	}
+
+	const def testPow(self) {
+		
+	}
+
+	const def testMod(self) {
+		
+	}
+
+	const def testEq(self) {
+		
+	}
+
+	const def testNe(self) {
+		
+	}
+
+	const def testLt(self) {
+		
+	}
+
+	const def testGt(self) {
+		
+	}
+
+	const def testLe(self) {
+		
+	}
+
+	const def testGe(self) {
+		
+	}
+
+	const def testAnd(self) {
+		
+	}
+
+	const def testOr(self) {
+		
+	}
+
+	const def testBand(self) {
+		
+	}
+
+	const def testBor(self) {
+		
+	}
+
+	const def testXor(self) {
+		
+	}
+
+	const def testInc(self) {
+		
+	}
+
+	const def testDec(self) {
+		
+	}
+
+	const def testNot(self) {
+		
+	}
+
+	const def testCompl(self) {
+		
+	}
+
+	const def testPos(self) {
+		
+	}
+
+	const def testNeg(self) {
+		
+	}
+
+	const def testShiftLeft(self) {
+		
+	}
+
+	const def testShiftRight(self) {
+		
+	}
+
+	const def testInclusiveRange(self) {
+		
+	}
+
+	const def testExclusiveRange(self) {
+		
+	}
+
+	const def testSubscript(self) {
+		
+	}
+
+	const def testSubscriptMove(self) {
+		
+	}
+
+	const def testToNumber(self) {
+		
+	}
+}
+
+class TestUInt64 : Test.Case {
+	const def testCreate(self) {
+
+	}
+
+	const def testCopy(self) {
+		
+	}
+
+	const def testCall(self) {
+		
+	}
+
+	const def testAdd(self) {
+		
+	}
+
+	const def testSub(self) {
+		
+	}
+
+	const def testMul(self) {
+		
+	}
+
+	const def testDiv(self) {
+		
+	}
+
+	const def testPow(self) {
+		
+	}
+
+	const def testMod(self) {
+		
+	}
+
+	const def testEq(self) {
+		
+	}
+
+	const def testNe(self) {
+		
+	}
+
+	const def testLt(self) {
+		
+	}
+
+	const def testGt(self) {
+		
+	}
+
+	const def testLe(self) {
+		
+	}
+
+	const def testGe(self) {
+		
+	}
+
+	const def testAnd(self) {
+		
+	}
+
+	const def testOr(self) {
+		
+	}
+
+	const def testBand(self) {
+		
+	}
+
+	const def testBor(self) {
+		
+	}
+
+	const def testXor(self) {
+		
+	}
+
+	const def testInc(self) {
+		
+	}
+
+	const def testDec(self) {
+		
+	}
+
+	const def testNot(self) {
+		
+	}
+
+	const def testCompl(self) {
+		
+	}
+
+	const def testPos(self) {
+		
+	}
+
+	const def testNeg(self) {
+		
+	}
+
+	const def testShiftLeft(self) {
+		
+	}
+
+	const def testShiftRight(self) {
+		
+	}
+
+	const def testInclusiveRange(self) {
+		
+	}
+
+	const def testExclusiveRange(self) {
+		
+	}
+
+	const def testSubscript(self) {
+		
+	}
+
+	const def testSubscriptMove(self) {
+		
+	}
+
+	const def testToNumber(self) {
+		
+	}
+}

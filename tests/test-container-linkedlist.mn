@@ -1,5 +1,5 @@
 load test.case
-load container.linkedlist
+load container.linked-list
 
 class LinkedListTest : Test.Case {
 	const def testCreate(self) {

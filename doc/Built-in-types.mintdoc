@@ -69,7 +69,7 @@ This type represent a number. It can be created by any of the following literals
 
 Most of the [[operators|Arithmetic operations]] are applicable to this type. The `[]` operator is also applicable to this type and gives the digit at the given index in the number.
 
-Numbers are signed. The minimum and maximum value representable by a number depend on the system. To use unsigned numbers or numbers with fixed sizes see [[mint.inttypes]].
+Numbers are signed. The minimum and maximum value representable by a number depend on the system. To use unsigned numbers or numbers with fixed sizes see [[mint.int-types]].
 
 ## string
 

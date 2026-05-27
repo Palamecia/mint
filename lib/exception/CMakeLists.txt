@@ -1,7 +1,8 @@
 project(module-exception)
 
-add_custom_target(${PROJECT_NAME}
-	SOURCES
+add_custom_target(
+	mint-module-exception
+SOURCES
 	container.mn
 	exception.mn
 	network.mn
@@ -9,11 +10,11 @@ add_custom_target(${PROJECT_NAME}
 )
 
 # Copy source files into build output (optional)
-mint_copy_module_sources(${PROJECT_NAME} "exception")
+mint_copy_module_sources(mint-module-exception "exception")
 
 # Install
-get_target_property(${PROJECT_NAME}_LIB ${PROJECT_NAME} SOURCES)
+get_target_property(${PROJECT_NAME}_SOURCES mint-module-exception SOURCES)
 install(
-	FILES ${${PROJECT_NAME}_LIB}
+	FILES ${${PROJECT_NAME}_SOURCES}
 	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/exception
 )

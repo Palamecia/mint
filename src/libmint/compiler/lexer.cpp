@@ -23,7 +23,7 @@
 
 #include "mint/compiler/lexer.h"
 #include "mint/compiler/token.h"
-#include "mint/system/datastream.h"
+#include "mint/system/data_stream.h"
 #include "parser.hpp"
 #include <cctype>
 #include <cstdint>

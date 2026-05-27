@@ -22,9 +22,9 @@
  */
 
 #include "mint/memory/builtin/libobject.h"
-#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/abstract_syntax_tree.h"
 #include "mint/memory/class.h"
-#include "mint/memory/globaldata.h"
+#include "mint/memory/global_data.h"
 
 using namespace mint;
 

@@ -28,7 +28,7 @@
 
 load mint.lang
 load exception.exception
-load serializer.datastream
+load serializer.data-stream
 
 package Codec {
 

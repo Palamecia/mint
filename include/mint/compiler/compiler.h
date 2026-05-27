@@ -24,10 +24,10 @@
 #ifndef MINT_COMPILER_COMPILER_H
 #define MINT_COMPILER_COMPILER_H
 
-#include "mint/ast/classregister.h"
+#include "mint/ast/class_register.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
-#include "mint/system/datastream.h"
+#include "mint/system/data_stream.h"
 #include "mint/ast/module.h"
 #include <cstdint>
 #include <functional>

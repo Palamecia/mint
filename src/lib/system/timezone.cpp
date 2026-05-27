@@ -26,10 +26,10 @@
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
-#include "mint/memory/memorytool.h"
+#include "mint/memory/memory_tools.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/cast_tools.h"
 #include <array>
 #include <chrono>
 #include <format>
@@ -119,8 +119,7 @@ mint::Reference mint_timezone_get_name(mint::Cursor& cursor, const mint::Referen
 	return {};
 }
 
-mint::Reference mint_timezone_match(mint::Cursor& cursor, const mint::Reference& self,
-    const mint::Reference& other) {
+mint::Reference mint_timezone_match(mint::Cursor& cursor, const mint::Reference& self, const mint::Reference& other) {
 	if (mint::is_instance_of(self, mint::Class::Metatype::libobject)
 	    && mint::is_instance_of(other, mint::Class::Metatype::libobject)) {
 		return mint::create_boolean(*self.data<mint::LibObject<std::chrono::time_zone>>().ptr
@@ -273,8 +272,8 @@ mint::Reference mint_timezone_time_from_milliseconds(mint::Cursor& cursor, const
 	    mint::create_signed_number(static_cast<int>(time.subseconds().count())));
 }
 
-mint::Reference mint_timezone_week_day_from_time_point(mint::FunctionHelper& helper,
-    const mint::Reference& zoneinfo, const mint::Reference& duration) {
+mint::Reference mint_timezone_week_day_from_time_point(mint::FunctionHelper& helper, const mint::Reference& zoneinfo,
+    const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(helper.cursor(), zoneinfo,
 	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
@@ -308,8 +307,8 @@ mint::Reference mint_timezone_week_day_from_seconds(mint::FunctionHelper& helper
 	    .share();
 }
 
-mint::Reference mint_timezone_week_day_from_milliseconds(mint::FunctionHelper& helper,
-    const mint::Reference& zoneinfo, const mint::Reference& duration) {
+mint::Reference mint_timezone_week_day_from_milliseconds(mint::FunctionHelper& helper, const mint::Reference& zoneinfo,
+    const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(helper.cursor(), zoneinfo,
 	    std::chrono::sys_time(

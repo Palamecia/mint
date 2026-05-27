@@ -23,8 +23,8 @@
 
 #include "mint/ast/cursor.h"
 #include "mint/memory/data.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/memorytool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 

@@ -4,10 +4,10 @@
 #include "mint/ast/symbol.h"
 #include "mint/memory/data.h"
 #include "mint/scheduler/scheduler.h"
-#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/abstract_syntax_tree.h"
 #include "mint/memory/class.h"
-#include "mint/memory/classtool.h"
-#include "mint/memory/functiontool.h"
+#include "mint/memory/class_tools.h"
+#include "mint/memory/function_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 

@@ -21,9 +21,9 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/memory/functiontool.h"
+#include "mint/memory/function_tools.h"
 #include "mint/memory/builtin/iterator.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/memory/reference.h"
 #include <cmath>
 #include <limits>

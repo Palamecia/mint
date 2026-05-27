@@ -24,7 +24,7 @@
 #ifndef MINT_SCHEDULER_DESTRUCTOR_H
 #define MINT_SCHEDULER_DESTRUCTOR_H
 
-#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/abstract_syntax_tree.h"
 #include "mint/config.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/process.h"

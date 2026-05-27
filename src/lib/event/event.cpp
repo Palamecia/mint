@@ -21,10 +21,10 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/memory/memorytool.h"
+#include "mint/memory/memory_tools.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/cast_tools.h"
 
 #ifdef MINT_OS_WINDOWS
 #include <Windows.h>
@@ -91,8 +91,7 @@ mint::Reference mint_event_clear(mint::Cursor& /*cursor*/, const mint::Reference
 	return {};
 }
 
-mint::Reference mint_event_wait(mint::Cursor& cursor, const mint::Reference& handle,
-    const mint::Reference& timeout) {
+mint::Reference mint_event_wait(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 
 	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)

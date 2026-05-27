@@ -21,7 +21,7 @@ with a device using a specific protocol.
 **Example**:
 ```mn
 load network.scheduler
-load network.endpoints.tcpip
+load network.endpoints.tcp-ip
 load network.protocol.http.client
 
 let scheduler = Network.SchedulerThread()

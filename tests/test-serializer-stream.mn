@@ -1,7 +1,7 @@
 load test.case
 load mint.type
-load serializer.bufferedstream
-load serializer.stringstream
+load serializer.buffered-stream
+load serializer.string-stream
 
 class TestStringStream : Test.Case {
 	const def testReadChar(self) {

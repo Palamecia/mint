@@ -5,9 +5,9 @@ add_executable(test-ast)
 target_sources(
 	test-ast
 PRIVATE
-	abstractsyntaxtree.cpp
+	abstract_syntax_tree.cpp
 	cursor.cpp
-	fileprinter.cpp
+	file_printer.cpp
 	module.cpp
 	node.cpp
 	printer.cpp
@@ -16,7 +16,7 @@ PRIVATE
 target_link_libraries(
 	test-ast
 PRIVATE
-	libmint
+	mint::mint
 	GTest::gtest
 	GTest::gtest_main
 )

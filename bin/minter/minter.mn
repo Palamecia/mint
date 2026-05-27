@@ -24,8 +24,8 @@
  * IN THE SOFTWARE.
  */
 
-load mint.commandlineparser
-load serializer.jsonstream
+load mint.commandline-parser
+load serializer.json-stream
 load system.timezone
 load system.date
 load mint.lang

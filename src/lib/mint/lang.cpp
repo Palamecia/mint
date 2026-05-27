@@ -21,26 +21,26 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/classregister.h"
+#include "mint/ast/class_register.h"
 #include "mint/ast/symbol.h"
-#include "mint/debug/lineinfo.h"
+#include "mint/debug/line_info.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/data.h"
-#include "mint/memory/memorytool.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/globaldata.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/memory_tools.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/global_data.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/scheduler/processor.h"
 #include "mint/scheduler/process.h"
 #include "mint/system/filesystem.h"
 #include "mint/system/error.h"
-#include "mint/debug/debugtool.h"
+#include "mint/debug/debug_tools.h"
 #include "mint/ast/cursor.h"
 
-#include "evalresultprinter.h"
+#include "eval_result_printer.h"
 #include <filesystem>
 #include <functional>
 #include <memory>

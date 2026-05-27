@@ -26,13 +26,13 @@
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/algorithm.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
-#include "mint/memory/functiontool.h"
-#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/memory/function_tools.h"
+#include "mint/ast/abstract_syntax_tree.h"
 #include "mint/ast/cursor.h"
-#include "mint/memory/memorytool.h"
+#include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/system/string.h"
@@ -1065,9 +1065,9 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 
 		Reference result = pos != std::string::npos
-		                           ? create_unsigned_number(
-		                                 utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
-		                           : create_none();
+		                       ? create_unsigned_number(
+		                             utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
+		                       : create_none();
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -1101,9 +1101,9 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 
 		Reference result = pos != std::string::npos
-		                           ? create_unsigned_number(
-		                                 utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
-		                           : create_none();
+		                       ? create_unsigned_number(
+		                             utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
+		                       : create_none();
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -1130,9 +1130,9 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 
 		Reference result = pos != std::string::npos
-		                           ? create_unsigned_number(
-		                                 utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
-		                           : create_none();
+		                       ? create_unsigned_number(
+		                             utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
+		                       : create_none();
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -1165,9 +1165,9 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 
 		Reference result = pos != std::string::npos
-		                           ? create_unsigned_number(
-		                                 utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
-		                           : create_none();
+		                       ? create_unsigned_number(
+		                             utf8_byte_index_to_code_point_index(self.data<String>().str, pos))
+		                       : create_none();
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();

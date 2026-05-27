@@ -1,21 +1,22 @@
 project(module-event)
 
-add_custom_target(${PROJECT_NAME}
-	SOURCES
+add_custom_target(
+	mint-module-event
+SOURCES
 	event.mn
 	file.mn
 	pipe.mn
-	streamsynchronizer.mn
+	stream-synchronizer.mn
 	timer.mn
 	watcher.mn
 )
 
 # Copy source files into build output (optional)
-mint_copy_module_sources(${PROJECT_NAME} "event")
+mint_copy_module_sources(mint-module-event "event")
 
 # Install
-get_target_property(${PROJECT_NAME}_LIB ${PROJECT_NAME} SOURCES)
+get_target_property(${PROJECT_NAME}_SOURCES mint-module-event SOURCES)
 install(
-	FILES ${${PROJECT_NAME}_LIB}
+	FILES ${${PROJECT_NAME}_SOURCES}
 	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/event
 )

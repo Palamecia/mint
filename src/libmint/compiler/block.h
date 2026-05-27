@@ -25,9 +25,9 @@
 #define BLOCK_H
 
 #include "mint/ast/symbol.h"
-#include "mint/compiler/buildtool.h"
-#include "casetable.h"
-#include "catchcontext.h"
+#include "mint/compiler/build_tools.h"
+#include "case_table.h"
+#include "catch_context.h"
 #include "branch.h"
 #include <cstddef>
 #include <memory>

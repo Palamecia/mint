@@ -6,7 +6,7 @@ target_sources(
 	test-scheduler
 PRIVATE
 	destructor.cpp
-	inputstream.cpp
+	input_stream.cpp
 	output.cpp
 	process.cpp
 	processor.cpp
@@ -16,7 +16,7 @@ PRIVATE
 target_link_libraries(
 	test-scheduler
 PRIVATE
-	libmint
+	mint::mint
 	GTest::gtest
 	GTest::gtest_main
 )

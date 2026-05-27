@@ -24,13 +24,13 @@
 #ifndef MINT_SCHEDULER_SCHEDULER_H
 #define MINT_SCHEDULER_SCHEDULER_H
 
-#include "mint/ast/abstractsyntaxtree.h"
-#include "mint/ast/savedstate.h"
+#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/ast/saved_state.h"
 #include "mint/ast/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/class.h"
 #include "mint/memory/reference.h"
-#include "mint/scheduler/threadpool.h"
+#include "mint/scheduler/thread_pool.h"
 #include "mint/scheduler/process.h"
 
 #include <cstdlib>
@@ -192,8 +192,7 @@ Reference Scheduler::invoke(const Reference& object, Class::Operator op, Args...
 }
 
 template<class... Args>
-Reference Scheduler::invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
-    Args... args) {
+Reference Scheduler::invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info, Args... args) {
 	std::vector<Reference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);

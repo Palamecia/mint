@@ -28,7 +28,7 @@
 #include "mint/ast/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
-#include "mint/memory/garbagecollector.h"
+#include "mint/memory/garbage_collector.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 

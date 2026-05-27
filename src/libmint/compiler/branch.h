@@ -24,7 +24,7 @@
 #ifndef BRANCH_H
 #define BRANCH_H
 
-#include "mint/ast/classregister.h"
+#include "mint/ast/class_register.h"
 #include "mint/ast/node.h"
 #include "mint/ast/module.h"
 

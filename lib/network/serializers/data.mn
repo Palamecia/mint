@@ -27,7 +27,7 @@
  * as {Network.TcpIp}.
  */
 
-load serializer.datastream
+load serializer.data-stream
 load exception.network
 
 package Network {

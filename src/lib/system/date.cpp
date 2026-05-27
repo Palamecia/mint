@@ -23,8 +23,8 @@
 
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/system/errno.h"
 #include <cstdint>
 #include <chrono>
@@ -765,8 +765,7 @@ mint::Reference mint_date_delete(mint::Cursor& /*cursor*/, const mint::Reference
 	return {};
 }
 
-mint::Reference mint_date_set_seconds(mint::Cursor& cursor, const mint::Reference& duration,
-    mint::Reference& value) {
+mint::Reference mint_date_set_seconds(mint::Cursor& cursor, const mint::Reference& duration, mint::Reference& value) {
 	*duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr =
 	    std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
 	        std::chrono::seconds(to_integer<std::chrono::seconds::rep>(cursor, value))));
@@ -805,8 +804,7 @@ mint::Reference mint_date_milliseconds_to_timepoint(mint::Cursor& cursor, const 
 	        std::chrono::milliseconds(to_integer<std::chrono::milliseconds::rep>(cursor, value))));
 }
 
-mint::Reference mint_date_equals(mint::Cursor& /*cursor*/, const mint::Reference& self,
-    const mint::Reference& other) {
+mint::Reference mint_date_equals(mint::Cursor& /*cursor*/, const mint::Reference& self, const mint::Reference& other) {
 	return mint::create_boolean(
 	    (*self.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr)
 	    == (*other.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr));

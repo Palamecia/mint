@@ -26,12 +26,12 @@
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
-#include "mint/memory/functiontool.h"
+#include "mint/memory/function_tools.h"
 #include "mint/memory/object.h"
-#include "mint/memory/operatortool.h"
-#include "mint/memory/memorytool.h"
-#include "mint/memory/casttool.h"
-#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/memory/operator_tools.h"
+#include "mint/memory/memory_tools.h"
+#include "mint/memory/cast_tools.h"
+#include "mint/ast/abstract_syntax_tree.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/scheduler/processor.h"
@@ -101,8 +101,7 @@ mint::Reference mint_promise_delete(mint::Cursor& /*cursor*/, const mint::Refere
 	return {};
 }
 
-mint::Reference mint_promise_wait_for(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    const mint::Reference& time) {
+mint::Reference mint_promise_wait_for(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& time) {
 	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
 		mint::unlock_processor();
 		switch (promise->wait_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)))) {

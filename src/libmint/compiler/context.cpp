@@ -23,7 +23,7 @@
 
 #include "context.h"
 #include "mint/ast/symbol.h"
-#include "mint/compiler/buildtool.h"
+#include "mint/compiler/build_tools.h"
 #include <cstddef>
 
 using namespace mint;

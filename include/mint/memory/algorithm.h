@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_MEMORY_ALGORITHM_HPP
-#define MINT_MEMORY_ALGORITHM_HPP
+#ifndef MINT_MEMORY_ALGORITHM_H
+#define MINT_MEMORY_ALGORITHM_H
 
 #include "mint/ast/cursor.h"
 #include "mint/memory/builtin/array.h"
@@ -34,7 +34,7 @@
 #include "mint/memory/data.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/symboltable.h"
+#include "mint/memory/symbol_table.h"
 #include "mint/system/utf8.h"
 #include <functional>
 #include <utility>
@@ -193,4 +193,4 @@ bool for_each_if(Cursor& cursor, const Reference& ref, Function function) {
 
 }
 
-#endif // MINT_MEMORY_ALGORITHM_HPP
+#endif // MINT_MEMORY_ALGORITHM_H

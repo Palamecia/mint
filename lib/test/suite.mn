@@ -116,7 +116,7 @@ package Test {
 		 */
 		const def run(self, args) {
 
-			load mint.commandlineparser
+			load mint.commandline-parser
 
 			var options = CommandLineParser()
 			var list_only = false

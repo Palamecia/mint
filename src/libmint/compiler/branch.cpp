@@ -23,7 +23,7 @@
 
 #include "branch.h"
 #include "mint/ast/node.h"
-#include "mint/compiler/buildtool.h"
+#include "mint/compiler/build_tools.h"
 #include "mint/ast/module.h"
 #include <cstddef>
 #include <functional>
@@ -33,9 +33,9 @@
 #include <vector>
 
 #if defined(MINT_BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
-#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/abstract_syntax_tree.h"
 #include "mint/ast/cursor.h"
-#include "mint/debug/debugtool.h"
+#include "mint/debug/debug_tools.h"
 #include "mint/system/stdio.h"
 #include <format>
 #include <iostream>

@@ -25,10 +25,10 @@
 #define LIBMINT_COMPILER_CONTEXT_H
 
 #include "branch.h"
-#include "mint/ast/classregister.h"
+#include "mint/ast/class_register.h"
 #include "mint/ast/symbol.h"
-#include "mint/compiler/buildtool.h"
-#include "mint/memory/globaldata.h"
+#include "mint/compiler/build_tools.h"
+#include "mint/memory/global_data.h"
 #include "mint/memory/reference.h"
 
 #include <cstddef>

@@ -23,9 +23,9 @@
 
 #include "dictionary.h"
 #include "definition.h"
-#include "docnode.h"
+#include "doc_node.h"
 
-#include "generators/gollumgenerator.h"
+#include "generators/gollum_generator.h"
 #include "module.h"
 #include "page.h"
 #include "utils.h"

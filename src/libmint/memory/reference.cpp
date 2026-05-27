@@ -23,7 +23,7 @@
 
 #include "mint/memory/reference.h"
 #include "mint/memory/data.h"
-#include "mint/memory/garbagecollector.h"
+#include "mint/memory/garbage_collector.h"
 #include <cassert>
 #include <memory>
 #include <utility>

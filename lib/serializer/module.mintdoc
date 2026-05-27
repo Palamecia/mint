@@ -5,7 +5,7 @@ Any class of this module can be used with a `print` statement.
 
 **Example**:
 ```mn
-load serializer.jsonstream
+load serializer.json-stream
 load system.file
 
 if stream = Serializer.JsonStream(System.open('./target/path', 'w')) {

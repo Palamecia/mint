@@ -28,7 +28,7 @@
 
 load exception.network
 load mint.function
-load mint.lockguard
+load mint.lock-guard
 load system.thread
 
 package Network {

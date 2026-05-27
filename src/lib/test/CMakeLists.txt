@@ -1,34 +1,35 @@
 project(mint-test)
 
-add_library(mint-test MODULE)
+add_library(mint-lib-module-test MODULE)
 
 target_sources(
-	mint-test
+	mint-lib-module-test
 PRIVATE
 	case.cpp
-	errorcatcher.cpp
+	error_catcher.cpp
 	suite.cpp
 )
 
 set_target_properties(
-	mint-test
+	mint-lib-module-test
 	PROPERTIES
 	PREFIX lib
+	OUTPUT_NAME mint-test
 	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
 )
 
 target_link_libraries(
-	mint-test
+	mint-lib-module-test
 PRIVATE
-	libmint
+	mint::mint
 )
 
 # Install
 install(
-	TARGETS mint-test
+	TARGETS mint-lib-module-test
 	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 )
 
-add_dependencies(mint-test module-test)
+add_dependencies(mint-lib-module-test mint-module-test)

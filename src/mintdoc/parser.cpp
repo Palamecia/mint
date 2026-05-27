@@ -24,12 +24,12 @@
 #include "parser.h"
 #include "definition.h"
 #include "dictionary.h"
-#include "docnode.h"
+#include "doc_node.h"
 
-#include "mint/compiler/lexicalhandler.h"
+#include "mint/compiler/lexical_handler.h"
 #include "mint/compiler/token.h"
 #include "mint/config.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/memory/reference.h"
 #include "mint/system/error.h"
 #include <cstddef>

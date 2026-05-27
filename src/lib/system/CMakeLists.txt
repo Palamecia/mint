@@ -2,10 +2,18 @@ project(mint-system)
 
 find_package(ICU REQUIRED COMPONENTS uc i18n data)
 
-add_library(mint-system MODULE)
+add_library(mint-lib-module-system MODULE)
+
+set_target_properties(
+	mint-lib-module-system
+	PROPERTIES
+	PREFIX lib
+	OUTPUT_NAME mint-system
+	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
+)
 
 target_sources(
-	mint-system
+	mint-lib-module-system
 PRIVATE
 	date.cpp
 	directory.cpp
@@ -24,7 +32,7 @@ PRIVATE
 
 if (WIN32)
 	target_sources(
-		mint-system
+		mint-lib-module-system
 	PRIVATE
 		win32/NtProcessInfo.cpp
 		win32/NtProcessInfo.h
@@ -33,17 +41,10 @@ if (WIN32)
 	)
 endif()
 
-set_target_properties(
-	mint-system
-	PROPERTIES
-	PREFIX lib
-	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
-)
-
 target_link_libraries(
-	mint-system
+	mint-lib-module-system
 PRIVATE
-	libmint
+	mint::mint
 	ICU::i18n
 	ICU::uc
 	ICU::data
@@ -51,10 +52,10 @@ PRIVATE
 
 # Install
 install(
-	TARGETS mint-system
+	TARGETS mint-lib-module-system
 	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 )
 
-add_dependencies(mint-system module-system)
+add_dependencies(mint-lib-module-system mint-module-system)

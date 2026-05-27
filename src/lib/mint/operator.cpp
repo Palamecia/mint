@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/memory/functiontool.h"
+#include "mint/memory/function_tools.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/reference.h"
 

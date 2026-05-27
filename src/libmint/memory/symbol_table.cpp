@@ -1,0 +1,62 @@
+/**
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/symbol_table.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/memory_tools.h"
+#include "mint/memory/global_data.h"
+#include "mint/memory/class.h"
+#include "mint/memory/reference.h"
+#include <cassert>
+#include <cstddef>
+#include <memory>
+
+using namespace mint;
+
+SymbolTable::SymbolTable(GlobalData& global_data, Class* metadata) :
+    _metadata(metadata),
+    _global_data(global_data) {}
+
+Class* SymbolTable::get_metadata() const {
+	return _metadata;
+}
+
+PackageData& SymbolTable::get_package() const {
+	if (_package.empty()) {
+		return _global_data.get();
+	}
+	return _package.back().get();
+}
+
+GlobalData& SymbolTable::get_global_data() const {
+	return _global_data;
+}
+
+Reference& SymbolTable::create_fast_reference(const Symbol& name, std::size_t index) {
+	return *(_fasts[index] = std::make_unique<Reference>(get_symbol(*this, name)));
+}
+
+Reference& SymbolTable::create_fast_reference(Reference::Flags flags, const Symbol& name, std::size_t index) {
+	return *(
+	    _fasts[index] = std::make_unique<Reference>(_symbols.insert_or_assign(name, Reference(flags)).first->second));
+}

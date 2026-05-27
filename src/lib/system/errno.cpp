@@ -23,8 +23,8 @@
 
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/cast_tools.h"
 #include <cerrno>
 #include <cstring>
 #include <errno.h>

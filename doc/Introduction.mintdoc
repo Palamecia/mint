@@ -34,7 +34,7 @@ Mint employs a C++-like comment syntax. A comment can begin with `//` and contin
 
 ## Garbage Collector
 
-Mint utilizes a garbage collector to automatically handle memory deallocation. This garbage collector uses reference counting and a mark-and-sweep algorithm to handle reference cycles. To reduce computation time, garbage collection with the mark-and-sweep algorithm only occurs when a thread has finished. The collection can also be initiated manually using the [[mint.garbagecollector]] module.
+Mint utilizes a garbage collector to automatically handle memory deallocation. This garbage collector uses reference counting and a mark-and-sweep algorithm to handle reference cycles. To reduce computation time, garbage collection with the mark-and-sweep algorithm only occurs when a thread has finished. The collection can also be initiated manually using the [[mint.garbage-collector]] module.
 
 ---
 

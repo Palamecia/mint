@@ -26,7 +26,7 @@
 
 #include "mint/config.h"
 #include "mint/memory/class.h"
-#include "mint/memory/memorypool.h"
+#include "mint/memory/memory_pool.h"
 #include "mint/memory/object.h"
 
 namespace mint {

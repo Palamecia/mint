@@ -1,0 +1,125 @@
+/**
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#include "mint/memory/class_tools.h"
+#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/ast/class_register.h"
+#include "mint/ast/symbol.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include "mint/memory/garbage_collector.h"
+#include "mint/system/error.h"
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <initializer_list>
+#include <optional>
+#include <ranges>
+#include <span>
+#include <string>
+#include <utility>
+#include <vector>
+
+using namespace mint;
+
+Class& mint::create_enum(AbstractSyntaxTree& ast, const std::string& name,
+    std::span<const std::pair<Symbol, std::optional<std::intmax_t>>> values) {
+
+	std::size_t next_enum_value = 0;
+	auto* desc = ast.main().bytecode->make_class(ast, name);
+	const Reference::Flags flags = Reference::const_value | Reference::const_address | Reference::global;
+
+	for (const auto& [symbol, value] : values) {
+		if (value.has_value()) {
+			if (!desc->create_member(symbol, make_reference<Number>(flags, *value))) {
+				error("{}: member was already defined for enum '{}'", symbol.str(), name);
+			}
+			next_enum_value = static_cast<std::size_t>(*value) + 1;
+		}
+		else {
+			if (!desc->create_member(symbol, make_reference<Number>(flags, next_enum_value++))) {
+				error("{}: member was already defined for enum '{}'", symbol.str(), name);
+			}
+		}
+	}
+
+	return desc->generate();
+}
+
+Class& mint::create_enum(AbstractSyntaxTree& ast, const std::string& name,
+    std::initializer_list<std::pair<Symbol, std::optional<std::intmax_t>>> values) {
+	return create_enum(ast, name, std::span(values.begin(), values.end()));
+}
+
+Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::span<const std::pair<Symbol, Reference>> members) {
+	return create_class(ast, name, std::span<ClassRegister::Path>(), members);
+}
+
+Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::span<const std::reference_wrapper<ClassDescription>> bases,
+    std::span<const std::pair<Symbol, Reference>> members) {
+	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
+	    std::views::transform(bases, &ClassDescription::get_path));
+	return create_class(ast, name, std::span(bases_path), members);
+}
+
+Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name, std::span<const ClassRegister::Path> bases,
+    std::span<const std::pair<Symbol, Reference>> members) {
+
+	auto* desc = ast.main().bytecode->make_class(ast, name);
+
+	for (const auto& base : bases) {
+		desc->add_base(base);
+	}
+
+	for (const auto& [symbol, member] : members) {
+		if (is_stateful_function(member)) [[unlikely]] {
+			error("{}: members can not use stateful functions", symbol.str());
+		}
+		if (!desc->create_member(symbol, member)) [[unlikely]] {
+			error("{}: member was already defined for class '{}'", symbol.str(), name);
+		}
+	}
+
+	return desc->generate();
+}
+
+Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::initializer_list<std::pair<Symbol, Reference>> members) {
+	return create_class(ast, name, std::span<ClassRegister::Path>(), std::span(members.begin(), members.end()));
+}
+
+Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::initializer_list<std::reference_wrapper<mint::ClassDescription>> bases,
+    std::initializer_list<std::pair<Symbol, Reference>> members) {
+	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
+	    std::views::transform(bases, &ClassDescription::get_path));
+	return create_class(ast, name, std::span(bases_path), std::span(members.begin(), members.end()));
+}
+
+Class& mint::create_class(AbstractSyntaxTree& ast, const std::string& name,
+    std::initializer_list<mint::ClassRegister::Path> bases,
+    std::initializer_list<std::pair<Symbol, Reference>> members) {
+	return create_class(ast, name, std::span(bases.begin(), bases.end()), std::span(members.begin(), members.end()));
+}

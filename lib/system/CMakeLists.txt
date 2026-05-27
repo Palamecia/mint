@@ -1,7 +1,8 @@
 project(module-system)
 
-add_custom_target(${PROJECT_NAME}
-	SOURCES
+add_custom_target(
+	mint-module-system
+SOURCES
 	date.mn
 	directory.mn
 	file.mn
@@ -16,11 +17,11 @@ add_custom_target(${PROJECT_NAME}
 )
 
 # Copy source files into build output (optional)
-mint_copy_module_sources(${PROJECT_NAME} "system")
+mint_copy_module_sources(mint-module-system "system")
 
 # Install
-get_target_property(${PROJECT_NAME}_LIB ${PROJECT_NAME} SOURCES)
+get_target_property(${PROJECT_NAME}_SOURCES mint-module-system SOURCES)
 install(
-	FILES ${${PROJECT_NAME}_LIB}
+	FILES ${${PROJECT_NAME}_SOURCES}
 	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/system
 )

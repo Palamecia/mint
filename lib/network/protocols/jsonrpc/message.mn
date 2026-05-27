@@ -26,9 +26,9 @@
  * structure of the messages used by {Network.JsonRpc.Serializer}.
  */
 
-load serializer.stringstream
-load serializer.datastream
-load serializer.jsonstream
+load serializer.string-stream
+load serializer.data-stream
+load serializer.json-stream
 load mint.string
 load mint.regex
 load mint.hash

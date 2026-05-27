@@ -24,7 +24,7 @@
 #ifndef MDBG_HIGHLIGHTER_H
 #define MDBG_HIGHLIGHTER_H
 
-#include "mint/memory/globaldata.h"
+#include "mint/memory/global_data.h"
 #include <cstddef>
 #include <fstream>
 

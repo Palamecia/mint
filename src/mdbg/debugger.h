@@ -24,8 +24,8 @@
 #ifndef MDBG_DEBUGGER_H
 #define MDBG_DEBUGGER_H
 
-#include "mint/ast/abstractsyntaxtree.h"
-#include "mint/debug/debuginterface.h"
+#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/debug/debug_interface.h"
 #include "mint/scheduler/scheduler.h"
 
 #include <cstddef>

@@ -1,0 +1,2231 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Serializer.YamlStream} class which allow to read
+ * and write YAML documents.
+ */
+
+load mint.hash
+load mint.regex
+load mint.string
+load system.date
+load exception.exception
+load serializer.data-stream
+load serializer.document-stream
+
+package Serializer {
+
+/**
+ * This class class provides a way to read and write YAML documents.
+ */
+class YamlStream : Serializer.DocumentStream {
+	/**
+	 * Reads the content of the stream and return it as an instance of
+	 * {Serializer.YamlDocument}. If the content of the stream is not a valid
+	 * YAML, an instance of {Serializer.DocumentStream.InvalidDocument} is raised.
+	 */
+	override const def read(self) {
+		var parser = Serializer.YamlStream.Parser(self)
+		return parser.parse()
+	}
+
+	/**
+	 * Writes the content of `data` to the stream.
+	 */
+	override const def write(self, data) {
+		return Serializer.DocumentStream.write(self, data.toString())
+	}
+
+	/**
+	 * Reads an object from the stream and stores it in `data`, then returns a
+	 * reference to the stream.
+	 */
+	override const def >>(self, data) {
+		data := self.read()
+		return self
+	}
+
+	/**
+	 * Writes the content of `data` to the stream using the {@see write}
+	 * function, then returns a reference to the stream.
+	 */
+	override const def <<(self, data) {
+		self.write(data)
+		return self
+	}
+
+	/**
+	 * This class provides a parser to convert a YAML stream to objects.
+	 */
+	- class Parser {
+		/**
+		 * Creates a new parser on the stream given by `stream`.
+		 */
+		const def new(self, stream) {
+			self.stream = stream
+			return self
+		}
+
+		/**
+		 * Returns an instance of {Serializer.YamlDocument} corresponding to the
+		 * next YAML document in the stream or `none` if no more document is
+		 * available. 
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		const def parse(self) {
+			return self.parseStream()
+		}
+
+		/**
+		 * Begins the parsin of the stream. Returns an instance of
+		 * {Serializer.YamlDirective} corresponding to the next directive or an
+		 * instance of {Serializer.YamlDocument} corresponding to the next YAML
+		 * document in the stream or `none` if no more document is available.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseStream(self) {
+
+			var c = self.nextChar()
+
+			if c == BOM {
+				c = self.nextChar()
+			}
+
+			switch c {
+			case '%':
+				name = self.readUntil(/[\s\n#]/)
+				self.readUntil(/[\S\n#]/)
+
+				parameters = []
+
+				while self.c != '\n' and self.c != '#' {
+					parameters << trim(self.c + self.readUntil(/[\s\n#]/))
+					self.readUntil(/[\S\n#]/)
+				}
+
+				directive = Serializer.YamlDirective(name, parameters)
+
+				if self.c == '#' {
+					directive.setComment(Serializer.YamlComment(trim(self.readUntil(/\n/))))
+				}
+
+				return directive
+
+			case '-':
+				identifier = c
+
+				c = self.nextChar()
+				identifier << c
+				if c == '-' {
+					c = self.nextChar()
+					identifier << c
+					if c == '-' {
+						c = self.nextChar()
+						identifier << c
+						if c =~ /\s/ {
+							return self.parseDocument(self.nextChar())
+						}
+					}
+					
+					self.document = document = Serializer.YamlDocument()
+					identifier, extra_identifier, token = self.parseUnquotedString(identifier, 1)
+
+					if token == ':' {
+						if defined extra_identifier {
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
+						} else {
+							token = self.parseMapping(identifier, level, def [document] (node) {
+								document.append(node)	
+							})
+						}
+					} else {
+						document.setRootNode(self.yamlToScalar(identifier, tag))
+					}
+					
+					if not document.isEmpty() {
+						return document
+					}
+
+					return self.parseDocument(token)
+				} elif c =~ /\s/ {
+
+					self.document = document = Serializer.YamlDocument()
+					token = self.parseSequence(1, def [document] (node) {
+						document.append(node)	
+					})
+
+					if not document.isEmpty() {
+						return document
+					}
+
+					return self.parseDocument(token)
+				} else {
+
+					self.document = document = Serializer.YamlDocument()
+					identifier, extra_identifier, token = self.parseUnquotedString(identifier, 1)
+
+					if token == ':' {
+						if defined extra_identifier {
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
+						} else {
+							token = self.parseMapping(identifier, level, def [document] (node) {
+								document.append(node)	
+							})
+						}
+					} else {
+						document.setRootNode(self.yamlToScalar(identifier, tag))
+					}
+
+					if not document.isEmpty() {
+						return document
+					}
+
+					return self.parseDocument(token)
+				}
+				break
+
+			case '?':
+				return self.parseDocument(self.c)
+
+			default:
+				return self.parseDocument(self.c)
+			}
+		}
+
+		/**
+		 * Reads the content of a document. Returns an instance of
+		 * {Serializer.YamlDocument} corresponding to the YAML document or
+		 * `none` if no document is available.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseDocument(self, token) {
+
+			self.document = document = Serializer.YamlDocument()
+
+			while defined token {
+				switch token {
+				case '.':
+					identifier = token
+
+					token = self.nextChar()
+					identifier << token
+					if token == '.' {
+						token = self.nextChar()
+						identifier << token
+						if token == '.' {
+							token = self.nextChar()
+							identifier << token
+							if token == '\n' {
+								return document
+							}
+						}
+					}
+
+					if not document.isEmpty() {
+						return document
+					}
+
+					identifier, extra_identifier, token = self.parseUnquotedString(identifier, 1)
+
+					if token == ':' {
+						if defined extra_identifier {
+							raise Serializer.DocumentStream.InvalidDocument(self.stream, 'mapping values are not allowed in this context')
+						} else {
+							token = self.parseMapping(identifier, level, def [document] (node) {
+								document.append(node)	
+							})
+						}
+					} else {
+						document.setRootNode(self.yamlToScalar(identifier, tag))
+					}
+					break
+
+				case '%':
+					name = self.readUntil(/[\s\n#]/)
+					self.readUntil(/[\S\n#]/)
+
+					parameters = []
+
+					while self.c != '\n' and self.c != '#' {
+						parameters << trim(self.c + self.readUntil(/[\s\n#]/))
+						self.readUntil(/[\S\n#]/)
+					}
+
+					directive = Serializer.YamlDirective(name, parameters)
+
+					if self.c == '#' {
+						directive.setComment(Serializer.YamlComment(trim(self.readUntil(/\n/))))
+					}
+
+					return directive
+
+				default:
+					token = self.parseNewLine(token, self.getColumnNumber(), def [document] (node) {
+						document.append(node)	
+					})
+
+					if not document.isEmpty() {
+						return document
+					}
+				}
+			}
+
+			if not document.isEmpty() {
+				return document
+			}
+		}
+
+		/**
+		 * Reads the content of a new line.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseNewLine(self, token, level, inserter) {
+
+			indent = self.getColumnNumber()
+
+			if indent < level {
+				return token
+			}
+
+			switch token {
+			case '#':
+				inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
+				token = self.nextToken()
+				break
+
+			case '-':
+				token = self.nextChar()
+				if token =~ /\s/ {
+					token = self.parseSequence(indent, inserter)
+				} else {
+					
+					identifier, extra_identifier, token = self.parseUnquotedString('-' + token, level)
+
+					if token == ':' {
+						if defined extra_identifier {
+							inserter(self.yamlToScalar(identifier, tag))
+							token = self.parseMapping(extra_identifier, level, inserter)
+						} else {
+							token = self.parseMapping(identifier, level, inserter)
+						}
+					} else {
+						inserter(self.yamlToScalar(identifier, tag))
+					}
+				}
+				break
+
+			case '?':
+				token = self.nextChar()
+				if token =~ /\s/ {
+					raise 'not implemented'
+				} else {
+					
+					identifier, extra_identifier, token = self.parseUnquotedString('?' + token, level)
+
+					if token == ':' {
+						if defined extra_identifier {
+							inserter(self.yamlToScalar(identifier, tag))
+							token = self.parseMapping(extra_identifier, level, inserter)
+						} else {
+							token = self.parseMapping(identifier, level, inserter)
+						}
+					} else {
+						inserter(self.yamlToScalar(identifier, tag))
+					}
+				}
+				break
+
+			default:
+				token = self.parseNode(token, indent, inserter)
+			}
+
+			return token
+		}
+
+		/**
+		 * Reads the content of a YAML node.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseNode(self, token, level, inserter) {
+
+			if token == '&' {
+
+				anchor = self.readUntil(/\s/)
+				line = self.getLineNumber()
+				token = self.nextToken()
+
+				if line != self.getLineNumber() and level < self.getColumnNumber() {
+
+					indent = self.getColumnNumber()
+					identifier, extra_identifier, token = self.parseUnquotedString(token, indent)
+
+					if token == ':' {
+
+						document = self.document
+
+						if defined extra_identifier {
+							node = self.yamlToScalar(identifier, tag)
+							self.document.setAlias(anchor, node)
+							inserter(node)
+							token = self.parseMapping(extra_identifier, indent, def [document, anchor, inserter] (node) {
+								document.setAlias(anchor, node)
+								inserter(node)
+							})
+						} else {
+							token = self.parseMapping(identifier, indent, def [document, anchor, inserter] (node) {
+								document.setAlias(anchor, node)
+								inserter(node)
+							})
+						}
+					} else {
+						node = self.yamlToScalar(identifier, tag)
+						self.document.setAlias(anchor, node)
+						inserter(node)
+					}
+
+					return token
+				}
+			}
+
+			if token == '!' {
+				tag = self.readUntil(/\s/)
+				token = self.nextToken()
+			}
+
+			switch token {
+			case '#':
+				inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
+				return self.nextToken()
+
+			case '~':
+				node = self.yamlToScalar(token, tag)
+				if defined anchor {
+					self.document.setAlias(anchor, node)
+				}
+				inserter(node)
+				token = self.nextToken()
+				break
+
+			case '*':
+				target = self.readUntil(/\s/)
+				node = Serializer.YamlAlias(self.document, target)
+				if defined anchor {
+					self.document.setAlias(anchor, node)
+				}
+				inserter(node)
+				token = self.nextToken()
+				break
+
+			case '|':
+				c = self.nextChar()
+				switch c {
+				case '#':
+					self.discardToken()
+
+				case ' ':
+				case '\t':
+				case '\n':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), true, false, false)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				case '+':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), true, true, false)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				case '-':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), true, false, true)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				default:
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, 'did not find expected comment or line break while scanning a block scalar')
+				}
+				break
+
+			case '>':
+				c = self.nextChar()
+				switch c {
+				case '#':
+					self.discardToken()
+
+				case ' ':
+				case '\t':
+				case '\n':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), false, false, false)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				case '+':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), false, true, false)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				case '-':
+					token = self.nextToken()
+
+					if token == '#' {
+						inserter(Serializer.YamlComment(trim(self.readUntil(/\n/))))
+						token = self.nextToken()
+					}
+
+					identifier, token = self.parseBlockString(token, self.getColumnNumber(), false, false, true)
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+					break
+
+				default:
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, 'did not find expected comment or line break while scanning a block scalar')
+				}
+				break
+
+			case '[':
+				token = self.parseInlineSequence(inserter)
+				break
+
+			case '{':
+				token = self.parseInlineMapping(inserter)
+				break
+
+			case "'":
+				indent = self.getColumnNumber()
+				identifier, token = self.parseSingleQuotedString()
+
+				if token == ':' {
+					token = self.parseMapping(identifier, indent, inserter)
+				} else {
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+				}
+				break
+
+			case '"':
+				indent = self.getColumnNumber()
+				identifier, token = self.parseDoubleQuotedString()
+
+				if token == ':' {
+					token = self.parseMapping(identifier, indent, inserter)
+				} else {
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+				}
+				break
+
+			case '-':
+				indent = self.getColumnNumber()
+				token = self.nextChar()
+
+				if token =~ /\s/ {
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, 'block sequence entries are not allowed in this context')
+				}
+				
+				identifier, extra_identifier, token = self.parseUnquotedString('-' + token, level)
+
+				if token == ':' {
+					if defined extra_identifier {
+						node = self.yamlToScalar(identifier, tag)
+						if defined anchor {
+							self.document.setAlias(anchor, node)
+						}
+						inserter(node)
+						token = self.parseMapping(extra_identifier, indent, inserter)
+					} else {
+						token = self.parseMapping(identifier, indent, inserter)
+					}
+				} else {
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+				}
+				break
+
+			case '?':
+				indent = self.getColumnNumber()
+				token = self.nextChar()
+
+				if token =~ /\s/ {
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, 'mapping keys are not allowed in this context')
+				}
+
+				identifier, extra_identifier, token = self.parseUnquotedString('?' + token, level)
+
+				if token == ':' {
+					if defined extra_identifier {
+						node = self.yamlToScalar(identifier, tag)
+						if defined anchor {
+							self.document.setAlias(anchor, node)
+						}
+						inserter(node)
+						token = self.parseMapping(extra_identifier, indent, inserter)
+					} else {
+						token = self.parseMapping(identifier, indent, inserter)
+					}
+				} else {
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+				}
+				break
+
+			case ':':
+				raise Serializer.DocumentStream.InvalidDocument(self.stream, 'did not find expected key while parsing a block mapping')
+
+			default:
+				indent = self.getColumnNumber()
+				identifier, extra_identifier, token = self.parseUnquotedString(token, level)
+
+				if token == ':' {
+					if defined extra_identifier {
+						node = self.yamlToScalar(identifier, tag)
+						if defined anchor {
+							self.document.setAlias(anchor, node)
+						}
+						inserter(node)
+						token = self.parseMapping(extra_identifier, indent, inserter)
+					} else {
+						token = self.parseMapping(identifier, indent, inserter)
+					}
+				} else {
+					node = self.yamlToScalar(identifier, tag)
+					if defined anchor {
+						self.document.setAlias(anchor, node)
+					}
+					inserter(node)
+				}
+			}
+
+			return token
+		}
+
+		/**
+		 * Reads the content of a YAML sequence.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseSequence(self, level, inserter) {
+
+			var token = '-'
+			var indent = level
+			var sequence = Serializer.YamlSequence()
+
+			while indent == level and token == '-' {
+
+				line = self.getLineNumber()
+				token = self.nextToken()
+
+				if line == self.getLineNumber() {
+					if level + 1 == self.getColumnNumber() {
+						if token == '-' {
+							token = self.nextChar()
+							if token == '-' {
+								token = self.nextChar()
+								if not defined token or token =~ /\s/ {
+									inserter(sequence)
+									return none
+								}
+							}
+						}
+
+						raise Serializer.DocumentStream.InvalidDocument(self.stream, "did not find expected '-' indicator while parsing a block collection")
+					}
+
+					token = self.parseNode(token, level, def [sequence] (node) {
+						sequence.append(node)
+					})
+				} else {
+					token = self.parseNewLine(token, level, def [sequence] (node) {
+						sequence.append(node)
+					})
+				}
+
+				indent = self.getColumnNumber()
+			}
+
+			inserter(sequence)
+			return token
+		}
+
+		/**
+		 * Reads the content of a YAML inline sequence.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseInlineSequence(self, inserter) {
+
+			var token = self.nextToken()
+			var sequence = Serializer.YamlSequence()
+
+			while token != ']' {
+				switch token {
+				case '[':
+					token = self.parseInlineSequence(def [sequence] (node) {
+						sequence.append(node)
+					})
+					break
+						
+				case '{':
+					token = self.parseInlineMapping(def [sequence] (node) {
+						sequence.append(node)
+					})
+					break
+
+				case "'":
+					identifier = token + self.readUntil(/'/)
+
+					while identifier[-1] == '\\' {
+						identifier << self.nextToken() + self.readUntil(/'/)
+					}
+
+					identifier << self.nextToken()
+					token = self.nextToken()
+					
+					sequence.append(self.yamlToScalar(identifier, tag))
+					break
+
+				case '"':
+					identifier = token + self.readUntil(/"/)
+
+					while identifier[-1] == '\\' {
+						identifier << self.nextToken() + self.readUntil(/"/)
+					}
+
+					identifier << self.nextToken()
+					token = self.nextToken()
+
+					sequence.append(self.yamlToScalar(identifier, tag))
+					break
+
+				default:
+					identifier = trim(token + self.readUntil(/[\],]/))
+					token = self.nextToken()
+
+					while token == ',' and (c = self.nextChar()) !~ /\s/ {
+						identifier << trim(token + c + self.readUntil(/[\],]/))
+						token = self.nextToken()
+					}
+
+					sequence.append(self.yamlToScalar(identifier, tag))
+				}
+
+				if token == ',' {
+					token = self.nextToken()
+				} elif token != ']' {
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, "did not find expected ',' or ']' while parsing a flow sequence")
+				}
+			}
+
+			inserter(sequence)
+			return self.nextToken()
+		}
+
+		/**
+		 * Reads the content of a YAML mapping.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseMapping(self, identifier, level, inserter) {
+
+			var key = self.yamlToScalar(identifier, tag)
+			var line = self.getLineNumber()
+			var token = self.nextToken()
+			var mapping = Serializer.YamlMapping()
+
+			if line == self.getLineNumber() {
+				token = self.parseNode(token, level, def [mapping, key] (node) {
+					mapping.insert(key, node)
+				})
+			} else {
+				token = self.parseNewLine(token, level, def [mapping, key] (node) {
+					mapping.insert(key, node)
+				})
+			}
+
+			indent = self.getColumnNumber()
+
+			while indent == level and defined token and token =~ /[0-9a-zA-Z_<]/ {
+
+				if token == '<' {
+
+					identifier = token
+
+					token = self.nextChar()
+					identifier << token
+					if token == '<' {
+						token = self.nextChar()
+						identifier << token
+						if token == ':' {
+							token = self.nextToken()
+							indent = self.getColumnNumber()
+							token = self.parseMergedMapping(token, indent, inserter, mapping)
+							continue
+						}
+					}
+
+					token = identifier
+				}
+
+				identifier = trim(token + self.readUntil(/[\n:]/))
+				token = self.nextToken()
+
+				if token == ':' {
+					
+					key = self.yamlToScalar(identifier, tag)
+					line = self.getLineNumber()
+					token = self.nextToken()
+
+					if line == self.getLineNumber() {
+						token = self.parseNode(token, level, def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+					} else {
+						token = self.parseNewLine(token, level, def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+					}
+
+					indent = self.getColumnNumber()
+				} else {
+					inserter(self.yamlToScalar(identifier, tag))
+					return token
+				}
+			}
+
+			inserter(mapping)
+			return token
+		}
+
+		/**
+		 * Reads the content of a YAML merged mapping.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseMergedMapping(self, token, level, inserter, mapping) {
+
+			var indent = self.getColumnNumber()
+
+			while indent == level and token =~ /[0-9a-zA-Z_]/ {
+
+				identifier = trim(token + self.readUntil(/[\n:]/))
+				token = self.nextToken()
+
+				if token == ':' {
+					
+					key = self.yamlToScalar(identifier, tag)
+					line = self.getLineNumber()
+					token = self.nextToken()
+
+					if line == self.getLineNumber() {
+						token = self.parseNode(token, level, def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+					} else {
+						token = self.parseNewLine(token, level, def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+					}
+
+					indent = self.getColumnNumber()
+				} else {
+					inserter(self.yamlToScalar(identifier, tag))
+					return token
+				}
+			}
+
+			return token
+		}
+
+		/**
+		 * Reads the content of a YAML inline mapping.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseInlineMapping(self, inserter) {
+
+			var token = self.nextToken()
+			var mapping = Serializer.YamlMapping()
+
+			while token != '}' {
+
+				switch token {
+				case '[':
+					buffer = []
+					token = self.parseInlineSequence(def [buffer] (node) {
+						buffer << node
+					})
+					key = buffer[0]
+					break
+						
+				case '{':
+					buffer = []
+					token = self.parseInlineMapping(def [buffer] (node) {
+						buffer << node
+					})
+					key = buffer[0]
+					break
+
+				case "'":
+					identifier = token + self.readUntil(/'/)
+
+					while identifier[-1] == '\\' {
+						identifier << self.nextToken() + self.readUntil(/'/)
+					}
+
+					identifier << self.nextToken()
+					token = self.nextToken()
+					
+					key = self.yamlToScalar(identifier, tag)
+					break
+
+				case '"':
+					identifier = token + self.readUntil(/"/)
+
+					while identifier[-1] == '\\' {
+						identifier << self.nextToken() + self.readUntil(/"/)
+					}
+
+					identifier << self.nextToken()
+					token = self.nextToken()
+
+					key = self.yamlToScalar(identifier, tag)
+					break
+
+				default:
+					identifier = trim(token + self.readUntil(/[\n:]/))
+					token = self.nextToken()
+
+					while token == ':' and (c = self.nextChar()) !~ /\s/ {
+						identifier << trim(token + c + self.readUntil(/[\n:]/))
+						token = self.nextToken()
+					}
+
+					key = self.yamlToScalar(identifier, tag)
+				}
+
+				if token == ':' {
+
+					token = self.nextToken()
+
+					switch token {
+					case '[':
+						token = self.parseInlineSequence(def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+						break
+							
+					case '{':
+						token = self.parseInlineMapping(def [mapping, key] (node) {
+							mapping.insert(key, node)
+						})
+						break
+
+					case "'":
+						identifier = token + self.readUntil(/'/)
+
+						while identifier[-1] == '\\' {
+							identifier << self.nextToken() + self.readUntil(/'/)
+						}
+
+						identifier << self.nextToken()
+						token = self.nextToken()
+						
+						mapping.insert(key, self.yamlToScalar(identifier, tag))
+						break
+
+					case '"':
+						identifier = token + self.readUntil(/"/)
+
+						while identifier[-1] == '\\' {
+							identifier << self.nextToken() + self.readUntil(/"/)
+						}
+
+						identifier << self.nextToken()
+						token = self.nextToken()
+
+						mapping.insert(key, self.yamlToScalar(identifier, tag))
+						break
+
+					default:
+						identifier = trim(token + self.readUntil(/[\},]/))
+						token = self.nextToken()
+
+						while token == ',' and (c = self.nextChar()) !~ /\s/ {
+							identifier << trim(token + c + self.readUntil(/[\},]/))
+							token = self.nextToken()
+						}
+
+						mapping.insert(key, self.yamlToScalar(identifier, tag))
+					}
+				} else {
+					mapping.insert(key, self.yamlToScalar('~', tag))
+				}
+
+				if token == ',' {
+					token = self.nextToken()
+				} elif token != '}' {
+					raise Serializer.DocumentStream.InvalidDocument(self.stream, "did not find expected ',' or '}' while parsing a flow mapping")
+				}
+			}
+
+			inserter(mapping)
+			return self.nextToken()
+		}
+
+		/**
+		 * Reads the content of a YAML block string.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseBlockString(self, token, level, keep_newline, keep_extra_newline, chomp_extra_newline) {
+
+			var identifier = trim(token + self.readUntil(/\n/))
+			var extra_newline = self.readUntil(/\S/)
+
+			token = self.nextToken()
+			var indent = self.getColumnNumber()
+
+			while indent >= level and defined token {
+
+				if keep_newline {
+					identifier << '\n'
+				} else {
+					identifier << ' '
+				}
+
+				identifier << trim(token + self.readUntil(/\n/))
+				extra_newline = self.readUntil(/\S/)
+				token = self.nextToken()
+				indent = self.getColumnNumber()
+			}
+
+			if index = extra_newline.lastIndexOf('\n') {
+
+				if defined token {
+					extra_newline = extra_newline[0..index]
+				} else {
+					index = extra_newline.size()
+					extra_newline << '\n'
+				}
+
+				if isDefined(previous = extra_newline.lastIndexOf('\n', index - 1)) {
+					if (index - previous) >= level {
+						keep_extra_newline = true
+					}
+				} elif index >= level {
+					keep_extra_newline = true
+				}
+			}
+
+			if keep_extra_newline {
+				identifier << extra_newline
+			} elif not chomp_extra_newline {
+				identifier << '\n'
+			}
+
+			return (identifier, token)
+		}
+
+		/**
+		 * Reads the content of a YAML unquoted string.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseUnquotedString(self, token, level) {
+
+			var identifier = trim(token + self.readUntil(/[\n:]/))
+			token = self.nextToken()
+
+			while token == ':' and (c = self.nextChar()) !~ /\s/ {
+				identifier << trim(token + c + self.readUntil(/[\n:]/))
+				token = self.nextToken()
+			}
+
+			if token == ':' {
+				return (identifier, none, token)
+			} 
+
+			if defined token and token != '-' and level < self.getColumnNumber() {
+
+				var extra_level = self.getColumnNumber()
+				var extra_identifier = trim(token + self.readUntil(/[\n:]/))
+
+				token = self.nextToken()
+
+				while token == ':' or extra_level == self.getColumnNumber() {
+
+					if token == ':' {
+						c = self.nextChar()
+						if c =~ /\s/ {
+							extra_identifier << trim(token + c + self.readUntil(/[\n:]/))
+						} else {
+							break
+						}
+					} elif defined token {
+						identifier << ' ' + extra_identifier
+						extra_identifier = trim(token + self.readUntil(/[\n:]/))
+					} else {
+						break
+					}
+
+					token = self.nextToken()
+					extra_level = self.getColumnNumber()
+				}
+
+				if token == ':' {
+					return (identifier, extra_identifier, token)
+				}
+
+				return (identifier + ' ' + extra_identifier, none, token)
+			}
+
+			return (identifier, none, token)
+		}
+
+		/**
+		 * Reads the content of a YAML single quoted string.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseSingleQuotedString(self) {
+
+			var token = "'"
+			var identifier = ''
+
+			while token == "'" {
+
+				identifier << token + self.readUntil(/[\n']/)
+				identifier << self.nextToken()
+				token = self.nextToken()
+
+				while token == '\n' {
+
+					identifier << ' ' + self.nextToken() + self.readUntil(/[\n']/)
+					token = self.nextToken()
+
+					if token == "'" {
+						identifier << token
+						token = self.nextToken()
+					}
+				}
+			}
+
+			return (identifier, token)
+		}
+
+		/**
+		 * Reads the content of a YAML double quoted string.
+		 * 
+		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
+		 * on error.
+		 */
+		- final const def parseDoubleQuotedString(self) {
+			
+			var token = '"'
+			var identifier = token + self.readUntil(/[\n"]/)
+			var last_token = identifier[-1]
+
+			while last_token == '\\' or self.c == '\n' {
+
+				if last_token == '\\' {
+					identifier << self.nextToken() + self.readUntil(/[\n"]/)
+				} elif self.c == '\n' {
+					identifier << ' ' + self.nextToken() + self.readUntil(/[\n"]/)
+				}
+
+				last_token = identifier[-1]
+			}
+
+			identifier << self.nextToken()
+			token = self.nextToken()
+
+			return (identifier, token)
+		}
+
+		/**
+		 * Converts an identifier to an instance of {Serializer.YamlScalar}.
+		 */
+		- final const def yamlToScalar(self, identifier, tag = none) {
+
+			if defined tag {
+				return Serializer.YamlScalar(identifier, Serializer.YamlTag(tag))
+			}
+
+			return Serializer.YamlScalar(identifier)
+		}
+
+		/**
+		 * Returns the input stream current line number.
+		 */
+		- final const def getLineNumber(const self) {
+			return self.c == '\n' ? self.stream.getLineNumber() - 1 : self.stream.getLineNumber()
+		}
+
+		/**
+		 * Returns the input stream current column number.
+		 */
+		- final const def getColumnNumber(const self) {
+			return self.stream.getColumnNumber()
+		}
+
+		/**
+		 * Reads data from the stream until `delim` is found, and returns it.
+		 * The read index of the stream is then moved to the first character
+		 * identified by `delim`.
+		 */
+		- final const def readUntil(self, delim) {
+
+			var str = ''
+
+			if self.discarded {
+				c = self.c
+			} else {
+				c = self.nextChar()
+			}
+
+			while defined c and c !~ delim {
+				str << c
+				c = self.nextChar()
+			}
+
+			if defined c or not str.isEmpty() {
+				self.discarded = true
+				return str
+			}
+		}
+
+		/**
+		 * Discards the last token that was read. The same token will then be
+		 * returned by the next call to {@see nextToken}.
+		 */
+		- final const def discardToken(self) {
+			self.discarded = true
+		}
+
+		/**
+		 * Returns the next token of the stream. A token is a character that does
+		 * not match the `/\s/` regex.
+		 */
+		- final const def nextToken(self) {
+			if self.discarded {
+				self.discarded = false
+				c = self.c
+			} else {
+				c = self.nextChar()
+			}
+			while defined c and c =~ /\s/ {
+				c = self.nextChar()
+			}
+			return c
+		}
+
+		/**
+		 * Returns the next character of the stream.
+		 */
+		- final const def nextChar(self) {
+			return self.c = self.stream.readChar()
+		}
+
+		/// Internal current document node.
+		- final document = none
+
+		/// Internal stream object.
+		- final stream = null
+
+		/// Internal discarded state.
+		- final discarded = false
+
+		/// Internal last read character.
+		- final c = none
+	}
+}
+
+/**
+ * This class represents a YAML directive. Each document may be associated with
+ * a set of directives. A directive has a name and an optional sequence of
+ * parameters.
+ */
+class YamlDirective {
+	/**
+	 * Creates a new directive with the given `name` name and `parameters`
+	 * parameters sequence.
+	 */
+	const def new(self, name, parameters) {
+		self.name = name
+		self.parameters = parameters
+		return self
+	}
+
+	/**
+	 * Returns the name of the directive.
+	 */
+	const def getName(const self) {
+		return self.name
+	}
+
+	/**
+	 * Returns the parameters sequence of the directive.
+	 */
+	const def getParameters(const self) {
+		return self.parameters
+	}
+
+	/**
+	 * Returns the comment associated to the directive or `none` if no comment
+	 * were specified.
+	 */
+	const def getComment(const self) {
+		return self.comment
+	}
+
+	/**
+	 * Sets the comment associated to the directive.
+	 */
+	const def setComment(self, comment) {
+		self.comment = Serializer.YamlComment(comment)
+	}
+
+	/**
+	 * Returns the string representation of the processing instruction.
+	 */
+	const def toString(const self) {
+
+		var str = '%' + self.name
+
+		if not self.parameters.isEmpty() {
+			str << ' %s' % self.parameters.join(' ')
+		}
+
+		if defined self.comment {
+			str << ' %s' % self.comment.toString()
+		}
+
+		str << '\n'
+		return str
+	}
+
+	/// Internal directive name.
+	- final name = ''
+
+	/// Internal parameters set.
+	- final parameters = []
+
+	/// Internal comment.
+	- final comment = none
+}
+
+/**
+ * This class represents a YAML document. A YAML document starts with the
+ * sequence `---` and ends with an optional sequence `...` or with the begining
+ * of the next document or the end of the stream. Each document is completely
+ * independent from the rest.
+ */
+class YamlDocument {
+	/**
+	 * Appends `node` at the end of the document.
+	 */
+	const def append(self, node) {
+		if typeof node == 'Serializer.YamlComment' {
+			self.comments << node
+		} elif not defined self.root {
+			self.root = node
+		}
+	}
+
+	/**
+	 * Removes `node` from the document.
+	 */
+	const def remove(self, node) {
+		if isDefined(index = self.comment.indexOf(node)) {
+			self.comment.remove(index)
+		} elif node is self.root {
+			self.root = none
+		}
+	}
+
+	/**
+	 * Returns the root node of the document.
+	 */
+	const def getRootNode(const self) {
+		return self.root
+	}
+
+	/**
+	 * Sets the root node of the document.
+	 */
+	const def setRootNode(self, node) {
+		self.root = node
+	}
+
+	/**
+	 * Returns the alias target of the `anchor` anchor.
+	 */
+	const def getAlias(const self, anchor) {
+		return self.aliases.get(anchor)
+	}
+
+	/**
+	 * Sets the alias target of the `anchor` anchor to `node`.
+	 */
+	const def setAlias(self, anchor, node) {
+		self.aliases[anchor] = node
+	}
+
+	/**
+	 * Returns `true` if the document is empty; otherwise returns `false`.
+	 */
+	const def isEmpty(const self) {
+		return not defined self.root
+	}
+
+	/**
+	 * Returns the string representation of the document.
+	 */
+	const def toString(const self) {
+
+		var str = '--- '
+
+		for comment in self.comments {
+			str << '\n' + comment.toString()
+		}
+
+		if defined self.root {
+			switch typeof self.root {
+			case 'Serializer.YamlScalar':
+				str << self.root.toString()
+				break
+
+			default:
+				str << self.root.toString(1)
+				break			
+			}
+		}
+
+		str << '\n...'
+		return str
+	}
+
+	/**
+	 * Returns the content of the document as a sequence of hashes and arrays
+	 * corresponding to the YAML mappings and sequences.
+	 */
+	const def data(const self) {
+		if defined self.root {
+			return self.root.data()
+		}
+	}
+
+	/// Internal root node.
+	- final root = none
+
+	/// Internal comment.
+	- final comments = []
+
+	/// Internal aliases.
+	- final aliases = {}
+}
+
+/**
+ * This class represents a YAML mapping. The content of a *mapping* node is an
+ * unordered set of *key/value* node pairs, with the restriction that each of
+ * the keys is unique. YAML places no further restrictions on the nodes. In
+ * particular, keys may be arbitrary nodes, the same node may be used as the
+ * value of several key/value pairs and a mapping could even contain itself as
+ * a key or a value.
+ */
+class YamlMapping {
+	/**
+	 * Creates a new empty mapping node.
+	 */
+	const def new(self) {
+		return self
+	}
+	/**
+	 * Creates a new mapping node for the mapping given by `content`.
+	 */
+	const def new(self, content) {
+		self.children = content.toHash()
+		return self
+	}
+
+	/**
+	 * Inserts the node `node` with the key given by `key`. If `key` is
+	 * already contained in the mapping, the associated value is updated.
+	 */
+	const def insert(self, key, node) {
+		self.children[key] = node
+	}
+
+	/**
+	 * Removes `key` and the associated value from the document.
+	 */
+	const def remove(self, key) {
+		self.children.remove(key)
+	}
+
+	/**
+	 * Returns `true` if the mapping contains `key`; otherwise returns
+	 * `false`.
+	 */
+	const def in(const self, const key) {
+		return self.children.in(key)
+	}
+
+	/**
+	 * Returns an iterator on each elements in the mapping.
+	 */
+	const def in(const self) {
+		for node in self.children {
+			yield node
+		}
+	}
+
+	/**
+	 * Returns the number of elements in the mapping.
+	 */
+	const def size(const self) {
+		return self.children.size()
+	}
+
+	/**
+	 * Returns `true` if the mapping is empty; otherwise returns `false`.
+	 */
+	const def isEmpty(const self) {
+		return self.children.isEmpty()
+	}
+
+	/**
+	 * Resets the mapping.
+	 */
+	const def clear(self) {
+		return self.children.clear()
+	}
+
+	/**
+	 * Returns the string representation of the mapping for the indentation
+	 * level given by `level`.
+	 */
+	const def toString(const self, level = 0) {
+
+		var str = ''
+
+		for key, value in self.children {
+			switch typeof key {
+			case 'Serializer.YamlScalar':
+				switch typeof value {
+				case 'Serializer.YamlScalar':
+					str << '\n%s%s: %s' ('\t' * level, key.toString(), value.toString())
+					break
+
+				default:
+					str << '\n%s%s: %s' ('\t' * level, key.toString(), value.toString(level + 1))
+					break			
+				}
+				break
+
+			default:
+				switch typeof value {
+				case 'Serializer.YamlScalar':
+					str << '\n%s? %s\n%s: %s' ('\t' * level, key.toString(level + 1), '\t' * level, value.toString())
+					break
+
+				default:
+					str << '\n%s? %s\n%s: %s' ('\t' * level, key.toString(level + 1), '\t' * level, value.toString(level + 1))
+					break			
+				}
+				break
+			}
+		}
+
+		return str
+	}
+	
+	/**
+	 * Returns the content of the mapping as a sequence of hashes and arrays
+	 * corresponding to the YAML mappings and sequences.
+	 */
+	const def toHash(const self) {
+		return self.data()
+	}
+
+	/**
+	 * Returns the content of the mapping as a sequence of hashes and arrays
+	 * corresponding to the YAML mappings and sequences.
+	 */
+	const def data(const self) {
+
+		var data = {}
+		
+		for key, child in self.children {
+			data[key.data()] = child.data()
+		}
+
+		return data
+	}
+
+	/// Internal child node mapping.
+	- final children = {}
+}
+
+/**
+ * This class represents a YAML *sequence*. The content of a sequence node is
+ * an ordered series of zero or more nodes. In particular, a sequence may
+ * contain the same node more than once. It could even contain itself.
+ */
+class YamlSequence {
+	/**
+	 * Creates a new empty sequence node.
+	 */
+	const def new(self) {
+		return self
+	}
+
+	/**
+	 * Creates a new sequence node for the sequence given by `content`.
+	 */
+	const def new(self, content) {
+		self.children = content.toArray()
+		return self
+	}
+
+	/**
+	 * Returns the index of the node `node` if contained in the sequence;
+	 * otherwise returns `none`. Searching forward from index position `0`.
+	 */
+	const def indexOf(const self, node) {
+		return self.children.indexOf(node)
+	}
+
+	/**
+	 * Returns the index of the node `node` if contained in the sequence;
+	 * otherwise returns `none`. Searching forward from index position `from`.
+	 */
+	const def indexOf(const self, node, from) {
+		return self.children.indexOf(node, from)
+	}
+
+	/**
+	 * Returns the index of the node `node` if contained in the sequence;
+	 * otherwise returns `none`. Searching backward from the end of the
+	 * sequence.
+	 */
+	const def lastIndexOf(const self, node) {
+		return self.children.lastIndexOf(node)
+	}
+
+	/**
+	 * Returns the index of the node `node` if contained in the sequence;
+	 * otherwise returns `none`. Searching backward from index position `from`.
+	 */
+	const def lastIndexOf(const self, node, from) {
+		return self.children.lastIndexOf(node, from)
+	}
+
+	/**
+	 * Inserts the node `node` at the index given by `index`. If `index` is
+	 * negative, the position is relative to the end of the sequence.
+	 */
+	const def insert(self, index, node) {
+		if index < 0 {
+			index = self.values.size() + index
+		}
+		if index == 0 {
+			self.children = [node] + self.children
+		} elif index == self.values.size() {
+			self.children << node
+		} else {
+			self.children = self.children[0...index] + node + self.children[index...self.children.size()]
+		}
+	}
+
+	/**
+	 * Appends `node` at the end of the sequence.
+	 */
+	const def append(self, node) {
+		self.children << node
+	}
+
+	/**
+	 * Removes `node` from the sequence.
+	 */
+	const def remove(self, node) {
+		if isDefined(index = self.children.indexOf(node)) {
+			self.children.remove(index)
+		}
+	}
+
+	/**
+	 * Returns `true` if the sequence contains `node`; otherwise returns
+	 * `false`.
+	 */
+	const def in(const self, const node) {
+		return self.children.in(node)
+	}
+
+	/**
+	 * Returns an iterator on each nodes of the sequence.
+	 */
+	const def in(const self) {
+		for node in self.children {
+			yield node
+		}
+	}
+
+	/**
+	 * Returns the number of nodes in the sequence.
+	 */
+	const def size(const self) {
+		return self.children.size()
+	}
+
+	/**
+	 * Returns `true` if the sequence is empty; otherwise returns `false`.
+	 */
+	const def isEmpty(const self) {
+		return self.children.isEmpty()
+	}
+
+	/**
+	 * Resets the sequence.
+	 */
+	const def clear(self) {
+		return self.children.clear()
+	}
+
+	/**
+	 * Returns the string representation of the sequence for the indentation
+	 * level given by `level`.
+	 */
+	const def toString(const self, level = 0) {
+		
+		var str = ''
+
+		for child in self.children {
+			switch typeof child {
+			case 'Serializer.YamlScalar':
+				str << '\n%s- %s' ('\t' * level, child.toString())
+				break
+
+			default:
+				str << '\n%s- %s' ('\t' * level, child.toString(level + 1))
+				break			
+			}
+		}
+
+		return str
+	}
+
+	/**
+	 * Returns the content of the sequence as a sequence of hashes and arrays
+	 * corresponding to the YAML mappings and sequences.
+	 */
+	const def toArray(const self) {
+		return self.data()
+	}
+
+	/**
+	 * Returns the content of the sequence as a sequence of hashes and arrays
+	 * corresponding to the YAML mappings and sequences.
+	 */
+	const def data(const self) {
+
+		var data = []
+		
+		for child in self.children {
+			data << child.data()
+		}
+
+		return data
+	}
+
+	/// Internal child node sequence.
+	- final children = []
+}
+
+/**
+ * This class represents a YAML scalar. The content of a *scalar* node is an
+ * opaque datum that can be presented as a series of zero or more Unicode
+ * characters.
+ */
+class YamlScalar {
+	/**
+	 * Creates a new empty scalar node.
+	 */
+	const def new(self) {
+		self.value = '~'
+		return self
+	}
+
+	/**
+	 * Creates a new scalar node for the value given by `value`. If `tag` is a
+	 * valid {Serializer.YamlTag} instance, this tag is used to convert the value
+	 * to the expected type.
+	 */
+	const def new(self, value, tag = none) {
+		self.value = value
+		if defined tag {
+			self.tag = Serializer.YamlTag(tag)
+		}
+		return self
+	}
+
+	/**
+	 * Returns the {Serializer.YamlTag} of the node.
+	 */
+	const def getTag(const self) {
+		return self.tag
+	}
+
+	/**
+	 * Sets the {Serializer.YamlTag} of the node.
+	 */
+	const def setTag(const self, tag) {
+		self.tag = Serializer.YamlTag(tag)
+	}
+
+	/**
+	 * Returns `true` if `other` is the same node than `self`; otherwise returns
+	 * `false`.
+	 */
+	const def ==(const self, const other) {
+		return self.toCanonicalForm() == other.toCanonicalForm()
+	}
+
+	/**
+	 * Returns `false` if `other` is the same node than `self`; otherwise
+	 * returns `true`.
+	 */
+	const def !=(const self, const other) {
+		return self.toCanonicalForm() != other.toCanonicalForm()
+	}
+
+	/**
+	 * Returns the string representation of the scalar in its *canonical form*.
+	 */
+	const def toCanonicalForm(const self) {
+		return self.value // TODO: convert to canonical form
+	}
+
+	/**
+	 * Returns the string representation of the scalar.
+	 */
+	const def toString(const self) {
+		if defined self.tag {
+			return '%s %s' % (self.tag.toString(), self.value)
+		}
+
+		return self.value
+	}
+
+	/**
+	 * Returns the content of the scalar as an instance of string, number,
+	 * boolean, {System.Date} or `null` corresponding to the YAML value. If an
+	 * instance of {Serializer.YamlTag} is associated to the node, this instance is used
+	 * to convert the value to the expected type.
+	 */
+	const def data(const self) {
+
+		if defined self.tag {
+			return self.tag.convert(self.value)
+		}
+
+		if self.value == '~' {
+			return null
+		}
+
+		if self.value == 'false' {
+			return false
+		}
+
+		if self.value == 'true' {
+			return true
+		}
+
+		if /(\+|-)?[0-9,]+(\.[0-9,]+)?/.match(self.value) {
+			value = self.value
+			return number(value.replace(',', ''))
+		}
+
+		if /(\+|-)?0o[0-7]+/.match(self.value) {
+			return number(self.value)
+		}
+
+		if /(\+|-)?0x[0-9A-Fa-f]+/.match(self.value) {
+			return number(self.value)
+		}
+
+		if match = RegexMatch(/'(.*)'/.match(self.value)) {
+			var str = match.capturedText(1)
+			str.replace("''", "'")
+			return str
+		}
+
+		if match = RegexMatch(/"(.*)"/.match(self.value)) {
+			str = match.capturedText(1)
+			str.replace('\\0', '\0')
+			str.replace('\\a', '\a')
+			str.replace('\\b', '\b')
+			str.replace('\\t', '\t')
+			str.replace('\\n', '\n')
+			str.replace('\\v', '\v')
+			str.replace('\\f', '\f')
+			str.replace('\\r', '\r')
+			str.replace('\\e', '\r')
+			str.replace('\\"', '\"')
+			str.replace('\\/', '\/')
+			str.replace('\\\\', '\\')
+			return str
+		}
+
+		if match = RegexMatch(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d*|)((-(\d{2}):(\d{2})|Z)?)$/i.match(self.value)) {
+			var year = number(match.capturedText(1))
+			var month = number(match.capturedText(2))
+			var day = number(match.capturedText(3))
+			var h = number(match.capturedText(4))
+			var min = number(match.capturedText(5))
+			var sec = number(match.capturedText(6))
+			var ms = number(match.capturedText(7).replace('.', ''))
+			var timezone = match.capturedText(8)
+			return System.Date(year, month, day, h, min, sec, ms, timezone)
+		}
+
+		if match = RegexMatch(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})(\.\d*|) ((-(\d{2}):(\d{2})|Z)?)$/.match(self.value)) {
+			var year = number(match.capturedText(1))
+			var month = number(match.capturedText(2))
+			var day = number(match.capturedText(3))
+			var h = number(match.capturedText(4))
+			var min = number(match.capturedText(5))
+			var sec = number(match.capturedText(6))
+			var ms = number(match.capturedText(7).replace('.', ''))
+			var timezone = match.capturedText(8)
+			return System.Date(year, month, day, h, min, sec, ms, timezone)
+		}
+
+		if match = RegexMatch(/^(\d{4})-(\d{2})-(\d{2})$/.match(self.value)) {
+			var year = number(match.capturedText(1))
+			var month = number(match.capturedText(2))
+			var day = number(match.capturedText(3))
+			return System.Date(year, month, day)
+		}
+
+		return self.value
+	}
+
+	/// Internal value.
+	- final value = none
+
+	/// Internal tag.
+	- final tag = none
+}
+
+/**
+ * This class represents a YAML *alias*. An *alias* node is denoted by the `*`
+ * indicator. The alias refers to the most recent preceding node having the same
+ * anchor.
+ */
+class YamlAlias {
+	/**
+	 * Creates a new alias node. The `document` parameter must be the instance
+	 * of {Serializer.YamlDocument} that contains the anchor. The `anchor`
+	 * parameter must be the anchor used by the alias.
+	 */
+	const def new(self, document, anchor) {
+		self.document = document
+		self.anchor = anchor
+		return self
+	}
+
+	/**
+	 * Returns the referenced node.
+	 */
+	const def node(const self) {
+		return self.document.getAlias(self.anchor)
+	}
+
+	/**
+	 * Returns the string representation of the alias.
+	 */
+	const def toString(const self) {
+		return '*%s' % self.anchor
+	}
+
+	/**
+	 * Returns the data of the referenced node.
+	 */
+	const def data(const self) {
+		if node = self.document.getAlias(self.anchor) {
+			return node.data()
+		}
+	}
+
+	/// Internal document.
+	- final document = null
+
+	/// Internal anchor.
+	- final anchor = ''
+}
+
+/**
+ * This class represents a YAML *tag*. The *tag* property identifies the type
+ * of the native data structure presented by the node. A tag is denoted by the
+ * `!` indicator.
+ * 
+ * Default available tags are `null`, `bool`, `int`, `float`, `str`, `map`,
+ * `seq`, `binary` and `timestamp`.
+ */
+class YamlTag {
+	/**
+	 * This class provides the context of an invalid tag exception.
+	 */
+	class InvalidTag : Exception.Exception {
+		/**
+		 * Create a new instance of the exception for the given `tag`.
+		 */
+		const def new(self, tag) {
+			self.tag = tag
+			return self
+		}
+
+		/**
+		 * Returns the tag that raised the error.
+		 */
+		const def getTag(const self) {
+			return self.tag
+		}
+
+		/**
+		 * Returns the exception informations as a string.
+		 */
+		const def toString(const self) {
+			return 'invalid tag %s : not implemented' % self.tag.getName()
+		}
+
+		/// Internal tag.
+		- final tag = null
+	}
+
+	/**
+	 * Creates a new tag property for the type described by `type`.
+	 * 
+	 * If the `type` parameter is an instance of {Serializer.YamlTag}, this
+	 * instance is returned; otherwise `type` is cast to string to get the type
+	 * name.
+	 */
+	const def new(self, type) {
+		switch typeof type {
+		case 'Serializer.YamlTag':
+			return type
+		case 'string':
+			self.name = type
+			return self
+		default:
+			self.name = type.toString()
+			return self
+		}
+	}
+
+	/**
+	 * Register a custom tag name identified by `type_name`. The `converter`
+	 * must be a function taking one string parameter to convert it into target
+	 * data type.
+	 */
+	@const def registerType(type_name, converter) {
+		Serializer.YamlTag.g_converters[type_name] = converter
+	}
+
+	/**
+	 * Returns the name of the tag.
+	 */
+	const def getName(const self) {
+		return self.name
+	}
+
+	/**
+	 * Returns the data of the value identified `identifier` converted using
+	 * the described type. If the described type is not a valid YAML type, an
+	 * instance of {Serializer.YamlTag.InvalidTag} is raised.
+	 */
+	const def convert(self, identifier) {
+		if converter = Serializer.YamlTag.g_converters.get(self.name) {
+			return converter(identifier)
+		}
+		raise Serializer.YamlTag.InvalidTag(self)
+	}
+
+	/**
+	 * Returns the string representation of the tag.
+	 */
+	const def toString(const self) {
+		return '!%s' % self.name
+	}
+
+	/// Internal conversion functions.
+	- @g_converters = none
+
+	/// Internal type name.
+	- final name = ''
+}
+
+Serializer.YamlTag.g_converters = {
+	'null': def (identifier) { return null },
+	'!null': def (identifier) { return null },
+	'bool': boolean,
+	'!bool': boolean,
+	'int': number,
+	'!int': number,
+	'float': number,
+	'!float': number,
+	'str': string,
+	'!str': string,
+	'map': hash,
+	'!map': hash,
+	'seq': array,
+	'!seq': array,
+	'binary': Serializer.DataStream,
+	'!binary': Serializer.DataStream,
+	'timestamp': System.Date,
+	'!timestamp': System.Date
+}
+
+/**
+ * This class represents a YAML *comment*.
+ */
+class YamlComment {
+	/**
+	 * Creates a new comment for the content described by `content`.
+	 * 
+	 * If the `content` parameter is an instance of {Serializer.YamlComment},
+	 * this instance is returned; otherwise `content` is cast to string to get
+	 * the text of the comment.
+	 */
+	const def new(self, content) {
+		switch typeof content {
+		case 'Serializer.YamlComment':
+			return content
+		case 'string':
+			self.content = content
+			return self
+		default:
+			self.content = content.toString()
+			return self
+		}
+	}
+
+	/**
+	 * Returns the string representation of the comment.
+	 */
+	const def toString(const self, level = 0) {
+		return '%s# %s' % ('\t' * level, self.content)
+	}
+
+	/// Internal content text.
+	- final content = ''
+}
+
+}

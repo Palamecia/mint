@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/memory/functiontool.h"
-#include "mint/debug/debugtool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/debug/debug_tools.h"
 #include "mint/ast/cursor.h"
 #include <format>
 

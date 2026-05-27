@@ -22,7 +22,7 @@
  */
 
 #include "mint/ast/node.h"
-#include "mint/ast/classregister.h"
+#include "mint/ast/class_register.h"
 #include "mint/ast/symbol.h"
 #include "mint/memory/reference.h"
 

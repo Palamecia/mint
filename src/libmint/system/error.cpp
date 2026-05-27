@@ -24,7 +24,7 @@
 #include "mint/system/error.h"
 #include "mint/system/pipe.h"
 #include "mint/system/terminal.h"
-#include "mint/system/mintruntimeerror.h"
+#include "mint/system/mint_runtime_error.h"
 
 #include <algorithm>
 #include <cstdio>

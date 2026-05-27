@@ -5,16 +5,16 @@ add_executable(test-compiler)
 target_sources(
 	test-compiler
 PRIVATE
-	buildtool.cpp
+	build_tools.cpp
 	compiler.cpp
 	lexer.cpp
-	lexicalhandler.cpp
+	lexical_handler.cpp
 )
 
 target_link_libraries(
 	test-compiler
 PRIVATE
-	libmint
+	mint::mint
 	GTest::gtest
 	GTest::gtest_main
 )

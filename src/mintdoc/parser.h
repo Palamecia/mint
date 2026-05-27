@@ -24,7 +24,7 @@
 #ifndef MINTDOC_PARSER_H
 #define MINTDOC_PARSER_H
 
-#include "mint/compiler/lexicalhandler.h"
+#include "mint/compiler/lexical_handler.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/reference.h"
 #include <cstddef>

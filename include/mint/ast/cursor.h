@@ -28,11 +28,11 @@
 #include "mint/ast/node.h"
 #include "mint/ast/printer.h"
 #include "mint/config.h"
-#include "mint/debug/lineinfo.h"
-#include "mint/memory/garbagecollector.h"
+#include "mint/debug/line_info.h"
+#include "mint/memory/garbage_collector.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/symboltable.h"
-#include "mint/system/poolallocator.h"
+#include "mint/memory/symbol_table.h"
+#include "mint/system/pool_allocator.h"
 
 #include <cassert>
 #include <cstddef>

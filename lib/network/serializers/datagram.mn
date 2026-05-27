@@ -28,7 +28,7 @@
  */
 
 load container.queue
-load serializer.datastream
+load serializer.data-stream
 
 package Network {
 	/**

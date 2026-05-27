@@ -5,10 +5,10 @@ add_executable(test-system)
 target_sources(
 	test-system
 PRIVATE
-	bufferstream.cpp
-	datastream.cpp
+	buffer_stream.cpp
+	data_stream.cpp
 	error.cpp
-	filestream.cpp
+	file_stream.cpp
 	filesystem.cpp
 	plugin.cpp
 	terminal.cpp
@@ -18,7 +18,7 @@ PRIVATE
 target_link_libraries(
 	test-system
 PRIVATE
-	libmint
+	mint::mint
 	GTest::gtest
 	GTest::gtest_main
 )

@@ -28,7 +28,7 @@
 
 load mint.type
 load exception.container
-load container.redblacktree
+load container.red-black-tree
 
 package Container {
 

@@ -23,10 +23,10 @@
 
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/memory/data.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/memorytool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/memory_tools.h"
 #include "mint/memory/reference.h"
 #include "mint/system/terminal.h"
 #include <algorithm>
@@ -97,8 +97,7 @@ mint::Reference mint_pipe_close(mint::Cursor& /*cursor*/, const mint::Reference&
 	return {};
 }
 
-mint::Reference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& handle,
-    const mint::Reference& stream) {
+mint::Reference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& handle, const mint::Reference& stream) {
 #ifdef MINT_OS_WINDOWS
 	DWORD count = 0;
 	std::array<std::uint8_t, BUFSIZ> read_buffer = {};
@@ -130,8 +129,7 @@ mint::Reference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& 
 	return {};
 }
 
-mint::Reference mint_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
-    const mint::Reference& stream) {
+mint::Reference mint_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference& handle, const mint::Reference& stream) {
 
 #ifdef MINT_OS_WINDOWS
 	DWORD count = 0;
@@ -271,8 +269,7 @@ mint::Reference mint_system_pipe_write(mint::Cursor& /*cursor*/, const mint::Ref
 	return {};
 }
 
-mint::Reference mint_system_pipe_wait(mint::Cursor& cursor, const mint::Reference& handle,
-    mint::Reference& timeout) {
+mint::Reference mint_system_pipe_wait(mint::Cursor& cursor, const mint::Reference& handle, mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
 	mint::handle_t h = to_handle(handle);
 	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)

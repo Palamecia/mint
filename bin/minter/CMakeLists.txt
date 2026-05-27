@@ -21,8 +21,8 @@ source_group("Libraries" FILES ${${PROJECT_NAME}_LIBRARIES})
 source_group("Plugins" FILES ${${PROJECT_NAME}_PLUGINS})
 
 add_custom_target(
-    ${PROJECT_NAME}
-    SOURCES
+    mint-script-minter
+SOURCES
 	${${PROJECT_NAME}_LIBRARIES}
 	${${PROJECT_NAME}_PLUGINS}
 	${${PROJECT_NAME}_SOURCES}

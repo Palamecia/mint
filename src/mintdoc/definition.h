@@ -24,7 +24,7 @@
 #ifndef MINTDOC_DEFINITION_H
 #define MINTDOC_DEFINITION_H
 
-#include "docnode.h"
+#include "doc_node.h"
 
 #include <cassert>
 #include "mint/memory/reference.h"

@@ -11,22 +11,22 @@ PRIVATE
 	builtin/libobject.cpp
 	builtin/library.cpp
 	builtin/string.cpp
-	casttool.cpp
+	cast_tools.cpp
 	class.cpp
-	functiontool.cpp
-	garbagecollector.cpp
-	globaldata.cpp
-	memorytool.cpp
+	function_tools.cpp
+	garbage_collector.cpp
+	global_data.cpp
+	memory_tools.cpp
 	object.cpp
-	operatortool.cpp
+	operator_tools.cpp
 	reference.cpp
-	symboltable.cpp
+	symbol_table.cpp
 )
 
 target_link_libraries(
 	test-memory
 PRIVATE
-	libmint
+	mint::mint
 	GTest::gtest
 	GTest::gtest_main
 )

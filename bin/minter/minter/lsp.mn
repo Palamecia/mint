@@ -28,7 +28,7 @@
 load network.protocols.jsonrpc.serializer
 load network.protocols.jsonrpc.exception
 load network.protocols.jsonrpc.server
-load network.endpoints.tcpip
+load network.endpoints.tcp-ip
 load system.terminal
 load system.process
 load system.thread

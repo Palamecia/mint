@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
-#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/abstract_syntax_tree.h"
 #include "mint/ast/symbol.h"
 #include "mint/memory/builtin/string.h"
 #include "mint/memory/data.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/garbagecollector.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/garbage_collector.h"
 #include "mint/scheduler/scheduler.h"
 
 TEST(array, join) {

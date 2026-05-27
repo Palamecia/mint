@@ -29,8 +29,8 @@
 #include <string>
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/processor.h"
@@ -96,8 +96,8 @@ int mint::get_ip_socket_info(const sockaddr* socket, socklen_t socketlen, std::s
 
 namespace {
 
-mint::Reference mint_ip_socket_bind(mint::Cursor& cursor, const mint::Reference& socket,
-    const mint::Reference& address, mint::Reference& port, const mint::Reference& ip_version) {
+mint::Reference mint_ip_socket_bind(mint::Cursor& cursor, const mint::Reference& socket, const mint::Reference& address,
+    mint::Reference& port, const mint::Reference& ip_version) {
 
 	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
 	const std::string address_str = to_string(address);
@@ -348,8 +348,7 @@ mint::Reference mint_socket_setup_ip_options(mint::Cursor& /*cursor*/, const min
 	return {};
 }
 
-mint::Reference mint_socket_setup_ipv4_options(mint::Cursor& /*cursor*/,
-    const mint::Reference& ip_v4_socket_option) {
+mint::Reference mint_socket_setup_ipv4_options(mint::Cursor& /*cursor*/, const mint::Reference& ip_v4_socket_option) {
 
 #define BIND_IP_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = IP_##_option
@@ -802,8 +801,7 @@ mint::Reference mint_socket_ipv4_mreq_source_set_interface(mint::Cursor& /*curso
 	    &d_ptr.data<mint::LibObject<ip_mreq_source>>().ptr->imr_interface));
 }
 
-mint::Reference mint_socket_setup_ipv6_options(mint::Cursor& /*cursor*/,
-    const mint::Reference& ip_v6_socket_option) {
+mint::Reference mint_socket_setup_ipv6_options(mint::Cursor& /*cursor*/, const mint::Reference& ip_v6_socket_option) {
 
 #define BIND_IPV6_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = IPV6_##_option

@@ -25,10 +25,10 @@
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/functiontool.h"
+#include "mint/memory/function_tools.h"
 #include "mint/memory/builtin/iterator.h"
-#include "mint/memory/memorytool.h"
-#include "mint/memory/operatortool.h"
+#include "mint/memory/memory_tools.h"
+#include "mint/memory/operator_tools.h"
 #include "mint/ast/cursor.h"
 #include <algorithm>
 #include <string>

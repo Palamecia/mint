@@ -21,4 +21,4 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/memory/functiontool.h"
+#include "mint/memory/function_tools.h"

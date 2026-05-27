@@ -1,0 +1,619 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Network.UdpIp} class which implement the
+ * {Network.EndPoint} interface for the UDP/IP protocol.
+ */
+
+load mint.lang
+load network.endpoints.ip
+load serializer.data-stream
+
+package Network {
+	/**
+	 * This class provides an end point implementation for communication with a
+	 * peer device using the UDP/IP protocol.
+	 */
+	class UdpIp : Network.IpEndPoint {
+		/**
+		 * Scheduler operation used to receive data asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.UdpIp.readFromAsync}.
+		 *
+		 * The operation attempts to read data from the endpoint using the
+		 * synchronous receive mechanism. If no data is currently available,
+		 * the operation registers interest in the socket readability event
+		 * and suspends the current coroutine.
+		 *
+		 * Each time the coroutine resumes, additional data is read and appended
+		 * to the internal receive buffer until the completion predicate returns
+		 * `true`.
+		 *
+		 * The completion predicate receives the current buffer and determines
+		 * when the operation should finish. This allows callers to implement
+		 * custom read conditions such as:
+		 *
+		 * * reading a fixed number of bytes
+		 * * reading until a delimiter is encountered
+		 * * reading until the buffer is non-empty
+		 *
+		 * If the peer closes the connection before the completion condition
+		 * is satisfied, the operation returns the data accumulated so far.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		class ReadFromOperation : Network.Scheduler.Operation {
+			/**
+			 * Creates a new asynchronous operation to read data from `endpoint`.
+			 */
+			const def new(self, endpoint) {
+				self.endpoint = endpoint
+				self.endpoint.getScheduler().watch(self)
+				return self
+			}
+
+			/**
+			 * Deletes the operation and remove it from the scheduler.
+			 */
+			const def delete(self) {
+				self.endpoint.getScheduler().remove(self)
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if data is available. It fails on error.
+			 */
+			const def check(self) {
+				if defined self.error {
+					self.endpoint.getScheduler().remove(self)
+					self.done(self.error)
+				} elif defined self.result {
+					self.endpoint.getScheduler().remove(self)
+					self.done()
+				}
+			}
+
+			/**
+			 * Returns the received data as an instance of {Serializer.DataStream}.
+			 */
+			const def get(self) {
+				return self.result
+			}
+
+			/**
+			 * Returns the end point's socket as a number or `none` if the end point has no socket.
+			 */
+			const def getSocket(const self) {
+				return self.endpoint.getSocket()
+			}
+
+			/**
+			 * Returns the events expected by the endpoint as mask of values from the {Network.Scheduler.PollEvent} enum.
+			 */
+			const def getEvents(const self) {
+				const PollEvent = Network.Scheduler.PollEvent
+				return PollEvent.Read | PollEvent.Close | PollEvent.Error
+			}
+
+			/**
+			 * Returns `true` if the channel performs I/O operations asynchronously (i.e. read or write data without
+			 * blocking other channels); otherwise returns `false`. This method calls the {Network.EndPoint.isNonBlocking}
+			 * method of the underlying object.
+			 */
+			const def isNonBlocking(const self) {
+				return self.endpoint.isNonBlocking()
+			}
+
+			/**
+			 * Sets the non blocking mode of the end point to `enabled`. Returns `true` if the mode was successfully
+			 * changed; otherwise returns `false`.
+			 */
+			const def setNonBlocking(self, enabled) {
+				return self.endpoint.setNonBlocking(enabled)
+			}
+
+			/**
+			 * Notifies that the underlying end point is readable.
+			 */
+			const def notifyReadable(self) {
+				try {
+					self.result = self.endpoint.readFrom()
+				} catch e {
+					self.error = error
+				}
+			}
+
+			/**
+			 * Notifies that the underlying end point has received an error.
+			 */
+			const def notifyError(self) {
+				self.error = Exception.SocketError(self.endpoint)
+				self.endpoint.setState(Network.EndPoint.State.Error)
+			}
+
+			/// Internal endpoint.
+			- final endpoint = null
+
+			/// Internal error.
+			- final error = none
+
+			/// Internal result.
+			- final result = null
+		}
+
+		/**
+		 * Scheduler operation used to send data asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.UdpIp.writeToAsync}.
+		 *
+		 * The operation attempts to send the provided {Serializer.DataStream}
+		 * using the endpoint's synchronous write mechanism.
+		 *
+		 * Because network writes may be partial, the operation may need to
+		 * perform multiple write attempts until the entire buffer has been
+		 * transmitted.
+		 *
+		 * If the socket cannot currently accept more data, the operation
+		 * registers interest in the socket writability event and suspends
+		 * the current coroutine.
+		 *
+		 * When the coroutine resumes, the remaining portion of the buffer is
+		 * sent until the operation completes.
+		 *
+		 * Returns an iterator containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		class WriteToOperation : Network.Scheduler.Operation {
+			/**
+			 * Creates a new asynchronous operation to send the data provided by `buffer` to the peer accessible
+			 * with the IP address descibed by `address` and the UDP port descibed by `port` using `endpoint`.
+			 */
+			const def new(self, endpoint, address, port, buffer) {
+				self.endpoint = endpoint
+				self.address = address
+				self.port = port
+				self.buffer = Serializer.DataStream(buffer)
+				self.endpoint.getScheduler().watch(self)
+				return self
+			}
+
+			/**
+			 * Deletes the operation and remove it from the scheduler.
+			 */
+			const def delete(self) {
+				self.endpoint.getScheduler().remove(self)
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if all the data in the buffer is sent.
+			 * It fails on error.
+			 */
+			const def check(self) {
+				if defined self.error {
+					self.endpoint.getScheduler().remove(self)
+					self.done(self.error)
+				} elif self.buffer.isEmpty() {
+					self.endpoint.getScheduler().remove(self)
+					self.done()
+				}
+			}
+
+			/**
+			 * Returns an iterator containing `true` and the amount of sent data in
+			 * bytes if the data was successfully sent to the peer; otherwise returns
+			 * `false`.
+			 */
+			const def get(self) {
+				return (self.status, self.count)
+			}
+
+			/**
+			 * Returns the end point's socket as a number or `none` if the end point has no socket.
+			 */
+			const def getSocket(const self) {
+				return self.endpoint.getSocket()
+			}
+
+			/**
+			 * Returns the events expected by the endpoint as mask of values from the {Network.Scheduler.PollEvent} enum.
+			 */
+			const def getEvents(const self) {
+				const PollEvent = Network.Scheduler.PollEvent
+				return PollEvent.Write | PollEvent.Close | PollEvent.Error
+			}
+
+			/**
+			 * Returns `true` if the channel performs I/O operations asynchronously (i.e. read or write data without
+			 * blocking other channels); otherwise returns `false`. This method calls the {Network.EndPoint.isNonBlocking}
+			 * method of the underlying object.
+			 */
+			const def isNonBlocking(const self) {
+				return self.endpoint.isNonBlocking()
+			}
+
+			/**
+			 * Sets the non blocking mode of the end point to `enabled`. Returns `true` if the mode was successfully
+			 * changed; otherwise returns `false`.
+			 */
+			const def setNonBlocking(self, enabled) {
+				return self.endpoint.setNonBlocking(enabled)
+			}
+
+			/**
+			 * Notifies that the underlying end point is writable.
+			 */
+			const def notifyWritable(self) {
+				try {
+					let (status, count) = self.endpoint.writeTo(self.buffer, self.address, self.port)
+					self.status = status
+					if self.status {
+						self.buffer.remove(count)
+						self.count += count
+					}
+				} catch error {
+					self.error = error
+				}
+			}
+
+			/**
+			 * Notifies that the underlying end point has received an error.
+			 */
+			const def notifyError(self) {
+				self.error = Exception.SocketError(self.endpoint)
+				self.endpoint.setState(Network.EndPoint.State.Error)
+			}
+
+			/// Internal endpoint.
+			- final endpoint = null
+
+			/// Internal error.
+			- final error = none
+
+			/// Internal peer address.
+			- final address = null
+
+			/// Internal peer UDP port.
+			- final port = null
+
+			/// Internal write buffer.
+			- final buffer = null
+
+			/// Internal write status.
+			- final status = false
+
+			/// Internal sent byte counter.
+			- final count = 0
+		}
+
+		/**
+		 * Creates a new end point for any IP address and any UDP port. This
+		 * endpoint is mean to be used with the {@see writeTo} and {@see readFrom}
+		 * methods and can only be opened using the {@see open} method.
+		 * 
+		 * The end point is managed by the `scheduler` object.
+		 */
+		const def new(self, scheduler) {
+			return Network.IpEndPoint.new(self, scheduler, none)
+		}
+
+		/**
+		 * Creates a new end point for the IP address descibed by `address` and
+		 * the UDP port descibed by `port`.
+		 */
+		const def new(self, scheduler, address, port) {
+			if self = Network.IpEndPoint.new(self, scheduler, address) {
+				self.port = port
+				return self
+			}
+		}
+
+		/**
+		 * Attempts to open the socket without connection to the remote device.
+		 * Returns `true` if the socket was correctly opened; otherwise returns
+		 * `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def open(self) {
+			var (socket, errno) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
+			if errno {
+			    self.setState(Network.EndPoint.State.Disconnected)
+				raise Exception.SocketError(errno, self)
+			}
+			if defined socket {
+				self.setSocket(socket)
+				self.setState(Network.EndPoint.State.Connected)
+				return true
+			}
+
+			return false
+		}
+
+		/**
+		 * Tells the end point to listen for incoming messages. Returns `true`
+		 * on success; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		override const def bind(self) {
+			var (socket, errno) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
+			if errno {
+			    self.setState(Network.EndPoint.State.Disconnected)
+				raise Exception.SocketError(errno, self)
+			}
+			if defined socket {
+
+				self.setSocket(socket)
+
+				if errno = Network.UdpIp.g_lib.call('mint_ip_socket_bind', self.getSocket(), self.getAddress(), self.port, self.getIpVersion()) {
+			        self.setState(Network.EndPoint.State.Disconnected)
+					raise Exception.SocketError(errno, self)
+				}
+
+				self.setState(Network.EndPoint.State.Bound)
+				return true
+			}
+
+			return false
+		}
+
+		/**
+		 * Returns an iterator containing the available data received from any
+		 * peer as an instance of {Serializer.DataStream} and an instance of
+		 * {Network.UdpIp} initialized (but not connected) with the informations
+		 * of that peer. This endpoint can be used to open a dedicated channel
+		 * with that peer. Returns `none` if no data is available.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def readFrom(self) {
+
+			var socket = self.getSocket()
+			if not defined socket {
+				return false
+			}
+
+			var stream = Serializer.DataStream()
+			var (status, address, port, errno) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recvfrom', socket, stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.EndPoint.IOStatus.IOSuccess:
+				return (stream, Network.UdpIp(self.getScheduler(), address, port))
+
+			case Network.EndPoint.IOStatus.IOWouldBlock:
+				return none
+
+			case Network.EndPoint.IOStatus.IOClosed:
+				self.setState(Network.EndPoint.State.Closed)
+				return none
+
+			case Network.EndPoint.IOStatus.IOError:
+				self.setState(Network.EndPoint.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+		}
+
+		/**
+		 * Asynchronously receives a data from any peer.
+		 *
+		 * The operation suspends the current coroutine until new data becomes
+		 * available.
+		 * 
+		 * Returns the received data as an instance of {Serializer.DataStream} and
+		 * an instance of {Network.UdpIp} initialized (but not connected) with the
+		 * informations of that peer. This endpoint can be used to open a dedicated
+		 * channel with that peer.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const async def readFromAsync(self) {
+			return await self.getScheduler().suspend(Network.UdpIp.ReadFromOperation(self))
+		}
+
+		/**
+		 * Sends the data described by the `data` parameter to the peer accessible
+		 * with the IP address descibed by `address` and the UDP port descibed by
+		 * `port`. The `data` parameter must be an instance of {Serializer.DataStream}.
+		 * Returns an iterator containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def writeTo(self, address, port, data) {
+
+			var socket = self.getSocket()
+			if not defined socket {
+				return false
+			}
+
+			var stream = Serializer.DataStream(data)
+			var (status, value) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_sendto', socket, address, port, Network.IpEndPoint.addressVersion(address), stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.EndPoint.IOStatus.IOSuccess:
+				return (true, value)
+
+			case Network.EndPoint.IOStatus.IOWouldBlock:
+				return false
+
+			case Network.EndPoint.IOStatus.IOClosed:
+				self.setState(Network.EndPoint.State.Closed)
+				return false
+
+			case Network.EndPoint.IOStatus.IOError:
+				self.setState(Network.EndPoint.State.Error)
+				raise Exception.SocketError(value, self)
+			}
+		}
+
+		/**
+		 * Asynchronously sends the data described by `data` to the peer accessible
+		 * with the IP address descibed by `address` and the UDP port descibed by
+		 * `port`.
+		 *
+		 * The `data` parameter must be an instance of {Serializer.DataStream}.
+		 *
+		 * The operation suspends the current coroutine until all bytes have been
+		 * written or an error occurs. Partial writes may occur internally and
+		 * the operation will continue sending the remaining data until the buffer
+		 * is empty.
+		 *
+		 * Returns an iterator containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 *
+		 * The endpoint must be in the {Network.EndPoint.State.Bound} state.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const async def writeToAsync(self, address, port, data) {
+			return await self.getScheduler().suspend(Network.UdpIp.WriteToOperation(self, address, port, data))
+		}
+
+		/**
+		 * Attempts to make a connection to the remote device. Returns `true` if
+		 * connection succeed or if the connection request was successfully sent
+		 * and is waiting for acknowledgment; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		override const def connect(self) {
+			var (socket, errno) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_open', self.getIpVersion())
+			if errno {
+				self.setState(Network.EndPoint.State.Disconnected)
+				raise Exception.SocketError(errno, self)
+			}
+			if defined socket {
+
+				self.setSocket(socket)
+				var status, errno = Network.UdpIp.g_lib.call('mint_ip_socket_connect', self.getSocket(), self.getAddress(), self.port, self.getIpVersion())
+
+				switch status {
+				case Network.EndPoint.IOStatus.IOSuccess:
+					self.setState(Network.EndPoint.State.Connected)
+					return true
+
+				case Network.EndPoint.IOStatus.IOWouldBlock:
+					self.setState(Network.EndPoint.State.Connecting)
+					return true
+
+				case Network.EndPoint.IOStatus.IOClosed:
+					self.setState(Network.EndPoint.State.Closed)
+					return false
+
+				case Network.EndPoint.IOStatus.IOError:
+					self.setState(Network.EndPoint.State.Error)
+					raise Exception.SocketError(errno, self)
+				}
+			}
+
+			return false
+		}
+
+		/**
+		 * Returns all available data received from the peer as an instance of
+		 * {Serializer.DataStream} or `none` if no data is available.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		override const def read(self) {
+
+			var socket = self.getSocket()
+			if not defined socket {
+				return false
+			}
+
+			var stream = Serializer.DataStream()
+			var (status, errno) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_recv', socket, stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.EndPoint.IOStatus.IOSuccess:
+				return stream
+
+			case Network.EndPoint.IOStatus.IOWouldBlock:
+				return none
+
+			case Network.EndPoint.IOStatus.IOClosed:
+				self.setState(Network.EndPoint.State.Closed)
+				return none
+
+			case Network.EndPoint.IOStatus.IOError:
+				self.setState(Network.EndPoint.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+		}
+
+		/**
+		 * Sends the data described by the `data` parameter to the peer. The
+		 * `data` parameter must be an instance of {Serializer.DataStream}.
+		 * Returns an iterator containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		override const def write(self, data) {
+
+			var socket = self.getSocket()
+			if not defined socket {
+				return false
+			}
+
+			var stream = Serializer.DataStream(data)
+			var (status, value) = Network.UdpIp.g_lib.call('mint_udp_ip_socket_send', socket, stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.EndPoint.IOStatus.IOSuccess:
+				return (true, value)
+
+			case Network.EndPoint.IOStatus.IOWouldBlock:
+				return false
+
+			case Network.EndPoint.IOStatus.IOClosed:
+				self.setState(Network.EndPoint.State.Closed)
+				return false
+
+			case Network.EndPoint.IOStatus.IOError:
+				self.setState(Network.EndPoint.State.Error)
+				raise Exception.SocketError(value, self)
+			}
+		}
+
+		/**
+		 * Returns the UDP port number used by the end point.
+		 */
+		const def getPort(const self) {
+			return self.port
+		}
+
+        /// Global library handle.
+		- @g_lib = lib('libmint-network')
+
+        /// Internal UDP port.
+		- final port = 0
+	}
+}

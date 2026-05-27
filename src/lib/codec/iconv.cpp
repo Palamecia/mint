@@ -25,7 +25,7 @@
 #include "mint/ast/symbol.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/functiontool.h"
+#include "mint/memory/function_tools.h"
 #include "mint/memory/builtin/string.h"
 #include <algorithm>
 #include <array>
@@ -80,8 +80,8 @@ mint::Reference mint_iconv_close(mint::Cursor& /*cursor*/, const mint::Reference
 	return {};
 }
 
-mint::Reference mint_iconv_decode(mint::FunctionHelper& helper, const mint::Reference& context,
-    mint::Reference& buffer, const mint::Reference& stream) {
+mint::Reference mint_iconv_decode(mint::FunctionHelper& helper, const mint::Reference& context, mint::Reference& buffer,
+    const mint::Reference& stream) {
 
 	iconv_t cd = context.data<mint::LibObject<IconvContext>>().ptr->decode_cd;
 	auto state_type = helper.reference(symbols::codec_type).member(symbols::iconv_type).member(symbols::state_type);
@@ -123,8 +123,8 @@ mint::Reference mint_iconv_decode(mint::FunctionHelper& helper, const mint::Refe
 	}
 }
 
-mint::Reference mint_iconv_encode(mint::FunctionHelper& helper, const mint::Reference& context,
-    mint::Reference& buffer, const mint::Reference& stream) {
+mint::Reference mint_iconv_encode(mint::FunctionHelper& helper, const mint::Reference& context, mint::Reference& buffer,
+    const mint::Reference& stream) {
 
 	iconv_t cd = context.data<mint::LibObject<IconvContext>>().ptr->encode_cd;
 	auto state_type = helper.reference(symbols::codec_type).member(symbols::iconv_type).member(symbols::state_type);

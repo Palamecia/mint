@@ -25,7 +25,7 @@
 #define MINTDOC_MODULE_H
 
 #include "definition.h"
-#include "docnode.h"
+#include "doc_node.h"
 
 #include <cstdint>
 #include <string>

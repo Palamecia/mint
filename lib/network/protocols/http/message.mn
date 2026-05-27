@@ -26,9 +26,9 @@
  * structure of the messages used by {Network.Http.Serializer}.
  */
 
-load serializer.stringstream
-load serializer.datastream
-load codec.mimetypes
+load serializer.string-stream
+load serializer.data-stream
+load codec.mime-types
 load mint.string
 load mint.regex
 load mint.hash

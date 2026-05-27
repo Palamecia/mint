@@ -25,7 +25,7 @@
 #define MINT_COMPILER_LEXER_H
 
 #include "mint/config.h"
-#include "mint/system/datastream.h"
+#include "mint/system/data_stream.h"
 
 #include <functional>
 #include <map>

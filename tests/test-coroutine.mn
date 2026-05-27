@@ -1,5 +1,5 @@
 load test.case
-load test.errorcatcher
+load test.error-catcher
 load mint.coroutine
 
 class TestCoroutine : Test.Case {

@@ -22,7 +22,7 @@
  */
 
 #include "terminal.h"
-#include "mint/memory/functiontool.h"
+#include "mint/memory/function_tools.h"
 #include "mint/system/terminal.h"
 #include "mint/system/errno.h"
 #include "mint/system/string.h"

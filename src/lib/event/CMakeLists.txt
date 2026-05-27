@@ -1,9 +1,17 @@
 project(mint-event)
 
-add_library(mint-event MODULE)
+add_library(mint-lib-module-event MODULE)
+
+set_target_properties(
+	mint-lib-module-event
+	PROPERTIES
+	PREFIX lib
+	OUTPUT_NAME mint-event
+	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
+)
 
 target_SOURCES(
-	mint-event
+	mint-lib-module-event
 PRIVATE
 	event.cpp
 	file.cpp
@@ -12,25 +20,18 @@ PRIVATE
 	watcher.cpp
 )
 
-set_target_properties(
-	mint-event
-	PROPERTIES
-	PREFIX lib
-	INSTALL_RPATH "\$ORIGIN:\$ORIGIN/.."
-)
-
 target_link_libraries(
-	mint-event
+	mint-lib-module-event
 PRIVATE
-	libmint
+	mint::mint
 )
 
 # Install
 install(
-	TARGETS mint-event
+	TARGETS mint-lib-module-event
 	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 	RUNTIME COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}/mint
 )
 
-add_dependencies(mint-event module-event)
+add_dependencies(mint-lib-module-event mint-module-event)

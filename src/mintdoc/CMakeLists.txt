@@ -3,32 +3,39 @@ project(mintdoc)
 find_package(Microsoft.GSL CONFIG REQUIRED)
 
 # Target mint
-add_executable(mintdoc)
+add_executable(mint-mintdoc)
+
+set_target_properties(
+	mint-mintdoc
+	PROPERTIES
+	OUTPUT_NAME mintdoc
+	INSTALL_RPATH "$ORIGIN/../lib:$ORIGIN/../lib64"
+)
 
 target_include_directories(
-	mintdoc
+	mint-mintdoc
 PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
 target_sources(
-	mintdoc
+	mint-mintdoc
 PRIVATE
-	generators/abstractgenerator.cpp
-	generators/abstractgenerator.h
-	generators/gollumgenerator.cpp
-	generators/gollumgenerator.h
+	generators/abstract_generator.cpp
+	generators/abstract_generator.h
+	generators/gollum_generator.cpp
+	generators/gollum_generator.h
 	definition.cpp
 	definition.h
 	dictionary.cpp
 	dictionary.h
-	doclexer.cpp
-	doclexer.h
-	docnode.cpp
-	docnode.h
-	docparser.cpp
-	docparser.h
+	doc_lexer.cpp
+	doc_lexer.h
+	doc_node.cpp
+	doc_node.h
+	doc_parser.cpp
+	doc_parser.h
 	main.cpp
 	module.cpp
 	module.h
@@ -36,22 +43,15 @@ PRIVATE
 	parser.h
 )
 
-set_target_properties(
-	mintdoc
-	PROPERTIES
-	OUTPUT_NAME mintdoc
-	INSTALL_RPATH "$ORIGIN/../lib:$ORIGIN/../lib64"
-)
-
 target_link_libraries(
-	mintdoc
+	mint-mintdoc
 PRIVATE
-	libmint
+	mint::mint
 	Microsoft.GSL::GSL
 )
 
 # Install
 install(
-	TARGETS mintdoc
+	TARGETS mint-mintdoc
 	RUNTIME COMPONENT runtime DESTINATION ${MINT_RUNTIME_INSTALL_DIR}
 )

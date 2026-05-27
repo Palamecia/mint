@@ -50,7 +50,7 @@
  
 load network.serializers.text
 load network.scheduler
-load mint.lockguard
+load mint.lock-guard
 load mint.function
 load system.thread
 

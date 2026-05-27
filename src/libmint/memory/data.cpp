@@ -22,7 +22,7 @@
  */
 
 #include "mint/memory/data.h"
-#include "mint/memory/garbagecollector.h"
+#include "mint/memory/garbage_collector.h"
 
 using namespace mint;
 

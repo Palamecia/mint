@@ -35,15 +35,15 @@
 #include <vector>
 
 #include "mint/memory/class.h"
-#include "mint/ast/abstractsyntaxtree.h"
-#include "mint/ast/classregister.h"
+#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/ast/class_register.h"
 #include "mint/ast/module.h"
 #include "mint/ast/symbol.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/object.h"
-#include "mint/memory/globaldata.h"
-#include "mint/memory/memorytool.h"
+#include "mint/memory/global_data.h"
+#include "mint/memory/memory_tools.h"
 
 using namespace mint;
 

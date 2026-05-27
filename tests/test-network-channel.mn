@@ -1,8 +1,8 @@
 load test.case
 load system.thread
 load network.channel
-load network.endpoints.tcpip
-load network.endpoints.udpip
+load network.endpoints.tcp-ip
+load network.endpoints.udp-ip
 load network.serializers.server
 load network.serializers.datagram
 load network.protocols.http.client

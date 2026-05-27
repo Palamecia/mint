@@ -25,7 +25,7 @@
 #ifndef MINT_COMPILER_PARSER_HPP
 #define MINT_COMPILER_PARSER_HPP
 
-#include "mint/compiler/buildtool.h"
+#include "mint/compiler/build_tools.h"
 #include "mint/compiler/compiler.h"
 #include <memory>
 

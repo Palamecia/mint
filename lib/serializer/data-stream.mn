@@ -1,0 +1,743 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Serializer.DataStream} class which allow to
+ * manipulate raw data.
+ */
+
+load mint.type
+load mint.int-types
+
+package Serializer {
+
+/**
+ * This class provides an interface for reading and writing raw data. It is mean
+ * to be used by any code that perform low level operations.
+ */
+class DataStream {
+	/**
+	 * Creates a new empty stream.
+	 */
+	const def new(self) {
+		self.d_ptr = Serializer.DataStream.g_lib.call('mint_datastream_create_buffer')
+		self.d_ptr.delete = def [g_lib = Serializer.DataStream.g_lib] (self) {
+			g_lib.call('mint_datastream_delete_buffer', self)
+		}
+		return self
+	}
+
+	/**
+	 * Creates a new stream containing the data of `other`.
+	 * 
+	 * If `other` is an instance of {Serializer.DataStream}, this instance is
+	 * returned.
+	 * 
+	 * If `other` provides a `toDataStream` method, this method is used to
+	 * create the returned value; otherwise `other` is sent to the {@see write}
+	 * method to insert data in the stream.
+	 */
+	const def new(self, other) {
+		if typeof other == 'Serializer.DataStream' {
+			return other
+		}
+		if defined other.toDataStream {
+			return other.toDataStream()
+		}
+		self.d_ptr = Serializer.DataStream.g_lib.call('mint_datastream_create_buffer')
+		self.d_ptr.delete = def [g_lib = Serializer.DataStream.g_lib] (self) {
+			g_lib.call('mint_datastream_delete_buffer', self)
+		}
+		self.write(other)
+		return self
+	}
+
+	/**
+	 * Creates a new stream containing the `count` first bytes from the `bytes`
+	 * string.
+	 */
+	@const def fromUtf8Bytes(bytes, count) {
+		var self = Serializer.DataStream()
+		var data = [for let i in 0...count => uint8()]
+		for let byte in Serializer.DataStream.g_lib.call('mint_datastream_from_utf8_bytes', data, bytes, count) {
+			self.write(byte)
+		}
+		return self
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least `count` {int8}; otherwise
+	 * returns `false`.
+	 */
+	const def containsInt8(const self, count = 1) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_int8', self.d_ptr, count)
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least `count` {int16}; otherwise
+	 * returns `false`.
+	 */
+	const def containsInt16(const self, count = 1) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_int16', self.d_ptr, count)
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least `count` {int32}; otherwise
+	 * returns `false`.
+	 */
+	const def containsInt32(const self, count = 1) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_int32', self.d_ptr, count)
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least `count` {int64}; otherwise
+	 * returns `false`.
+	 */
+	const def containsInt64(const self, count = 1) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_int64', self.d_ptr, count)
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least `count` {uint8}; otherwise
+	 * returns `false`.
+	 */
+	const def containsUInt8(const self, count = 1) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_uint8', self.d_ptr, count)
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least `count` {uint16}; otherwise
+	 * returns `false`.
+	 */
+	const def containsUInt16(const self, count = 1) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_uint16', self.d_ptr, count)
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least `count` {uint32}; otherwise
+	 * returns `false`.
+	 */
+	const def containsUInt32(const self, count = 1) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_uint32', self.d_ptr, count)
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least `count` {uint64}; otherwise
+	 * returns `false`.
+	 */
+	const def containsUInt64(const self, count = 1) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_uint64', self.d_ptr, count)
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least `count` numbers; otherwise
+	 * returns `false`.
+	 */
+	const def containsNumber(const self, count = 1) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_number', self.d_ptr, count)
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least one boolean; otherwise
+	 * returns `false`.
+	 */
+	const def containsBoolean(const self) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_boolean', self.d_ptr)
+	}
+
+	/**
+	 * Returns `true` if the stream contains at least one string; otherwise
+	 * returns `false`. A string is detected if the stream contains a byte with
+	 * the value `0`.
+	 */
+	const def containsString(const self) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_contains_string', self.d_ptr)
+	}
+
+	/**
+	 * Returns the next instance of {int8} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getInt8(const self) {
+		if self.containsInt8() {
+			var data = int8()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns an array containing the next `count` instances of {int8} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getInt8(const self, count) {
+		if self.containsInt8(count) {
+			var data = [for let i in 0...count => int8()]
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {int16} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getInt16(const self) {
+		if self.containsInt16() {
+			var data = int16()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns an array containing the next `count` instances of {int16} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getInt16(const self, count) {
+		if self.containsInt16(count) {
+			var data = [for let i in 0...count => int16()]
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {int32} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getInt32(const self) {
+		if self.containsInt32() {
+			var data = int32()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns an array containing the next `count` instances of {int32} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getInt32(const self, count) {
+		if self.containsInt32(count) {
+			var data = [for let i in 0...count => int32()]
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {int64} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getInt64(const self) {
+		if self.containsInt64() {
+			var data = int64()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns an array containing the next `count` instances of {int64} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getInt64(const self, count) {
+		if self.containsInt64(count) {
+			var data = [for let i in 0...count => int64()]
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {uint8} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getUInt8(const self) {
+		if self.containsUInt8() {
+			var data = uint8()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns an array containing the next `count` instances of {uint8} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getUInt8(const self, count) {
+		if self.containsUInt8(count) {
+			var data = [for let i in 0...count => uint8()]
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {uint16} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getUInt16(const self) {
+		if self.containsUInt16() {
+			var data = uint16()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns an array containing the next `count` instances of {uint16} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getUInt16(const self, count) {
+		if self.containsUInt16(count) {
+			var data = [for let i in 0...count => uint16()]
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {uint32} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getUInt32(const self) {
+		if self.containsUInt32() {
+			var data = uint32()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns an array containing the next `count` instances of {uint32} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getUInt32(const self, count) {
+		if self.containsUInt32(count) {
+			var data = [for let i in 0...count => uint32()]
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {uint64} in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getUInt64(const self) {
+		if self.containsUInt64() {
+			var data = uint64()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns an array containing the next `count` instances of {uint64} in the
+	 * stream. If the stream does not contains enough data, `none` is returned
+	 * instead. The read cursor is not modified.
+	 */
+	const def getUInt64(const self, count) {
+		if self.containsUInt64(count) {
+			var data = [for let i in 0...count => uint64()]
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data, count)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of number in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getNumber(const self) {
+		if self.containsNumber() {
+			var data = number()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of boolean in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getBoolean(const self) {
+		if self.containsBoolean() {
+			var data = boolean()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of string in the stream. If the stream does not
+	 * contains enough data, `none` is returned instead. The read cursor is not
+	 * modified.
+	 */
+	const def getString(const self) {
+		if self.containsString() {
+			var data = string()
+			Serializer.DataStream.g_lib.call('mint_datastream_get', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns a string constructed with the data starting from the `from` byte
+	 * after the read cursor. If `length` is provided, it is used as a number of
+	 * byte to use; otherwise the data is used until the end of the stream. The
+	 * constructed string ends at the first byte of value `0` found or where no
+	 * more data is available. The read cursor is not modified.
+	 */
+	const def getString(const self, from, length = none) {
+		const maxLength = self.size()
+		if not defined length {
+			length = maxLength - from
+		}
+		if from < length and (from + length) <= maxLength {
+			return Serializer.DataStream.g_lib.call('mint_datastream_get_substr', self.d_ptr, from, length)
+		}
+	}
+
+	/**
+	 * Creates a new stream containing the data of `data` decoded from Base64.
+	 * Returns `none` if `data` is not a valid Base64 string.
+	 */
+	@const def fromBase64(data) {
+		var self = Serializer.DataStream()
+		if Serializer.DataStream.g_lib.call('mint_datastream_write_base64', self.d_ptr, data) {
+			return self
+		}
+	}
+
+	/**
+	 * Creates a new stream containing the data of `data` decoded from Base64Url.
+	 * Returns `none` if `data` is not a valid Base64Url string.
+	 */
+	@const def fromBase64Url(data) {
+		var self = Serializer.DataStream()
+		if Serializer.DataStream.g_lib.call('mint_datastream_write_base64url', self.d_ptr, data) {
+			return self
+		}
+	}
+
+	/**
+	 * Returns a string containing the Base64 representation of the following
+	 * bytes in the stream. 
+	 */
+	const def toBase64(const self) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_to_base64', self.d_ptr)
+	}
+
+	/**
+	 * Returns a string containing the Base64Url representation of the following
+	 * bytes in the stream. 
+	 */
+	const def toBase64Url(const self) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_to_base64url', self.d_ptr)
+	}
+
+	/**
+	 * Returns the next instance of {int8} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readInt8(self) {
+		if self.containsInt8() {
+			var data = int8()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {int16} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readInt16(self) {
+		if self.containsInt16() {
+			var data = int16()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {int32} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readInt32(self) {
+		if self.containsInt32() {
+			var data = int32()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {int64} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readInt64(self) {
+		if self.containsInt64() {
+			var data = int64()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {uint8} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readUInt8(self) {
+		if self.containsUInt8() {
+			var data = uint8()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {uint16} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readUInt16(self) {
+		if self.containsUInt16() {
+			var data = uint16()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {uint32} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readUInt32(self) {
+		if self.containsUInt32() {
+			var data = uint32()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of {uint64} in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readUInt64(self) {
+		if self.containsUInt64() {
+			var data = uint64()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of number in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readNumber(self) {
+		if self.containsNumber() {
+			var data = number()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of boolean in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readBoolean(self) {
+		if self.containsBoolean() {
+			var data = boolean()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Returns the next instance of string in the stream and move the read
+	 * cursor to the next byte right after the data. If the stream does not
+	 * contains enough data, `none` is returned instead and the read cursor
+	 * is not modified.
+	 */
+	const def readString(self) {
+		if self.containsString() {
+			var data = string()
+			Serializer.DataStream.g_lib.call('mint_datastream_read', self.d_ptr, data)
+			return data
+		}
+	}
+
+	/**
+	 * Writes the content of `data` to the stream. The data can be an instance
+	 * of {int8}, {int16}, {int32}, {int64}, {uint8}, {uint16}, {uint32},
+	 * {uint64}, number, boolean, string or `none`; otherwise the data is cast
+	 * to string to get inserted in the stream.
+	 */
+	const def write(self, data) {
+		Serializer.DataStream.g_lib.call('mint_datastream_write', self.d_ptr, data)
+	}
+
+	/**
+	 * Moves the read cursor `count` bytes forward. The data before this
+	 * position can not be reached anymore.
+	 */
+	const def remove(self, count) {
+		Serializer.DataStream.g_lib.call('mint_datastream_remove', self.d_ptr, count)
+	}
+
+	/**
+	 * Returns the amount of remaining bytes after the read cursor.
+	 */
+	const def size(const self) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_size', self.d_ptr)
+	}
+
+	/**
+	 * Returns `true` if the stream has no more data to read; otherwise returns
+	 * `false`.
+	 */
+	const def isEmpty(const self) {
+		return Serializer.DataStream.g_lib.call('mint_datastream_empty', self.d_ptr)
+	}
+
+	/**
+	 * Returns the pointer to the internal `std::vector<uint8_t>` instance.
+	 */
+	const def to_std_vector_uint8_t(const self) {
+		return self.d_ptr
+	}
+
+	/**
+	 * Writes the content of `data` to the stream, then returns a reference to
+	 * the stream. The data can be an instance of {int8}, {int16}, {int32},
+	 * {int64}, {uint8}, {uint16}, {uint32}, {uint64}, number, boolean, string
+	 * or `none`; otherwise the data is cast to string to get inserted in the
+	 * stream.
+	 */
+	const def <<(self, data) {
+		self.write(data)
+		return self
+	}
+
+	/**
+	 * Reads some data from the stream and stores it in `data`, then returns a
+	 * reference to the stream. The amount of data that is read depend on the
+	 * type of `data`. If the type is {int8}, {int16}, {int32},  {int64},
+	 * {uint8}, {uint16}, {uint32}, {uint64}, number, boolean or string, the
+	 * corresponding read function is used; otherwise the stream is passed to
+	 * the constructor of the type to get the data to store in `data`.
+	 */
+	const def >>(self, data) {
+		switch typeof data {
+		case 'int8':
+			data := self.readInt8()
+			break
+		case 'int16':
+			data := self.readInt16()
+			break
+		case 'int32':
+			data := self.readInt32()
+			break
+		case 'int64':
+			data := self.readInt64()
+			break
+		case 'uint8':
+			data := self.readUInt8()
+			break
+		case 'uint16':
+			data := self.readUInt16()
+			break
+		case 'uint32':
+			data := self.readUInt32()
+			break
+		case 'uint64':
+			data := self.readUInt64()
+			break
+		case 'boolean':
+			data := self.readBoolean()
+			break
+		case 'number':
+			data := self.readNumber()
+			break
+		case 'string':
+			data := self.readString()
+			break
+		default:
+			data := new(typeof data, self)
+			break
+		}
+
+		return self
+	}
+
+	/// Global library handle
+	- @g_lib = lib('libmint-serializer')
+	
+	/// Object data
+	- final d_ptr = null
+}
+
+}

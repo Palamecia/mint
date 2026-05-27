@@ -24,9 +24,9 @@
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/casttool.h"
-#include "mint/memory/memorytool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/cast_tools.h"
+#include "mint/memory/memory_tools.h"
 #include "mint/memory/reference.h"
 
 #include <algorithm>
@@ -269,8 +269,7 @@ mint::Reference mint_file_read(mint::Cursor& /*cursor*/, const mint::Reference& 
 	return {};
 }
 
-mint::Reference mint_file_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
-    const mint::Reference& stream) {
+mint::Reference mint_file_write(mint::Cursor& /*cursor*/, const mint::Reference& handle, const mint::Reference& stream) {
 #ifdef MINT_OS_WINDOWS
 	std::vector<std::uint8_t>* buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 	WriteFile(to_handle(handle), buffer->data(), static_cast<DWORD>(buffer->size()), nullptr, nullptr);

@@ -25,13 +25,13 @@
 
 #include "mint/ast/symbol.h"
 #include "mint/memory/data.h"
-#include "mint/memory/globaldata.h"
-#include "mint/debug/debugtool.h"
+#include "mint/memory/global_data.h"
+#include "mint/debug/debug_tools.h"
 #include "mint/memory/object.h"
 #include "mint/system/filesystem.h"
 #include "mint/system/terminal.h"
 #include "mint/system/utf8.h"
-#include "mint/ast/abstractsyntaxtree.h"
+#include "mint/ast/abstract_syntax_tree.h"
 #include "mint/ast/cursor.h"
 
 #include <compare>

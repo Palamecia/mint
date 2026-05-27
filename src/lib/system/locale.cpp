@@ -23,8 +23,8 @@
 
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/libobject.h"
-#include "mint/memory/functiontool.h"
-#include "mint/memory/casttool.h"
+#include "mint/memory/function_tools.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/memory/reference.h"
 #include <array>
 #include <cerrno>
@@ -102,8 +102,8 @@ mint::Reference mint_locale_delete(mint::Cursor& /*cursor*/, const mint::Referen
 	return {};
 }
 
-mint::Reference mint_locale_day_name(mint::Cursor& cursor, const mint::Reference& locale,
-    const mint::Reference& day, mint::Reference& format) {
+mint::Reference mint_locale_day_name(mint::Cursor& cursor, const mint::Reference& locale, const mint::Reference& day,
+    mint::Reference& format) {
 
 	static constexpr std::size_t day_count = 7;
 	static const std::array<std::array<nl_item, day_count>, 2> day_item {{

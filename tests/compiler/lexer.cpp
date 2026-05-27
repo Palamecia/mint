@@ -1,7 +1,7 @@
 #include <cstddef>
 #include <gtest/gtest.h>
 #include "mint/compiler/lexer.h"
-#include "mint/system/bufferstream.h"
+#include "mint/system/buffer_stream.h"
 
 TEST(lexer, next_token) {
 
@@ -36,7 +36,7 @@ TEST(lexer, at_end) {
 	/// \todo
 }
 
-TEST(datastream, set_new_line_callback) {
+TEST(data_stream, set_new_line_callback) {
 
 	mint::BufferStream stream(R"""(/* comment */
 

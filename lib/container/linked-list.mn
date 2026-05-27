@@ -1,0 +1,484 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Container.LinkedList} class which store objects
+ * with a constant insertion or removal time.
+ */
+
+load mint.type
+load mint.garbage-collector
+load exception.container
+
+package Container {
+
+/**
+ * This class creates a linked list which stores a liste of values and provides
+ * an iterator-based access as well as constant time insertions and removals.
+ * 
+ * For most purposes, {Container.List} is the is the right class to use. If you
+ * need a real linked list, with guarantees of constant time insertions in the
+ * middle of the list and iterators to items rather than indexes, use
+ * {Container.LinkedList}.
+ */
+class LinkedList {
+	/**
+	 * This class store the context of a node of a {Container.LinkedList}. It
+	 * can be retrieved with {Container.LinkedList.firstNode} or
+	 * {Container.LinkedList.lastNode}.
+	 */
+	class Node {
+		/**
+		 * Creates a new node storing `value` into the `list` context.
+		 */
+		const def new(self, list, value) {
+			self.list = list
+			self.value = value
+			return self
+		}
+
+		/**
+		 * Returns the value of the node.
+		 */
+		const def getValue(const self) {
+			return self.value
+		}
+
+		/**
+		 * Returns the previous node. If `self` is the first node, `none` is
+		 * returned.
+		 */
+		const def getPrevious(const self) {
+			if self.prev {
+				return self.prev
+			}
+		}
+
+		/**
+		 * Returns the next node. If `self` is the last node, `none` is
+		 * returned.
+		 */
+		const def getNext(const self) {
+			if self.next {
+				return self.next
+			}
+		}
+
+		/**
+		 * Inserts a previous node.
+		 */
+		const def insertPrevious(self, node) {
+			if node.prev or node.next {
+				node.remove()
+			}
+			node.list = self.list
+			if self is self.list.front {
+				self.list.front = node
+				self.prev = node
+				node.next = self
+			} else {
+				self.prev.next = node
+				node.prev = self.prev
+				self.prev = node
+				node.next = self
+			}
+		}
+
+		/**
+		 * Inserts a next node.
+		 */
+		const def insertNext(self, node) {
+			if node.prev or node.next {
+				node.remove()
+			}
+			node.list = self.list
+			if self is self.list.back {
+				self.list.back = node
+				self.next = node
+				node.prev = self
+			} else {
+				self.next.prev = node
+				node.next = self.next
+				self.next = node
+				node.prev = self
+			}
+		}
+
+		/**
+		 * Replaces the node.
+		 */
+		const def replace(self, node) {
+			if node.prev or node.next {
+				node.remove()
+			}
+			node.list = self.list
+			if self is self.list.front {
+				self.list.front = node
+				self.next.prev = node
+			} elif self is self.list.back {
+				self.list.back = node
+				self.prev.next = node
+			} else {
+				self.prev.next = node
+				self.next.prev = node
+			}
+			node.prev = self.prev
+			node.next = self.next
+		}
+
+		/**
+		 * Removes the node.
+		 */
+		const def remove(self) {
+			if self is self.list.front {
+				self.list.front = self.next
+				self.next.prev = null
+			} elif self is self.list.back {
+				self.list.back = self.prev
+				self.prev.next = null
+			} else {
+				self.prev.next = self.next
+				self.next.prev = self.prev
+			}
+		}
+
+		/// Node value
+		- final value = none
+
+		/// List element data
+		- final list = null
+
+		/// Previous node in the list
+		- final prev = null
+
+		/// Next node in the list
+		- final next = null
+	}
+
+	/**
+	 * Creates a new instance of {Container.LinkedList}. If `values` is given,
+	 * the list will be initialized with the given values.
+	 */
+	const def new(self, values = []) {
+		self.root = Container.LinkedList.Data()
+		for value in values {
+			self.append(value)
+		}
+		return self
+	}
+
+	/**
+	 * Cleans up the list instance.
+	 */
+	const def delete(self) {
+		GarbageCollector.collect()
+	}
+
+	/**
+	 * Returns the first element of the list. If the list is empty, `none` is
+	 * returned.
+	 */
+	const def first(const self) {
+		if self.root.front {
+			return self.root.front.getValue()
+		}
+	}
+
+	/**
+	 * Returns the last element of the list. If the list is empty, `none` is
+	 * returned.
+	 */
+	const def last(const self) {
+		if self.root.back {
+			return self.root.back.getValue()
+		}
+	}
+
+	/**
+	 * Returns the first node of the list. If the list is empty, `none` is
+	 * returned.
+	 */
+	const def firstNode(const self) {
+		if self.root.front {
+			return self.root.front
+		}
+	}
+
+	/**
+	 * Returns the last node of the list. If the list is empty, `none` is
+	 * returned.
+	 */
+	const def lastNode(const self) {
+		if self.root.back {
+			return self.root.back
+		}
+	}
+
+	/**
+	 * Returns an `array` containing each elements of the list.
+	 */
+	const def data(const self) {
+		var content = []
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+			content << node.getValue()
+		}
+		return content
+	}
+
+	/**
+	 * Returns an `iterator` on the elements of the list.
+	 */
+	const def in(const self) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+			yield node.getValue()
+		}
+	}
+
+	/**
+	 * Returns `true` if the list contains `value`; otherwise returns `false`.
+	 */
+	const def in(const self, const value) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+			if value == node.getValue() {
+				return true
+			}
+		}
+		return false
+	}
+
+	/**
+	 * Apply the `func` function to each elements of the list.
+	 */
+	const def each(const self, func) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+			func(node.getValue())
+		}
+	}
+
+	/**
+	 * Converts the list to an `array`.
+	 */
+	const def toArray(const self) {
+		return self.data()
+	}
+
+	/**
+	 * Returns `true` if the list contains `value`; otherwise returns `false`.
+	 */
+	const def contains(const self, value) {
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+			if value == node.getValue() {
+				return true
+			}
+		}
+		return false
+	}
+
+	/**
+	 * Returns the number of occurrences of `value` in the list.
+	 */
+	const def count(const self, value) {
+		var found = 0
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+			if value == node.getValue() {
+				found++
+			}
+		}
+		return found
+	}
+
+	/**
+	 * Returns the number of elements in the list.
+	 */
+	const def size(const self) {
+		var found = 0
+		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+			found++
+		}
+		return found
+	}
+
+	/**
+	 * Returns `true` if the list is empty; otherwise returns `false`.
+	 */
+	const def isEmpty(const self) {
+		return self.root.front is null
+	}
+
+	/**
+	 * Returns the node of the first occurrence of `value` in the list,
+	 * searching forward from node `from` if given or from the list beginning.
+	 * Returns `none` if no element matched.
+	 */
+	const def nodeOf(const self, value, from = none) {
+		if not defined from {
+			from = self.firstNode()
+		}
+		for (var node = from, defined node, node = node.getNext()) {
+			if value == node.getValue() {
+				return node
+			}
+		}
+	}
+
+	/**
+	 * Replaces the `node` with a new node storing the given `value`.
+	 */
+	const def replace(self, node, value) {
+		node.replace(Container.LinkedList.Node(self.root, value))
+	}
+
+	/**
+	 * Inserts a new node storing the given `value` before the given `node`.
+	 */
+	const def insertBefore(self, node, value) {
+		node.insertPrevious(Container.LinkedList.Node(self.root, value))
+	}
+
+	/**
+	 * Inserts a new node storing the given `value` after the given `node`.
+	 */
+	const def insertAfter(self, node, value) {
+		node.insertNext(Container.LinkedList.Node(self.root, value))
+	}
+
+	/**
+	 * Inserts `value` at the end of the list.
+	 */
+	const def append(self, value) {
+		if self.root.back is null {
+			self.root.front = self.root.back = Container.LinkedList.Node(self.root, value)
+		} else {
+			self.root.back.insertNext(Container.LinkedList.Node(self.root, value))
+		}
+	}
+
+	/**
+	 * Inserts `value` at the beginning of the list.
+	 */
+	const def prepend(self, value) {
+		if self.root.front is null {
+			self.root.front = self.root.back = Container.LinkedList.Node(self.root, value)
+		} else {
+			self.root.front.insertPrevious(Container.LinkedList.Node(self.root, value))
+		}
+	}
+
+	/**
+	 * Moves the `from` node before the `to` node.
+	 */
+	const def moveBefore(self, from, to) {
+		to.insertPrevious(from)
+	}
+
+	/**
+	 * Moves the `from` node after the `to` node.
+	 */
+	const def moveAfter(self, from, to) {
+		to.insertNext(from)
+	}
+
+	/**
+	 * Removes the first occurence of `value` in the list.
+	 */
+	const def removeOne(self, value) {
+		if var node = self.nodeOf(value) {
+			node.remove()
+			return true
+		}
+		return false
+	}
+
+	/**
+	 * Removes all the occurences of `value` in the list.
+	 */
+	const def removeAll(self, value) {
+		if var node = self.nodeOf(value) {
+			var next = node.getNext()
+			node.remove()
+			for (node = self.nodeOf(value, next), defined node, node = self.nodeOf(value, next)) {
+				next = node.getNext()
+				node.remove()
+			}
+			return true
+		}
+		return false
+	}
+
+	/**
+	 * Removes the first element of the list.
+	 */
+	const def removeFirst(self) {
+		if self.isEmpty() {
+			raise Exception.NoItem(self, self.removeFirst)
+		}
+		if self.root.front is self.root.back {
+			self.root.front = self.root.back = null
+		} else {
+			self.root.front.remove()
+		}
+	}
+
+	/**
+	 * Removes the last element of the list.
+	 */
+	const def removeLast(self) {
+		if self.isEmpty() {
+			raise Exception.NoItem(self, self.removeLast)
+		}
+		if self.root.front is self.root.back {
+			self.root.front = self.root.back = null
+		} else {
+			self.root.back.remove()
+		}
+	}
+
+	/**
+	 * Removes the `node` element of the list and returns the next node.
+	 */
+	const def remove(self, node) {
+		var next = node.getNext()
+		node.remove()
+		return next
+	}
+
+	/**
+	 * Removes all the elements of the list.
+	 */
+	const def clear(self) {
+		self.root.front = self.root.back = null
+	}
+
+	/// Internal root element data structure.
+	- class Data {
+		/// First element of the list.
+		front = null
+		/// Last element of the list.
+		back = null
+	}
+
+	/// Root element data.
+	- final root = null
+}
+
+}

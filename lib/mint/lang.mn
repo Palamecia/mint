@@ -87,11 +87,10 @@ def [g_lib = lib('libmint-mint')] toFilePath(const modulePath) {
 }
 
 /**
- * Loads the module with the path given by `modulePath`. Returns `true` if the
- * module was successfully loaded; otherwise returns `false`.
+ * Loads the module with the path given by `modulePath`.
  */
 def [g_lib = lib('libmint-mint')] loadModule(const modulePath) {
-	return g_lib.call('mint_lang_load_module', modulePath)
+	g_lib.call('mint_lang_load_module', modulePath)
 }
 
 /**

@@ -70,13 +70,6 @@ public:
 		ready
 	};
 
-	struct Info {
-		Id id = invalid_id;
-		Module* bytecode = nullptr;
-		DebugInfo* debug_info = nullptr;
-		State state = State::not_compiled;
-	};
-
 	struct Handle {
 		Module& module;
 		std::size_t offset;
@@ -88,11 +81,11 @@ public:
 	};
 
 	Module();
-	Module(Module&& other) = delete;
+	Module(Module&& other) noexcept;
 	Module(const Module& other) = delete;
 	~Module();
 
-	Module& operator=(Module&& other) = delete;
+	Module& operator=(Module&& other) noexcept;
 	Module& operator=(const Module& other) = delete;
 
 	[[nodiscard]] inline const Node& node_at(std::size_t idx) const;
@@ -132,6 +125,13 @@ private:
 	std::vector<std::unique_ptr<ClassDescription>> _classes;
 	std::vector<std::unique_ptr<ClassRegister>> _internal_registers;
 	std::unordered_map<std::string, std::unique_ptr<Symbol>> _symbols;
+};
+
+struct ModuleInfo {
+	Module bytecode;
+	DebugInfo debug_info;
+	Module::Id id = Module::invalid_id;
+	Module::State state = Module::State::not_compiled;
 };
 
 const Node& Module::node_at(std::size_t idx) const {

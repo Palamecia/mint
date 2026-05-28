@@ -146,24 +146,15 @@ package Test {
 			}
 			for var test in dir.list(/test-.*\.mn/) {
 				let module = dir.getFile(test).getBaseName()
-				if loadModule(module) {
-					print (System.IO) {
-						System.IO.bold()
-						System.IO.green()
-						'[----------]'
-						System.IO.reset()
-						' Loaded test module %s\n' % module
-					}
-					++found
-				} else {
-					print (System.IO) {
-						System.IO.bold()
-						System.IO.red()
-						'[----------]'
-						System.IO.reset()
-						' Failed to load test module %s\n' % module
-					}
+				loadModule(module)
+				print (System.IO) {
+					System.IO.bold()
+					System.IO.green()
+					'[----------]'
+					System.IO.reset()
+					' Loaded test module %s\n' % module
 				}
+				++found
 			}
 			if found {
 				print (System.IO) {

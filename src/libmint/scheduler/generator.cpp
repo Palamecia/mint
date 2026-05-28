@@ -31,8 +31,8 @@
 
 using namespace mint;
 
-Generator::Generator(std::unique_ptr<SavedState>&& state, const Process& process) :
-    Process(process.cursor().make_thread()),
+Generator::Generator(Scheduler& scheduler, std::unique_ptr<SavedState>&& state, const Process& process) :
+    Process(scheduler, process.cursor().make_thread()),
     _state(std::move(state)) {
 	set_thread_id(process.get_thread_id());
 }

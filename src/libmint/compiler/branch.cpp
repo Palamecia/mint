@@ -127,53 +127,53 @@ void Branch::forward_jumps(Branch& parent, std::size_t offset) {
 	_jump_backward.clear();
 }
 
-MainBranch::MainBranch(AbstractSyntaxTree& ast, const Module::Info& data) :
+MainBranch::MainBranch(AbstractSyntaxTree& ast, ModuleInfo& data) :
 #ifdef MINT_BUILD_TYPE_DEBUG
-    _offset(data.bytecode->next_node_offset()),
+    _offset(data.bytecode.next_node_offset()),
 #endif
     _ast(ast),
     _data(data) {
 }
 
 void MainBranch::push_node(const Node& node) {
-	_data.bytecode->push_node(node);
+	_data.get().bytecode.push_node(node);
 }
 
 void MainBranch::push_nodes(const std::vector<Node>& nodes) {
-	_data.bytecode->push_nodes(nodes);
+	_data.get().bytecode.push_nodes(nodes);
 }
 
 void MainBranch::replace_node(std::size_t offset, const Node& node) {
-	_data.bytecode->node_at(offset) = node;
+	_data.get().bytecode.node_at(offset) = node;
 }
 
 std::size_t MainBranch::next_node_offset() const {
-	return _data.bytecode->next_node_offset();
+	return _data.get().bytecode.next_node_offset();
 }
 
 Node& MainBranch::node_at(std::size_t offset) {
-	return _data.bytecode->node_at(offset);
+	return _data.get().bytecode.node_at(offset);
 }
 
 void MainBranch::on_new_line(std::size_t offset, std::size_t line_number) {
-	_data.debug_info->new_line(offset, line_number);
+	_data.get().debug_info.new_line(offset, line_number);
 }
 
 void MainBranch::on_new_line(std::size_t line_number) {
-	_data.debug_info->new_line(_data.bytecode, line_number);
+	_data.get().debug_info.new_line(_data.get().bytecode, line_number);
 }
 
 void MainBranch::build() {
 #if defined(MINT_BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
-	if (_data.id != Module::invalid_id) {
-		auto& module = *_data.bytecode;
-		auto cursor = Cursor(_ast, module);
-		mint::print(stdout, std::format("## MODULE: {} ({})\n", _data.id, _ast.get().get_module_name(module)));
+	if (_data.get().id != Module::invalid_id) {
+		const auto& bytecode = _data.get().bytecode;
+		auto cursor = Cursor(_ast, bytecode);
+		mint::print(stdout, std::format("## MODULE: {} ({})\n", _data.get().id, _ast.get().get_module_name(bytecode)));
 		cursor.jmp(_offset);
-		for (std::size_t offset = cursor.offset(); offset < module.next_node_offset(); offset = cursor.offset()) {
-			mint::print(stdout, std::format("LINE {} ", _data.debug_info->line_number(offset)));
+		for (std::size_t offset = cursor.offset(); offset < bytecode.next_node_offset(); offset = cursor.offset()) {
+			mint::print(stdout, std::format("LINE {} ", _data.get().debug_info.line_number()(offset)));
 			if (dump_command(cursor, std::cout) == Node::Command::exit_module) {
-				cursor.jmp(module.next_node_offset());
+				cursor.jmp(bytecode.next_node_offset());
 			}
 		}
 	}

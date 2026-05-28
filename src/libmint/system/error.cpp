@@ -28,10 +28,9 @@
 
 #include <algorithm>
 #include <cstdio>
-#include <cstdlib>
 #include <functional>
 #include <mutex>
-#include <map>
+#include <print>
 #include <string>
 #include <utility>
 #include <vector>
@@ -44,21 +43,24 @@ struct {
 	std::mutex callback_mutex;
 	int next_callback_id = 0;
 	std::vector<std::pair<int, std::function<void(const std::string&)>>> callbacks;
-	std::function<void(void)> exit_callback = []() {
-		std::exit(EXIT_FAILURE);
-	};
 } g_error;
 
 }
 
-void mint::on_error(std::string message) {
+void mint::on_error(const std::string& message) {
 
-	std::unique_lock lock(g_error.callback_mutex);
+	const std::unique_lock _(g_error.callback_mutex);
 
 	for (const auto& callback : g_error.callbacks) {
 		callback.second(message);
 	}
 
+	print_error(message);
+
+	throw MintRuntimeError(message);
+}
+
+void mint::print_error(const std::string& message) {
 	if (is_term(stderr)) {
 		Terminal::println(stderr,
 		    MINT_TERM_OPT(MINT_TERM_BOLD, MINT_TERM_FG_RED) + message + MINT_TERM_OPT(MINT_TERM_RESET));
@@ -68,15 +70,8 @@ void mint::on_error(std::string message) {
 		Pipe::print(stderr, "\n");
 	}
 	else {
-		std::fputs(message.data(), stderr);
-		std::fputc('\n', stderr);
+		std::println(stderr, "{}", message);
 	}
-
-	auto exit_callback = g_error.exit_callback;
-	lock.unlock();
-	exit_callback();
-
-	throw MintRuntimeError(message);
 }
 
 int mint::add_error_callback(const std::function<void(const std::string&)>& callback) {
@@ -118,19 +113,4 @@ std::vector<std::pair<int, std::function<void(const std::string&)>>> mint::take_
 
 void mint::restore_error_callbacks(std::vector<std::pair<int, std::function<void(const std::string&)>>>&& callbacks) {
 	g_error.callbacks.append_range(std::move(callbacks));
-}
-
-std::function<void(void)> mint::get_exit_callback() {
-	return g_error.exit_callback;
-}
-
-void mint::set_exit_callback(const std::function<void(void)>& callback) {
-	g_error.exit_callback = callback;
-}
-
-void mint::call_exit_callback() {
-	g_error.callback_mutex.lock();
-	auto exit_callback = g_error.exit_callback;
-	g_error.callback_mutex.unlock();
-	exit_callback();
 }

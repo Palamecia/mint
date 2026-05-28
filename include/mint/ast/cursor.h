@@ -180,7 +180,7 @@ public:
 	[[nodiscard]] inline Reference& generator();
 	[[nodiscard]] inline Reference& coroutine();
 
-	bool load_module(const std::string& module);
+	void load_module(const std::string& module_name);
 	bool exit_module();
 
 	void set_retrieve_point(std::size_t offset);

@@ -74,7 +74,7 @@ public:
 		print_type
 	};
 
-	BuildContext(DataStream& stream, Compiler& compiler, const Module::Info& data);
+	BuildContext(DataStream& stream, Compiler& compiler, ModuleInfo& data);
 	BuildContext(BuildContext&&) = delete;
 	BuildContext(const BuildContext& other) = delete;
 	~BuildContext();
@@ -234,8 +234,8 @@ protected:
 	void reset_scoped_symbols(const std::vector<const Symbol*>& symbols);
 
 private:
+	std::reference_wrapper<ModuleInfo> _data;
 	std::reference_wrapper<Compiler> _compiler;
-	Module::Info _data;
 	Lexer _lexer;
 
 	std::unique_ptr<Context> _module_context;

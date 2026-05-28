@@ -43,9 +43,21 @@ Module::Module() {
 	register_root();
 }
 
+Module::Module(Module&& other) noexcept :
+    _tree(std::move(other._tree)),
+    _handles(std::move(other._handles)),
+    _constants(std::move(other._constants)),
+    _classes(std::move(other._classes)),
+    _internal_registers(std::move(other._internal_registers)),
+    _symbols(std::move(other._symbols)) {
+	register_root();
+}
+
 Module::~Module() {
 	unregister_root();
 }
+
+Module& Module::operator=(Module&& other) noexcept = default;
 
 Module::Handle* Module::find_handle(std::size_t offset) const {
 	auto handles = std::ranges::reverse_view(_handles);

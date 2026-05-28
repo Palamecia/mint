@@ -53,7 +53,7 @@ public:
 	[[nodiscard]] bool is_printing() const;
 	void set_printing(bool enabled);
 
-	bool build(DataStream& stream, const Module::Info& node);
+	bool build(DataStream& stream, ModuleInfo& node);
 
 	Data* make_data(const std::string& token, DataHint hint);
 	Data& make_library(const std::string& token);

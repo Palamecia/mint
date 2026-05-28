@@ -711,6 +711,14 @@ ProcessorLocker::~ProcessorLocker() {
 	unlock_processor();
 }
 
+ProcessorUnlocker::ProcessorUnlocker() {
+	unlock_processor();
+}
+
+ProcessorUnlocker::~ProcessorUnlocker() {
+	lock_processor();
+}
+
 ProcessStatus mint::debug_steps(CursorDebugger& cursor, DebugInterface& handle) {
 
 	auto do_run_steps = DoRunSteps();

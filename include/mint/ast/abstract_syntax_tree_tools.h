@@ -31,8 +31,8 @@
 
 namespace mint {
 
-MINT_EXPORT void load_module(Cursor& cursor, const std::string& module);
-MINT_EXPORT std::unique_ptr<Cursor> load_module(const std::string& module, AbstractSyntaxTree& ast);
+MINT_EXPORT void load_module(Cursor& cursor, const std::string& module_name);
+MINT_EXPORT std::unique_ptr<Cursor> load_module(const std::string& module_name, AbstractSyntaxTree& ast);
 
 }
 

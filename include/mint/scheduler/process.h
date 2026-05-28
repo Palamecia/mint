@@ -29,6 +29,7 @@
 #include "mint/scheduler/processor.h"
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <thread>
@@ -42,7 +43,7 @@ class MINT_EXPORT Process {
 public:
 	using ThreadId = int;
 
-	Process(std::unique_ptr<Cursor>&& cursor);
+	Process(Scheduler& scheduler, std::unique_ptr<Cursor>&& cursor);
 	Process(Process&&) = delete;
 	Process(const Process&) = delete;
 	virtual ~Process() = default;
@@ -73,12 +74,14 @@ public:
 	[[nodiscard]] bool is_endless() const;
 	[[nodiscard]] bool is_thread() const;
 	[[nodiscard]] Cursor& cursor() const;
+	[[nodiscard]] Scheduler& scheduler() const;
 
 protected:
 	void set_endless(bool endless);
 	void dump();
 
 private:
+	std::reference_wrapper<Scheduler> _scheduler;
 	std::unique_ptr<Cursor> _cursor;
 	bool _endless = false;
 

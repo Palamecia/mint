@@ -36,7 +36,7 @@ namespace mint {
 
 class MINT_EXPORT Exception : public Process {
 public:
-	Exception(Reference&& reference, const Process& process);
+	Exception(Scheduler& scheduler, Reference&& reference, const Process& process);
 	Exception(Exception&&) = delete;
 	Exception(const Exception&) = delete;
 	~Exception() override;

@@ -24,22 +24,15 @@
 #include "mint/ast/abstract_syntax_tree_tools.h"
 #include "mint/ast/abstract_syntax_tree.h"
 #include "mint/ast/module.h"
-#include "mint/system/error.h"
 #include <memory>
 #include <string>
 
 using namespace mint;
 
-void mint::load_module(Cursor& cursor, const std::string& module) {
-	if (!cursor.load_module(module)) [[unlikely]] {
-		error("module '{}' not found", module);
-	}
+void mint::load_module(Cursor& cursor, const std::string& module_name) {
+	cursor.load_module(module_name);
 }
 
-std::unique_ptr<Cursor> mint::load_module(const std::string& module, AbstractSyntaxTree& ast) {
-	const auto infos = ast.load_module(module);
-	if (infos.id == Module::invalid_id) [[unlikely]] {
-		error("module '{}' not found", module);
-	}
-	return std::make_unique<Cursor>(ast, *infos.bytecode);
+std::unique_ptr<Cursor> mint::load_module(const std::string& module_name, AbstractSyntaxTree& ast) {
+	return std::make_unique<Cursor>(ast, ast.load_module(module_name).bytecode);
 }

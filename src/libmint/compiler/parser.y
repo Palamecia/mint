@@ -2694,7 +2694,7 @@ int BuildContext::next_token(std::string *token) {
 	return Lexer::token_type(*token);
 }
 
-bool Compiler::build(DataStream& stream, const Module::Info& node) {
+bool Compiler::build(DataStream& stream, ModuleInfo& node) {
 
 	auto context = BuildContext(stream, *this, node);
 	auto parser = mint::parser(context);

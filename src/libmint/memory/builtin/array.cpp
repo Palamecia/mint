@@ -113,7 +113,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(eq_operator, ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member(eq_operator, ast.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			if typeof self == typeof other {
 				if self.size() == other.size() {
@@ -128,7 +128,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return false
 		})"""));
 
-	create_builtin_member(ne_operator, ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member(ne_operator, ast.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			if typeof self == typeof other {
 				if self.size() == other.size() {
@@ -161,7 +161,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::move(result));
 	}));
 
-	create_builtin_member(sub_operator, ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member(sub_operator, ast.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			var result = []
 			for let item in self {
@@ -209,7 +209,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(band_operator, ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member(band_operator, ast.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			var store = {}
 			var result = []
@@ -358,7 +358,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().back() = create_iterator_over(cursor, cursor.stack().back());
 	}));
 
-	create_builtin_member(in_operator, ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member(in_operator, ast.create_builtin_method(*this, R"""(
 		def (const self, const value) {
 			for let item in self {
 				if item == value {
@@ -368,7 +368,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return false
 		})"""));
 
-	create_builtin_member("each", ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member("each", ast.create_builtin_method(*this, R"""(
 		def (const self, const func) {
 			for let item in self {
 				func(item)
@@ -447,7 +447,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().back() = create_none();
 	}));
 
-	create_builtin_member("contains", ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member("contains", ast.create_builtin_method(*this, R"""(
 		def (const self, const value) {
 			if value in self {
 				return true
@@ -455,12 +455,12 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return false
 		})"""));
 
-	create_builtin_member("indexOf", ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member("indexOf", ast.create_builtin_method(*this, R"""(
 		def (const self, const value) {
 			return self.indexOf(value, 0)
 		})"""));
 
-	create_builtin_member("indexOf", ast.create_builtin_method(*this, 3, R"""(
+	create_builtin_member("indexOf", ast.create_builtin_method(*this, R"""(
 		def (const self, const value, const from) {
 			for let i in from...self.size() {
 				if self[i] == value {
@@ -470,12 +470,12 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return none
 		})"""));
 
-	create_builtin_member("lastIndexOf", ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member("lastIndexOf", ast.create_builtin_method(*this, R"""(
 		def (const self, const value) {
 			return self.lastIndexOf(value, none)
 		})"""));
 
-	create_builtin_member("lastIndexOf", ast.create_builtin_method(*this, 3, R"""(
+	create_builtin_member("lastIndexOf", ast.create_builtin_method(*this, R"""(
 		def (const self, const value, const from) {
 			if not defined from {
 				from = self.size() - 1

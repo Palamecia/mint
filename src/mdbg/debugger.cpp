@@ -82,10 +82,6 @@ int Debugger::run() {
 		return EXIT_FAILURE;
 	}
 
-	mint::set_exit_callback([&] {
-		_backend->on_error(*this);
-	});
-
 	if (!_backend->setup(*this, *_scheduler)) {
 		return EXIT_FAILURE;
 	}
@@ -168,20 +164,20 @@ bool Debugger::process_events(mint::CursorDebugger& cursor) {
 
 	mint::AbstractSyntaxTree& ast = cursor.cursor().ast();
 
-	while (mint::Module* module = ast.find_module(_module_count)) {
+	while (const auto* module = ast.find_module(_module_count)) {
 		_backend->on_module_loaded(*this, cursor, *module);
 		++_module_count;
 	}
 
 	for (auto it = _pending_breakpoints.begin(); it != _pending_breakpoints.end();) {
 		const PendingBreakpoint& breakpoint = *it;
-		const std::string module = breakpoint.type == PendingBreakpoint::From::file_path
-		                               ? mint::to_module_path(breakpoint.module)
-		                               : breakpoint.module;
-		const auto info = ast.module_info(module);
-		if (mint::DebugInfo* debug_info = info.debug_info;
-		    debug_info && info.state != mint::Module::State::not_compiled) {
-			create_breakpoint({info.id, module, debug_info->to_executable_line_number(breakpoint.line_number)});
+		const std::string module_name = breakpoint.type == PendingBreakpoint::From::file_path
+		                                    ? mint::to_module_path(breakpoint.module)
+		                                    : breakpoint.module;
+		const auto& module = ast.module_info(module_name);
+		if (module.state != mint::Module::State::not_compiled) {
+			create_breakpoint(
+			    {module.id, module_name, module.debug_info.to_executable_line_number(breakpoint.line_number)});
 			it = _pending_breakpoints.erase(it);
 		}
 		else {
@@ -226,6 +222,11 @@ bool Debugger::on_breakpoint(mint::CursorDebugger& cursor, const std::unordered_
 
 bool Debugger::on_exception(mint::CursorDebugger& cursor) {
 	return _backend->on_exception(*this, cursor);
+}
+
+bool Debugger::on_error(mint::CursorDebugger& /*cursor*/) {
+	_backend->on_error(*this);
+	return true;
 }
 
 bool Debugger::on_step(mint::CursorDebugger& cursor) {

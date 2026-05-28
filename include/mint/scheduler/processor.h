@@ -33,7 +33,7 @@ class Cursor;
 class CursorDebugger;
 class DebugInterface;
 
-class ProcessorLocker {
+class MINT_EXPORT ProcessorLocker {
 public:
 	ProcessorLocker();
 	ProcessorLocker(const ProcessorLocker&) = delete;
@@ -42,6 +42,17 @@ public:
 
 	ProcessorLocker& operator=(const ProcessorLocker&) = delete;
 	ProcessorLocker& operator=(ProcessorLocker&&) = delete;
+};
+
+class MINT_EXPORT ProcessorUnlocker {
+public:
+	ProcessorUnlocker();
+	ProcessorUnlocker(const ProcessorUnlocker&) = delete;
+	ProcessorUnlocker(ProcessorUnlocker&&) = delete;
+	~ProcessorUnlocker();
+
+	ProcessorUnlocker& operator=(const ProcessorUnlocker&) = delete;
+	ProcessorUnlocker& operator=(ProcessorUnlocker&&) = delete;
 };
 
 enum class ProcessStatus : std::uint8_t {

@@ -53,7 +53,7 @@ public:
 	virtual void on_breakpoint_created(Debugger& debugger, const mint::Breakpoint& breakpoint) = 0;
 	virtual void on_breakpoint_deleted(Debugger& debugger, const mint::Breakpoint& breakpoint) = 0;
 
-	virtual void on_module_loaded(Debugger& debugger, mint::CursorDebugger& cursor, mint::Module& module) = 0;
+	virtual void on_module_loaded(Debugger& debugger, mint::CursorDebugger& cursor, const mint::Module& module) = 0;
 
 	virtual bool on_breakpoint(Debugger& debugger, mint::CursorDebugger& cursor,
 	    const std::unordered_set<mint::Breakpoint::Id>& breakpoints) = 0;

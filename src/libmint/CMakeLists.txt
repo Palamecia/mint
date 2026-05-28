@@ -64,6 +64,7 @@ PUBLIC
 	${MINT_INCLUDE_DIR}/mint/ast/class_register.h
 	${MINT_INCLUDE_DIR}/mint/ast/cursor.h
 	${MINT_INCLUDE_DIR}/mint/ast/file_printer.h
+	${MINT_INCLUDE_DIR}/mint/ast/function_literal.h
 	${MINT_INCLUDE_DIR}/mint/ast/module.h
 	${MINT_INCLUDE_DIR}/mint/ast/node.h
 	${MINT_INCLUDE_DIR}/mint/ast/printer.h

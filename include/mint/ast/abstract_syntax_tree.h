@@ -24,6 +24,7 @@
 #ifndef MINT_AST_ABSTRACT_SYNTAX_TREE_H
 #define MINT_AST_ABSTRACT_SYNTAX_TREE_H
 
+#include "mint/ast/function_literal.h"
 #include "mint/ast/module.h"
 #include "mint/config.h"
 #include "mint/debug/debug_info.h"
@@ -31,7 +32,9 @@
 #include "module.h"
 
 #include <cstddef>
+#include <deque>
 #include <filesystem>
+#include <functional>
 #include <map>
 #include <string>
 #include <type_traits>
@@ -59,22 +62,22 @@ public:
 	using BuiltinMethod = std::add_pointer_t<void(Cursor&)>;
 
 	std::pair<int, Module::Handle&> create_global_builtin_method(Class& type, int signature, GlobalBuiltinMethod method);
-	std::pair<int, Module::Handle&> create_builtin_method(const Class& type, int signature, const std::string& method);
+	std::pair<int, Module::Handle&> create_builtin_method(const Class& type, const FunctionLiteral& method);
 	std::pair<int, Module::Handle&> create_builtin_method(const Class& type, int signature, BuiltinMethod method);
 	std::pair<int, Module::Handle&> create_builtin_async_method(const Class& type, int signature, BuiltinMethod method);
 	void call_global_builtin_method(std::size_t method, Cursor& cursor);
 	inline void call_builtin_method(std::size_t method, Cursor& cursor);
 
-	Module::Info create_module(Module::State state);
-	Module::Info create_main_module(Module::State state);
-	Module::Info create_module_from_file_path(const std::filesystem::path& file_path, Module::State state);
-	Module::Info module_info(const std::string& module);
-	Module::Info load_module(const std::string& module);
-	Module::Info main();
+	ModuleInfo& main();
+	ModuleInfo& create_module(Module::State state);
+	ModuleInfo& create_main_module(Module::State state);
+	ModuleInfo& create_module_from_file_path(const std::filesystem::path& file_path, Module::State state);
+	ModuleInfo& load_module(const std::string& module_name);
+	const ModuleInfo& module_info(const std::string& module_name);
 
-	[[nodiscard]] inline Module* find_module(Module::Id module_id) const;
-	[[nodiscard]] inline DebugInfo* find_debug_info(Module::Id module_id) const;
-	[[nodiscard]] inline DebugInfo* find_debug_info(const Module& module) const;
+	[[nodiscard]] inline const Module* find_module(Module::Id module_id) const;
+	[[nodiscard]] inline const DebugInfo* find_debug_info(Module::Id module_id) const;
+	[[nodiscard]] inline const DebugInfo* find_debug_info(const Module& module) const;
 	[[nodiscard]] std::string get_module_name(const Module& module) const;
 	[[nodiscard]] Module::Id get_module_id(const Module& module) const;
 	[[nodiscard]] bool is_main(const Module& module) const;
@@ -87,21 +90,17 @@ public:
 	void cleanup_modules();
 
 protected:
-	struct BuiltinModuleInfo : public Module::Info {
-		explicit BuiltinModuleInfo(const Module::Info& infos);
-	};
-
-	BuiltinModuleInfo& builtin_module(std::size_t module_index);
+	ModuleInfo& builtin_module(std::size_t module_index);
 
 	void set_module_state(Module::Id module_id, Module::State state);
 
 private:
 	std::mutex _mutex;
-	std::vector<Module::Info> _modules;
-	std::map<std::filesystem::path, Module::Id> _module_cache;
+	std::deque<ModuleInfo> _modules;
+	std::map<std::filesystem::path, std::reference_wrapper<ModuleInfo>> _module_cache;
 
 	GlobalData _global_data {*this};
-	std::vector<BuiltinModuleInfo> _builtin_modules;
+	std::vector<std::reference_wrapper<ModuleInfo>> _builtin_modules;
 	std::vector<GlobalBuiltinMethod> _global_builtin_methods;
 	std::vector<BuiltinMethod> _builtin_methods;
 };
@@ -110,15 +109,15 @@ void AbstractSyntaxTree::call_builtin_method(std::size_t method, Cursor& cursor)
 	_builtin_methods[method](cursor);
 }
 
-Module* AbstractSyntaxTree::find_module(Module::Id module_id) const {
-	return (module_id < _modules.size()) ? _modules[module_id].bytecode : nullptr;
+const Module* AbstractSyntaxTree::find_module(Module::Id module_id) const {
+	return (module_id < _modules.size()) ? &_modules[module_id].bytecode : nullptr;
 }
 
-DebugInfo* AbstractSyntaxTree::find_debug_info(Module::Id module_id) const {
-	return (module_id < _modules.size()) ? _modules[module_id].debug_info : nullptr;
+const DebugInfo* AbstractSyntaxTree::find_debug_info(Module::Id module_id) const {
+	return (module_id < _modules.size()) ? &_modules[module_id].debug_info : nullptr;
 }
 
-DebugInfo* AbstractSyntaxTree::find_debug_info(const Module& module) const {
+const DebugInfo* AbstractSyntaxTree::find_debug_info(const Module& module) const {
 	return find_debug_info(get_module_id(module));
 }
 

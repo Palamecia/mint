@@ -135,9 +135,8 @@ mint::Reference mint_thread_is_joinable(mint::FunctionHelper& helper, const mint
 mint::Reference mint_thread_join(mint::FunctionHelper& helper, const mint::Reference& thread_id) {
 	try {
 		mint::Scheduler& scheduler = helper.scheduler();
-		mint::unlock_processor();
+		const auto _ = mint::ProcessorUnlocker();
 		scheduler.join_thread(to_integer<mint::Process::ThreadId>(helper.cursor(), thread_id));
-		mint::lock_processor();
 	}
 	catch (const std::system_error& error) {
 		return mint::create_number(mint::errno_from_error_code(error.code()));
@@ -146,16 +145,14 @@ mint::Reference mint_thread_join(mint::FunctionHelper& helper, const mint::Refer
 }
 
 mint::Reference mint_thread_wait(mint::Cursor& /*cursor*/) {
-	mint::unlock_processor();
+	const auto _ = mint::ProcessorUnlocker();
 	std::this_thread::yield();
-	mint::lock_processor();
 	return {};
 }
 
 mint::Reference mint_thread_sleep(mint::Cursor& cursor, const mint::Reference& time) {
-	mint::unlock_processor();
+	const auto _ = mint::ProcessorUnlocker();
 	std::this_thread::sleep_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)));
-	mint::lock_processor();
 	return {};
 }
 

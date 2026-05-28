@@ -38,16 +38,15 @@ using namespace mint;
 
 namespace {
 
-auto make_thread() {
-	auto* scheduler = Scheduler::instance();
-	assert_x(scheduler, __func__, "execution should be done using a scheduler");
-	return std::make_unique<Cursor>(scheduler->ast());
+auto make_thread(Scheduler& scheduler) {
+	return std::make_unique<Cursor>(scheduler.ast());
 }
 
 }
 
-Destructor::Destructor(Object* object, const Reference& member, Class& owner, const Process* process) :
-    Process(process ? process->cursor().make_thread() : make_thread()),
+Destructor::Destructor(Scheduler& scheduler, Object* object, const Reference& member, Class& owner,
+    const Process* process) :
+    Process(scheduler, process ? process->cursor().make_thread() : make_thread(scheduler)),
     _owner(owner),
     _object(object),
     _member(member) {
@@ -56,19 +55,20 @@ Destructor::Destructor(Object* object, const Reference& member, Class& owner, co
 	}
 }
 
-Destructor::Destructor(Object* object, const Reference& member, Class& owner, AbstractSyntaxTree& ast) :
-    Process(std::make_unique<Cursor>(ast)),
-    _owner(owner),
-    _object(object),
-    _member(member) {}
-
-Destructor::Destructor(Object* object, const Reference& member, Class& owner, const Process& process) :
-    Process(process.cursor().make_thread()),
+Destructor::Destructor(Scheduler& scheduler, Object* object, const Reference& member, Class& owner,
+    const Process& process) :
+    Process(scheduler, process.cursor().make_thread()),
     _owner(owner),
     _object(object),
     _member(member) {
 	set_thread_id(process.get_thread_id());
 }
+
+Destructor::Destructor(Scheduler& scheduler, Object* object, const Reference& member, Class& owner) :
+    Process(scheduler, std::make_unique<Cursor>(scheduler.ast())),
+    _owner(owner),
+    _object(object),
+    _member(member) {}
 
 Destructor::~Destructor() {}
 

@@ -424,7 +424,7 @@ std::string mint::to_string(const Reference& ref) {
 		case Class::Metatype::string:
 			return ref.data<String>().str;
 		case Class::Metatype::regex:
-			return ref.data<Regex>().initializer;
+			return ref.data<Regex>().pattern;
 		case Class::Metatype::array:
 			return std::format("[{}]", std::views::transform(ref.data<Array>().values,
 			                               [](auto& item) {

@@ -53,7 +53,7 @@ public:
 	Regex& operator=(Regex&& other) noexcept;
 	Regex& operator=(const Regex& other);
 
-	std::string initializer;
+	std::string pattern;
 	std::regex expr;
 
 private:

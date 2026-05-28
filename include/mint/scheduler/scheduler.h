@@ -143,6 +143,7 @@ protected:
 
 	static void initialize_process(Process& process);
 	void finalize_process(Process& process);
+	void abort_process(Process& process);
 	void finalize();
 
 private:

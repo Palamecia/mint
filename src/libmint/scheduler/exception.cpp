@@ -34,13 +34,14 @@
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/assert.h"
 #include "mint/system/error.h"
+#include "mint/system/mint_runtime_error.h"
 #include <cassert>
 #include <utility>
 
 using namespace mint;
 
-Exception::Exception(Reference&& reference, const Process& process) :
-    Process(process.cursor().make_thread()),
+Exception::Exception(Scheduler& scheduler, Reference&& reference, const Process& process) :
+    Process(scheduler, process.cursor().make_thread()),
     _reference(std::move(reference)),
     _handled(false) {
 	set_thread_id(process.get_thread_id());
@@ -61,9 +62,7 @@ void Exception::setup() {
 			if (auto* member = metadata.find_member(builtin_symbols::show_method)) {
 				Reference handler = Class::MemberInfo::get(*member, data);
 				if (is_instance_of(handler, Data::Format::function)) {
-					auto* scheduler = Scheduler::instance();
-					assert_x(scheduler, __func__, "execution should be done using a scheduler");
-					call_error_callbacks(to_string(scheduler->invoke(_reference, Symbol("toString"))));
+					call_error_callbacks(to_string(scheduler().invoke(_reference, Symbol("toString"))));
 					cursor().stack().emplace_back(std::forward<Reference>(_reference));
 					cursor().waiting_calls().emplace(std::forward<Reference>(handler), member->owner);
 					call_member_operator(cursor(), 0);
@@ -77,12 +76,11 @@ void Exception::setup() {
 void Exception::cleanup() {
 
 	if (_handled) {
-		call_exit_callback();
+		throw MintRuntimeError(to_string(_reference));
 	}
-	else {
-		lock_processor();
-		error("exception : {}", to_string(_reference));
-	}
+
+	lock_processor();
+	error("exception : {}", to_string(_reference));
 }
 
 bool mint::is_exception(Process& process) {

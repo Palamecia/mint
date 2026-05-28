@@ -26,6 +26,7 @@
 
 #include "mint/ast/class_register.h"
 #include "mint/ast/cursor.h"
+#include "mint/ast/function_literal.h"
 #include "mint/ast/module.h"
 #include "mint/ast/symbol.h"
 #include "mint/config.h"
@@ -92,10 +93,6 @@ namespace mint {
 constexpr auto create_flags = Reference::const_address | Reference::const_value | Reference::temporary;
 
 class FunctionHelper;
-
-consteval int variadic(int signature) {
-	return ~signature;
-}
 
 class MINT_EXPORT ReferenceHelper {
 	std::reference_wrapper<const FunctionHelper> _function;
@@ -225,8 +222,8 @@ MINT_EXPORT Reference create_function();
 MINT_EXPORT Reference create_function(Function::Mapping mapping);
 MINT_EXPORT Reference create_function(int signature, Function::Signature&& handle);
 MINT_EXPORT Reference create_function(const std::pair<int, Function::Signature>& mapping);
-MINT_EXPORT Reference create_function(AbstractSyntaxTree& ast, Module::Info& module, int signature,
-    const std::string& function);
+MINT_EXPORT Reference create_function(AbstractSyntaxTree& ast, const FunctionLiteral& function);
+MINT_EXPORT Reference create_function(AbstractSyntaxTree& ast, ModuleInfo& module, const FunctionLiteral& function);
 
 MINT_EXPORT Reference create_none();
 MINT_EXPORT Reference create_null();

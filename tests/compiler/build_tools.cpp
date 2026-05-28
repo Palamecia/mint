@@ -8,9 +8,22 @@
 #include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/buffer_stream.h"
+#include "mint/system/mint_runtime_error.h"
 #include <gtest/gtest.h>
 #include <string>
 #include <vector>
+
+#define EXPECT_THROW_WHAT(statement, expected_exception, msg) \
+	try { \
+		statement; \
+		FAIL() << "Expected exception: " #expected_exception "\n  Actual: no exception thrown"; \
+	} \
+	catch (const expected_exception& e) { \
+		EXPECT_STREQ(msg, e.what()); \
+	} \
+	catch (...) { \
+		FAIL() << "Expected exception: " #expected_exception "\n  Actual: different exception type thrown"; \
+	}
 
 TEST(build_tools, resolve_class_description) {
 
@@ -65,5 +78,5 @@ TEST(build_tools, resolve_class_description) {
 
 	mint::ClassDescription* d_desc = scheduler.ast().global_data().find_class_description("D");
 	ASSERT_NE(nullptr, d_desc);
-	ASSERT_DEATH(d_desc->generate(), "member 'mbr' is ambiguous for class 'D'");
+	EXPECT_THROW_WHAT(d_desc->generate(), mint::MintRuntimeError, "member 'mbr' is ambiguous for class 'D'");
 }

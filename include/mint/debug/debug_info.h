@@ -35,11 +35,11 @@ class Module;
 
 class MINT_EXPORT DebugInfo {
 public:
-	std::size_t line_number(std::size_t offset);
+	[[nodiscard]] std::size_t line_number(std::size_t offset) const;
 	void new_line(std::size_t offset, std::size_t line_number);
-	void new_line(const Module* module, std::size_t line_number);
+	void new_line(const Module& module, std::size_t line_number);
 
-	std::size_t to_executable_line_number(std::size_t line_number);
+	[[nodiscard]] std::size_t to_executable_line_number(std::size_t line_number) const;
 
 private:
 	std::map<std::size_t, std::size_t> _lines;

@@ -108,7 +108,7 @@ Branch::BackwardNodeIndex* Branch::next_jump_backward() {
 
 class MainBranch : public Branch {
 public:
-	MainBranch(AbstractSyntaxTree& ast, const Module::Info& data);
+	MainBranch(AbstractSyntaxTree& ast, ModuleInfo& data);
 
 	void push_node(const Node& node) override;
 	void push_nodes(const std::vector<Node>& nodes) override;
@@ -126,7 +126,7 @@ private:
 	std::size_t _offset;
 #endif
 	std::reference_wrapper<AbstractSyntaxTree> _ast;
-	Module::Info _data;
+	std::reference_wrapper<ModuleInfo> _data;
 };
 
 class SubBranch : public Branch {

@@ -41,6 +41,7 @@
 #include "mint/debug/debug_tools.h"
 #include "mint/ast/saved_state.h"
 #include "mint/system/error.h"
+#include "mint/system/mint_runtime_error.h"
 
 #include <algorithm>
 #include <cassert>
@@ -87,7 +88,7 @@ Scheduler* SchedulerContextSwitcher::current() {
 }
 
 TestProcess::TestProcess(Scheduler& scheduler, std::unique_ptr<Cursor>&& cursor) :
-    Process(std::move(cursor)),
+    Process(scheduler, std::move(cursor)),
     _scheduler(scheduler),
     _context(&scheduler) {}
 
@@ -107,12 +108,13 @@ Scheduler::~Scheduler() {
 
 	{
 		// collect global data using this scheduler
-		const SchedulerContextSwitcher _(this);
+		const auto _ = SchedulerContextSwitcher(this);
 
 		// cleanup memory
-		lock_processor();
-		_ast.cleanup_memory();
-		unlock_processor();
+		{
+			const auto _ = ProcessorLocker();
+			_ast.cleanup_memory();
+		}
 
 		// cleanup threads
 		finalize();
@@ -121,16 +123,18 @@ Scheduler::~Scheduler() {
 	}
 
 	// cleanup metadata
-	lock_processor();
-	garbage_collector.collect();
-	_ast.cleanup_metadata();
-	unlock_processor();
+	{
+		const auto _ = ProcessorLocker();
+		garbage_collector.collect();
+		_ast.cleanup_metadata();
+	}
 
 	// cleanup modules
-	lock_processor();
-	garbage_collector.collect();
-	_ast.cleanup_modules();
-	unlock_processor();
+	{
+		const auto _ = ProcessorLocker();
+		garbage_collector.collect();
+		_ast.cleanup_modules();
+	}
 }
 
 Scheduler* Scheduler::instance() {
@@ -163,7 +167,7 @@ Reference Scheduler::invoke(const Reference& function, std::vector<Reference>& p
 	}
 
 	Cursor& cursor = g_current.process.back().get().cursor();
-	auto process = Process(cursor.make_thread());
+	auto process = Process(*this, cursor.make_thread());
 
 	try {
 
@@ -173,14 +177,19 @@ Reference Scheduler::invoke(const Reference& function, std::vector<Reference>& p
 		std::ranges::move(parameters, std::back_inserter(callback_cursor.stack()));
 		call_operator(callback_cursor, static_cast<int>(parameters.size()));
 
-		unlock_processor();
+		const auto _ = ProcessorUnlocker();
 		schedule(process);
-		lock_processor();
 	}
 	catch (MintException& raised) {
-		finalize_process(process);
-		lock_processor();
+		{
+			const auto _ = ProcessorUnlocker();
+			finalize_process(process);
+		}
 		create_exception(raised.take_exception());
+	}
+	catch (const MintRuntimeError&) {
+		abort_process(process);
+		throw;
 	}
 
 	Reference result = std::move(cursor.stack().back());
@@ -199,7 +208,7 @@ Reference Scheduler::invoke(Class& type, std::vector<Reference>& parameters) {
 	if (type.find_operator(Class::new_operator)) {
 
 		Cursor& cursor = g_current.process.back().get().cursor();
-		auto process = Process(cursor.make_thread());
+		auto process = Process(*this, cursor.make_thread());
 
 		try {
 
@@ -210,14 +219,19 @@ Reference Scheduler::invoke(Class& type, std::vector<Reference>& parameters) {
 			std::ranges::move(parameters, std::back_inserter(callback_cursor.stack()));
 			call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
-			unlock_processor();
+			const auto _ = ProcessorUnlocker();
 			schedule(process);
-			lock_processor();
 		}
 		catch (MintException& raised) {
-			finalize_process(process);
-			lock_processor();
+			{
+				const auto _ = ProcessorUnlocker();
+				finalize_process(process);
+			}
 			create_exception(raised.take_exception());
+		}
+		catch (const MintRuntimeError&) {
+			abort_process(process);
+			throw;
 		}
 
 		Reference result = std::move(cursor.stack().back());
@@ -235,7 +249,7 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, std::
 	}
 
 	Cursor& cursor = g_current.process.back().get().cursor();
-	auto process = Process(cursor.make_thread());
+	auto process = Process(*this, cursor.make_thread());
 
 	try {
 
@@ -246,14 +260,19 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, std::
 		std::ranges::move(parameters, std::back_inserter(callback_cursor.stack()));
 		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
-		unlock_processor();
+		const auto _ = ProcessorUnlocker();
 		schedule(process);
-		lock_processor();
 	}
 	catch (MintException& raised) {
-		finalize_process(process);
-		lock_processor();
+		{
+			const auto _ = ProcessorUnlocker();
+			finalize_process(process);
+		}
 		create_exception(raised.take_exception());
+	}
+	catch (const MintRuntimeError&) {
+		abort_process(process);
+		throw;
 	}
 
 	Reference result = std::move(cursor.stack().back());
@@ -268,7 +287,7 @@ Reference Scheduler::invoke(const Reference& object, Class::Operator op, std::ve
 	}
 
 	Cursor& cursor = g_current.process.back().get().cursor();
-	auto process = Process(cursor.make_thread());
+	auto process = Process(*this, cursor.make_thread());
 
 	try {
 
@@ -279,14 +298,19 @@ Reference Scheduler::invoke(const Reference& object, Class::Operator op, std::ve
 		std::ranges::move(parameters, std::back_inserter(callback_cursor.stack()));
 		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
-		unlock_processor();
+		const auto _ = ProcessorUnlocker();
 		schedule(process);
-		lock_processor();
 	}
 	catch (MintException& raised) {
-		finalize_process(process);
-		lock_processor();
+		{
+			const auto _ = ProcessorUnlocker();
+			finalize_process(process);
+		}
 		create_exception(raised.take_exception());
+	}
+	catch (const MintRuntimeError&) {
+		abort_process(process);
+		throw;
 	}
 
 	Reference result = std::move(cursor.stack().back());
@@ -302,7 +326,7 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, const
 	}
 
 	Cursor& cursor = g_current.process.back().get().cursor();
-	auto process = Process(cursor.make_thread());
+	auto process = Process(*this, cursor.make_thread());
 
 	try {
 
@@ -313,14 +337,19 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, const
 		std::ranges::move(parameters, std::back_inserter(callback_cursor.stack()));
 		call_member_operator(callback_cursor, static_cast<int>(parameters.size()));
 
-		unlock_processor();
+		const auto _ = ProcessorUnlocker();
 		schedule(process);
-		lock_processor();
 	}
 	catch (MintException& raised) {
-		finalize_process(process);
-		lock_processor();
+		{
+			const auto _ = ProcessorUnlocker();
+			finalize_process(process);
+		}
 		create_exception(raised.take_exception());
+	}
+	catch (const MintRuntimeError&) {
+		abort_process(process);
+		throw;
 	}
 
 	Reference result = std::move(cursor.stack().back());
@@ -334,8 +363,8 @@ public:
 		Reference result;
 	};
 
-	explicit Future(std::unique_ptr<Cursor>&& cursor) :
-	    Process(std::move(cursor)) {}
+	explicit Future(Scheduler& scheduler, std::unique_ptr<Cursor>&& cursor) :
+	    Process(scheduler, std::move(cursor)) {}
 
 	void set_result_handle(ResultHandle* handle) {
 		_handle = handle;
@@ -355,7 +384,7 @@ private:
 };
 
 std::future<Reference> Scheduler::create_async_thread(std::unique_ptr<Cursor>&& cursor) {
-	auto future = std::make_unique<Future>(std::move(cursor));
+	auto future = std::make_unique<Future>(*this, std::move(cursor));
 	_thread_pool.start(*future);
 	return std::async(
 	    [this](std::unique_ptr<Future>&& future) -> Reference {
@@ -369,7 +398,7 @@ std::future<Reference> Scheduler::create_async_thread(std::unique_ptr<Cursor>&& 
 }
 
 Process::ThreadId Scheduler::create_thread(std::unique_ptr<Cursor>&& cursor) {
-	auto process = std::make_unique<Process>(std::move(cursor));
+	auto process = std::make_unique<Process>(*this, std::move(cursor));
 	const auto thread_id = _thread_pool.start(*process);
 	process->set_thread_handle(std::make_unique<std::thread>(
 	    [this](std::unique_ptr<Process>&& thread) {
@@ -392,17 +421,22 @@ void Scheduler::join_thread(Process::ThreadId id) {
 
 void Scheduler::create_destructor(Object* object, const Reference& member, Class& owner) {
 
-	auto destructor = Destructor(object, member, owner, current_process());
+	auto destructor = Destructor(*this, object, member, owner, current_process());
 
 	try {
-		unlock_processor();
+		const auto _ = ProcessorUnlocker();
 		schedule(destructor);
-		lock_processor();
 	}
 	catch (MintException& raised) {
-		finalize_process(destructor);
-		lock_processor();
+		{
+			const auto _ = ProcessorUnlocker();
+			finalize_process(destructor);
+		}
 		create_exception(raised.take_exception());
+	}
+	catch (const MintRuntimeError&) {
+		abort_process(destructor);
+		throw;
 	}
 }
 
@@ -413,16 +447,19 @@ void Scheduler::create_exception(Reference&& reference) {
 		error("cannot create exception without parent thread");
 	}
 
-	auto exception = Exception(std::move(reference), *thread);
+	auto exception = Exception(*this, std::move(reference), *thread);
 
 	try {
-		unlock_processor();
+		const auto _ = ProcessorUnlocker();
 		schedule(exception);
-		lock_processor();
 	}
 	catch (MintException&) {
+		const auto _ = ProcessorUnlocker();
 		finalize_process(exception);
-		lock_processor();
+		throw;
+	}
+	catch (const MintRuntimeError&) {
+		abort_process(exception);
 		throw;
 	}
 }
@@ -434,16 +471,19 @@ void Scheduler::create_generator(std::unique_ptr<SavedState>&& state) {
 		error("cannot create generator without parent thread");
 	}
 
-	auto generator = Generator(std::move(state), *thread);
+	auto generator = Generator(*this, std::move(state), *thread);
 
 	try {
-		unlock_processor();
+		const auto _ = ProcessorUnlocker();
 		schedule(generator);
-		lock_processor();
 	}
 	catch (MintException&) {
+		const auto _ = ProcessorUnlocker();
 		finalize_process(generator);
-		lock_processor();
+		throw;
+	}
+	catch (const MintRuntimeError&) {
+		abort_process(generator);
 		throw;
 	}
 }
@@ -488,24 +528,10 @@ int Scheduler::run() {
 		_configured_process.pop();
 		_running = true;
 
-		if (DebugInterface* handle = _debug_interface) {
-			set_exit_callback([handle, &thread = *main_thread] {
-				auto thread_locker = DebugThreadLocker(*handle, thread);
-				handle->exit(thread_locker.cursor());
-			});
-		}
-		else if (main_thread->is_endless()) {
-			set_exit_callback([&cursor = main_thread->cursor()] {
-				cursor.retrieve();
-			});
+		if (main_thread->is_endless()) {
 			if (!main_thread->resume()) {
 				_running = false;
 			}
-		}
-		else {
-			set_exit_callback([this] {
-				exit(EXIT_FAILURE);
-			});
 		}
 
 		if (schedule(*main_thread)) {
@@ -631,8 +657,13 @@ bool Scheduler::schedule(Process& thread) {
 
 		while (is_running() || is_destructor(thread)) {
 			switch (debug_thread.exec()) {
-			case ProcessStatus::completed:
 			case ProcessStatus::failed:
+				if (auto thread_locker = DebugThreadLocker(*handle, thread);
+				    !handle->catch_error(thread_locker.cursor())) {
+					handle->exit(thread_locker.cursor());
+				}
+				break;
+			case ProcessStatus::completed:
 				debug_thread.resume();
 				finalize_process(thread);
 				return true;
@@ -646,8 +677,14 @@ bool Scheduler::schedule(Process& thread) {
 	else {
 		while (is_running() || is_destructor(thread)) {
 			switch (thread.exec()) {
-			case ProcessStatus::completed:
 			case ProcessStatus::failed:
+				if (!thread.is_endless()) {
+					exit(EXIT_FAILURE);
+					break;
+				}
+				thread.cursor().retrieve();
+				[[fallthrough]];
+			case ProcessStatus::completed:
 				if (!resume(thread)) {
 					finalize_process(thread);
 					return true;
@@ -688,6 +725,17 @@ void Scheduler::finalize_process(Process& process) {
 	}
 
 	process.cleanup();
+	g_current.process.pop_back();
+}
+
+void Scheduler::abort_process(Process& process) {
+
+	assert(&process == &g_current.process.back().get());
+
+	if (process.is_thread()) {
+		_thread_pool.stop(process);
+	}
+
 	g_current.process.pop_back();
 }
 

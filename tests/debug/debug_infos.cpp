@@ -13,41 +13,41 @@ public:
 	using Module::push_node;
 };
 
-TEST(debuginfos, new_line) {
+TEST(debug_infos, new_line) {
 
-	mint::DebugInfo infos;
-	TestModule module;
+	auto infos = mint::DebugInfo();
+	auto module = TestModule();
 
-	infos.new_line(&module, 1);
+	infos.new_line(module, 1);
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
 	EXPECT_EQ(1, infos.line_number(0));
 
-	infos.new_line(&module, 5);
+	infos.new_line(module, 5);
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
 	EXPECT_EQ(1, infos.line_number(0));
 	EXPECT_EQ(5, infos.line_number(1));
 }
 
-TEST(debuginfos, line_number) {
+TEST(debug_infos, line_number) {
 
-	mint::DebugInfo infos;
-	TestModule module;
+	auto infos = mint::DebugInfo();
+	auto module = TestModule();
 
-	infos.new_line(&module, 1);
-	module.push_node(mint::Node(mint::Node::Command::exit_module));
-	module.push_node(mint::Node(mint::Node::Command::exit_module));
-	module.push_node(mint::Node(mint::Node::Command::exit_module));
-	module.push_node(mint::Node(mint::Node::Command::exit_module));
-	module.push_node(mint::Node(mint::Node::Command::exit_module));
-
-	infos.new_line(&module, 2);
+	infos.new_line(module, 1);
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
 
-	infos.new_line(&module, 3);
+	infos.new_line(module, 2);
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+	module.push_node(mint::Node(mint::Node::Command::exit_module));
+
+	infos.new_line(module, 3);
 
 	EXPECT_EQ(1, infos.line_number(0));
 	EXPECT_EQ(1, infos.line_number(1));
@@ -63,14 +63,13 @@ TEST(debuginfos, line_number) {
 	EXPECT_EQ(3, infos.line_number(11));
 }
 
-TEST(debuginfos, new_line_from_source) {
+TEST(debug_infos, new_line_from_source) {
 
-	mint::AbstractSyntaxTree ast;
-	mint::DebugInfo infos;
-	TestModule module;
-	mint::Compiler compiler(ast);
+	auto ast = mint::AbstractSyntaxTree();
+	auto module = mint::ModuleInfo();
+	auto compiler = mint::Compiler(ast);
 
-	mint::BufferStream stream(R"""(/* comment */
+	auto stream = mint::BufferStream(R"""(/* comment */
 
 load module
 
@@ -79,13 +78,9 @@ if defined symbol {
 }
 )""");
 
-	ASSERT_TRUE(compiler.build(stream, mint::Module::Info {
-	                                       .id = mint::Module::invalid_id,
-	                                       .bytecode = &module,
-	                                       .debug_info = &infos,
-	                                   }));
-	EXPECT_EQ(3, infos.line_number(0));
-	EXPECT_EQ(3, infos.line_number(1));
-	EXPECT_EQ(5, infos.line_number(2));
-	EXPECT_EQ(5, infos.line_number(3));
+	ASSERT_TRUE(compiler.build(stream, module));
+	EXPECT_EQ(3, module.debug_info.line_number(0));
+	EXPECT_EQ(3, module.debug_info.line_number(1));
+	EXPECT_EQ(5, module.debug_info.line_number(2));
+	EXPECT_EQ(5, module.debug_info.line_number(3));
 }

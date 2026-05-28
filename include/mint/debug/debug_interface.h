@@ -93,6 +93,7 @@ public:
 	DebugInterface& operator=(const DebugInterface&) = delete;
 
 	bool debug(CursorDebugger& cursor);
+	bool catch_error(CursorDebugger& cursor);
 	void exit(CursorDebugger& cursor);
 
 	void do_run(CursorDebugger& cursor);
@@ -125,6 +126,7 @@ protected:
 
 	virtual bool on_breakpoint(CursorDebugger& cursor, const std::unordered_set<Breakpoint::Id>& breakpoints) = 0;
 	virtual bool on_exception(CursorDebugger& cursor) = 0;
+	virtual bool on_error(CursorDebugger& cursor) = 0;
 	virtual bool on_step(CursorDebugger& cursor) = 0;
 
 private:

@@ -33,7 +33,7 @@ namespace mint {
 
 class MINT_EXPORT Generator : public Process {
 public:
-	Generator(std::unique_ptr<SavedState>&& state, const Process& process);
+	Generator(Scheduler& scheduler, std::unique_ptr<SavedState>&& state, const Process& process);
 	Generator(Generator&&) = delete;
 	Generator(const Generator&) = delete;
 	~Generator() override;

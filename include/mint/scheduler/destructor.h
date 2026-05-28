@@ -35,9 +35,10 @@ namespace mint {
 
 class MINT_EXPORT Destructor : public Process {
 public:
-	Destructor(Object* object, const Reference& member, Class& owner, const Process* process = nullptr);
-	Destructor(Object* object, const Reference& member, Class& owner, AbstractSyntaxTree& ast);
-	Destructor(Object* object, const Reference& member, Class& owner, const Process& process);
+	Destructor(Scheduler& scheduler, Object* object, const Reference& member, Class& owner,
+	    const Process* process = nullptr);
+	Destructor(Scheduler& scheduler, Object* object, const Reference& member, Class& owner, const Process& process);
+	Destructor(Scheduler& scheduler, Object* object, const Reference& member, Class& owner);
 	Destructor(Destructor&&) = delete;
 	Destructor(const Destructor&) = delete;
 	~Destructor() override;

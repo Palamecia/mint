@@ -232,7 +232,7 @@ Data* Compiler::make_data(const std::string& token, DataHint hint) {
 		try {
 			auto* regex = GarbageCollector::instance().alloc<Regex>(_ast);
 			regex->expr = token_to_regex(token);
-			regex->initializer = token;
+			regex->pattern = token;
 			regex->construct();
 			return regex;
 		}

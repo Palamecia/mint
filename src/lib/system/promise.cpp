@@ -103,14 +103,12 @@ mint::Reference mint_promise_delete(mint::Cursor& /*cursor*/, const mint::Refere
 
 mint::Reference mint_promise_wait_for(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& time) {
 	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
-		mint::unlock_processor();
+		const auto _ = mint::ProcessorUnlocker();
 		switch (promise->wait_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)))) {
 		case std::future_status::deferred:
 		case std::future_status::timeout:
-			mint::lock_processor();
 			return mint::create_boolean(false);
 		case std::future_status::ready:
-			mint::lock_processor();
 			return mint::create_boolean(true);
 		}
 	}
@@ -119,9 +117,8 @@ mint::Reference mint_promise_wait_for(mint::Cursor& cursor, const mint::Referenc
 
 mint::Reference mint_promise_wait(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
-		mint::unlock_processor();
+		const auto _ = mint::ProcessorUnlocker();
 		promise->wait();
-		mint::lock_processor();
 	}
 	return {};
 }

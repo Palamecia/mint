@@ -34,7 +34,8 @@
 
 namespace mint {
 
-[[noreturn]] MINT_EXPORT void on_error(std::string message);
+[[noreturn]] MINT_EXPORT void on_error(const std::string& message);
+MINT_EXPORT void print_error(const std::string& message);
 
 template<typename... Args>
 [[noreturn]] void error(std::format_string<Args...> fmt, Args&&... args) {
@@ -48,10 +49,6 @@ MINT_EXPORT void remove_error_callback(int id);
 MINT_EXPORT std::vector<std::pair<int, std::function<void(const std::string&)>>> take_error_callbacks();
 MINT_EXPORT void restore_error_callbacks(
     std::vector<std::pair<int, std::function<void(const std::string&)>>>&& callbacks);
-
-MINT_EXPORT std::function<void(void)> get_exit_callback();
-MINT_EXPORT void set_exit_callback(const std::function<void(void)>& callback);
-MINT_EXPORT void call_exit_callback();
 
 }
 

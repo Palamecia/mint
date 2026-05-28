@@ -2214,7 +2214,7 @@ std::size_t Hash::hash::operator()(const Hash::key_type& value) const {
 			return std::hash<std::string> {}(value.data<String>().str);
 
 		case Class::Metatype::regex:
-			return std::hash<std::string> {}(value.data<Regex>().initializer);
+			return std::hash<std::string> {}(value.data<Regex>().pattern);
 
 		case Class::Metatype::array:
 			return [this, &value] {
@@ -2276,7 +2276,7 @@ bool Hash::equal_to::operator()(const Hash::key_type& lhs, const Hash::key_type&
 			return lhs.data<String>().str == rhs.data<String>().str;
 
 		case Class::Metatype::regex:
-			return lhs.data<Regex>().initializer == rhs.data<Regex>().initializer;
+			return lhs.data<Regex>().pattern == rhs.data<Regex>().pattern;
 
 		case Class::Metatype::array:
 			if (lhs.data<Array>().values.size() != rhs.data<Array>().values.size()) {
@@ -2340,7 +2340,7 @@ bool Hash::compare_to::operator()(const Hash::key_type& lhs, const Hash::key_typ
 			return lhs.data<String>().str < rhs.data<String>().str;
 
 		case Class::Metatype::regex:
-			return lhs.data<Regex>().initializer < rhs.data<Regex>().initializer;
+			return lhs.data<Regex>().pattern < rhs.data<Regex>().pattern;
 
 		case Class::Metatype::array:
 			for (auto i = lhs.data<Array>().values.begin(), j = rhs.data<Array>().values.begin();

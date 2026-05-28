@@ -9,10 +9,23 @@
 #include "mint/memory/reference.h"
 #include "mint/scheduler/processor.h"
 #include "mint/scheduler/scheduler.h"
+#include "mint/system/mint_runtime_error.h"
 
 #define WAIT_FOR_RESULT(__cursor) \
-	while (cursor.call_in_progress()) { \
+	while ((__cursor).call_in_progress()) { \
 		ASSERT_EQ(mint::ProcessStatus::paused, mint::run_step(__cursor)); \
+	}
+
+#define EXPECT_THROW_WHAT(statement, expected_exception, msg) \
+	try { \
+		statement; \
+		FAIL() << "Expected exception: " #expected_exception "\n  Actual: no exception thrown"; \
+	} \
+	catch (const expected_exception& e) { \
+		EXPECT_STREQ(msg, e.what()); \
+	} \
+	catch (...) { \
+		FAIL() << "Expected exception: " #expected_exception "\n  Actual: different exception type thrown"; \
 	}
 
 TEST(operator_tools, call_overload) {
@@ -37,6 +50,7 @@ TEST(operator_tools, call_overload) {
 
 	cursor.stack().emplace_back(mint::create_alias(mint::create_class(scheduler.ast(), "Foo", {{"+", {}}})));
 	cursor.stack().emplace_back(mint::create_string(scheduler.ast(), "bar"));
-	ASSERT_DEATH(mint::call_overload(cursor, "+", 1), "invalid use of class 'Foo' with operator '\\+'\\(1\\)");
+	EXPECT_THROW_WHAT(mint::call_overload(cursor, "+", 1), mint::MintRuntimeError,
+	    "invalid use of class 'Foo' with operator '+'(1)");
 	cursor.stack().clear();
 }

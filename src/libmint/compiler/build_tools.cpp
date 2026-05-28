@@ -56,9 +56,9 @@
 
 using namespace mint;
 
-BuildContext::BuildContext(DataStream& stream, Compiler& compiler, const Module::Info& data) :
-    _compiler(compiler),
+BuildContext::BuildContext(DataStream& stream, Compiler& compiler, ModuleInfo& data) :
     _data(data),
+    _compiler(compiler),
     _lexer(stream),
     _module_context(std::make_unique<Context>()),
     _main_branch(std::make_unique<MainBranch>(compiler.ast(), data)),
@@ -102,23 +102,23 @@ std::size_t BuildContext::create_fast_scoped_symbol_index(const std::string& sym
 	Context& context = current_context();
 
 	if (context.condition_scoped_symbols) {
-		module_symbol = _data.bytecode->make_symbol(symbol);
+		module_symbol = _data.get().bytecode.make_symbol(symbol);
 		context.condition_scoped_symbols->emplace_back(module_symbol);
 	}
 	else if (context.range_loop_scoped_symbols) {
-		module_symbol = _data.bytecode->make_symbol(symbol);
+		module_symbol = _data.get().bytecode.make_symbol(symbol);
 		context.range_loop_scoped_symbols->emplace_back(module_symbol);
 	}
 	else if (!context.blocks.empty()) {
 		auto& block = context.blocks.back();
-		module_symbol = _data.bytecode->make_symbol(symbol);
+		module_symbol = _data.get().bytecode.make_symbol(symbol);
 		block->block_scoped_symbols.push_back(module_symbol);
 	}
 
 	if (Definition* def = current_definition()) {
 		if (def->with_fast) {
 			if (module_symbol == nullptr) {
-				module_symbol = _data.bytecode->make_symbol(symbol);
+				module_symbol = _data.get().bytecode.make_symbol(symbol);
 			}
 			return mint::create_fast_symbol_index(*def, *module_symbol);
 		}
@@ -132,7 +132,7 @@ std::size_t BuildContext::create_fast_symbol_index(const std::string& symbol) {
 	const Symbol* module_symbol = nullptr;
 	if (Definition* def = current_definition()) {
 		if (def->with_fast) {
-			module_symbol = _data.bytecode->make_symbol(symbol);
+			module_symbol = _data.get().bytecode.make_symbol(symbol);
 			return mint::create_fast_symbol_index(*def, *module_symbol);
 		}
 	}
@@ -144,7 +144,7 @@ std::size_t BuildContext::fast_symbol_index(const std::string& symbol) {
 
 	if (Definition* def = current_definition()) {
 		if (def->with_fast) {
-			const Symbol* module_symbol = _data.bytecode->make_symbol(symbol);
+			const Symbol* module_symbol = _data.get().bytecode.make_symbol(symbol);
 			return mint::fast_symbol_index(*def, *module_symbol);
 		}
 	}
@@ -393,7 +393,7 @@ void BuildContext::set_exception_symbol(const std::string& symbol) {
 	auto& block = context.blocks.back();
 
 	if (CatchContext* catch_context = block->catch_context.get()) {
-		catch_context->symbol = _data.bytecode->make_symbol(symbol);
+		catch_context->symbol = _data.get().bytecode.make_symbol(symbol);
 	}
 }
 
@@ -499,14 +499,14 @@ void BuildContext::resolve_jump_backward() {
 void BuildContext::start_definition() {
 	_definitions.push(std::make_unique<Definition>(Definition {
 	    .begin_offset = _branch.get().next_node_offset(),
-	    .function = _data.bytecode->make_constant<Function>(),
+	    .function = _data.get().bytecode.make_constant<Function>(),
 	}));
 }
 
 void BuildContext::start_async_definition() {
 	_definitions.push(std::make_unique<Definition>(Definition {
 	    .begin_offset = _branch.get().next_node_offset(),
-	    .function = _data.bytecode->make_constant<Function>(),
+	    .function = _data.get().bytecode.make_constant<Function>(),
 	    .async = true,
 	}));
 }
@@ -521,7 +521,7 @@ bool BuildContext::add_parameter(const std::string& symbol, Reference::Flags fla
 		return false;
 	}
 
-	const auto* s = _data.bytecode->make_symbol(symbol);
+	const auto* s = _data.get().bytecode.make_symbol(symbol);
 	const auto index = static_cast<int>(def->fast_symbol_count++);
 	def->fast_symbol_indexes.emplace(*s, index);
 	def->parameters.push({
@@ -541,7 +541,7 @@ bool BuildContext::set_variadic() {
 		return false;
 	}
 
-	const auto* s = _data.bytecode->make_symbol("va_args");
+	const auto* s = _data.get().bytecode.make_symbol("va_args");
 	const auto index = static_cast<int>(def->fast_symbol_count++);
 	def->fast_symbol_indexes.emplace(*s, index);
 	def->parameters.push({
@@ -586,7 +586,7 @@ bool BuildContext::save_parameters() {
 
 	const auto count = static_cast<int>(def->parameters.size());
 	const int signature = def->variadic ? ~(count - 1) : count;
-	Module::Handle& handle = _data.bytecode->make_handle(current_package(), def->begin_offset);
+	Module::Handle& handle = _data.get().bytecode.make_handle(current_package(), def->begin_offset);
 
 	if (def->capture) {
 		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateful>(handle));
@@ -617,7 +617,7 @@ bool BuildContext::add_definition_signature() {
 	}
 
 	const auto signature = static_cast<int>(def->parameters.size());
-	Module::Handle& handle = _data.bytecode->make_handle(current_package(), def->begin_offset);
+	Module::Handle& handle = _data.get().bytecode.make_handle(current_package(), def->begin_offset);
 
 	if (def->capture) {
 		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateful>(handle));
@@ -642,7 +642,7 @@ void BuildContext::save_definition() {
 	}
 
 	if (def->global_data) {
-		_data.bytecode->add_internal_register(std::move(def->global_data));
+		_data.get().bytecode.add_internal_register(std::move(def->global_data));
 	}
 
 	push_node(Node::Command::load_constant);
@@ -671,7 +671,7 @@ Function& BuildContext::retrieve_definition() {
 	}
 
 	if (def->global_data) {
-		_data.bytecode->add_internal_register(std::move(def->global_data));
+		_data.get().bytecode.add_internal_register(std::move(def->global_data));
 	}
 
 	assert(def->blocks.empty());
@@ -700,7 +700,7 @@ void BuildContext::close_package() {
 
 void BuildContext::start_class_description(const std::string& name, Reference::Flags flags) {
 	_class_base.clear();
-	current_context().classes.emplace(_data.bytecode->make_class(_compiler.get().ast(), name), flags);
+	current_context().classes.emplace(_data.get().bytecode.make_class(_compiler.get().ast(), name), flags);
 }
 
 void BuildContext::append_symbol_to_base_class_path(const std::string& symbol) {
@@ -936,7 +936,7 @@ void BuildContext::push_node(std::size_t parameter) {
 }
 
 void BuildContext::push_node(const char* symbol) {
-	_branch.get().push_node(_data.bytecode->make_symbol(symbol));
+	_branch.get().push_node(_data.get().bytecode.make_symbol(symbol));
 }
 
 void BuildContext::push_node(const Symbol* symbol) {
@@ -944,7 +944,7 @@ void BuildContext::push_node(const Symbol* symbol) {
 }
 
 void BuildContext::push_node(Data& constant) {
-	_branch.get().push_node(_data.bytecode->make_constant(constant));
+	_branch.get().push_node(_data.get().bytecode.make_constant(constant));
 }
 
 void BuildContext::push_node(ClassDescription* desc) {

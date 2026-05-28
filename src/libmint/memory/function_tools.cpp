@@ -24,6 +24,7 @@
 #include "mint/memory/function_tools.h"
 #include "mint/ast/class_register.h"
 #include "mint/ast/cursor.h"
+#include "mint/ast/function_literal.h"
 #include "mint/ast/module.h"
 #include "mint/ast/symbol.h"
 #include "mint/compiler/compiler.h"
@@ -106,19 +107,23 @@ Reference mint::create_function(const std::pair<int, Function::Signature>& mappi
 	return make_reference<Function>(create_flags, mapping);
 }
 
-Reference mint::create_function(AbstractSyntaxTree& ast, Module::Info& module, int signature,
-    const std::string& function) {
+Reference mint::create_function(AbstractSyntaxTree& ast, const FunctionLiteral& function) {
+	return create_function(ast, ast.main(), function);
+}
 
-	const std::size_t offset = module.bytecode->end() + 3;
+Reference mint::create_function(AbstractSyntaxTree& ast, ModuleInfo& module, const FunctionLiteral& function) {
+
+	const std::size_t offset = module.bytecode.end() + 3;
 
 	auto compiler = Compiler(ast);
-	auto stream = BufferStream(function);
+	auto stream = BufferStream(std::string(function.script));
 	if (!compiler.build(stream, module)) {
 		return {};
 	}
 
-	return make_reference<Function>(create_flags, signature,
-	    std::make_unique<Function::Stateless>(*module.bytecode->find_handle(offset)));
+	auto* handle = module.bytecode.find_handle(offset);
+	assert(handle != nullptr);
+	return make_reference<Function>(create_flags, function.signature, std::make_unique<Function::Stateless>(*handle));
 }
 
 Reference mint::create_none() {
@@ -188,7 +193,7 @@ Reference mint::create_regex(AbstractSyntaxTree& ast) {
 
 Reference mint::create_regex(AbstractSyntaxTree& ast, const std::string& value) {
 	Reference ref = make_reference<Regex>(create_flags, ast);
-	ref.data<Regex>().initializer = "/" + value + "/";
+	ref.data<Regex>().pattern = "/" + value + "/";
 	ref.data<Regex>().expr = value;
 	ref.data<Regex>().construct();
 	return ref;
@@ -196,7 +201,7 @@ Reference mint::create_regex(AbstractSyntaxTree& ast, const std::string& value) 
 
 Reference mint::create_regex(AbstractSyntaxTree& ast, const std::string& initializer, const std::regex& value) {
 	Reference ref = make_reference<Regex>(create_flags, ast);
-	ref.data<Regex>().initializer = "/" + initializer + "/";
+	ref.data<Regex>().pattern = "/" + initializer + "/";
 	ref.data<Regex>().expr = value;
 	ref.data<Regex>().construct();
 	return ref;

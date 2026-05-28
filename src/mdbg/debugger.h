@@ -73,6 +73,7 @@ protected:
 	bool on_breakpoint(mint::CursorDebugger& cursor,
 	    const std::unordered_set<mint::Breakpoint::Id>& breakpoints) override;
 	bool on_exception(mint::CursorDebugger& cursor) override;
+	bool on_error(mint::CursorDebugger& cursor) override;
 	bool on_step(mint::CursorDebugger& cursor) override;
 
 private:

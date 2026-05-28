@@ -106,8 +106,8 @@ LineInfo CursorDebugger::line_info(std::size_t stack_frame_index) const {
 	if (stack_frame) {
 		std::size_t line_number = 0;
 		const auto module_id = ast.get_module_id(stack_frame->module);
-		if (DebugInfo* infos = ast.find_debug_info(module_id)) {
-			line_number = infos->line_number(stack_frame->iptr);
+		if (const auto* debug_info = ast.find_debug_info(module_id)) {
+			line_number = debug_info->line_number(stack_frame->iptr);
 		}
 		return {module_id, ast.get_module_name(stack_frame->module), line_number};
 	}
@@ -123,8 +123,8 @@ Module::Id CursorDebugger::module_id() const {
 }
 
 std::size_t CursorDebugger::line_number() const {
-	if (DebugInfo* info = _cursor.get().ast().find_debug_info(module_id())) {
-		return info->line_number(_cursor.get()._current_stack_frame->iptr);
+	if (const auto* debug_info = _cursor.get().ast().find_debug_info(module_id())) {
+		return debug_info->line_number(_cursor.get()._current_stack_frame->iptr);
 	}
 	return 0;
 }

@@ -132,7 +132,8 @@ void InteractiveDebugger::on_breakpoint_deleted(Debugger& /*debugger*/, const mi
 	    breakpoint.info.line_number());
 }
 
-void InteractiveDebugger::on_module_loaded(Debugger& /*debugger*/, mint::CursorDebugger& cursor, mint::Module& module) {
+void InteractiveDebugger::on_module_loaded(Debugger& /*debugger*/, mint::CursorDebugger& cursor,
+    const mint::Module& module) {
 	const auto& ast = cursor.cursor().ast();
 	const auto module_id = ast.get_module_id(module);
 	if (module_id != mint::Module::invalid_id) {
@@ -276,15 +277,15 @@ void InteractiveDebugger::init_breakpoint(CommandRunner::Command& command) {
 	    "Creates a new break point on the given *module* at the given *line* number.",
 	    [](Debugger& debugger, mint::CursorDebugger& /*cursor*/,
 	        const std::span<CommandRunner::Parameter::value_t>& parameters) {
-		    const auto module = get_parameter<std::string>(parameters[0]);
-		    const auto line = get_parameter<std::size_t>(parameters[1]);
-		    const auto info = debugger.ast().module_info(module);
-		    if (mint::DebugInfo* debug_info = info.debug_info;
-		        debug_info && info.state != mint::Module::State::not_compiled) {
-			    debugger.create_breakpoint(mint::LineInfo(info.id, module, debug_info->to_executable_line_number(line)));
+		    const auto module_name = get_parameter<std::string>(parameters[0]);
+		    const auto line_number = get_parameter<std::size_t>(parameters[1]);
+		    const auto& module = debugger.ast().module_info(module_name);
+		    if (module.state != mint::Module::State::not_compiled) {
+			    debugger.create_breakpoint(
+			        mint::LineInfo(module.id, module_name, module.debug_info.to_executable_line_number(line_number)));
 		    }
 		    else {
-			    debugger.add_pending_breakpoint_from_module(module, line);
+			    debugger.add_pending_breakpoint_from_module(module_name, line_number);
 		    }
 	    });
 	command.add({{{"del", "delete"}}, {Parameter::module, "module"}, {Parameter::line_number, "line"}},

@@ -119,7 +119,7 @@ mint::Reference mint_mutex_get_type(mint::FunctionHelper& helper, const mint::Re
 
 mint::Reference mint_mutex_lock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
 
-	mint::unlock_processor();
+	const auto _ = mint::ProcessorUnlocker();
 
 	switch (self.data<mint::LibObject<AbstractMutex>>().ptr->type()) {
 	case AbstractMutex::normal:
@@ -130,7 +130,6 @@ mint::Reference mint_mutex_lock(mint::Cursor& /*cursor*/, const mint::Reference&
 		break;
 	}
 
-	mint::lock_processor();
 	return {};
 }
 

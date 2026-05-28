@@ -93,7 +93,7 @@ void DebugPrinter::print(const mint::Reference& reference) {
 		        mint::Terminal::println(stdout, std::format("\"{}\"", string.str));
 	        },
 	        [](mint::Regex& regex) {
-		        mint::Terminal::println(stdout, regex.initializer);
+		        mint::Terminal::println(stdout, regex.pattern);
 	        },
 	        [](mint::Array& array) {
 		        mint::Terminal::println(stdout, array_value(array));
@@ -140,7 +140,7 @@ std::string reference_value(const mint::Reference& reference) {
 	        },
 
 	        [](mint::Regex& regex) -> std::string {
-		        return regex.initializer;
+		        return regex.pattern;
 	        },
 
 	        [](mint::Array& array) -> std::string {
@@ -217,11 +217,11 @@ std::string function_value(mint::Function& function) {
 	assert_x(scheduler, __func__, "execution should be done using a scheduler");
 	return std::format("function: {}", std::views::transform(function.mapping,
 	                                       [&ast = scheduler->ast()](auto& item) {
-		                                       mint::Module& module = item.second.handle().module;
-		                                       mint::DebugInfo* infos = ast.find_debug_info(module);
+		                                       const auto& module = item.second.handle().module;
+		                                       const auto* debug_info = ast.find_debug_info(module);
 		                                       return std::format("{}@{}(line {})", std::to_string(item.first),
 		                                           ast.get_module_name(module),
-		                                           infos->line_number(item.second.handle().offset));
+		                                           debug_info->line_number(item.second.handle().offset));
 	                                       })
 	                                       | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 }

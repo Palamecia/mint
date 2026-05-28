@@ -10,13 +10,17 @@ PRIVATE
 	builtin/iterator.cpp
 	builtin/libobject.cpp
 	builtin/library.cpp
+	builtin/regex.cpp
 	builtin/string.cpp
+	algorithm.cpp
 	cast_tools.cpp
+	class_tools.cpp
 	class.cpp
 	function_tools.cpp
 	garbage_collector.cpp
 	global_data.cpp
 	memory_tools.cpp
+	object_printer.cpp
 	object.cpp
 	operator_tools.cpp
 	reference.cpp

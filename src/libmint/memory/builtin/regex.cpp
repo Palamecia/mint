@@ -70,22 +70,22 @@ Regex::Regex(AbstractSyntaxTree& ast) :
 
 Regex::Regex(Regex&& other) noexcept :
     Object(other.metadata),
-    initializer(std::move(other.initializer)),
+    pattern(std::move(other.pattern)),
     expr(std::move(other.expr)) {}
 
 Regex::Regex(const Regex& other) :
     Object(other.metadata),
-    initializer(other.initializer),
+    pattern(other.pattern),
     expr(other.expr) {}
 
 Regex& Regex::operator=(Regex&& other) noexcept {
-	initializer = std::move(other.initializer);
+	pattern = std::move(other.pattern);
 	expr = std::move(other.expr);
 	return *this;
 }
 
 Regex& Regex::operator=(const Regex& other) {
-	initializer = other.initializer;
+	pattern = other.pattern;
 	expr = other.expr;
 	return *this;
 }
@@ -101,10 +101,10 @@ RegexClass::RegexClass(AbstractSyntaxTree& ast) :
 
 		if ((other.data().format() == Data::Format::object)
 		    && (other.data<Object>().metadata.metatype() == Class::Metatype::regex)) {
-			self.data<Regex>().initializer = other.data<Regex>().initializer;
+			self.data<Regex>().pattern = other.data<Regex>().pattern;
 		}
 		else {
-			self.data<Regex>().initializer = "/" + to_string(other) + "/";
+			self.data<Regex>().pattern = "/" + to_string(other) + "/";
 		}
 		self.data<Regex>().expr = to_regex(other);
 
@@ -180,6 +180,6 @@ RegexClass::RegexClass(AbstractSyntaxTree& ast) :
 	create_builtin_member("getFlags", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
 		cursor.stack().back() = create_string(cursor.ast(),
-		    self.data<Regex>().initializer.substr(self.data<Regex>().initializer.rfind('/') + 1));
+		    self.data<Regex>().pattern.substr(self.data<Regex>().pattern.rfind('/') + 1));
 	}));
 }

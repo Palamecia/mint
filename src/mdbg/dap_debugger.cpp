@@ -276,7 +276,7 @@ void DapDebugger::on_breakpoint_deleted(Debugger& /*debugger*/, const mint::Brea
 	                         });
 }
 
-void DapDebugger::on_module_loaded(Debugger& /*debugger*/, mint::CursorDebugger& cursor, mint::Module& module) {
+void DapDebugger::on_module_loaded(Debugger& /*debugger*/, mint::CursorDebugger& cursor, const mint::Module& module) {
 	const auto& ast = cursor.cursor().ast();
 	const auto module_id = ast.get_module_id(module);
 	if (module_id != mint::Module::invalid_id) {
@@ -476,23 +476,22 @@ std::size_t DapDebugger::to_client_id(mint::Process::ThreadId id) {
 
 void DapDebugger::on_set_breakpoints(const DapRequestMessage& request, const JsonObject& arguments, Debugger& debugger) {
 	const auto file_path = static_cast<std::string>(*arguments.get_object("source")->get_string("path"));
-	const auto module = mint::to_module_path(file_path);
+	const auto module_name = mint::to_module_path(file_path);
 	for (const mint::Breakpoint& breakpoint : debugger.get_breakpoints()) {
-		if (module == breakpoint.info.module_name()) {
+		if (module_name == breakpoint.info.module_name()) {
 			debugger.remove_breakpoint(breakpoint.id);
 		}
 	}
-	const auto info = debugger.ast().module_info(module);
+	const auto& module = debugger.ast().module_info(module_name);
 	if (const JsonArray* breakpoints = arguments.get_array("breakpoints")) {
 		for (const Json& breakpoint : *breakpoints) {
-			if (mint::DebugInfo* debug_info = info.debug_info;
-			    debug_info && info.state != mint::Module::State::not_compiled) {
-				const std::size_t line_number = debug_info->to_executable_line_number(
+			if (module.state != mint::Module::State::not_compiled) {
+				const auto line_number = module.debug_info.to_executable_line_number(
 				    to_line_number(*breakpoint.if_object()->get_number("line")));
-				debugger.create_breakpoint({info.id, module, line_number});
+				debugger.create_breakpoint({module.id, module_name, line_number});
 			}
 			else {
-				const std::size_t line_number = to_line_number(*breakpoint.if_object()->get_number("line"));
+				const auto line_number = to_line_number(*breakpoint.if_object()->get_number("line"));
 				std::println(Logger::default_logger(), "New pending breakpoint {}:{}", file_path, line_number);
 				debugger.add_pending_breakpoint_from_file(file_path, line_number);
 			}
@@ -500,13 +499,12 @@ void DapDebugger::on_set_breakpoints(const DapRequestMessage& request, const Jso
 	}
 	else if (const JsonArray* lines = arguments.get_array("lines")) {
 		for (const Json& line : *lines) {
-			if (mint::DebugInfo* debug_info = info.debug_info;
-			    debug_info && info.state != mint::Module::State::not_compiled) {
-				const std::size_t line_number = debug_info->to_executable_line_number(to_line_number(*line.if_number()));
-				debugger.create_breakpoint({info.id, module, line_number});
+			if (module.state != mint::Module::State::not_compiled) {
+				const auto line_number = module.debug_info.to_executable_line_number(to_line_number(*line.if_number()));
+				debugger.create_breakpoint({module.id, module_name, line_number});
 			}
 			else {
-				const std::size_t line_number = to_line_number(*line.if_number());
+				const auto line_number = to_line_number(*line.if_number());
 				std::println(Logger::default_logger(), "New pending breakpoint {}:{}", file_path, line_number);
 				debugger.add_pending_breakpoint_from_file(file_path, line_number);
 			}
@@ -515,7 +513,7 @@ void DapDebugger::on_set_breakpoints(const DapRequestMessage& request, const Jso
 	auto actual_breakpoints = JsonArray();
 	for (const mint::BreakpointList breakpoints = debugger.get_breakpoints();
 	    const mint::Breakpoint& breakpoint : breakpoints) {
-		if (module == breakpoint.info.module_name()) {
+		if (module_name == breakpoint.info.module_name()) {
 			actual_breakpoints.push_back(JsonObject {
 			    {"verified", JsonBoolean(true)},
 			    {"id", JsonNumber(to_client_id(breakpoint.id))},
@@ -606,13 +604,12 @@ void DapDebugger::on_breakpoint_locations(const DapRequestMessage& request, cons
 	const auto from_line = to_line_number(*arguments.get_number("line"));
 	const auto to_line = attribute_or_default(arguments.get_number("endLine"), from_line);
 	const std::string module = mint::to_module_path(*arguments.get_object("source")->get_string("path"));
-	if (mint::DebugInfo* info = debugger.ast().module_info(module).debug_info) {
-		for (std::size_t line = info->to_executable_line_number(from_line); line >= from_line && line <= to_line;
-		    line = info->to_executable_line_number(line + 1)) {
-			breakpoints.push_back(JsonObject {
-			    {"line", JsonNumber(to_client_line_number(line))},
-			});
-		}
+	const auto& debug_info = debugger.ast().module_info(module).debug_info;
+	for (std::size_t line = debug_info.to_executable_line_number(from_line); line >= from_line && line <= to_line;
+	    line = debug_info.to_executable_line_number(line + 1)) {
+		breakpoints.push_back(JsonObject {
+		    {"line", JsonNumber(to_client_line_number(line))},
+		});
 	}
 	send_response(request, JsonObject {
 	                           {"breakpoints", breakpoints},

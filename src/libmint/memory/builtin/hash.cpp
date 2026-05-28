@@ -96,7 +96,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(eq_operator, ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member(eq_operator, ast.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			if typeof self == typeof other {
 				if self.size() == other.size() {
@@ -114,7 +114,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 			return false
 		})"""));
 
-	create_builtin_member(ne_operator, ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member(ne_operator, ast.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			if typeof self == typeof other {
 				if self.size() == other.size() {
@@ -225,7 +225,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member("each", ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member("each", ast.create_builtin_method(*this, R"""(
 		def (const self, const func) {
 			var unpack_func = func[2]
 			if defined unpack_func {
@@ -239,7 +239,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 			}
 		})"""));
 
-	create_builtin_member(call_operator, ast.create_builtin_method(*this, variadic(2), R"""(
+	create_builtin_member(call_operator, ast.create_builtin_method(*this, R"""(
 		def (const self, const key, ...) {
 			return self[key](self, *va_args)
 		})"""));

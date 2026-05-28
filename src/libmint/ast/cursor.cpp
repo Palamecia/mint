@@ -72,8 +72,8 @@ void dump_module(LineInfoList& dumped_infos, AbstractSyntaxTree& ast, const Modu
 		const Module::Id module_id = ast.get_module_id(module);
 		const std::string module_name = ast.get_module_name(module);
 
-		if (DebugInfo* infos = ast.find_debug_info(module_id)) {
-			dumped_infos.emplace_back(module_id, module_name, infos->line_number(offset));
+		if (const auto* debug_info = ast.find_debug_info(module_id)) {
+			dumped_infos.emplace_back(module_id, module_name, debug_info->line_number(offset));
 		}
 		else {
 			dumped_infos.emplace_back(module_id, module_name);
@@ -400,20 +400,12 @@ Printer* Cursor::printer() {
 	return _current_stack_frame->printers.back().get();
 }
 
-bool Cursor::load_module(const std::string& module) {
-
-	const auto info = _ast.get().load_module(module);
-
-	if (info.id == Module::invalid_id) [[unlikely]] {
-		return false;
+void Cursor::load_module(const std::string& module_name) {
+	auto& module = _ast.get().load_module(module_name);
+	if (module.state == Module::State::not_loaded) {
+		call(module.bytecode, 0, _ast.get().global_data());
+		_ast.get().set_module_state(module.id, Module::State::ready);
 	}
-
-	if (info.state == Module::State::not_loaded) {
-		call(*info.bytecode, 0, _ast.get().global_data());
-		_ast.get().set_module_state(info.id, Module::State::ready);
-	}
-
-	return true;
 }
 
 bool Cursor::exit_module() {

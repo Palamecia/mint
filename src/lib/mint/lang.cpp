@@ -276,7 +276,7 @@ mint::Reference mint_lang_exec(mint::FunctionHelper& helper, const mint::Referen
 			process->cursor().symbols().emplace(mint::Symbol(to_string(symbol.first)), symbol.second);
 		}
 
-		mint::unlock_processor();
+		const auto _ = mint::ProcessorUnlocker();
 		process->setup();
 
 		do {
@@ -291,7 +291,6 @@ mint::Reference mint_lang_exec(mint::FunctionHelper& helper, const mint::Referen
 		while (process->cursor().call_in_progress());
 
 		process->cleanup();
-		mint::lock_processor();
 	}
 
 	return {};
@@ -309,7 +308,7 @@ mint::Reference mint_lang_eval(mint::FunctionHelper& helper, const mint::Referen
 		auto printer = std::make_unique<EvalResultPrinter>(process->cursor());
 		auto& printer_ref = *printer;
 		process->cursor().open_printer(std::move(printer));
-		mint::unlock_processor();
+		const auto _ = mint::ProcessorUnlocker();
 		process->setup();
 
 		do {
@@ -325,7 +324,6 @@ mint::Reference mint_lang_eval(mint::FunctionHelper& helper, const mint::Referen
 
 		auto result = printer_ref.result();
 		process->cleanup();
-		mint::lock_processor();
 		return result;
 	}
 
@@ -343,7 +341,8 @@ MINT_EXPORT_FUNCTION(mint_lang_to_file_path, 1)
 MINT_RAW_FUNCTION(mint_lang_load_module, 1, cursor) {
 	auto& stack = cursor.stack();
 	const auto& module_path = stack.back();
-	stack.back() = mint::create_boolean(cursor.load_module(to_string(module_path)));
+	cursor.load_module(to_string(module_path));
+	stack.back() = mint::create_none();
 }
 
 MINT_RAW_FUNCTION(mint_lang_backtrace, 1, cursor) {

@@ -19,7 +19,7 @@ TEST(destructor, is_destructor) {
 
 	mint::Scheduler scheduler({});
 	mint::AbstractSyntaxTree& ast = scheduler.ast();
-	auto module = ast.create_module(mint::Module::State::ready);
+	auto& module = ast.create_module(mint::Module::State::ready);
 
 	auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
@@ -27,9 +27,9 @@ TEST(destructor, is_destructor) {
 
 	mint::Class& test_class = mint::create_class(ast, "__test_class__",
 	    {
-	        {mint::builtin_symbols::delete_method, mint::create_function(ast, module, 1, R"(
-																			def (self) {}
-																		)")},
+	        {mint::builtin_symbols::delete_method, mint::create_function(ast, module, R"(
+					def (self) {}
+				)")},
 	    });
 
 	const auto object = scheduler.invoke(test_class);
@@ -41,6 +41,6 @@ TEST(destructor, is_destructor) {
 	const auto& member_ref = mint::Class::MemberInfo::get(*member, object.data<mint::Object>().data);
 	ASSERT_EQ(mint::Data::Format::function, member_ref.data().format());
 
-	auto destructor = mint::Destructor(&object.data<mint::Object>(), member_ref, member->owner, *thread);
+	auto destructor = mint::Destructor(scheduler, &object.data<mint::Object>(), member_ref, member->owner, *thread);
 	EXPECT_TRUE(is_destructor(destructor));
 }

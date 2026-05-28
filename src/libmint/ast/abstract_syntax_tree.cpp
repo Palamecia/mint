@@ -23,32 +23,27 @@
 
 #include "mint/ast/abstract_syntax_tree.h"
 #include "mint/ast/cursor.h"
+#include "mint/ast/function_literal.h"
 #include "mint/ast/module.h"
 #include "mint/ast/node.h"
-#include "mint/debug/debug_info.h"
-#include "mint/memory/class.h"
-#include "mint/debug/debug_tools.h"
 #include "mint/compiler/compiler.h"
+#include "mint/debug/debug_info.h"
+#include "mint/debug/debug_tools.h"
+#include "mint/memory/class.h"
 #include "mint/memory/object.h"
+#include "mint/system/buffer_stream.h"
+#include "mint/system/error.h"
 #include "mint/system/file_stream.h"
 #include "mint/system/filesystem.h"
-#include "mint/system/buffer_stream.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <filesystem>
-#include <ranges>
+#include <functional>
 #include <string>
 #include <utility>
 
 using namespace mint;
-
-AbstractSyntaxTree::BuiltinModuleInfo::BuiltinModuleInfo(const Module::Info& infos) {
-	id = infos.id;
-	bytecode = infos.bytecode;
-	debug_info = infos.debug_info;
-	state = infos.state;
-}
 
 AbstractSyntaxTree::AbstractSyntaxTree() {
 	_builtin_modules.reserve(Class::builtin_class_count);
@@ -67,7 +62,7 @@ void AbstractSyntaxTree::cleanup_memory() {
 
 	// cleanup modules
 	for (auto& module : _modules) {
-		module.bytecode->cleanup_memory();
+		module.bytecode.cleanup_memory();
 	}
 }
 
@@ -78,7 +73,7 @@ void AbstractSyntaxTree::cleanup_metadata() {
 
 	// cleanup modules
 	for (auto& module : _modules) {
-		module.bytecode->cleanup_metadata();
+		module.bytecode.cleanup_metadata();
 	}
 
 	// cleanup builtin data
@@ -89,10 +84,6 @@ void AbstractSyntaxTree::cleanup_metadata() {
 void AbstractSyntaxTree::cleanup_modules() {
 
 	// cleanup modules
-	for (auto& module : _modules) {
-		delete module.bytecode;
-		delete module.debug_info;
-	}
 	_modules.clear();
 
 	// cleanup module cache
@@ -103,78 +94,78 @@ std::pair<int, Module::Handle&> AbstractSyntaxTree::create_global_builtin_method
     GlobalBuiltinMethod method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
-	BuiltinModuleInfo& module = builtin_module(builtin_index);
+	auto& module = builtin_module(builtin_index);
 
-	const std::size_t offset = module.bytecode->next_node_offset() + 2;
+	const std::size_t offset = module.bytecode.next_node_offset() + 2;
 	const std::size_t index = _global_builtin_methods.size();
 	_global_builtin_methods.emplace_back(method);
 
 	// clang-format off
-	module.bytecode->push_nodes({
+	module.bytecode.push_nodes({
 		Node::Command::jump, static_cast<int>(offset) + 5,
-		Node::Command::load_constant, module.bytecode->make_constant<Object>(type),
+		Node::Command::load_constant, module.bytecode.make_constant<Object>(type),
 		Node::Command::call_global_builtin, static_cast<int>(index),
 		Node::Command::exit_call, Node::Command::exit_module
 	});
 	// clang-format on
 
-	return {signature, module.bytecode->make_builtin_handle(type.get_package(), offset)};
+	return {signature, module.bytecode.make_builtin_handle(type.get_package(), offset)};
 }
 
-std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const Class& type, int signature,
-    const std::string& method) {
+std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const Class& type,
+    const FunctionLiteral& method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
-	const BuiltinModuleInfo& module = builtin_module(builtin_index);
-	const std::size_t offset = module.bytecode->end() + 3;
+	auto& module = builtin_module(builtin_index);
+	const auto offset = module.bytecode.end() + 3;
 
 	auto compiler = Compiler(*this);
-	auto stream = BufferStream(method);
+	auto stream = BufferStream(std::string(method.script));
 	compiler.build(stream, module);
 
-	return {signature, module.bytecode->get_handle(type.get_package(), offset)};
+	return {method.signature, module.bytecode.get_handle(type.get_package(), offset)};
 }
 
 std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const Class& type, int signature,
     BuiltinMethod method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
-	BuiltinModuleInfo& module = builtin_module(builtin_index);
+	auto& module = builtin_module(builtin_index);
 
-	const std::size_t offset = module.bytecode->next_node_offset() + 2;
+	const std::size_t offset = module.bytecode.next_node_offset() + 2;
 	const std::size_t index = _builtin_methods.size();
 	_builtin_methods.emplace_back(method);
 
 	// clang-format off
-	module.bytecode->push_nodes({
+	module.bytecode.push_nodes({
 		Node::Command::jump, static_cast<int>(offset) + 3,
 		Node::Command::call_builtin, static_cast<int>(index),
 		Node::Command::exit_call, Node::Command::exit_module
 	});
 	// clang-format on
 
-	return {signature, module.bytecode->make_builtin_handle(type.get_package(), offset)};
+	return {signature, module.bytecode.make_builtin_handle(type.get_package(), offset)};
 }
 
 std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_async_method(const Class& type, int signature,
     BuiltinMethod method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
-	BuiltinModuleInfo& module = builtin_module(builtin_index);
+	auto& module = builtin_module(builtin_index);
 
-	const std::size_t offset = module.bytecode->next_node_offset() + 2;
+	const std::size_t offset = module.bytecode.next_node_offset() + 2;
 	const std::size_t index = _builtin_methods.size();
 	_builtin_methods.emplace_back(method);
 
 	// clang-format off
-	module.bytecode->push_nodes({
+	module.bytecode.push_nodes({
 		Node::Command::jump, static_cast<int>(offset) + 3,
 		Node::Command::call_builtin, static_cast<int>(index),
 		Node::Command::resume_coroutine, Node::Command::exit_module
 	});
 	// clang-format on
 
-	return {signature, module.bytecode->make_builtin_async_handle(type.get_package(), offset)};
+	return {signature, module.bytecode.make_builtin_async_handle(type.get_package(), offset)};
 }
 
 void AbstractSyntaxTree::call_global_builtin_method(std::size_t method, Cursor& cursor) {
@@ -183,16 +174,21 @@ void AbstractSyntaxTree::call_global_builtin_method(std::size_t method, Cursor& 
 	_global_builtin_methods[method](type.data<Object>().metadata, cursor);
 }
 
-Module::Info AbstractSyntaxTree::create_module(Module::State state) {
-	return _modules.emplace_back(Module::Info {
+ModuleInfo& AbstractSyntaxTree::main() {
+	if (_modules.empty()) {
+		return create_module(Module::State::not_compiled);
+	}
+	return _modules.front();
+}
+
+ModuleInfo& AbstractSyntaxTree::create_module(Module::State state) {
+	return _modules.emplace_back(ModuleInfo {
 	    .id = _modules.size(),
-	    .bytecode = new Module,
-	    .debug_info = new DebugInfo,
 	    .state = state,
 	});
 }
 
-Module::Info AbstractSyntaxTree::create_main_module(Module::State state) {
+ModuleInfo& AbstractSyntaxTree::create_main_module(Module::State state) {
 	if (_modules.empty()) {
 		return create_module(state);
 	}
@@ -200,83 +196,78 @@ Module::Info AbstractSyntaxTree::create_main_module(Module::State state) {
 	return _modules.front();
 }
 
-Module::Info AbstractSyntaxTree::create_module_from_file_path(const std::filesystem::path& file_path,
+ModuleInfo& AbstractSyntaxTree::create_module_from_file_path(const std::filesystem::path& file_path,
     Module::State state) {
 	auto it = _module_cache.find(file_path);
 	if (it == _module_cache.end()) {
 		if (_modules.empty()) [[unlikely]] {
 			create_main_module(Module::State::not_compiled);
 		}
-		Module::Info info = create_module(state);
-		_module_cache.emplace(file_path, info.id);
-		return info;
+		auto& module = create_module(state);
+		_module_cache.emplace(file_path, std::ref(module));
+		return module;
 	}
-	_modules[it->second].state = state;
-	return _modules[it->second];
+	it->second.get().state = state;
+	return it->second;
 }
 
-Module::Info AbstractSyntaxTree::module_info(const std::string& module) {
+ModuleInfo& AbstractSyntaxTree::load_module(const std::string& module_name) {
 
-	if (module == Module::main_name) {
+	const auto path = FileSystem::instance().get_module_path(module_name);
+	if (path.empty()) [[unlikely]] {
+		error("module '{}' not found", module_name);
+	}
+
+	auto it = _module_cache.find(path);
+	if (it == _module_cache.end()) {
+		it = _module_cache.emplace(path, create_module(Module::State::not_compiled)).first;
+	}
+
+	if (it->second.get().state == Module::State::not_compiled) {
+		auto compiler = Compiler(*this);
+		auto stream = FileStream(path);
+		compiler.build(stream, it->second.get());
+		it->second.get().state = Module::State::not_loaded;
+	}
+
+	return it->second;
+}
+
+const ModuleInfo& AbstractSyntaxTree::module_info(const std::string& module_name) {
+
+	static const auto invalid_module_info = ModuleInfo();
+
+	if (module_name == Module::main_name) {
 		return main();
 	}
 
-	const auto path = FileSystem::instance().get_module_path(module);
+	const auto path = FileSystem::instance().get_module_path(module_name);
 	if (path.empty()) [[unlikely]] {
-		return {};
+		return invalid_module_info;
 	}
 
 	if (auto it = _module_cache.find(path); it != _module_cache.end()) {
-		return _modules[it->second];
+		return it->second;
 	}
 
 	if (std::filesystem::exists(path)) {
 		if (_modules.empty()) [[unlikely]] {
 			create_main_module(Module::State::not_compiled);
 		}
-		Module::Info info = create_module(Module::State::not_compiled);
-		_module_cache.emplace(path, info.id);
-		return info;
+		auto& module = create_module(Module::State::not_compiled);
+		_module_cache.emplace(path, module);
+		return module;
 	}
 
-	return {};
-}
-
-Module::Info AbstractSyntaxTree::load_module(const std::string& module) {
-
-	const auto path = FileSystem::instance().get_module_path(module);
-	if (path.empty()) [[unlikely]] {
-		return {};
-	}
-
-	auto it = _module_cache.find(path);
-	if (it == _module_cache.end()) {
-		it = _module_cache.emplace(path, create_module(Module::State::not_compiled).id).first;
-	}
-
-	if (_modules[it->second].state == Module::State::not_compiled) {
-		auto compiler = Compiler(*this);
-		auto stream = FileStream(path);
-		compiler.build(stream, _modules[it->second]);
-		_modules[it->second].state = Module::State::not_loaded;
-	}
-
-	return _modules[it->second];
-}
-
-Module::Info AbstractSyntaxTree::main() {
-	if (_modules.empty()) {
-		return create_module(Module::State::not_compiled);
-	}
-	return _modules.front();
+	return invalid_module_info;
 }
 
 std::string AbstractSyntaxTree::get_module_name(const Module& module) const {
 	if (is_main(module)) {
 		return Module::main_name;
 	}
-	for (const auto& [file_path, id] : _module_cache) {
-		if (&module == _modules[id].bytecode) {
+	for (const auto& [file_path, cached_module] : _module_cache) {
+		if (&module == &cached_module.get().bytecode) {
 			return to_module_path(file_path);
 		}
 	}
@@ -284,8 +275,8 @@ std::string AbstractSyntaxTree::get_module_name(const Module& module) const {
 }
 
 Module::Id AbstractSyntaxTree::get_module_id(const Module& module) const {
-	auto it = std::ranges::find_if(_modules, [&module](const Module::Info& info) {
-		return &module == info.bytecode;
+	auto it = std::ranges::find_if(_modules, [&module](const ModuleInfo& info) {
+		return &module == &info.bytecode;
 	});
 	if (it != _modules.end()) {
 		return it->id;
@@ -294,10 +285,10 @@ Module::Id AbstractSyntaxTree::get_module_id(const Module& module) const {
 }
 
 bool AbstractSyntaxTree::is_main(const Module& module) const {
-	return !_modules.empty() && (&module == _modules.front().bytecode);
+	return !_modules.empty() && (&module == &_modules.front().bytecode);
 }
 
-AbstractSyntaxTree::BuiltinModuleInfo& AbstractSyntaxTree::builtin_module(std::size_t module_index) {
+ModuleInfo& AbstractSyntaxTree::builtin_module(std::size_t module_index) {
 	for (std::size_t i = _builtin_modules.size(); i <= module_index; ++i) {
 		_builtin_modules.emplace_back(create_module(Module::State::ready));
 	}

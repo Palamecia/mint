@@ -24,11 +24,12 @@
 #include "mint/debug/debug_info.h"
 #include "mint/ast/module.h"
 #include <cstddef>
+#include <iterator>
 #include <set>
 
 using namespace mint;
 
-std::size_t DebugInfo::line_number(std::size_t offset) {
+std::size_t DebugInfo::line_number(std::size_t offset) const {
 
 	if (_lines.empty()) {
 		return 1;
@@ -37,7 +38,7 @@ std::size_t DebugInfo::line_number(std::size_t offset) {
 	auto line = _lines.upper_bound(offset);
 
 	if (line != _lines.begin()) {
-		--line;
+		line = std::prev(line);
 	}
 
 	return line->second;
@@ -50,15 +51,15 @@ void DebugInfo::new_line(std::size_t offset, std::size_t line_number) {
 	}
 }
 
-void DebugInfo::new_line(const Module* module, std::size_t line_number) {
-	auto [it, inserted] = _lines.emplace(module->next_node_offset(), line_number);
+void DebugInfo::new_line(const Module& module, std::size_t line_number) {
+	auto [it, inserted] = _lines.emplace(module.next_node_offset(), line_number);
 	if (!inserted) {
 		it->second = line_number;
 	}
 }
 
-std::size_t DebugInfo::to_executable_line_number(std::size_t line_number) {
-	std::set<std::size_t> executable_line_numbers;
+std::size_t DebugInfo::to_executable_line_number(std::size_t line_number) const {
+	auto executable_line_numbers = std::set<std::size_t>();
 	for (auto [_, executable_line_number] : _lines) {
 		if (executable_line_number == line_number) {
 			return executable_line_number;

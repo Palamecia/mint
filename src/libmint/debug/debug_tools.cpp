@@ -985,7 +985,7 @@ std::string mint::to_debug_string(Cursor& cursor, const Reference& constant) {
 		case Class::Metatype::string:
 			return to_debug_string(constant.data<String>());
 		case Class::Metatype::regex:
-			return constant.data<Regex>().initializer;
+			return constant.data<Regex>().pattern;
 		case Class::Metatype::array:
 			return to_debug_string(cursor, constant.data<Array>());
 		case Class::Metatype::hash:

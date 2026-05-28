@@ -895,7 +895,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member("each", ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member("each", ast.create_builtin_method(*this, R"""(
 		def (const self, const func) {
 			for item in self {
 				func(item)

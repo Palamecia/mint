@@ -179,7 +179,7 @@ IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
 		cursor.stack().back() = create_boolean(cursor.stack().back().data<Iterator>().ctx.empty());
 	}));
 
-	create_builtin_member("each", ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member("each", ast.create_builtin_method(*this, R"""(
 		def (self, const func) {
 			for let item in self {
 				func(item)
@@ -245,7 +245,7 @@ AsyncIteratorClass::AsyncIteratorClass(AbstractSyntaxTree& ast) :
 		cursor.stack().back() = create_boolean(cursor.stack().back().data<Iterator>().ctx.empty());
 	}));
 
-	create_builtin_member("each", ast.create_builtin_method(*this, 2, R"""(
+	create_builtin_member("each", ast.create_builtin_method(*this, R"""(
 		async def (self, const func) {
 			for let item in await self {
 				func(item)

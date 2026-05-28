@@ -79,7 +79,6 @@ void Exception::cleanup() {
 		throw MintRuntimeError(to_string(_reference));
 	}
 
-	lock_processor();
 	error("exception : {}", to_string(_reference));
 }
 

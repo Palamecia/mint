@@ -23,7 +23,9 @@
 
 #include "mint/scheduler/scheduler.h"
 #include "mint/ast/cursor.h"
+#include "mint/ast/exception.h"
 #include "mint/ast/symbol.h"
+#include "mint/config.h"
 #include "mint/debug/process_debugger.h"
 #include "mint/memory/class.h"
 #include "mint/memory/function_tools.h"
@@ -32,7 +34,6 @@
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/destructor.h"
-#include "mint/scheduler/exception.h"
 #include "mint/scheduler/generator.h"
 #include "mint/scheduler/process.h"
 #include "mint/scheduler/processor.h"
@@ -47,6 +48,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <functional>
 #include <future>
 #include <iterator>
@@ -162,7 +164,7 @@ void Scheduler::push_waiting_process(std::unique_ptr<Process>&& process) {
 
 Reference Scheduler::invoke(const Reference& function, std::vector<Reference>& parameters) {
 
-	if (g_current.process.empty()) {
+	if (!_running || g_current.process.empty()) [[unlikely]] {
 		return {};
 	}
 
@@ -180,12 +182,10 @@ Reference Scheduler::invoke(const Reference& function, std::vector<Reference>& p
 		const auto _ = ProcessorUnlocker();
 		schedule(process);
 	}
-	catch (MintException& raised) {
-		{
-			const auto _ = ProcessorUnlocker();
-			finalize_process(process);
-		}
-		create_exception(raised.take_exception());
+	catch (MintException&) {
+		const auto _ = ProcessorUnlocker();
+		finalize_process(process);
+		throw;
 	}
 	catch (const MintRuntimeError&) {
 		abort_process(process);
@@ -199,7 +199,7 @@ Reference Scheduler::invoke(const Reference& function, std::vector<Reference>& p
 
 Reference Scheduler::invoke(Class& type, std::vector<Reference>& parameters) {
 
-	if (g_current.process.empty()) {
+	if (!_running || g_current.process.empty()) [[unlikely]] {
 		return {};
 	}
 
@@ -222,12 +222,10 @@ Reference Scheduler::invoke(Class& type, std::vector<Reference>& parameters) {
 			const auto _ = ProcessorUnlocker();
 			schedule(process);
 		}
-		catch (MintException& raised) {
-			{
-				const auto _ = ProcessorUnlocker();
-				finalize_process(process);
-			}
-			create_exception(raised.take_exception());
+		catch (MintException&) {
+			const auto _ = ProcessorUnlocker();
+			finalize_process(process);
+			throw;
 		}
 		catch (const MintRuntimeError&) {
 			abort_process(process);
@@ -244,7 +242,7 @@ Reference Scheduler::invoke(Class& type, std::vector<Reference>& parameters) {
 
 Reference Scheduler::invoke(const Reference& object, const Symbol& method, std::vector<Reference>& parameters) {
 
-	if (g_current.process.empty()) {
+	if (!_running || g_current.process.empty()) [[unlikely]] {
 		return {};
 	}
 
@@ -263,12 +261,10 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, std::
 		const auto _ = ProcessorUnlocker();
 		schedule(process);
 	}
-	catch (MintException& raised) {
-		{
-			const auto _ = ProcessorUnlocker();
-			finalize_process(process);
-		}
-		create_exception(raised.take_exception());
+	catch (MintException&) {
+		const auto _ = ProcessorUnlocker();
+		finalize_process(process);
+		throw;
 	}
 	catch (const MintRuntimeError&) {
 		abort_process(process);
@@ -282,7 +278,7 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, std::
 
 Reference Scheduler::invoke(const Reference& object, Class::Operator op, std::vector<Reference>& parameters) {
 
-	if (g_current.process.empty()) {
+	if (!_running || g_current.process.empty()) [[unlikely]] {
 		return {};
 	}
 
@@ -301,12 +297,10 @@ Reference Scheduler::invoke(const Reference& object, Class::Operator op, std::ve
 		const auto _ = ProcessorUnlocker();
 		schedule(process);
 	}
-	catch (MintException& raised) {
-		{
-			const auto _ = ProcessorUnlocker();
-			finalize_process(process);
-		}
-		create_exception(raised.take_exception());
+	catch (MintException&) {
+		const auto _ = ProcessorUnlocker();
+		finalize_process(process);
+		throw;
 	}
 	catch (const MintRuntimeError&) {
 		abort_process(process);
@@ -321,7 +315,7 @@ Reference Scheduler::invoke(const Reference& object, Class::Operator op, std::ve
 Reference Scheduler::invoke(const Reference& object, const Symbol& method, const Class::MemberInfo& info,
     std::vector<Reference>& parameters) {
 
-	if (g_current.process.empty()) {
+	if (!_running || g_current.process.empty()) [[unlikely]] {
 		return {};
 	}
 
@@ -340,12 +334,10 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, const
 		const auto _ = ProcessorUnlocker();
 		schedule(process);
 	}
-	catch (MintException& raised) {
-		{
-			const auto _ = ProcessorUnlocker();
-			finalize_process(process);
-		}
-		create_exception(raised.take_exception());
+	catch (MintException&) {
+		const auto _ = ProcessorUnlocker();
+		finalize_process(process);
+		throw;
 	}
 	catch (const MintRuntimeError&) {
 		abort_process(process);
@@ -356,6 +348,8 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, const
 	cursor.stack().pop_back();
 	return result;
 }
+
+namespace {
 
 class Future : public Process {
 public:
@@ -382,6 +376,8 @@ public:
 private:
 	ResultHandle* _handle = nullptr;
 };
+
+}
 
 std::future<Reference> Scheduler::create_async_thread(std::unique_ptr<Cursor>&& cursor) {
 	auto future = std::make_unique<Future>(*this, std::move(cursor));
@@ -427,39 +423,14 @@ void Scheduler::create_destructor(Object* object, const Reference& member, Class
 		const auto _ = ProcessorUnlocker();
 		schedule(destructor);
 	}
-	catch (MintException& raised) {
-		{
-			const auto _ = ProcessorUnlocker();
-			finalize_process(destructor);
-		}
-		create_exception(raised.take_exception());
+	catch (MintException&) {
+		const auto message = std::string("exception raised during destructor");
+		call_error_callbacks(message);
+		print_error(message);
+		std::terminate();
 	}
 	catch (const MintRuntimeError&) {
 		abort_process(destructor);
-		throw;
-	}
-}
-
-void Scheduler::create_exception(Reference&& reference) {
-
-	auto* thread = current_process();
-	if (!thread) {
-		error("cannot create exception without parent thread");
-	}
-
-	auto exception = Exception(*this, std::move(reference), *thread);
-
-	try {
-		const auto _ = ProcessorUnlocker();
-		schedule(exception);
-	}
-	catch (MintException&) {
-		const auto _ = ProcessorUnlocker();
-		finalize_process(exception);
-		throw;
-	}
-	catch (const MintRuntimeError&) {
-		abort_process(exception);
 		throw;
 	}
 }

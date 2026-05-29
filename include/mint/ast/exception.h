@@ -21,38 +21,16 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_SCHEDULER_EXCEPTION_H
-#define MINT_SCHEDULER_EXCEPTION_H
+#ifndef MINT_AST_EXCEPTION_H
+#define MINT_AST_EXCEPTION_H
 
 #include "mint/ast/cursor.h"
-#include "mint/config.h"
 #include "mint/memory/reference.h"
-#include "mint/scheduler/process.h"
 #include <exception>
 #include <functional>
 #include <utility>
 
 namespace mint {
-
-class MINT_EXPORT Exception : public Process {
-public:
-	Exception(Scheduler& scheduler, Reference&& reference, const Process& process);
-	Exception(Exception&&) = delete;
-	Exception(const Exception&) = delete;
-	~Exception() override;
-
-	Exception& operator=(Exception&&) = delete;
-	Exception& operator=(const Exception&) = delete;
-
-	void setup() override;
-	void cleanup() override;
-
-private:
-	RootReference _reference;
-	bool _handled;
-};
-
-MINT_EXPORT bool is_exception(Process& process);
 
 class MintException : public std::exception {
 public:
@@ -69,7 +47,7 @@ public:
 	}
 
 	[[nodiscard]] const char* what() const noexcept override {
-		return "MintException";
+		return "unhandled exception";
 	}
 
 private:
@@ -79,4 +57,4 @@ private:
 
 }
 
-#endif // MINT_SCHEDULER_EXCEPTION_H
+#endif // MINT_AST_EXCEPTION_H

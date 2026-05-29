@@ -24,7 +24,6 @@
 #include "mint/system/error.h"
 #include "mint/system/pipe.h"
 #include "mint/system/terminal.h"
-#include "mint/system/mint_runtime_error.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -45,19 +44,6 @@ struct {
 	std::vector<std::pair<int, std::function<void(const std::string&)>>> callbacks;
 } g_error;
 
-}
-
-void mint::on_error(const std::string& message) {
-
-	const std::unique_lock _(g_error.callback_mutex);
-
-	for (const auto& callback : g_error.callbacks) {
-		callback.second(message);
-	}
-
-	print_error(message);
-
-	throw MintRuntimeError(message);
 }
 
 void mint::print_error(const std::string& message) {

@@ -509,7 +509,7 @@ try {
 }
 ```
 
-If an exception is raised outside of a try statement, the context of the exception will be printed on the error output, and the execution of the script will be stopped as if an error occurred. To print the context of the exception, the `show` method of the context object is called. If the context object does not implement this method, the value of the object is printed instead.
+If an exception is raised outside of a try statement, the context of the exception will be printed on the error output, and the execution of the script will be stopped as if an error occurred. To print the context of the exception, the `toString` method of the context object is called. If the context object does not implement this method, the value of the object is printed instead.
 
 ### The catch statement
 

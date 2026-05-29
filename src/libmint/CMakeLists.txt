@@ -63,6 +63,7 @@ PUBLIC
 	${MINT_INCLUDE_DIR}/mint/ast/abstract_syntax_tree.h
 	${MINT_INCLUDE_DIR}/mint/ast/class_register.h
 	${MINT_INCLUDE_DIR}/mint/ast/cursor.h
+	${MINT_INCLUDE_DIR}/mint/ast/exception.h
 	${MINT_INCLUDE_DIR}/mint/ast/file_printer.h
 	${MINT_INCLUDE_DIR}/mint/ast/function_literal.h
 	${MINT_INCLUDE_DIR}/mint/ast/module.h
@@ -206,7 +207,6 @@ PUBLIC
 	BASE_DIRS ${MINT_INCLUDE_DIR}
 	FILES
 	${MINT_INCLUDE_DIR}/mint/scheduler/destructor.h
-	${MINT_INCLUDE_DIR}/mint/scheduler/exception.h
 	${MINT_INCLUDE_DIR}/mint/scheduler/generator.h
 	${MINT_INCLUDE_DIR}/mint/scheduler/input_stream.h
 	${MINT_INCLUDE_DIR}/mint/scheduler/output.h
@@ -220,7 +220,6 @@ PRIVATE
 	scheduler/completer.cpp
 	scheduler/completer.h
 	scheduler/destructor.cpp
-	scheduler/exception.cpp
 	scheduler/generator.cpp
 	scheduler/highlighter.cpp
 	scheduler/highlighter.h

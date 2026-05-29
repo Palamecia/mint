@@ -121,7 +121,6 @@ public:
 	void join_thread(Process::ThreadId id);
 
 	void create_destructor(Object* object, const Reference& member, Class& owner);
-	void create_exception(Reference&& reference);
 	void create_generator(std::unique_ptr<SavedState>&& state);
 
 	void add_exit_callback(const std::function<void(int)>& callback);

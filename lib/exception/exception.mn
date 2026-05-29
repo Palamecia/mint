@@ -32,32 +32,31 @@ load mint.type
 package Exception {
 
 /**
- * This class provides a base to create exception contexts. It provides an
- * helper method {Exception.printError} wich print a formated error message
- * on the error output.
+ * This class provides a base to create exception contexts.
  */
-class Exception {
-	/**
-	 * Prints the exception informations on the error output when the exception
-	 * is not handled. This method can be overriden to print a custom message.
-	 */
-	const def show(self) {
-		self.printError(self.toString())
-	}
+class Exception {}
 
-	/**
-	 * Prints an `error` message on the error output. The generated message has
-	 * a standard error format.
-	 */
-	# final const def printError(self, error) {
-		print (System.stderr) {
-			System.IO.bold()
-			System.IO.red()
-			(typeof self) + ": " + error
-			System.IO.reset()
-			'\n'
-		}
-	}
+/**
+ * This class provides a default runtime exception implementation that contains an error message.
+ */
+class RuntimeError : Exception.Exception {
+    /**
+     * Creates a runtime error with the `message` error message.
+     */
+    const def new(self, message) {
+        self.message = message
+        return self
+    }
+
+    /**
+     * Returns the error message.
+     */
+    const def toString(const self) {
+        return self.message
+    }
+
+    /// Internal error message.
+    - final message = ''
 }
 
 }

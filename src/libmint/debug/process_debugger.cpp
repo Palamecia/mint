@@ -23,9 +23,10 @@
 
 #include "mint/debug/process_debugger.h"
 #include "mint/debug/debug_interface.h"
-#include "mint/scheduler/exception.h"
+#include "mint/ast/exception.h"
 #include "mint/scheduler/process.h"
 #include "mint/scheduler/processor.h"
+#include "mint/system/error.h"
 #include "mint/system/mint_runtime_error.h"
 
 using namespace mint;
@@ -41,14 +42,20 @@ ProcessStatus mint::ProcessDebugger::exec() {
 		return debug_steps(_thread_locker.cursor(), _thread_locker.handle());
 	}
 	catch (MintException& raised) {
-		auto& cursor = _thread_locker.cursor();
-		if (&cursor.cursor() == &raised.cursor()) {
-			cursor.cursor().raise(raised.take_exception());
-			return ProcessStatus::paused;
+		if (auto& cursor = _thread_locker.cursor(); &cursor.cursor() == &raised.cursor()) {
+			try {
+				cursor.cursor().raise(raised.take_exception());
+				return ProcessStatus::paused;
+			}
+			catch (const MintRuntimeError& error) {
+				print_error(error.what());
+				return ProcessStatus::failed;
+			}
 		}
 		throw;
 	}
-	catch (const MintRuntimeError&) {
+	catch (const MintRuntimeError& error) {
+		print_error(error.what());
 		return ProcessStatus::failed;
 	}
 }

@@ -22,23 +22,20 @@
  */
 
 #include "mint/ast/cursor.h"
+#include "mint/ast/exception.h"
 #include "mint/ast/symbol.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/cast_tools.h"
-#include "mint/memory/data.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/operator_tools.h"
 #include "mint/memory/reference.h"
-#include "mint/scheduler/exception.h"
 #include "mint/scheduler/processor.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/error.h"
-#include "mint/system/mint_runtime_error.h"
 #include <functional>
-#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>

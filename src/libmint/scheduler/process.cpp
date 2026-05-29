@@ -24,6 +24,7 @@
 #include "mint/scheduler/process.h"
 #include "mint/ast/abstract_syntax_tree.h"
 #include "mint/ast/cursor.h"
+#include "mint/ast/exception.h"
 #include "mint/ast/module.h"
 #include "mint/compiler/compiler.h"
 #include "mint/debug/debug_interface.h"
@@ -32,7 +33,6 @@
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/reference.h"
-#include "mint/scheduler/exception.h"
 #include "mint/scheduler/input_stream.h"
 #include "mint/scheduler/output.h"
 #include "mint/scheduler/processor.h"
@@ -85,7 +85,8 @@ std::unique_ptr<Process> Process::from_main_file(Scheduler& scheduler, const std
 			}
 		}
 	}
-	catch (const MintRuntimeError&) {
+	catch (const MintRuntimeError& error) {
+		print_error(error.what());
 		return nullptr;
 	}
 
@@ -107,7 +108,8 @@ std::unique_ptr<Process> Process::from_file(Scheduler& scheduler, const std::fil
 			}
 		}
 	}
-	catch (const MintRuntimeError&) {
+	catch (const MintRuntimeError& error) {
+		print_error(error.what());
 		return nullptr;
 	}
 
@@ -127,7 +129,8 @@ std::unique_ptr<Process> Process::from_buffer(Scheduler& scheduler, const std::s
 			}
 		}
 	}
-	catch (const MintRuntimeError&) {
+	catch (const MintRuntimeError& error) {
+		print_error(error.what());
 		return nullptr;
 	}
 
@@ -221,12 +224,19 @@ ProcessStatus Process::exec() {
 	}
 	catch (MintException& raised) {
 		if (_cursor.get() == &raised.cursor()) {
-			_cursor->raise(raised.take_exception());
-			return ProcessStatus::paused;
+			try {
+				_cursor->raise(raised.take_exception());
+				return ProcessStatus::paused;
+			}
+			catch (const MintRuntimeError& error) {
+				print_error(error.what());
+				return ProcessStatus::failed;
+			}
 		}
 		throw;
 	}
-	catch (const MintRuntimeError&) {
+	catch (const MintRuntimeError& error) {
+		print_error(error.what());
 		return ProcessStatus::failed;
 	}
 }
@@ -241,7 +251,8 @@ bool Process::resume() {
 			InputStream::instance().next();
 			return compiler.build(InputStream::instance(), _cursor->ast().main());
 		}
-		catch (const MintRuntimeError&) {
+		catch (const MintRuntimeError& error) {
+			print_error(error.what());
 			continue;
 		}
 	}

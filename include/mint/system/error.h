@@ -25,6 +25,7 @@
 #define MINT_SYSTEM_ERROR_H
 
 #include "mint/config.h"
+#include "mint/system/mint_runtime_error.h"
 
 #include <format>
 #include <string>
@@ -34,13 +35,7 @@
 
 namespace mint {
 
-[[noreturn]] MINT_EXPORT void on_error(const std::string& message);
 MINT_EXPORT void print_error(const std::string& message);
-
-template<typename... Args>
-[[noreturn]] void error(std::format_string<Args...> fmt, Args&&... args) {
-	on_error(std::vformat(fmt.get(), std::make_format_args(args...)));
-}
 
 MINT_EXPORT int add_error_callback(const std::function<void(const std::string&)>& callback);
 MINT_EXPORT void call_error_callbacks(const std::string& message);
@@ -49,6 +44,13 @@ MINT_EXPORT void remove_error_callback(int id);
 MINT_EXPORT std::vector<std::pair<int, std::function<void(const std::string&)>>> take_error_callbacks();
 MINT_EXPORT void restore_error_callbacks(
     std::vector<std::pair<int, std::function<void(const std::string&)>>>&& callbacks);
+
+template<typename... Args>
+[[noreturn]] void error(std::format_string<Args...> fmt, Args&&... args) {
+	const auto message = std::vformat(fmt.get(), std::make_format_args(args...));
+	call_error_callbacks(message);
+	throw MintRuntimeError(message);
+}
 
 }
 

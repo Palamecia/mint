@@ -1,11 +1,12 @@
 load test.case
+load exception.exception
 
 class ExceptionTest : Test.Case {
 	const def testCatch(self) {
 		try {
 			raise 'test'
 		} catch e {
-			received = e
+			var received = e
 		}
 		self.expectEqual('test', received)
 	}
@@ -17,8 +18,17 @@ class ExceptionTest : Test.Case {
 				raise 'test'
 			} ()
 		} catch e {
-			received = e
+			var received = e
 		}
 		self.expectEqual('test', received)
+	}
+
+	const def testCatchRuntimeError(self) {
+		try {
+			raise Exception.RuntimeError('test')
+		} catch e {
+			var received = e
+		}
+		self.expectEqual('test', received.toString())
 	}
 }

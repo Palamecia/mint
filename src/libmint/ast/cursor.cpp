@@ -22,23 +22,23 @@
  */
 
 #include "mint/ast/cursor.h"
+#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/ast/exception.h"
 #include "mint/ast/module.h"
 #include "mint/ast/printer.h"
 #include "mint/ast/saved_state.h"
-#include "mint/ast/abstract_syntax_tree.h"
 #include "mint/debug/debug_info.h"
 #include "mint/debug/line_info.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/memory/data.h"
 #include "mint/memory/garbage_collector.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/symbol_table.h"
-#include "mint/scheduler/scheduler.h"
-#include "mint/scheduler/exception.h"
 #include "mint/memory/global_data.h"
 #include "mint/memory/builtin/iterator.h"
-#include "mint/system/assert.h"
+#include "mint/system/error.h"
 #include "mint/system/pool_allocator.h"
 #include "thread_entry_point.h"
 #include <algorithm>
@@ -431,6 +431,19 @@ void Cursor::unset_retrieve_point() {
 	_retrieve_points.pop();
 }
 
+namespace {
+
+std::string format_exception(const Reference& exception) {
+	try {
+		return to_string(exception);
+	}
+	catch (...) {
+		return "<exception formatting failed>";
+	}
+}
+
+}
+
 void Cursor::raise(Reference&& exception) {
 
 	if (!_retrieve_points.empty()) {
@@ -460,9 +473,7 @@ void Cursor::raise(Reference&& exception) {
 		throw MintException(*_parent, std::move(exception));
 	}
 	else {
-		auto* scheduler = Scheduler::instance();
-		assert_x(scheduler, __func__, "execution should be done using a scheduler");
-		scheduler->create_exception(std::move(exception));
+		error("unhandled {}: {}", type_name(exception), format_exception(exception));
 	}
 }
 

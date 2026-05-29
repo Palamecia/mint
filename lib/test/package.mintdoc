@@ -5,7 +5,6 @@ The `Test` package provides classes allowing the implementation of unit tests. T
 
 A test project is composed of a set of tests cases and an entry-point that schedule the tests.
 
-**Example**:
 ```mn
 load test.suite
 load mint.lang

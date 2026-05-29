@@ -82,16 +82,12 @@ This operator is applicable to the following types:
 
 The `...` or `*` operator can be used as a unary operator in a parameter list passed to a [function call operator](#function-call) to expand each element contained in the value as an individual parameter. This also applies to [containers literals](Built-in-types).
 
-**Example**:
-
 ```mn
 var list = [0, 1, 2]
 sum(*list) // is equivalent to sum(0, 1, 2)
 ```
 
 The unpack operator can also be used to expand each element to initialize an [[array|Built-in-types#array]] or an [[iterator|Built-in-types#iterator]].
-
-**Example**:
 
 ```mn
 // with myIterator = (3, 4, 5)
@@ -110,8 +106,6 @@ Arithmetic operators are used to perform mathematical operations like addition, 
 | `/` | Divide left operand by the right one | Yes |
 | `%` | Modulus - remainder of the division of left operand by the right | Yes |
 | `**` | Exponent - left operand raised to the power of right | Yes |
-
-**Example**:
 
 ```mn
 15 + 4   // gives 19
@@ -138,8 +132,6 @@ Comparison operators are used to compare values. They return either `true` or `f
 | `===` | Strictly equal to - `true` if both operands are equal and the same type | No (uses `==`) |
 | `!==` | Strictly equal to - `true` if both operands are not equal or not the same type | No (uses `!=`) |
 
-**Example**:
-
 ```mn
 10 > 12   // gives false
 10 < 12   // gives true
@@ -158,8 +150,6 @@ Logical operators are used to compare [[boolean|Built-in types#boolean]] values.
 | `&&`, `and` | `true` if both operands are `true` | Yes |
 | `\|\|`, `or` | `true` if either of the operands is `true` | Yes |
 | `!`, `not` | `true` if the operand is `false` | Yes |
-
-**Example**:
 
 ```mn
 true and false  // gives false
@@ -189,8 +179,6 @@ Range operators create an [[iterator|Built-in types#iterator]] on a range of val
 | `..` | Create a range of values from the left operand to the right operand (included) | Yes |
 | `...` | Create a range of values from the left operand to the right operand (excluded) | Yes |
 
-**Example**:
-
 ```mn
 0..5   // gives (0, 1, 2, 3, 4, 5)
 0...5  // gives (0, 1, 2, 3, 4)
@@ -207,8 +195,6 @@ Subscript operators are used to access a sub-element of a value. Sub-elements ca
 
 > [!NOTE]
 > The `[]=` operator will be used instead of the `[]` operator in an expression like `value[key] = item`.
-
-**Example**:
 
 ```mn
 let a = ['a', 'b', 'c']
@@ -236,8 +222,6 @@ If the `in` operator is used in a `for` structure, it will return an [[iterator|
 
 Outside of a `for` structure, the `in` operator returns a [[boolean|Built-in types#boolean]] indicating whether the sub-element was found or not in the value. The `!in` or `not in` operator will invert the result of the `in` operator.
 
-**Example**:
-
 ```mn
 if 10 in 0..5 {
     // will never be executed
@@ -261,8 +245,6 @@ Match operators are commonly used to test a [[regex|Built-in types#regex]] over 
 | `=~` | At least one match - `true` if at least one match was found in the right operand | Yes |
 | `!~` | Does not match - `false` if at least one match was found in the right operand | Yes |
 
-**Example**:
-
 ```mn
 /es/ =~ 'test'  // gives true
 /es/ !~ 'test'  // gives false
@@ -278,8 +260,6 @@ The conditional operator evaluates an expression, returning one value if that ex
 | Operator | Description | Override |
 |----------|-------------|----------|
 | `?:` | Evaluate an expression and gives one result if `true` or the other if `false` | No |
-
-**Example**:
 
 ```mn
 defined a ? a : 0 // gives the value of a if a is defined; otherwise gives 0
@@ -297,16 +277,12 @@ Meta operators are used to get meta information on values.
 
 The `defined` operator compares the value to `none` to check if the variable is defined. It can also check a full path to a member variable with only one expression.
 
-**Example**:
-
 ```mn
 defined foo.bar.member // equivalent to :
                        // not (foo is none) and not (foo.bar is none) and not (foo.bar.member is none)
 ```
 
 The `typeof` operator provides the type of the value as a [[string|Built-in types#string]].
-
-**Example**:
 
 ```mn
 typeof 0           // gives 'number'
@@ -315,8 +291,6 @@ typeof System.File // gives 'System.File'
 ```
 
 The `membersof` operator provides the list of members of the value as an [[array|Built-in types#array]] of [[strings|Built-in types#string]].
-
-**Example**:
 
 ```mn
 membersof ()  // gives [':=', 'each', 'isEmpty', 'next', 'value']

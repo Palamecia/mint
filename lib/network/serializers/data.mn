@@ -37,7 +37,6 @@ package Network {
 	 * instance of {Network.AsynchronousChannel} as is but must be used with a
 	 * decorator.
 	 * 
-	 * **Example**:
 	 * ```mn
 	 * channel = Network.AsynchronousChannel(endpoint, def { return Network.DataSerializer(1024) })
 	 * ```

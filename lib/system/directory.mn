@@ -278,7 +278,6 @@ package System {
 		 * The results of this method can be used with the {System.Directory.getFile}
 		 * method to get extra informations.
 		 * 
-		 * **Example**:
 		 * ```mn
 		 * dir = System.Directory(path)
 		 * 

@@ -36,7 +36,6 @@ package Test {
 	 * derived from {Test.Case} that starts with `'test'` is automatically added to the
 	 * test case. This class also provide methods to test values such as {@see expectEqual}.
 	 * 
-	 * **Example**:
 	 * ```mn
 	 * load test.case
 	 * 

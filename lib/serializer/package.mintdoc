@@ -5,7 +5,6 @@ It also support many standard formats like plain text, XML, JSON or YAML.
 
 Any class of this package can be used with a `print` statement.
 
-**Example**:
 ```mn
 load serializer.json-stream
 load system.file

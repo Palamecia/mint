@@ -156,9 +156,8 @@ def [g_lib = lib('libmint-mint')] hash(value = {}) {
  * function of this module, a class or a type name. Extra arguments are passed
  * to the cast function or constructor called.
  * 
- * **Example**:
  * ```mn
- * other = new(typeof value)
+ * let other = new(typeof value)
  * ```
  * 
  * > [!NOTE]

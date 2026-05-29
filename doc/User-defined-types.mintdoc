@@ -16,16 +16,12 @@ Enumerations are the simplest type definitions, providing only a list of [[globa
 
 The definition of an enumeration is introduced by the `enum` keyword followed by a name corresponding to the type name. The definition opens a block of constant definitions.
 
-**Example**:
-
 ```mn
 enum MyEnum {
 }
 ```
 
 Constants are defined within the block using a list of [[symbol names|Variables]]. The `=` operator can follow the name to set the value of the constant. The value must be a [[number|Built-in-types#number]]. If no value is given, a value is automatically set by adding one to the previous value inserted. If no previous value was inserted, `0` is used.
-
-**Example**:
 
 ```mn
 enum MyEnum {
@@ -44,8 +40,6 @@ Classes describe a list of member [[symbols|Variables]] that will be associated 
 
 A class definition is introduced by the `class` keyword followed by a name corresponding to the type name. The `:` operator can optionally be added to introduce a list of [[base classes|User defined types#Inheritance]]. The definition opens a block of member definitions.
 
-**Example**:
-
 ```mn
 class MyClass {
 }
@@ -61,8 +55,6 @@ The following visibility modifiers can be added to any member:
 * `#` (**protected**): The member can only be accessed from inside the class or from a [[derived or base class|User defined types#Inheritance]].
 * `-` (**private**): The member can only be accessed from inside the class.
 * `~` (**package**): The member can only be accessed from the same [[package|Built-in-types#package]].
-
-**Example**:
 
 ```mn
 class MyClass {
@@ -82,8 +74,6 @@ class MyClass {
 ### Members value
 
 Each member of a class has a value. The `=` operator can follow the member name to initialize this value. If no value is given, the [[none|Built-in-types#none]] value is used.
-
-**Example**:
 
 ```mn
 class MyClass {
@@ -111,8 +101,6 @@ Any [[built-in type|Built-in-types]] can be used as a member value. However, as 
 
 Classes can also contain other user-defined types as [[global|Variables#access-modifiers]] members. Those types can use the [[visibility|User-defined-types#Members visibility]] mechanism and are introduced by the corresponding keyword.
 
-**Example**:
-
 ```mn
 class MyClass {
     enum MyEnum {
@@ -135,8 +123,6 @@ Members using the [[function|Built-in-types#function]] type are called methods. 
 
 As a [[function|Built-in-types#function]] value can have several associated blocks, the `+=` operator can be used to add a block to a function member.
 
-**Example**:
-
 ```mn
 class MyClass {
     method = def (self) {}
@@ -145,8 +131,6 @@ class MyClass {
 ```
 
 The `def` keyword can also be placed before the member name to create a method. In this case, the method will be automatically created or extended.
-
-**Example**:
 
 ```mn
 class MyClass {
@@ -163,8 +147,6 @@ The `new` member is called the constructor. When a new [[instance|User defined t
 
 The call parameter list of the constructor starts with the instance of the object being created. This instance is only initialized with the values associated with the class members. Additional parameters can follow and must then be passed when the class is [[instantiated|User defined types#Instantiation]].
 
-**Example**:
-
 ```mn
 class MyClass {
     def new(self, value) {
@@ -180,8 +162,6 @@ class MyClass {
 > If the constructor is not defined, the class instantiation gives an object only initialized with the values associated with the class members.
 
 Classes also provides a global `allocate` method that create an object instance only initialized with the values associated with the class members. The constructor is not called by this method. This is usefull to create named constructors where the default constructor is not suitable.
-
-**Example**:
 
 ```mn
 class Result {
@@ -202,8 +182,6 @@ class Result {
 ```
 
 As this method is defined for any user defined classes, it can also be called as an instance method to allocate the real type of an object.
-
-**Example**:
 
 ```mn
 class Foo {
@@ -226,13 +204,11 @@ let otherBar = bar.clone()  // `otherBar` is an instance of `Bar`
 ```
 
 > [!NOTE]
-> This class method has a [[protected|User-defined-types#Members-visibility]] visibility. So it can not be called outside of the class hierarchi.
+> This class method has a [[protected|User-defined-types#Members-visibility]] visibility. So it can not be called outside of the class hierarchy.
 
 The `delete` member is called the destructor. When an instance is [[destroyed|Introduction#garbage-collector]], this member is [[called|Arithmetic-operations#function-call]]. The returned value is ignored.
 
 The destructor can take only one parameter corresponding to the instance of the object being destroyed. Some final operations can then be processed on the object.
-
-**Example**:
 
 ```mn
 class MyClass {
@@ -253,11 +229,12 @@ class MyClass {
 }
 ```
 
+> [!CAUTION]
+> [[Exceptions|Control-structures#Exception-handling-control-structures]] can not be raised from a destructor. In such cases, the interpreter will immediately stop with an error.
+
 ### Operator overloading
 
 Some [[operators|Arithmetic-operations]] can be overloaded by a class. To override the default behavior of an operator, a special member can be added. These members are introduced by the `def` keyword followed by the name of the operator to overload. They use a call parameter list with an amount of parameters depending on the overloaded operator.
-
-**Example**:
 
 ```mn
 def MyClass {
@@ -275,8 +252,6 @@ def MyClass {
 
 After the class name, the `:` operator can be added to insert a base class list. The base class list contains the names of the classes to extend separated by `,`.
 
-**Example**:
-
 ```mn
 class MyBase {
 }
@@ -292,8 +267,6 @@ class MyClass : MyBase, MyOtherBase {
 > A class can also extend an [[enumeration|User defined types#Enumerations]], but [[built-in types|Built-in-types]] cannot be extended.
 
 Each [[non-global|Variables#access-modifiers]] member of the extended classes will then be copied to the newly created class with their [[values|User defined types#Members value]] and [[modifiers|User defined types#Members visibility]], except for members already defined in the class.
-
-**Example**:
 
 ```mn
 class MyBase {
@@ -314,8 +287,6 @@ Members can also be defined with the `final` or `override` modifier to change th
 
 A member defined with the `final` modifier cannot be redefined in child classes.
 
-**Example**:
-
 ```mn
 class MyBase {
     final member = 1
@@ -328,8 +299,6 @@ class MyClass : MyBase {
 
 A member defined with the `override` modifier must be already defined in at least one base class.
 
-**Example**:
-
 ```mn
 class MyBase {
     member1 = 1
@@ -341,8 +310,6 @@ class MyClass : MyBase {
 ```
 
 A method defined with the `override` modifier also requires that the child class redefine each signature of the base class's member.
-
-**Example**:
 
 ```mn
 class MyBase {
@@ -360,8 +327,6 @@ Base class members' default value is accessible from derived classes. To access 
 
 > [!IMPORTANT]
 > To use a base class method implementation, the object instance must be explicitly passed as the first parameter.
-
-**Example**:
 
 ```mn
 class MyBase {
@@ -399,8 +364,6 @@ class MyClass : MyBase, MyOtherBase {
 > [!NOTE]
 > Base class methods can also be redefined in the constructor of the derived class. The method override will then be on the [[instance|User-defined-types#Instantiation]] and not on the whole class.
 >
-> **Example**:
->
 > ```mn
 > class MyBase {
 >     ## def method(self) {
@@ -426,22 +389,18 @@ A user-defined type instance is created with the [[call operator|Arithmetic-oper
 
 The amount of parameters of the operator depends on the [[constructor|User defined types#Constructor and destructor]], but the first parameter must not be passed. If the type does not have a constructor, the operator takes no parameters.
 
-**Example**:
-
 ```mn
 class MyClass {
     def new(self, value) {}
 }
 
-myObject = MyClass(5)
+let myObject = MyClass(5)
 ```
 
 > [!NOTE]
 > The instantiation of an [[enumeration|User defined types#Enumerations]] is meaningless because those types can only have [[global|Variables#access-modifiers]] members.
 
 To access a member of the object, the `.` operator is used. If the member is a [[method|User defined types#Methods]] and the [[call operator|Arithmetic-operations#function-call]] is used on the member, the object will automatically be passed as the first parameter.
-
-**Example**:
 
 ```mn
 class MyClass {
@@ -456,8 +415,6 @@ myObject.method(5) // call MyClass.method(myObject, 5)
 
 The `?.` operator can also be used to access a member of the object. With this operator, if the object is [[`none`|Built-in-types#none]], the object is returned; otherwise the behaviour is the same as with the `.` operator.
 
-**Example**:
-
 ```mn
 let myObject = MyClass()
 myObject?.member    // gives the value of myObject.member
@@ -469,15 +426,11 @@ myObject?.member    // gives none
 > [!NOTE]
 > To call a member function without using the object instance as the first parameter, the `(` and `)` operators can be used around the function access.
 >
-> **Example**:
->
 > ```mn
 > (myObject.func)() // call the function with no parameters
 > ```
 
 [[Global|Variables#access-modifiers]] members can be accessed in the same way, but they can also be directly accessed from the class.
-
-**Example**:
 
 ```mn
 class MyClass {
@@ -494,8 +447,6 @@ MyClass.member    // gives 5
 
 A user-defined type can also be stored in a [[variable|Variables]]. This allows for the use of types as parameters or to create type aliases. To store the type, the type name can be used without the [[call operator|Arithmetic-operations#function-call]].
 
-**Example**:
-
 ```mn
 @TheClass = MyClass      // TheClass is an alias of MyClass
 createList(MyClass, 5)   // Call createList with MyClass as the first parameter
@@ -506,8 +457,6 @@ createList(MyClass, 5)   // Call createList with MyClass as the first parameter
 If a copy of an object is required, a new instance will be created without member initialization or a call to the constructor. The value of each member will then be copied from the object to the copy instance recursively. This mechanism keeps track of any copied instance created for each value, and the same instance will be used if the same value is used more than once.
 
 If extra operations should be performed during the copy, a special member `clone` can be declared. If this attribute is added to a class, the standard copy mechanism is disabled, and the method should be called instead. This member will also disable the standard copy mechanism for any class that uses the class using inheritance or composition.
-
-**Example**:
 
 ```mn
 class MyClass {

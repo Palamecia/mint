@@ -35,7 +35,6 @@ package Codec {
 /**
  * This class use the iconv backend to convert text from and to others encodings.
  * 
- * **Example**:
  * ```mn
  * load system.file
  * load codec.iconv

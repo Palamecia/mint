@@ -473,7 +473,7 @@ void Cursor::raise(Reference&& exception) {
 		throw MintException(*_parent, std::move(exception));
 	}
 	else {
-		error("unhandled {}: {}", type_name(exception), format_exception(exception));
+		error("uncaught {}: {}", type_name(exception), format_exception(exception));
 	}
 }
 

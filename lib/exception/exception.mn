@@ -26,7 +26,6 @@
  * create exception contexts.
  */
 
-load system.terminal
 load mint.type
 
 package Exception {

@@ -17,7 +17,6 @@ It also provides a set of protocol specific client and server classes that
 implement the layers 5 to 7 of the OSI model. That allow basic communication
 with a device using a specific protocol.
 
-**Example**:
 ```mn
 load network.scheduler
 load network.endpoints.tcp-ip

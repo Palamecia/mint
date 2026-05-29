@@ -143,7 +143,6 @@ def [g_lib = lib('libmint-mint')] types(object = none) {
  * Returns `true` if `expr` is defined; otherwise returns `false`. This function
  * allow to apply the `defined` operator to the result of an expression.
  * 
- * **Example**:
  * ```mn
  * if isDefined(var = object.getOptionalValue()) {
  *     // use var
@@ -166,7 +165,6 @@ def [g_lib = lib('libmint-mint')] isMain() {
  * Adds `callback` function to be called when the script exits. The function will
  * take one parameter corresponding to the exit code.
  * 
- * **Example**:
  * ```mn
  * atExit(def (code) {
  *     print('Exited with code %d\n' % code)
@@ -182,7 +180,6 @@ def [g_lib = lib('libmint-mint')] atExit(callback) {
  * take two parameters corresponding to the error message and the state of the
  * call stack when crash occured as returned by {backtrace}.
  * 
- * **Example**:
  * ```mn
  * atError(def (message, callstack) {
  *     print {

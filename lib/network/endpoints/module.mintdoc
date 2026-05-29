@@ -9,7 +9,6 @@ the following methods:
 > The constructor of an end point class must call the base class constructor
 > before any other operation.
 > 
-> **Example**:
 > ```mn
 > class MyEndPointClass : Network.EndPoint {
 >     const def new(self, ...) {

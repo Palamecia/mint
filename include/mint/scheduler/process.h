@@ -59,10 +59,10 @@ public:
 	void parse_argument(const std::string& arg);
 
 	virtual void setup();
+	virtual bool resume();
 	virtual void cleanup();
 
 	[[nodiscard]] ProcessStatus exec();
-	[[nodiscard]] bool resume();
 
 	[[nodiscard]] ThreadId get_thread_id() const;
 	void set_thread_id(ThreadId id);
@@ -71,19 +71,16 @@ public:
 	std::unique_ptr<std::thread> release_thread_handle();
 	void set_thread_handle(std::unique_ptr<std::thread>&& handle);
 
-	[[nodiscard]] bool is_endless() const;
 	[[nodiscard]] bool is_thread() const;
 	[[nodiscard]] Cursor& cursor() const;
 	[[nodiscard]] Scheduler& scheduler() const;
 
 protected:
-	void set_endless(bool endless);
 	void dump();
 
 private:
 	std::reference_wrapper<Scheduler> _scheduler;
 	std::unique_ptr<Cursor> _cursor;
-	bool _endless = false;
 
 	std::unique_ptr<std::thread> _thread_handle;
 	ThreadId _thread_id = 0;

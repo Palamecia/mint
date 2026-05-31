@@ -62,6 +62,44 @@
 
 using namespace mint;
 
+namespace {
+
+class ReplProcess : public Process {
+public:
+	ReplProcess(Scheduler& scheduler, std::unique_ptr<Cursor>&& cursor) :
+	    Process(scheduler, std::move(cursor)) {}
+
+	void setup() override {
+		Process::setup();
+		read_next();
+	}
+
+	bool resume() override {
+		cursor().retrieve();
+		return read_next();
+	}
+
+private:
+	bool read_next() {
+		for (;;) {
+			try {
+				auto compiler = Compiler(cursor().ast());
+				compiler.set_printing(true);
+				cursor().resume();
+				InputStream::instance().next();
+				return compiler.build(InputStream::instance(), cursor().ast().main());
+			}
+			catch (const MintRuntimeError& error) {
+				print_error(error.what());
+				continue;
+			}
+		}
+		return false;
+	}
+};
+
+}
+
 Process::Process(Scheduler& scheduler, std::unique_ptr<Cursor>&& cursor) :
     _scheduler(scheduler),
     _cursor(std::move(cursor)) {}
@@ -143,9 +181,8 @@ std::unique_ptr<Process> Process::from_standard_input(Scheduler& scheduler) {
 
 		AbstractSyntaxTree& ast = scheduler.ast();
 		auto& module = ast.create_main_module(Module::State::ready);
-		auto process = std::make_unique<Process>(scheduler, std::make_unique<Cursor>(ast, module.bytecode));
+		auto process = std::make_unique<ReplProcess>(scheduler, std::make_unique<Cursor>(ast, module.bytecode));
 		process->cursor().open_printer(std::make_unique<Output>(ast));
-		process->set_endless(true);
 
 		InputStream::instance().set_highlighter([&ast](std::string_view input, std::string_view::size_type offset) {
 			auto highlighter = Highlighter(ast, offset);
@@ -206,6 +243,10 @@ void Process::setup() {
 	}
 }
 
+bool Process::resume() {
+	return false;
+}
+
 void Process::cleanup() {
 	if (_error_handler) {
 		remove_error_callback(_error_handler);
@@ -241,25 +282,6 @@ ProcessStatus Process::exec() {
 	}
 }
 
-bool Process::resume() {
-
-	while (_endless) {
-		try {
-			auto compiler = Compiler(_cursor->ast());
-			compiler.set_printing(true);
-			_cursor->resume();
-			InputStream::instance().next();
-			return compiler.build(InputStream::instance(), _cursor->ast().main());
-		}
-		catch (const MintRuntimeError& error) {
-			print_error(error.what());
-			continue;
-		}
-	}
-
-	return false;
-}
-
 Process::ThreadId Process::get_thread_id() const {
 	return _thread_id;
 }
@@ -280,10 +302,6 @@ void Process::set_thread_handle(std::unique_ptr<std::thread>&& handle) {
 	_thread_handle = std::move(handle);
 }
 
-bool Process::is_endless() const {
-	return _endless;
-}
-
 bool Process::is_thread() const {
 	return _thread_id != 0 && _cursor->is_thread();
 }
@@ -294,10 +312,6 @@ Cursor& Process::cursor() const {
 
 Scheduler& Process::scheduler() const {
 	return _scheduler;
-}
-
-void Process::set_endless(bool endless) {
-	_endless = endless;
 }
 
 void Process::dump() {

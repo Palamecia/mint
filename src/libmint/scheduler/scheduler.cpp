@@ -499,12 +499,6 @@ int Scheduler::run() {
 		_configured_process.pop();
 		_running = true;
 
-		if (main_thread->is_endless()) {
-			if (!main_thread->resume()) {
-				_running = false;
-			}
-		}
-
 		if (schedule(*main_thread)) {
 			_running = false;
 		}
@@ -649,12 +643,10 @@ bool Scheduler::schedule(Process& thread) {
 		while (is_running() || is_destructor(thread)) {
 			switch (thread.exec()) {
 			case ProcessStatus::failed:
-				if (!thread.is_endless()) {
+				if (!thread.resume()) {
 					exit(EXIT_FAILURE);
-					break;
 				}
-				thread.cursor().retrieve();
-				[[fallthrough]];
+				break;
 			case ProcessStatus::completed:
 				if (!resume(thread)) {
 					finalize_process(thread);

@@ -25,6 +25,7 @@ PRIVATE
 	math.cpp
 	operator.cpp
 	printer.cpp
+	stacktrace.cpp
 	string.cpp
 	type.cpp
 )
@@ -45,4 +46,3 @@ install(
 
 add_dependencies(mint-lib-module-mint mint-module-mint)
 add_dependencies(mint-lib-module-mint mint-module-container)
-add_dependencies(mint-lib-module-mint mint-module-exception)

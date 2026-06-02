@@ -32,6 +32,7 @@ namespace mint {
 
 MINT_EXPORT int errno_from_error_code(const std::error_code& code);
 MINT_EXPORT std::error_code last_error_code();
+MINT_EXPORT int errno_from_last_error();
 
 }
 

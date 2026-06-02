@@ -41,6 +41,7 @@
 #include "mint/memory/operator_tools.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
+#include "mint/system/async_io.h"
 #include "mint/system/buffer_stream.h"
 #include <cassert>
 #include <cstddef>
@@ -157,7 +158,7 @@ Reference mint::create_alias(Class& type) {
 
 Reference mint::create_object(Class& type) {
 	Reference ref = make_reference<Object>(create_flags, type);
-	ref.data<String>().construct();
+	ref.data<Object>().construct();
 	return ref;
 }
 
@@ -330,6 +331,12 @@ mint::handle_t* mint::to_handle_ptr(const Reference& reference) {
 	return std::bit_cast<handle_t*>(&reference.data<LibObject<void>>().ptr);
 }
 #endif
+
+Reference mint::create_async_operation(AbstractSyntaxTree& ast, MintAsyncOperation* operation) {
+	Reference ref = make_reference<LibObject<MintAsyncOperation>>(create_flags, ast, operation);
+	ref.data<LibObject<MintAsyncOperation>>().construct();
+	return ref;
+}
 
 Reference mint::get_member_ignore_visibility(AbstractSyntaxTree& ast, const Reference& reference, const Symbol& member) {
 

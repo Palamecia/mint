@@ -1,0 +1,81 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Network.LocalEndpoint} abstraction for representing local IPC address.
+ */
+
+load network.endpoint
+
+package Network {
+
+	/**
+	 * This class provides an address to access a peer process using a local socket.
+	 */
+	@class LocalEndpoint : Network.Endpoint {
+
+		/**
+		 * Creates a new end point for the local address described by `name`.
+		 */
+		const def new(self, name) {
+			if self.d_ptr = Network.LocalEndpoint.g_lib.call('mint_local_endpoint_create', name) {
+				self.d_ptr.delete = def [g_lib = Network.LocalEndpoint.g_lib] (self) {
+					g_lib.call('mint_local_endpoint_delete', self)
+				}
+			}
+			self.name = name
+			return self
+		}
+
+		/**
+		 * Returns the local address name.
+		 */
+		const def getName(const self) {
+			return self.name
+		}
+
+		/**
+		 * Returns the path to the local socket file or `none` if the backend does not support it.
+		 */
+		const def getPath(const self) {
+			return Network.LocalEndpoint.g_lib.call('mint_local_endpoint_get_path', self.d_ptr)
+		}
+
+		/**
+		 * Returns the pointer to the internal `struct sockaddr` instance.
+		 */
+        ~ override const def to_sockaddr(self) {
+            return self.d_ptr
+        }
+
+        /// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Internal local serveur name.
+		- final name = ''
+
+		/// Object data.
+		- final d_ptr = null
+	}
+
+}

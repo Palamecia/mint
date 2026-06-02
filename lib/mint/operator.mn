@@ -192,7 +192,7 @@ load mint.function
 }
 
 /**
- * Returns the result of the sufix `++` operator applied to `value`.
+ * Returns the result of the suffix `++` operator applied to `value`.
  */
 @def postIncOperator(value) {
 	return value++
@@ -206,7 +206,7 @@ load mint.function
 }
 
 /**
- * Returns the result of the sufix `--` operator applied to `value`.
+ * Returns the result of the suffix `--` operator applied to `value`.
  */
 @def postDecOperator(value) {
 	return value--

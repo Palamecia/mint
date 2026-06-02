@@ -1,0 +1,106 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Network.StdioSocket} class which provides inter-process communication over stdio.
+ */
+
+load network.socket
+
+package Network {
+
+	/**
+	 * This class provides an awaitable socket communication mechanism that trigger an event when data become available on
+	 * the read part and can be used to performe inter-process communication.
+	 * 
+	 * > This type is not copyable
+	 */
+	@class StdioSocket : Network.Socket {
+
+		/**
+		 * Binds the socket to the peer described by `endpoint`. The `endpoint` parameter should be an instance of
+         * {Network.StdioEndpoint}.
+		 */
+		const def bind(self, endpoint) {
+			self.readHandle = endpoint.getReadHandle()
+            self.writeHandle = endpoint.getWriteHandle()
+			self.setEndpoint(endpoint)
+			self.setHandle(self.readHandle)
+            self.setState(Network.Socket.State.Bound)
+		}
+
+		/**
+		 * Closes the communication with the peer if the socket was in the {Network.Socket.State.Connected} state or
+		 * stops listening if the socket was in the {Network.Socket.State.Listening} state.
+		 * 
+		 * On success, the socket enter the {Network.Socket.State.Closed} state.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		override const def close(self) {
+			self.setState(Network.Socket.State.Closed)
+			self.releaseHandle()
+			self.readHandle = none
+			self.writeHandle = none
+		}
+
+		/**
+		 * Returns at most `count` bytes of data contained in the read end of the socket.
+		 * 
+		 * The socket's data is contained in an instance of {Serializer.DataStream}.
+		 */
+		const def readSome(self, count) {
+			let stream = Serializer.DataStream()
+			Network.StdioSocket.g_lib.call('mint_stdio_socket_read_some', self.readHandle, stream.to_std_vector_uint8_t())
+			return stream
+		}
+
+		/**
+		 * Returns the data contained in the read end of the socket.
+		 * 
+		 * The socket's data is contained in an instance of {Serializer.DataStream}.
+		 */
+		const def read(self) {
+			let stream = Serializer.DataStream()
+			Network.StdioSocket.g_lib.call('mint_stdio_socket_read', self.readHandle, stream.to_std_vector_uint8_t())
+			return stream
+		}
+		
+		/**
+		 * Writes the `data` on the write end of the socket.
+		 */
+		const def write(self, data) {
+			let stream = Serializer.DataStream(data)
+			Network.StdioSocket.g_lib.call('mint_stdio_socket_write', self.writeHandle, stream.to_std_vector_uint8_t())
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Internal read handle.
+		- final readHandle = none
+
+		/// Internal write handle.
+		- final writeHandle = none
+	}
+}

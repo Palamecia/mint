@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <gtest/gtest.h>
 #include "mint/system/utf8.h"
 
@@ -5,7 +6,7 @@
 
 TEST(utf8iterator, utf8_begin_code_point) {
 
-	for (byte_t b = 0x00; b <= 0x7F; ++b) {
+	for (std::uint8_t b = 0x00; b <= 0x7F; ++b) {
 		EXPECT_TRUE(mint::utf8_begin_code_point(b)) << std::hex << static_cast<int>(b);
 	}
 
@@ -14,7 +15,7 @@ TEST(utf8iterator, utf8_begin_code_point) {
 
 TEST(utf8iterator, utf8_code_point_length) {
 
-	for (byte_t b = 0x00; b <= 0x7F; ++b) {
+	for (std::uint8_t b = 0x00; b <= 0x7F; ++b) {
 		EXPECT_EQ(1, mint::utf8_code_point_length(b)) << std::hex << static_cast<int>(b);
 	}
 

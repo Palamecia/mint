@@ -45,6 +45,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdio>
+#include <exception>
 #include <functional>
 #include <iterator>
 #include <memory>
@@ -69,9 +70,9 @@ BuildContext::BuildContext(DataStream& stream, Compiler& compiler, ModuleInfo& d
 }
 
 BuildContext::~BuildContext() {
-	assert(_operators.empty());
-	assert(_modifiers.empty());
-	assert(_branches.empty());
+	assert(_operators.empty() || std::uncaught_exceptions() > 0);
+	assert(_modifiers.empty() || std::uncaught_exceptions() > 0);
+	assert(_branches.empty() || std::uncaught_exceptions() > 0);
 	_branch.get().build();
 }
 
@@ -232,6 +233,12 @@ void BuildContext::close_block() {
 	}
 
 	context.blocks.pop_back();
+}
+
+bool BuildContext::is_in_catch() const {
+	return std::ranges::any_of(current_context().blocks, [](const auto& block) {
+		return block->type == BlockType::catch_type;
+	});
 }
 
 bool BuildContext::is_in_loop() const {
@@ -630,10 +637,16 @@ bool BuildContext::add_definition_signature() {
 	return true;
 }
 
-void BuildContext::save_definition() {
+void BuildContext::save_definition(std::string name) {
 
 	auto* def = current_definition();
 	assert(def);
+
+	_data.get().debug_info.register_function({
+	    .name = std::move(name),
+	    .begin_offset = def->begin_offset,
+	    .end_offset = next_offset(),
+	});
 
 	for (auto& signature : def->function->data<Function>().mapping) {
 		signature.second.handle().fast_count = def->fast_symbol_count;
@@ -656,12 +669,21 @@ void BuildContext::save_definition() {
 	_definitions.pop();
 }
 
-Function& BuildContext::retrieve_definition() {
+Function& BuildContext::retrieve_definition(std::string name) {
 
 	assert(!_definitions.empty());
 
 	auto def = std::move(_definitions.top());
 	_definitions.pop();
+
+	if (const auto& classes = current_context().classes; !classes.empty()) {
+		name = classes.top().first->full_name() + '.' + std::move(name);
+	}
+	_data.get().debug_info.register_function({
+	    .name = std::move(name),
+	    .begin_offset = def->begin_offset,
+	    .end_offset = next_offset(),
+	});
 
 	auto& data = def->function->data<Function>();
 	for (auto& signature : data.mapping) {

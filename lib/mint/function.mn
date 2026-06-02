@@ -70,7 +70,8 @@ load mint.type
 	 * If `object` has no member `member`, `none` is returned.
 	 */
 	const def new(self, object, %member) {
-		if isDefined(self.memberInfo = Callback.g_lib.call('mint_get_member_info', object, member)) {
+		self.memberInfo = Callback.g_lib.call('mint_get_member_info', object, member)
+		if defined self.memberInfo {
 			self.object = object
 			self.function = member
 			return self
@@ -90,9 +91,9 @@ load mint.type
 			return Callback.g_lib.call('mint_function_call', self.memberInfo, self.object, self.function, va_args)
 		}
 		if defined self.object {
-			return self.object.${self.function}(*va_args)
+			return self.object.${self.function}(...va_args)
 		}
-		return (self.function)(*va_args)
+		return (self.function)(...va_args)
 	}
 
 	/**
@@ -103,7 +104,7 @@ load mint.type
 	 * the same method on the same object.
 	 */
 	const def ==(const self, const other) {
-		if var callback = Callback(other) {
+		if let callback = Callback(other) {
 			return self.object is callback.object and self.function == callback.function
 		}
 		return false
@@ -117,7 +118,7 @@ load mint.type
 	 * the same method on the same object.
 	 */
 	const def !=(const self, const other) {
-		if var callback = Callback(other) {
+		if let callback = Callback(other) {
 			return not (self.object is callback.object) or self.function != callback.function
 		}
 		return true
@@ -149,7 +150,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-mint')
+	- @const g_lib = lib('libmint-mint')
 
 	/// Internal member informations.
 	- final memberInfo = none
@@ -162,7 +163,130 @@ load mint.type
 }
 
 /**
- * This class provides an evenemential callback mechanisme. Multiple
+ * This class provides a callback wrapper for async methods and functions.
+ * It behaves like {Callback} but awaits the wrapped async callable when it is
+ * invoked.
+ */
+@class AsyncCallback {
+	/**
+	 * Creates a new async callback for the given function.
+	 * 
+	 * The `func` parameter can also be:
+	 * * an instance of {AsyncCallback}, in this case the object is returned as the new instance.
+	 * * an object providing a `toAsyncCallback` method, in this case the result of this method call is used as the new
+	 *   instance.
+	 * * an object providing a `toFunction` method, in this case the result of this method call is used to retrieve the
+	 *   function.
+	 *  
+	 * In other cases, `none` is returned.
+	 */
+	const def new(self, %func) {
+		switch typeof func {
+		case 'AsyncCallback':
+			return func
+		case 'function':
+			self.function = func
+			return self
+		default:
+			if defined func.toAsyncCallback {
+				return func.toAsyncCallback()
+			}
+			if defined func.toFunction {
+				self.function = func.toFunction()
+				return self
+			}
+		}
+	}
+
+	/**
+	 * Creates a new async callback bound to the given object member.
+	 */
+	const def new(self, object, %member) {
+		self.memberInfo = AsyncCallback.g_lib.call('mint_get_member_info', object, member)
+		if defined self.memberInfo {
+			self.object = object
+			self.function = member
+			return self
+		} elif member in membersof object {
+			self.object = object
+			self.function = member
+			return self
+		}
+	}
+
+	/**
+	 * Invokes the wrapped async function or method and awaits its result.
+	 */
+	const async def ()(const self, ...) {
+		if defined self.memberInfo {
+			return await AsyncCallback.g_lib.call('mint_function_call', self.memberInfo, self.object, self.function, va_args)
+		}
+		if defined self.object {
+			return await self.object.${self.function}(...va_args)
+		}
+		return await (self.function)(...va_args)
+	}
+
+	/**
+	 * Returns `true` if `other` is equal to this callback.
+	 */
+	const def ==(const self, const other) {
+		if let callback = AsyncCallback(other) {
+			return self.object is callback.object and self.function == callback.function
+		}
+		return false
+	}
+
+	/**
+	 * Returns `true` if `other` is not equal to this callback.
+	 */
+	const def !=(const self, const other) {
+		if let callback = AsyncCallback(other) {
+			return not (self.object is callback.object) or self.function != callback.function
+		}
+		return true
+	}
+
+	/**
+	 * Returns the callback's object or `none` if the callback is not a callback
+	 * on an object member.
+	 */
+	const def getObject(const self) {
+		return self.object
+	}
+
+	/**
+	 * Returns the callback's function or method.
+	 */
+	const def getFunction(const self) {
+		return self.function
+	}
+
+	/**
+	 * Returns the callback's function or method name or a placeholder.
+	 */
+	const def toString(const self) {
+		if defined self.memberInfo {
+			return AsyncCallback.g_lib.call('mint_function_name', self.memberInfo)
+		}
+		return self.function.toString()
+	}
+
+	/// Global library handle.
+	- @const g_lib = lib('libmint-mint')
+
+	/// Internal member informations.
+	- final memberInfo = none
+	
+	/// Internal object.
+	- final object = none
+
+	/// Internal function.
+	- final %function = none
+}
+
+/**
+ * This class provides an event-driven callback mechanism. Multiple
  * callbacks can be connected to an instance using the {@see connect}
  * method. Each connected callback will then be called on a call to the
  * {@see ()} operator.
@@ -177,14 +301,14 @@ load mint.type
 
 	/**
 	 * Connects the signal to the given `func` function. The `func` function can
-	 * either be a `function` or an instane of {Callback}.
+	 * either be a `function` or an instance of {Callback}.
 	 * 
 	 * Returns `true` if the function was correctly connected to the signal;
-	 * otherwise returs `false`.
+	 * otherwise returns `false`.
 	 */
 	const def connect(self, func) {
 		if func not in self.slots {
-			self.slots << func
+			self.slots.push(func)
 			return true
 		}
 		return false
@@ -195,7 +319,7 @@ load mint.type
 	 * instance and the `member` method.
 	 * 
 	 * Returns `true` if the callback was correctly connected to the signal;
-	 * otherwise returs `false`.
+	 * otherwise returns `false`.
 	 */
 	const def connect(self, object, %member) {
 		return self.connect(Callback(object, member))
@@ -209,22 +333,22 @@ load mint.type
 	 * The functions will no more be called by the signal.
 	 * 
 	 * Returns `true` if the functions were correctly disconnected from the
-	 * signal; otherwise returs `false`.
+	 * signal; otherwise returns `false`.
 	 */
 	const def disconnect(self, %object) {
 		switch typeof object {
 		case 'function':
 		case 'Callback':
-			var index = self.slots.indexOf(object)
+			let index = self.slots.indexOf(object)
 			if defined index {
 				self.slots.remove(index)
 				return true
 			}
 			return false
 		default:
-			var found = false
+			let found = false
 			const count = self.slots.size()
-			for var index in 1...count {
+			for let index in 1...count {
 				if defined self.slots[count - index].getObject and object is self.slots[count - index].getObject() {
 					self.slots.remove(count - index)
 					found = true
@@ -240,10 +364,10 @@ load mint.type
 	 * signal.
 	 * 
 	 * Returns `true` if the callback was correctly disconnected from the
-	 * signal; otherwise returs `false`.
+	 * signal; otherwise returns `false`.
 	 */
 	const def disconnect(self, object, %member) {
-		var index = self.slots.indexOf(Callback(object, member))
+		let index = self.slots.indexOf(Callback(object, member))
 		if defined index {
 			self.slots.remove(index)
 			return true
@@ -256,8 +380,8 @@ load mint.type
 	 * this operator are also provided to the callbacks.
 	 */
 	const def ()(const self, ...) {
-		for var slot in self.slots {
-			slot(*va_args)
+		for let slot in self.slots {
+			slot(...va_args)
 		}
 	}
 
@@ -267,7 +391,7 @@ load mint.type
 
 /**
  * Returns a new function equivalent to `func` but with the extra arguments
- * automaticaly passed as first arguments.
+ * automatically passed as first arguments.
  * 
  * Example:
  * ```mn
@@ -278,13 +402,13 @@ load mint.type
  */
 @def partial(func, ...) {
 	return def [func, args = va_args] (...) {
-		return func(*args, *va_args)
+		return func(...args, ...va_args)
 	}
 }
 
 /**
  * Returns a new method equivalent to `func` but with the extra arguments
- * automaticaly passed as first arguments. This function works like {@see
+ * automatically passed as first arguments. This function works like {@see
  * partial} but keep the calling object instance as first parameter.
  * 
  * Example:
@@ -296,7 +420,7 @@ load mint.type
  */
 @def partialMethod(func, ...) {
 	return def [func, args = va_args] (self, ...) {
-		return func(self, *args, *va_args)
+		return func(self, ...args, ...va_args)
 	}
 }
 
@@ -306,7 +430,7 @@ load mint.type
  */
 @def reduce(func, ...) {
     value = va_args.next()
-    for var element in va_args {
+    for let element in va_args {
         value = func(value, element)
     }
     return value

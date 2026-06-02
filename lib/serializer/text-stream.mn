@@ -22,110 +22,189 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {Serializer.TextStream} class which implement a
- * stream interface for reading and writing text on any kind of object.
+ * This module provides the {Serializer.TextStream} class which implement a stream interface for reading and writing
+ * text on any kind of object.
  */
 
 load mint.lang
+load mint.string
+load codec.codec
+load exception.codec
+load serializer.data-stream
+load serializer.string-stream
 
 package Serializer {
 
 /**
- * This class provides an interface to use any object as a stream for reading
- * and writing text.
+ * This class provides an interface to use any object as a stream for reading and writing text.
  */
 @class TextStream {
 	/**
 	 * Creates a new stream on the `stream` object.
 	 * 
-	 * If the object provides all the methods of a stream object (`readChar`,
-	 * `readWord`, `readLine`, `readLines`, `read` and `write`), that methods
-	 * are directly used by the class.
+	 * If the `stream` object provides both `readSome`, `read` and `write` methods, the object is used as is; otherwise
+	 * an instance of {Serializer.BufferedStream} is created to provide these methods.
 	 * 
-	 * If the object provides at least `read` and `write` methods, the object
-	 * is used through an instance of {Serializer.BufferedStream}. The `read`
-	 * method can also be replaced by a `readString` and a `readDataStream` or
-	 * `readUInt8` method.
+	 * The `codec` parameter is used to specify the text codec to use for reading and writing text.
 	 * 
-	 * If the object does not provides any of that methods, it is used through
-	 * an instance of {Serializer.StringStream}.
+	 * If `stream` is not a valid object, `none` is returned.
 	 */
-	const def new(self, stream) {
-		self.stream = self.createInternalStream(stream)
-		return self
+	const def new(self, stream, codec = Codec.TextCodec()) {
+		if stream {
+			self.codec = codec
+			self.byteBuffer = Serializer.DataStream()
+			if defined stream.readSome and defined stream.read and defined stream.write {
+				self.stream = stream
+			} else {
+				self.stream = Serializer.StringStream(stream)
+			}
+			if defined self.stream.isEmpty {
+				self.isSourceExhausted = def(self) {
+					return self.stream.isEmpty()
+				}
+			} elif defined self.stream.isOver {
+				self.isSourceExhausted = def(self) {
+					return self.stream.isOver()
+				}
+			} elif defined self.stream.atEnd {
+				self.isSourceExhausted = def(self) {
+					return self.stream.atEnd()
+				}
+			}
+			return self
+		}
 	}
 
 	/**
-	 * Returns the codec that is current assigned to the stream. It correspond
-	 * to the codec of the underlying stream or `none` if the underlying stream
-	 * does not support codec.
+	 * Returns the codec that is current assigned to the stream. If the stream use the default codec (UTF-8), `null` is
+	 * returned.
 	 */
 	const def getCodec(const self) {
-		if defined self.stream.getCodec {
-			return self.stream.getCodec()
-		}
+		return self.codec
 	}
 
 	/**
-	 * Forwards the `codec` to the underlying object if supported.
+	 * Sets the codec for this stream to `codec`. The codec is used for decoding any data that is read from the file,
+	 * and for encoding any data that is written.
 	 */
 	const def setCodec(self, codec) {
-		if defined self.stream.setCodec {
-			self.stream.setCodec(codec)
-		}
+		self.codec = codec
 	}
 
 	/**
-	 * Reads the next character from the stream, and returns it as a string.
-	 * Data is read until a valid character is read or if the end of stream
-	 * is detected.
+	 * Reads the next character from the stream, and returns it as a string or returns `none` if no more character is
+	 * available on the stream. Data is read until a valid character is decoded or if the end of stream is detected.
 	 */
 	const def readChar(self) {
-		if isDefined(var c = self.stream.readChar()) {
-			return c.toString()
+		if self.charPos == self.charBuffer.size() {
+			if not self.decode() {
+				return none
+			}
 		}
+		return self.charBuffer[self.charPos++]
 	}
 
 	/**
-	 * Reads a word from the stream, and returns it as a string. Words are
-	 * separated by whitespace (i.e., all characters for which {isSpace}
-	 * returns `true`).
-	 * 
-	 * Leading whitespace are skipped.
+	 * Reads a word from the stream, and returns it as a string or returns `none` if no more character is available on
+	 * the stream. Words are separated by whitespace (i.e., all characters for which {isSpace} returns `true`). Leading
+	 * whitespace are skipped.
 	 */
 	const def readWord(self) {
-		if isDefined(var word = self.stream.readWord()) {
-			return word.toString()
+		let word = ''
+		while true {
+			if self.charPos == self.charBuffer.size() {
+				if not self.decode() {
+					return word.isEmpty() ? none : word
+				}
+			}
+			let char = self.charBuffer[self.charPos++]
+			if char.isSpace() {
+				if not word.isEmpty() {
+					return word
+				}
+			} else {
+				word += char
+			}
 		}
 	}
 
 	/**
-	 * Reads the next line from the stream, and returns it as a string.
-	 * Data is read until a `'\n'` character is read or if the end of
-	 * stream is detected.
+	 * Reads data from the stream until `delim` is found and returns it as a string or returns `none` if no more
+	 * character is available on the stream. The delimiter is consumed but is not included in the returned string. Data
+	 * is read until the delimiter is read or if the end of stream is detected.
+	 */
+	const def readUntil(self, delim) {
+		let index = self.charBuffer.indexOf(delim, self.charPos)
+		if defined index {
+			let text = self.charBuffer[self.charPos...index]
+			self.charPos = index + delim.size()
+			return text
+		}
+		let text = self.charBuffer.substring(self.charPos)
+		self.charPos = self.charBuffer.size()
+		while self.decode() {
+			index = self.charBuffer.indexOf(delim)
+			if defined index {
+				text += self.charBuffer[0...index]
+				self.charPos = index + delim.size()
+				return text
+			}
+			self.charPos = self.charBuffer.size()
+		}
+		return text.isEmpty() ? none : text
+	}
+
+	/**
+	 * Reads the next line from the stream, and returns it as a string or returns `none` if no more character is
+	 * available on the stream. Data is read until a `'\n'` character is read or if the end of stream is detected.
 	 */
 	const def readLine(self) {
-		if isDefined(var line = self.stream.readLine()) {
-			return line.toString()
+		let index = self.charBuffer.indexOf('\n', self.charPos)
+		if defined index {
+			let line = self.charBuffer[self.charPos...index]
+			self.charPos = index + 1
+			return line
 		}
+		let line = self.charBuffer.substring(self.charPos)
+		self.charPos = self.charBuffer.size()
+		while self.decode() {
+			index = self.charBuffer.indexOf('\n')
+			if defined index {
+				line += self.charBuffer[0...index]
+				self.charPos = index + 1
+				return line
+			}
+			self.charPos = self.charBuffer.size()
+		}
+		return line.isEmpty() ? none : line
 	}
 
 	/**
 	 * Returns an iterator on each remaining lines of the stream.
 	 */
 	const def readLines(self) {
-		for var line in self.stream.readLines() {
-			yield line.toString()
+		while not self.isEmpty() {
+			yield self.readLine()
 		}
 	}
 
 	/**
-	 * Reads all remaining data from the stream, and returns it as a string.
+	 * Reads all remaining data from the stream, and returns it as a string or returns `none` if no more character is
+	 * available on the stream.
 	 */
 	const def read(self) {
-		if isDefined(var content = self.stream.read()) {
-			return content.toString()
+		if self.charPos == self.charBuffer.size() {
+			if not self.decode() {
+				return none
+			}
 		}
+		let text = self.charBuffer.substring(self.charPos)
+		self.charPos = self.charBuffer.size()
+		while self.decode() {
+			text += self.charBuffer
+			self.charPos = self.charBuffer.size()
+		}
+		return text
 	}
 
 	/**
@@ -134,13 +213,22 @@ package Serializer {
 	 * The `write` method of the underlying object is used to write the data.
 	 */
 	const def write(self, data) {
-		self.stream.write(data.toString())
+		let pos = 0
+		let (status, encoded) = self.codec.encode(data.toString(), pos)
+		switch status {
+		case is Codec.Status.Success:
+			return self.stream.write(encoded)
+		case is Codec.Status.NeedMoreInput:
+			return self.stream.write(encoded)
+		case is Codec.Status.InvalidSequence:
+			self.stream.write(encoded)
+			raise Exception.InvalidByteSequence(self.codec.getEncoding(), pos)
+		}
 	}
 
 	/**
-	 * Reads a word from the stream and stores it in `data`, then returns a
-	 * reference to the stream. Words are separated by whitespace (i.e., all
-	 * characters for which {isSpace} returns `true`).
+	 * Reads a word from the stream and stores it in `data`, then returns a reference to the stream. Words are separated
+	 * by whitespace (i.e., all characters for which {isSpace} returns `true`).
 	 * 
 	 * Leading whitespace are skipped.
 	 */
@@ -150,9 +238,8 @@ package Serializer {
 	}
 
 	/**
-	 * Writes the string `data` to the stream, and returns a reference to the
-	 * stream. The string is first encoded using the assigned codec (the default
-	 * is UTF-8) before it is written to the stream.
+	 * Writes the string `data` to the stream, and returns a reference to the stream. The string is first encoded using
+	 * the assigned codec (the default is UTF-8) before it is written to the stream.
 	 */
 	const def <<(self, data) {
 		self.write(data)
@@ -160,49 +247,103 @@ package Serializer {
 	}
 
 	/**
-	 * Returns `true` if the stream has no more data to read; otherwise returns
-	 * `false`.
+	 * Returns `true` if the stream has no more data to read; otherwise returns `false`.
+	 * 
+	 * The underlying stream may be checked with one of those methods in the following order: `isEmpty`, `isOver` or
+	 * `atEnd`. If none of these methods are defined, `false` is returned.
 	 */
 	const def isEmpty(const self) {
-		if defined self.stream.isEmpty {
-			return self.stream.isEmpty()
+		if self.bytePos < self.byteBuffer.size() {
+			return false
 		}
-		if defined self.stream.isOver {
-			return self.stream.isOver()
+		if self.charPos < self.charBuffer.size() {
+			return false
 		}
-		if defined self.stream.atEnd {
-			return self.stream.atEnd()
-		}
-		return false
+		return self.isSourceExhausted()
 	}
 
 	/**
-	 * Returns a stream object for stream-like manipulations on the `stream`
-	 * object.
+	 * Refill the internal read byte buffer with some data from the stream. Returns `true` if raw data were added to the
+	 * read buffer; otherwise returns `false`.
 	 */
-	- final const def createInternalStream(self, stream) {
+	- final const def refill(self) {
 
-		if defined stream.read and defined stream.write {
+		self.byteBuffer.remove(self.bytePos)
+		self.bytePos = 0
 
-			if defined stream.readChar and defined stream.readWord and defined stream.readLine and defined stream.readLines {
-				return stream
+		let data = self.stream.readSome(4096)
+		if not defined data or data.isEmpty() {
+			return false
+		}
+
+		self.byteBuffer.write(data)
+		return true
+	}
+
+	/**
+	 * Refill the internal read char buffer with some data from the codec. Returns `true` if decoded data were added to
+	 * the read buffer; otherwise returns `false`.
+	 */
+	- final const def decode(self) {
+
+		if self.charPos {
+			self.charBuffer = self.charBuffer.substring(self.charPos)
+			self.charPos = 0
+		}
+
+		while self.charBuffer.isEmpty() {
+
+			if self.bytePos == self.byteBuffer.size() {
+				if not self.refill() {
+					return false
+				}
 			}
 
-			load serializer.buffered-stream
-			return Serializer.BufferedStream(stream)
+			let (status, decoded) = self.codec.decode(self.byteBuffer, self.bytePos)
+			self.charBuffer += decoded
+
+			switch status {
+			case is Codec.Status.Success:
+				return not decoded.isEmpty()
+			case is Codec.Status.NeedMoreInput:
+				if self.isEmpty() {
+					return not decoded.isEmpty()
+				}
+				self.refill()
+				if not decoded.isEmpty() {
+					return true
+				}
+				break
+			case is Codec.Status.InvalidSequence:
+                raise Exception.InvalidByteSequence(self.codec.getEncoding(), self.bytePos)
+			}
 		}
 
-		if defined stream.readString and (defined stream.readDataStream or defined stream.readUInt8) and defined stream.write {
-			load serializer.buffered-stream
-			return Serializer.BufferedStream(stream)
-		}
-
-		load serializer.string-stream
-		return Serializer.StringStream(stream)
+		return false
 	}
 
 	/// Internal underlying stream.
 	- final stream = null
+
+	/// Internal text codec.
+	- final codec = null
+
+	/// Internal read byte buffer.
+	- final byteBuffer = null
+
+	/// Internal read byte buffer offset.
+	- final bytePos = 0
+
+	/// Internal read char buffer.
+	- final charBuffer = ''
+
+	/// Internal read char buffer offset.
+	- final charPos = 0
+
+	/// Internal callback for {@see isEmpty}.
+	- final isSourceExhausted = def(self) {
+		return false
+	}
 }
 
 }

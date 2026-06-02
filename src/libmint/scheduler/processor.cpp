@@ -520,9 +520,27 @@ public:
 	}
 
 	static void on_raise(Cursor& cursor) {
+		auto scope = GarbageCollectorDeferScope();
 		Reference exception = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
 		cursor.raise(std::move(exception));
+	}
+
+	static void on_reraise(Cursor& cursor) {
+		auto scope = GarbageCollectorDeferScope();
+		auto* exception = cursor.get_exception();
+		assert(exception != nullptr);
+		exception->caught = false;
+		cursor.raise(Reference(exception->object));
+	}
+
+	static void on_reraise_in(Cursor& cursor) {
+		auto scope = GarbageCollectorDeferScope();
+		Reference exception = std::move(cursor.stack().back());
+		cursor.stack().pop_back();
+		auto cause = cursor.take_exception();
+		assert(cause != nullptr);
+		cursor.raise(std::move(exception), std::move(cause));
 	}
 
 	static void on_await(Cursor& cursor) {
@@ -673,6 +691,10 @@ public:
 
 	static void on_reset_exception(Cursor& cursor, const Symbol& symbol) {
 		reset_exception(cursor, symbol);
+	}
+
+	static void on_reset_uncaught_exception(Cursor& cursor) {
+		reset_exception(cursor);
 	}
 
 	static void on_init_parameter(Cursor& cursor, const Symbol& symbol, Reference::Flags flags, std::size_t index) {

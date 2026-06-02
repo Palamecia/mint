@@ -346,7 +346,7 @@ mint::Reference mint_process_getcmdline(mint::Cursor& cursor, const mint::Refere
 #ifdef MINT_OS_WINDOWS
 	mint::Reference results = mint::create_iterator(cursor.ast());
 
-	if (LPWSTR cmd_line = mint::GetNtProcessCommandLine(to_handle(handle))) {
+	if (LPWSTR cmd_line = mint_system::GetNtProcessCommandLine(to_handle(handle))) {
 
 		mint::Reference args = mint::create_array(cursor.ast());
 
@@ -400,10 +400,10 @@ mint::Reference mint_process_getcmdline(mint::Cursor& cursor, const mint::Refere
 
 mint::Reference mint_process_getcwd(mint::Cursor& cursor, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
-	const auto length = mint::GetNtProcessCurrentDirectory(to_handle(handle), nullptr, 0);
+	const auto length = mint_system::GetNtProcessCurrentDirectory(to_handle(handle), nullptr, 0);
 	auto current_directory_path = std::make_unique<WCHAR[]>(length);
 
-	if (mint::GetNtProcessCurrentDirectory(to_handle(handle), current_directory_path.get(), length)) {
+	if (mint_system::GetNtProcessCurrentDirectory(to_handle(handle), current_directory_path.get(), length)) {
 		return mint::create_string(cursor.ast(), std::filesystem::path(current_directory_path.get()).generic_string());
 	}
 #else
@@ -424,7 +424,7 @@ mint::Reference mint_process_getenv(mint::Cursor& cursor, const mint::Reference&
 #ifdef MINT_OS_WINDOWS
 	mint::Reference results = mint::create_hash(cursor.ast());
 
-	if (LPWCH environment = mint::GetNtProcessEnvironmentStrings(to_handle(handle))) {
+	if (LPWCH environment = mint_system::GetNtProcessEnvironmentStrings(to_handle(handle))) {
 		for (LPCWSTR buffer = environment; *buffer; buffer += lstrlenW(buffer) + 1) {
 			LPCWSTR cptr = wcschr(buffer, L'=');
 			mint::hash_insert(results.data<mint::Hash>(),

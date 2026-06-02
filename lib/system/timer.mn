@@ -1,0 +1,160 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {System.Timer} class which provides a waitable timer
+ * implementation.
+ */
+
+load mint.type
+
+package System {
+	/**
+	 * This class provides a waitable timer implementation that trigger an event
+	 * when the timer timeout.
+	 * 
+	 * The timer's clock can be adjusted by using a value of the
+	 * {System.Timer.ClockType} enum.
+	 * 
+	 * > This type is not copyable
+	 */
+	@class Timer {
+		/**
+		 * This enum describe the clock precision.
+		 */
+		enum ClockType {
+			Monotonic = 0
+		}
+		
+		/**
+		 * Creates a new timer. The created timer is not started.
+		 * 
+		 * The `clockType` can be a value of {System.Timer.ClockType} that
+		 * describe the timer's clock precision.
+		 * 
+		 * If no timer can be created, `none` is returned.
+		 */
+	    const def new(self, clockType = System.Timer.ClockType.Monotonic) {
+		    self.eventHandle = System.Timer.g_lib.call('mint_timer_create', clockType)
+		    if defined self.eventHandle {
+		    	return self
+		    }
+		}
+
+		/**
+		 * Cleans up the timer instance.
+		 */
+		const def delete(self) {
+			if defined self.eventHandle {
+				System.Timer.g_lib.call('mint_timer_close', self.eventHandle)
+			}
+		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- const clone
+
+		/**
+		 * Starts or restarts the timer with a timeout of duration `duration`
+		 * milliseconds.
+		 */
+		const def start(self, duration) {
+			System.Timer.g_lib.call('mint_timer_start', self.eventHandle, self.duration = duration)
+		}
+
+		/**
+		 * Restarts the timer with the same timeout duration than the previous
+		 * call to {@see start}. The timeout event is reseted.
+		 * 
+		 * Returns `true` if a previous timeout duration can be found; otherwise
+		 * `false` is returned and the timer is not started.
+		 */
+		const def restart(self) {
+			if defined self.duration {
+				System.Timer.g_lib.call('mint_timer_reset', self.eventHandle)
+				System.Timer.g_lib.call('mint_timer_start', self.eventHandle, self.duration)
+				return true
+			}
+			return false
+		}
+
+		/**
+		 * Stops the timer.
+		 */
+		const def stop(self) {
+			System.Timer.g_lib.call('mint_timer_stop', self.eventHandle)
+		}
+
+		/**
+		 * Resets the timout event.
+		 */
+		const def clear(self) {
+			System.Timer.g_lib.call('mint_timer_clear', self.eventHandle)
+		}
+
+		/**
+		 * Returns `true` if the timer is running; otherwise returns `false`.
+		 */
+		const def isRunning(const self) {
+			return System.Timer.g_lib.call('mint_timer_is_running', self.eventHandle)
+		}
+
+		/**
+		 * Waits until the timer timeout. If `timeout` is given, the wait
+		 * stop after `timeout` milliseconds if the timer has still not timed
+		 * out.
+		 * 
+		 * Returns `true` if the timer timed out; otherwise returns `false` if
+		 * the wait timed out.
+		 * 
+		 * After a call to this method, the event is reseted.
+		 */
+		const def wait(self, timeout = none) {
+			return System.Timer.g_lib.call('mint_timer_wait', self.eventHandle, timeout)
+		}
+
+		/**
+		 * Returns the handle used by {System.Poller}.
+		 */
+		const def getHandle(const self) {
+			return self.eventHandle
+		}
+
+		/**
+		 * Reset the internal event state
+		 */
+		const def reset(self) {
+			self.clear()
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-system')
+
+		/// Internal handle.
+		- final eventHandle = none
+
+		/// Internal timer duration.
+		- final duration = none
+	}
+}

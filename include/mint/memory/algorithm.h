@@ -41,11 +41,6 @@
 
 namespace mint {
 
-template<class... Ts>
-struct Overloaded : Ts... {
-	using Ts::operator()...;
-};
-
 template<class R, class Visitor>
 R visit(Visitor&& visitor, const Reference& reference) {
 	switch (reference.data().format()) {

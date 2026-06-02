@@ -1,0 +1,89 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Runtime.Promise} helper used to track the state of
+ * a coroutine scheduled by the runtime scheduler.
+ */
+
+package Runtime {
+	/**
+	 * This class represents the state of an asynchronous operation.
+	 */
+	@class Promise {
+		/**
+		 * Creates a new promise for the result of the `coroutine` operation.
+		 */
+		const def new(self, scheduler, coroutine) {
+			self.scheduler = scheduler
+			self.coroutine = coroutine
+			return self
+		}
+		/**
+		 * Starts the associated operation.
+		 */
+		const async def start(self) {
+			self.result = await self.coroutine
+			self.scheduler.complete(self)
+		}
+		/**
+		 * Takes the associated operation's result and returns it. If the result is not yet available, the method
+		 * returns `none`.
+		 */
+		const def get(self) {
+			return self.result
+		}
+		/**
+		 * Takes the associated operation's result and returns it. If the result is not yet available, the method
+		 * returns `none`.
+		 */
+		const def await(self) {
+			return self.get()
+		}
+		/**
+		 * Takes the associated operation's result and returns it. If the result is not yet available, the method
+		 * returns `none`.
+		 */
+		const def ()(self) {
+			return self.get()
+		}
+		/**
+		 * Returns `true` if `other` is equal to this promise; otherwise returns `false`.
+		 */
+		const def ==(const self, const other) {
+			return self is other
+		}
+		/**
+		 * Returns `false` if `other` is equal to this promise; otherwise returns `true`.
+		 */
+		const def !=(const self, const other) {
+			return not (self is other)
+		}
+		/// Internal associated scheduler.
+		- final scheduler = null
+		/// Internal associated coroutine.
+		- final coroutine = null
+		/// Internal result.
+		- final result = none
+	}
+}

@@ -45,7 +45,7 @@ public:
 	[[nodiscard]] Module::Id module_id() const;
 	[[nodiscard]] std::string module_name() const;
 	[[nodiscard]] std::size_t line_number() const;
-	[[nodiscard]] std::string to_string() const;
+	[[nodiscard]] std::string to_string(const AbstractSyntaxTree& ast) const;
 
 	[[nodiscard]] std::filesystem::path system_path() const;
 	[[nodiscard]] std::filesystem::path system_file_name() const;

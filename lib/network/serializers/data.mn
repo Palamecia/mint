@@ -22,9 +22,8 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {Network.DataSerializer} class which implement the
- * serializer interface for fixed length messages on a stream based end point such
- * as {Network.TcpIp}.
+ * This module provides the {Network.DataSerializer} implementation for fixed-size
+ * messages on stream-oriented endpoints.
  */
 
 load serializer.data-stream
@@ -32,13 +31,11 @@ load exception.network
 
 package Network {
 	/**
-	 * This class provides a serializer for fixed length messages. The message
-	 * length is passed to the constructor. This class can not be passed to an
-	 * instance of {Network.AsynchronousChannel} as is but must be used with a
-	 * decorator.
+	 * This class provides a serializer for fixed length messages. The message length is passed to the constructor. This
+	 * class can not be passed to an instance of {Network.EventChannel} as is but must be used with a decorator.
 	 * 
 	 * ```mn
-	 * channel = Network.AsynchronousChannel(endpoint, def { return Network.DataSerializer(1024) })
+	 * channel = Network.EventChannel(endpoint, def { return Network.DataSerializer(1024) })
 	 * ```
 	 */
 	@class DataSerializer {
@@ -94,18 +91,6 @@ package Network {
 		}
 
 		/**
-		 * Attempts to read data asynchronously from the end point. Returns `true` if data was
-		 * receive; otherwise returns `false`.
-		 */
-		const async def readAsync(self, endpoint) {
-			if var buffer = await endpoint.readAsync() {
-				self.stream.write(buffer)
-				return true
-			}
-			return false
-		}
-
-		/**
 		 * Attempts to write data to the end point. Returns `true` if the data
 		 * was successfully sent; otherwise returns `false`. After this call,
 		 * the sent data is removed from the buffer.
@@ -122,13 +107,98 @@ package Network {
 		}
 
 		/**
+		 * Attempts to accept a connection on the end point. This method raises
+		 * an instance of {Exception.InvalidOperation}.
+		 */
+		const def accept(self, endpoint) {
+			raise Exception.InvalidOperation('the socket can not accept', self)
+		}
+
+		/**
+		 * Returns `true` if the serializer's buffer is empty; otherwise
+		 * returns `false`.
+		 */
+		const def isEmpty(const self) {
+			return self.stream.isEmpty()
+		}
+
+		/// Internal buffer.
+		- final stream = null
+
+		/// Internal fixed length.
+		- final length = 0
+	}
+
+	/**
+	 * This class provides a serializer for fixed length messages. The message length is passed to the constructor. This
+	 * class can not be passed to an instance of {Network.EventChannel} as is but must be used with a decorator.
+	 * 
+	 * ```mn
+	 * channel = Network.EventChannel(endpoint, def { return Network.AsyncDataSerializer(1024) })
+	 * ```
+	 * 
+	 * The data is exchanged asynchronously.
+	 */
+	@class AsyncDataSerializer {
+		/**
+		 * Creates a new serializer for messages of fixed length `length`.
+		 */
+		const def new(self, length) {
+			self.stream = Serializer.DataStream()
+			self.length = length
+			return self
+		}
+
+		/**
+		 * Appends the message object provided by `message` to the serializer's
+		 * buffer. The `message` parameter must convert to a byte sequence with
+		 * a length equal to the fixed length configured for this serializer.
+		 */
+		const def appendMessage(self, message) {
+			if defined message {
+				self.stream.write(message)
+			}
+		}
+
+		/**
+		 * Returns the next message in the serializer's buffer as an array of
+		 * {uint8} with a length equal to the fixed length configured for this
+		 * serializer or `none` if the buffer contains less than this configured
+		 * amount of bytes. The data used to create the message is then removed
+		 * from the buffer.
+		 */
+		const def nextMessage(self) {
+			return self.stream.readUInt8(self.length)
+		}
+
+		/**
+		 * Returns `true` if the serializer's buffer contains at least the
+		 * configured amount of bytes; otherwise returns `false`.
+		 */
+		const def containsMessage(const self) {
+			return self.stream.containsUInt8(self.length)
+		}
+
+		/**
+		 * Attempts to read data asynchronously from the end point. Returns `true` if data was
+		 * receive; otherwise returns `false`.
+		 */
+		const async def read(self, endpoint) {
+			if var buffer = await endpoint.read() {
+				self.stream.write(buffer)
+				return true
+			}
+			return false
+		}
+
+		/**
 		 * Attempts to write data asynchronously to the end point. Returns `true` if the data
 		 * was successfully sent; otherwise returns `false`. After this call,
 		 * the sent data is removed from the buffer.
 		 */
-		const async def writeAsync(self, endpoint) {
+		const async def write(self, endpoint) {
 			if not self.stream.isEmpty() {
-				var (success, count) = await endpoint.writeAsync(self.stream)
+				var (success, count) = await endpoint.write(self.stream)
 				if success {
 					self.stream.remove(count)
 					return true
@@ -138,19 +208,11 @@ package Network {
 		}
 
 		/**
-		 * Attempts to accept a connection on the end point. This method raises
-		 * an instance of {Exception.InvalidNetworkOperation}.
-		 */
-		const def accept(self, endpoint) {
-			raise Exception.InvalidNetworkOperation('the socket can not accept', self)
-		}
-
-		/**
 		 * Attempts to accept a connection asynchronously on the end point. This method raises
-		 * an instance of {Exception.InvalidNetworkOperation}.
+		 * an instance of {Exception.InvalidOperation}.
 		 */
-		const async def acceptAsync(self, endpoint) {
-			raise Exception.InvalidNetworkOperation('the socket can not accept', self)
+		const async def accept(self, endpoint) {
+			raise Exception.InvalidOperation('the socket can not accept', self)
 		}
 
 		/**

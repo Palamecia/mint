@@ -102,7 +102,7 @@ package System {
         // TODO operating system utils
 
         /// Global library handle.
-        - @g_lib = lib('libmint-system')
+        - @const g_lib = lib('libmint-system')
     }
 
     /// Global operating system instance

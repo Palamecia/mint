@@ -21,29 +21,142 @@
  * IN THE SOFTWARE.
  */
 
+#include "mint/ast/cursor.h"
+#include "mint/config.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
 #include "mint/memory/reference.h"
+#include "mint/system/async_io.h"
 #include "mint/system/errno.h"
-#include "mint/system/utf8.h"
 #include "mint/system/filesystem.h"
-#include "mint/system/stdio.h"
 
-#include <algorithm>
 #include <array>
+#include <cerrno>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <cstddef>
-#include <iterator>
+#include <functional>
+#include <future>
+#include <memory>
+#include <span>
 #include <stdio.h>
 #include <string>
 #include <chrono>
+#include <string_view>
+#include <sys/stat.h>
+#include <system_error>
+#include <utility>
+#include <variant>
 #include <vector>
 
+#ifdef MINT_OS_WINDOWS
+#include <bit>
+#include <Windows.h>
+#include <corecrt_io.h>
+#include <errhandlingapi.h>
+#include <fileapi.h>
+#include <handleapi.h>
+#include <minwindef.h>
+#include <winbase.h>
+#include <winerror.h>
+#include <winnt.h>
+#else
+#include <asm-generic/int-ll64.h>
+#include <bits/types.h>
+#endif
+
+#ifdef MINT_ASYNC_BACKEND_IO_URING
+#include <liburing.h>
+#include <unistd.h>
+#endif
+
 namespace {
+
+#ifdef MINT_OS_WINDOWS
+struct CreateFileMode {
+	DWORD access = 0;
+	DWORD disposition = 0;
+};
+
+CreateFileMode fopen_mode_to_createfile(const std::string& mode) {
+
+	const auto* mode_str = mode.c_str();
+	bool read = false;
+	bool write = false;
+	bool append = false;
+	bool plus = false;
+
+	switch (mode_str[0]) {
+	case 'r':
+		read = true;
+		break;
+
+	case 'w':
+		write = true;
+		break;
+
+	case 'a':
+		write = true;
+		append = true;
+		break;
+
+	default:
+		throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+	}
+
+	for (const char* p = mode_str + 1; *p; ++p) {
+		switch (*p) {
+		case '+':
+			plus = true;
+			break;
+
+		case 'b':
+		case 't':
+			/* ignored */
+			break;
+
+		default:
+			throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+		}
+	}
+
+	if (plus) {
+		read = true;
+		write = true;
+	}
+
+	auto createfile_mode = CreateFileMode {};
+
+	if (read) {
+		createfile_mode.access |= GENERIC_READ;
+	}
+	if (write) {
+		createfile_mode.access |= GENERIC_WRITE;
+	}
+
+	switch (mode_str[0]) {
+	case 'r':
+		createfile_mode.disposition = OPEN_EXISTING;
+		break;
+
+	case 'w':
+		createfile_mode.disposition = CREATE_ALWAYS;
+		break;
+
+	case 'a':
+		createfile_mode.disposition = OPEN_ALWAYS;
+		break;
+
+	default:
+		throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+	}
+
+	return createfile_mode;
+}
+#endif
 
 mint::Reference file_time_to_date(const std::filesystem::file_time_type& time) {
 	return mint::create_signed_number(
@@ -345,10 +458,10 @@ mint::Reference mint_file_remove(mint::Cursor& /*cursor*/, const mint::Reference
 	}
 }
 
-mint::Reference mint_file_fopen(mint::Cursor& cursor, const mint::Reference& path, const mint::Reference& mode) {
+mint::Reference mint_file_open(mint::Cursor& cursor, const mint::Reference& path, const mint::Reference& mode) {
 	try {
-		if (FILE* file = mint::open_file(mint::to_string(path), mint::to_string(mode).c_str())) {
-			return create_iterator_from(cursor, mint::create_c_object(cursor.ast(), file), mint::create_none());
+		if (const auto fd = mint::open_file_descriptor(mint::to_string(path), mint::to_string(mode).c_str()); fd != -1) {
+			return create_iterator_from(cursor, mint::create_signed_number(fd), mint::create_none());
 		}
 		return create_iterator_from(cursor, mint::create_null(), mint::create_number(errno));
 	}
@@ -357,138 +470,593 @@ mint::Reference mint_file_fopen(mint::Cursor& cursor, const mint::Reference& pat
 	}
 }
 
-mint::Reference mint_file_fclose(mint::Cursor& /*cursor*/, mint::Reference& d_ptr) {
-	if (FILE* file = d_ptr.data<mint::LibObject<FILE>>().ptr) {
-		const auto status = std::fclose(file);
+mint::Reference mint_file_close(mint::Cursor& cursor, mint::Reference& d_ptr) {
+	if (const auto fd = mint::to_integer<int>(cursor, d_ptr); fd != -1) {
+		if (close(fd) != 0) {
+			d_ptr.move_data(mint::create_null());
+			return mint::create_number(errno);
+		}
 		d_ptr.move_data(mint::create_null());
-		if (status) {
+	}
+	return {};
+}
+
+mint::Reference mint_file_get_handle(mint::Cursor& cursor, mint::Reference& d_ptr) {
+#ifdef MINT_OS_WINDOWS
+	return mint::create_handle(cursor.ast(),
+	    std::bit_cast<mint::handle_t>(_get_osfhandle(mint::to_integer<int>(cursor, d_ptr))));
+#else
+	return mint::create_handle(cursor.ast(), std::bit_cast<mint::handle_t>(mint::to_integer<int>(cursor, d_ptr)));
+#endif
+}
+
+mint::Reference mint_file_tell(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+	const auto pos = lseek(mint::to_integer<int>(cursor, d_ptr), 0, SEEK_CUR);
+	return mint::create_iterator_from(cursor, (pos == -1L) ? mint::create_number(errno) : mint::create_number(0),
+	    mint::create_number(pos));
+}
+
+mint::Reference mint_file_seek(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& pos) {
+	auto cursor_pos = mint::to_integer<long>(cursor, pos);
+	if (lseek(mint::to_integer<int>(cursor, d_ptr), cursor_pos, (cursor_pos < 0) ? SEEK_END : SEEK_SET) < 0) {
+		return mint::create_number(errno);
+	}
+	return mint::create_number(0);
+}
+
+mint::Reference mint_file_at_end(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+	const auto fd = mint::to_integer<int>(cursor, d_ptr);
+	const auto pos = lseek(fd, 0, SEEK_CUR);
+	struct stat file_info = {};
+	fstat(fd, &file_info);
+	return mint::create_boolean(pos == file_info.st_size);
+}
+
+mint::Reference mint_file_read(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& buffer) {
+
+	auto local_buffer = std::array<std::uint8_t, BUFSIZ>();
+	auto* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	const auto fd = mint::to_integer<int>(cursor, d_ptr);
+
+	for (;;) {
+		const auto bytes_read = read(fd, local_buffer.data(), local_buffer.size());
+		if (bytes_read > 0) {
+			buf->append_range(std::span(local_buffer.data(), bytes_read));
+		}
+		else if (bytes_read == 0) {
+			return mint::create_number(0);
+		}
+		else if (errno != EINTR) {
 			return mint::create_number(errno);
 		}
 	}
-	return {};
 }
 
-mint::Reference mint_file_fileno(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	const auto fd = fileno(d_ptr.data<mint::LibObject<FILE>>().ptr);
-	if (fd != -1) {
-		return mint::create_number(fd);
-	}
-	return {};
-}
+mint::Reference mint_file_read_some(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& buffer,
+    const mint::Reference& count) {
 
-mint::Reference mint_file_ftell(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	const auto pos = ftell(d_ptr.data<mint::LibObject<FILE>>().ptr);
-	return mint::create_iterator_from(cursor, mint::create_number(pos),
-	    (pos == -1L) ? mint::create_number(errno) : mint::create_none());
-}
+	const auto local_buffer_length = mint::to_integer<std::size_t>(cursor, count);
+	auto local_buffer = std::make_unique<char[]>(local_buffer_length);
+	auto* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	const auto fd = mint::to_integer<int>(cursor, d_ptr);
 
-mint::Reference mint_file_fseek(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& pos) {
-	auto cursor_pos = mint::to_integer<long>(cursor, pos);
-	const auto status = fseek(d_ptr.data<mint::LibObject<FILE>>().ptr, cursor_pos,
-	    (cursor_pos < 0) ? SEEK_END : SEEK_SET);
-	return (status != 0) ? mint::create_number(errno) : mint::create_none();
-}
-
-mint::Reference mint_file_at_end(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return mint::create_boolean(std::feof(d_ptr.data<mint::LibObject<FILE>>().ptr));
-}
-
-mint::Reference mint_file_fgetc(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	if (const int cptr = fgetc(d_ptr.data<mint::LibObject<FILE>>().ptr); cptr != EOF) {
-		std::string result(1, static_cast<char>(cptr));
-		std::size_t length = mint::utf8_code_point_length(static_cast<std::uint8_t>(cptr));
-		while (--length) {
-			result += static_cast<char>(fgetc(d_ptr.data<mint::LibObject<FILE>>().ptr));
+	for (;;) {
+		const auto bytes_read = read(fd, local_buffer.get(), local_buffer_length);
+		if (bytes_read >= 0) {
+			buf->append_range(std::span(local_buffer.get(), bytes_read));
+			return mint::create_number(0);
 		}
-		return mint::create_string(cursor.ast(), result);
+		if (errno != EINTR) {
+			return mint::create_number(errno);
+		}
 	}
+}
+
+mint::Reference mint_file_write(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& buffer) {
+
+	const auto fd = mint::to_integer<int>(cursor, d_ptr);
+	auto* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+
+	const auto bytes_transferred = write(fd, buf->data(), buf->size());
+	return mint::create_iterator_from(cursor,
+	    (bytes_transferred < buf->size()) ? mint::create_number(errno) : mint::create_number(0),
+	    mint::create_unsigned_number(bytes_transferred));
+}
+
+mint::Reference mint_file_flush(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+	const auto fd = mint::to_integer<int>(cursor, d_ptr);
+#ifdef MINT_OS_WINDOWS
+	if (_commit(fd) != 0) {
+		return mint::create_number(errno);
+	}
+#else
+	if (fsync(fd) == -1) {
+		return mint::create_number(errno);
+	}
+#endif
 	return {};
 }
 
-mint::Reference mint_file_fgetw(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-
-	char* word = nullptr;
-
-	if (const auto read = fscanf(d_ptr.data<mint::LibObject<FILE>>().ptr, "%ms", &word); read != EOF) {
-		return mint::create_string(cursor.ast(), std::string(word, static_cast<std::size_t>(read)));
-		std::free(word);
+mint::Reference mint_file_open_async(mint::Cursor& cursor, const mint::Reference& path, const mint::Reference& mode) {
+	try {
+#ifdef MINT_ASYNC_BACKEND_IOCP
+		const auto createfile_mode = fopen_mode_to_createfile(mint::to_string(mode));
+		auto* handle = CreateFileW(std::filesystem::path(mint::to_string(path)).generic_wstring().data(),
+		    createfile_mode.access, FILE_SHARE_READ, nullptr, createfile_mode.disposition,
+		    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, nullptr);
+		if (handle != INVALID_HANDLE_VALUE) {
+			return create_iterator_from(cursor, mint::create_handle(cursor.ast(), handle), mint::create_none());
+		}
+#elifdef MINT_OS_LINUX
+		const auto fd = mint::open_file_descriptor(mint::to_string(path), mint::to_string(mode).data());
+		if (fd != -1) {
+			return create_iterator_from(cursor, mint::create_handle(cursor.ast(), fd), mint::create_none());
+		}
+#else
+#error "This operation is not implemented for this platform"
+#endif
+		return create_iterator_from(cursor, mint::create_null(), mint::create_number(errno));
 	}
+	catch (const std::filesystem::filesystem_error& error) {
+		return mint::create_number(mint::errno_from_error_code(error.code()));
+	}
+}
 
+mint::Reference mint_file_close_async(mint::Cursor& /*cursor*/, mint::Reference& d_ptr) {
+#ifdef MINT_ASYNC_BACKEND_IOCP
+	if (auto* handle = mint::to_handle(d_ptr); handle != mint::invalid_handle) {
+		if (!CloseHandle(handle)) {
+			d_ptr.move_data(mint::create_null());
+			return mint::create_number(mint::errno_from_last_error());
+		}
+		d_ptr.move_data(mint::create_null());
+	}
+#elifdef MINT_OS_LINUX
+	if (auto fd = mint::to_handle(d_ptr); fd != mint::invalid_handle) {
+		if (close(fd) != 0) {
+			d_ptr.move_data(mint::create_null());
+			return mint::create_number(mint::errno_from_last_error());
+		}
+		d_ptr.move_data(mint::create_null());
+	}
+#else
+#error "This operation is not implemented for this platform"
+#endif
 	return {};
 }
 
-mint::Reference mint_file_readline(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-
-	if (FILE* stream = d_ptr.data<mint::LibObject<FILE>>().ptr; !std::feof(stream)) {
-		auto line = mint::get_line(stream);
-		line.back() = '\0';
-		return mint::create_string(cursor.ast(), line);
+mint::Reference mint_file_tell_async(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+#ifdef MINT_ASYNC_BACKEND_IOCP
+	auto pos = LARGE_INTEGER {};
+	if (!::SetFilePointerEx(mint::to_handle(d_ptr), {}, &pos, FILE_CURRENT)) {
+		return mint::create_iterator_from(cursor, mint::create_number(mint::errno_from_last_error()));
 	}
-
-	return {};
+	return mint::create_iterator_from(cursor, mint::create_number(0), mint::create_signed_number(pos.QuadPart));
+#elifdef MINT_OS_LINUX
+	const auto pos = lseek(mint::to_handle(d_ptr), 0, SEEK_CUR);
+	return mint::create_iterator_from(cursor, (pos == -1L) ? mint::create_number(errno) : mint::create_number(0),
+	    mint::create_number(pos));
+#else
+#error "This operation is not implemented for this platform"
+#endif
 }
 
-mint::Reference mint_file_read(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-
-	std::string result;
-
-	for (FILE* stream = d_ptr.data<mint::LibObject<FILE>>().ptr; !std::feof(stream);) {
-		result += mint::get_line(stream);
+mint::Reference mint_file_seek_async(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& pos) {
+#ifdef MINT_ASYNC_BACKEND_IOCP
+	const auto offset = mint::to_integer<LONGLONG>(cursor, pos);
+	auto cursor_pos = LARGE_INTEGER {
+	    .QuadPart = std::abs(offset),
+	};
+	if (!::SetFilePointerEx(mint::to_handle(d_ptr), cursor_pos, nullptr, (offset < 0) ? FILE_END : FILE_BEGIN)) {
+		return mint::create_number(mint::errno_from_last_error());
 	}
-
-	return mint::create_string(cursor.ast(), result);
-}
-
-mint::Reference mint_file_fwrite(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& value) {
-
-	FILE* stream = d_ptr.data<mint::LibObject<FILE>>().ptr;
-	const std::string str = to_string(value);
-
-	const auto amount = fwrite(str.data(), sizeof(char), str.size(), stream);
-	return mint::create_iterator_from(cursor, mint::create_number(static_cast<double>(amount)),
-	    (amount < str.size()) ? mint::create_number(errno) : mint::create_none());
-}
-
-mint::Reference mint_file_read_byte(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
-    const mint::Reference& buffer) {
-	if (const int cptr = fgetc(d_ptr.data<mint::LibObject<FILE>>().ptr); cptr != EOF) {
-		buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->push_back(static_cast<std::uint8_t>(cptr));
-		return mint::create_boolean(true);
+	return mint::create_number(0);
+#elifdef MINT_OS_LINUX
+	auto cursor_pos = mint::to_integer<long>(cursor, pos);
+	if (lseek(mint::to_handle(d_ptr), cursor_pos, (cursor_pos < 0) ? SEEK_END : SEEK_SET) < 0) {
+		return mint::create_number(errno);
 	}
-	return mint::create_boolean(false);
+	return mint::create_number(0);
+#else
+#error "This operation is not implemented for this platform"
+#endif
 }
 
-mint::Reference mint_file_read_binary(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
-    const mint::Reference& buffer) {
-
-	std::array<std::uint8_t, BUFSIZ> chunk = {};
-	std::vector<std::uint8_t>* bytearray = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
-
-	while (!std::feof(d_ptr.data<mint::LibObject<FILE>>().ptr)) {
-		const auto amount = fread(chunk.data(), sizeof(std::uint8_t), chunk.size(),
-		    d_ptr.data<mint::LibObject<FILE>>().ptr);
-		std::copy_n(chunk.data(), amount, std::back_inserter(*bytearray));
-	}
-
-	return mint::create_boolean(!bytearray->empty());
+mint::Reference mint_file_at_end_async(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+#ifdef MINT_ASYNC_BACKEND_IOCP
+	auto pos = LARGE_INTEGER {};
+	SetFilePointerEx(mint::to_handle(d_ptr), pos, &pos, FILE_CURRENT);
+	auto size = LARGE_INTEGER {};
+	GetFileSizeEx(mint::to_handle(d_ptr), &size);
+	return mint::create_boolean(pos.QuadPart >= size.QuadPart);
+#elifdef MINT_OS_LINUX
+	const auto pos = lseek(mint::to_handle(d_ptr), 0, SEEK_CUR);
+	struct stat file_info = {};
+	fstat(mint::to_handle(d_ptr), &file_info);
+	return mint::create_boolean(pos == file_info.st_size);
+#else
+#error "This operation is not implemented for this platform"
+#endif
 }
 
-mint::Reference mint_file_fwrite_binary(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    const mint::Reference& buffer) {
+mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
+    const mint::Reference& d_ptr, const mint::Reference& buffer) {
+	class AsyncReadOperation : public mint::MintAsyncOperation {
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+		std::reference_wrapper<mint::AsyncRuntime> _scheduler;
+		std::future<void> _future;
+		std::error_code _error;
+#endif
+		std::vector<std::uint8_t>* _buf;
+		std::array<char, BUFSIZ> _local_buffer {};
+#ifdef MINT_ASYNC_BACKEND_IOCP
+		LARGE_INTEGER _pos {};
+#elifdef MINT_OS_LINUX
+		__off_t _pos {};
+#endif
+	public:
+		AsyncReadOperation(mint::Reference self, mint::AsyncRuntime& scheduler, mint::handle_t handle,
+		    std::vector<std::uint8_t>* buf) :
+		    mint::MintAsyncOperation(std::move(self), handle),
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+		    _scheduler(scheduler),
+#endif
+		    _buf(buf) {
+		}
 
-	FILE* stream = d_ptr.data<mint::LibObject<FILE>>().ptr;
-	std::vector<std::uint8_t>* bytearray = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+		std::error_code start() override {
 
-	const auto amount = fwrite(bytearray->data(), sizeof(std::uint8_t), bytearray->size(), stream);
+#ifdef MINT_ASYNC_BACKEND_IOCP
+			if (!::SetFilePointerEx(get_handle(), {}, &_pos, FILE_CURRENT)) {
+				return mint::last_error_code();
+			}
 
-	return create_iterator_from(cursor, mint::create_number(static_cast<double>(amount)),
-	    (amount < bytearray->size()) ? mint::create_number(errno) : mint::create_none());
+			Offset = static_cast<DWORD>(_pos.LowPart);
+			OffsetHigh = static_cast<DWORD>(_pos.HighPart);
+
+			if (!::ReadFile(get_handle(), _local_buffer.data(), static_cast<DWORD>(_local_buffer.size()), nullptr,
+			        this)) {
+				switch (GetLastError()) {
+				case ERROR_IO_PENDING:
+					break;
+				default:
+					return mint::last_error_code();
+				}
+			}
+#elifdef MINT_OS_LINUX
+			return std::visit(mint::Overloaded {
+#ifdef MINT_ASYNC_BACKEND_IO_URING
+			                      [&](mint::IoUringOperation& self) -> std::error_code {
+				                      _pos = lseek(get_handle(), 0, SEEK_CUR);
+				                      io_uring_prep_read(self.sqe, get_handle(), _local_buffer.data(),
+				                          static_cast<unsigned>(_local_buffer.size()), static_cast<__u64>(_pos));
+				                      return {};
+			                      },
+#endif
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+			                      [&](mint::EPollOperation& self) -> std::error_code {
+				                      _future = std::async([&]() {
+					                      const auto result = pread64(get_handle(), _local_buffer.data(),
+					                          _local_buffer.size(), static_cast<__off64_t>(_pos));
+					                      if (result != -1) {
+						                      self.result = result;
+					                      }
+					                      else {
+						                      _error = mint::last_error_code();
+					                      }
+					                      _scheduler.get().post_deferred_completion(*this);
+				                      });
+				                      return {};
+			                      },
+#endif
+			                      [](std::monostate) -> std::error_code {
+				                      return std::make_error_code(std::errc::not_supported);
+			                      },
+			                  },
+			    *this);
+#else
+#error "This operation is not implemented for this platform"
+#endif
+
+			return {};
+		}
+
+		void complete(std::error_code error, std::size_t bytes_transferred) override {
+			if (error) {
+				done(mint::create_number(error.value()));
+			}
+#ifdef MINT_ASYNC_BACKEND_IOCP
+			else {
+				_pos.QuadPart += static_cast<LONGLONG>(bytes_transferred);
+				if (!::SetFilePointerEx(get_handle(), _pos, nullptr, FILE_BEGIN)) {
+					done(mint::create_number(error.value()));
+				}
+				else {
+					_buf->append_range(std::span(_local_buffer.data(), bytes_transferred));
+					done(mint::create_number(0));
+				}
+			}
+#elifdef MINT_OS_LINUX
+			_pos += static_cast<__off_t>(bytes_transferred);
+			if (lseek(get_handle(), _pos, SEEK_SET) < 0) {
+				done(mint::create_number(mint::errno_from_last_error()));
+			}
+			else {
+				_buf->append_range(std::span(_local_buffer.data(), bytes_transferred));
+				done(mint::create_number(0));
+			}
+#else
+#error "This operation is not implemented for this platform"
+#endif
+		}
+	};
+
+	return mint::create_async_operation(cursor.ast(),
+	    new AsyncReadOperation(std::move(self), *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
+	        mint::to_handle(d_ptr), buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
 }
 
-mint::Reference mint_file_fflush(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	FILE* stream = d_ptr.data<mint::LibObject<FILE>>().ptr;
-	const int status = std::fflush(stream);
-	return status ? mint::create_number(errno) : mint::create_none();
+mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
+    const mint::Reference& d_ptr, const mint::Reference& buffer, const mint::Reference& count) {
+	class AsyncReadSomeOperation : public mint::MintAsyncOperation {
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+		std::reference_wrapper<mint::AsyncRuntime> _scheduler;
+		std::future<void> _future;
+		std::error_code _error;
+#endif
+		std::vector<std::uint8_t>* _buf;
+		std::unique_ptr<char[]> _local_buffer;
+		std::size_t _buffer_length;
+#ifdef MINT_ASYNC_BACKEND_IOCP
+		LARGE_INTEGER _pos {};
+#elifdef MINT_OS_LINUX
+		__off_t _pos {};
+#endif
+	public:
+		AsyncReadSomeOperation(mint::Reference self, mint::AsyncRuntime& scheduler, mint::handle_t handle,
+		    std::vector<std::uint8_t>* buf, std::size_t count) :
+		    mint::MintAsyncOperation(std::move(self), handle),
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+		    _scheduler(scheduler),
+#endif
+		    _buf(buf),
+		    _local_buffer(std::make_unique<char[]>(count)),
+		    _buffer_length(count) {
+		}
+
+		std::error_code start() override {
+
+#ifdef MINT_ASYNC_BACKEND_IOCP
+			if (!::SetFilePointerEx(get_handle(), {}, &_pos, FILE_CURRENT)) {
+				return mint::last_error_code();
+			}
+
+			Offset = static_cast<DWORD>(_pos.LowPart);
+			OffsetHigh = static_cast<DWORD>(_pos.HighPart);
+
+			if (!::ReadFile(get_handle(), _local_buffer.get(), static_cast<DWORD>(_buffer_length), nullptr, this)) {
+				switch (GetLastError()) {
+				case ERROR_IO_PENDING:
+					break;
+				default:
+					return mint::last_error_code();
+				}
+			}
+#elifdef MINT_OS_LINUX
+			return std::visit(mint::Overloaded {
+#ifdef MINT_ASYNC_BACKEND_IO_URING
+			                      [&](mint::IoUringOperation& self) -> std::error_code {
+				                      _pos = lseek(get_handle(), 0, SEEK_CUR);
+				                      io_uring_prep_read(self.sqe, get_handle(), _local_buffer.get(),
+				                          static_cast<unsigned>(_buffer_length), static_cast<__u64>(_pos));
+				                      return {};
+			                      },
+#endif
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+			                      [&](mint::EPollOperation& self) -> std::error_code {
+				                      _future = std::async([&]() {
+					                      const auto result = pread64(get_handle(), _local_buffer.get(), _buffer_length,
+					                          static_cast<__off64_t>(_pos));
+					                      if (result != -1) {
+						                      self.result = result;
+					                      }
+					                      else {
+						                      _error = mint::last_error_code();
+					                      }
+					                      _scheduler.get().post_deferred_completion(*this);
+				                      });
+				                      return {};
+			                      },
+#endif
+			                      [](std::monostate) -> std::error_code {
+				                      return std::make_error_code(std::errc::not_supported);
+			                      },
+			                  },
+			    *this);
+#else
+#error "This operation is not implemented for this platform"
+#endif
+
+			return {};
+		}
+
+		void complete(std::error_code error, std::size_t bytes_transferred) override {
+			if (error) {
+				done(mint::create_number(error.value()));
+			}
+#ifdef MINT_ASYNC_BACKEND_IOCP
+			else {
+				_pos.QuadPart += static_cast<LONGLONG>(bytes_transferred);
+				if (!::SetFilePointerEx(get_handle(), _pos, nullptr, FILE_BEGIN)) {
+					done(mint::create_number(mint::errno_from_last_error()));
+				}
+				else {
+					_buf->append_range(std::span(_local_buffer.get(), bytes_transferred));
+					done(mint::create_number(0));
+				}
+			}
+#elifdef MINT_OS_LINUX
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+			if (_error) {
+				done(mint::create_number(_error.value()));
+			}
+#endif
+			_pos += static_cast<__off_t>(bytes_transferred);
+			if (lseek(get_handle(), _pos, SEEK_SET) < 0) {
+				done(mint::create_number(mint::errno_from_last_error()));
+			}
+			else {
+				_buf->append_range(std::span(_local_buffer.get(), bytes_transferred));
+				done(mint::create_number(0));
+			}
+#else
+#error "This operation is not implemented for this platform"
+#endif
+		}
+	};
+
+	return mint::create_async_operation(cursor.ast(),
+	    new AsyncReadSomeOperation(std::move(self), *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
+	        mint::to_handle(d_ptr), buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr,
+	        mint::to_integer<std::size_t>(cursor, count)));
+}
+
+mint::Reference mint_file_write_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
+    const mint::Reference& d_ptr, const mint::Reference& buffer) {
+	class AsyncWriteOperation : public mint::MintAsyncOperation {
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+		std::reference_wrapper<mint::AsyncRuntime> _scheduler;
+		std::future<void> _future;
+		std::error_code _error;
+#endif
+		std::reference_wrapper<mint::Cursor> _cursor;
+		std::span<std::uint8_t> _buffer;
+	public:
+		AsyncWriteOperation(mint::Cursor& cursor, mint::Reference self, mint::AsyncRuntime& scheduler,
+		    mint::handle_t handle, std::span<std::uint8_t> buffer) :
+		    mint::MintAsyncOperation(std::move(self), handle),
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+		    _scheduler(scheduler),
+#endif
+		    _cursor(cursor),
+		    _buffer(buffer) {
+		}
+
+		std::error_code start() override {
+
+#ifdef MINT_ASYNC_BACKEND_IOCP
+			if (!WriteFile(get_handle(), _buffer.data(), static_cast<DWORD>(_buffer.size()), nullptr, this)) {
+				switch (GetLastError()) {
+				case ERROR_IO_PENDING:
+					break;
+				default:
+					return mint::last_error_code();
+				}
+			}
+#elifdef MINT_OS_LINUX
+			return std::visit(mint::Overloaded {
+#ifdef MINT_ASYNC_BACKEND_IO_URING
+			                      [&](mint::IoUringOperation& self) -> std::error_code {
+				                      io_uring_prep_write(self.sqe, get_handle(), _buffer.data(),
+				                          static_cast<unsigned>(_buffer.size()), -1);
+				                      return {};
+			                      },
+#endif
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+			                      [&](mint::EPollOperation& self) -> std::error_code {
+				                      _future = std::async([&]() {
+					                      const auto result = write(get_handle(), _buffer.data(), _buffer.size());
+					                      if (result != -1) {
+						                      self.result = result;
+					                      }
+					                      else {
+						                      _error = mint::last_error_code();
+					                      }
+					                      _scheduler.get().post_deferred_completion(*this);
+				                      });
+				                      return {};
+			                      },
+#endif
+			                      [](std::monostate) -> std::error_code {
+				                      return std::make_error_code(std::errc::not_supported);
+			                      },
+			                  },
+			    *this);
+#else
+#error "This operation is not implemented for this platform"
+#endif
+
+			return {};
+		}
+
+		void complete(std::error_code error, std::size_t bytes_transferred) override {
+			if (error) {
+				done(mint::create_iterator_from(_cursor, mint::create_number(error.value())));
+			}
+			else {
+				done(mint::create_iterator_from(_cursor, mint::create_number(0),
+				    mint::create_unsigned_number(bytes_transferred)));
+			}
+		}
+	};
+
+	return mint::create_async_operation(cursor.ast(),
+	    new AsyncWriteOperation(cursor, std::move(self), *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
+	        mint::to_handle(d_ptr), *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
+}
+
+mint::Reference mint_file_flush_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
+    const mint::Reference& d_ptr) {
+	class AsyncFlushOperation : public mint::MintAsyncOperation {
+		std::reference_wrapper<mint::AsyncRuntime> _scheduler;
+		std::future<void> _future;
+		std::error_code _error;
+	public:
+		AsyncFlushOperation(mint::Reference self, mint::AsyncRuntime& scheduler, mint::handle_t handle) :
+		    mint::MintAsyncOperation(std::move(self), handle),
+		    _scheduler(scheduler) {}
+
+		std::error_code start() override {
+
+#ifdef MINT_ASYNC_BACKEND_IOCP
+			_future = std::async([this]() {
+				if (!FlushFileBuffers(get_handle())) {
+					_error = mint::last_error_code();
+				}
+				_scheduler.get().post_deferred_completion(*this);
+			});
+#elifdef MINT_OS_LINUX
+			_future = std::async([this]() {
+				if (fsync(get_handle()) == -1) {
+					_error = mint::last_error_code();
+				}
+				_scheduler.get().post_deferred_completion(*this);
+			});
+#else
+#error "This operation is not implemented for this platform"
+#endif
+
+			return {};
+		}
+
+		void complete(std::error_code error, std::size_t bytes_transferred) override {
+			if (error) {
+				done(mint::create_number(error.value()));
+			}
+#if defined(MINT_ASYNC_BACKEND_IOCP) || defined(MINT_ASYNC_BACKEND_IO_URING)
+			else if (_error) {
+				done(mint::create_number(_error.value()));
+			}
+#endif
+			else {
+				done(mint::create_none());
+			}
+		}
+	};
+
+	return mint::create_async_operation(cursor.ast(),
+	    new AsyncFlushOperation(std::move(self), *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
+	        mint::to_handle(d_ptr)));
 }
 
 }
@@ -517,18 +1085,24 @@ MINT_EXPORT_FUNCTION(mint_file_create_symlink, 2)
 MINT_EXPORT_FUNCTION(mint_file_copy, 2)
 MINT_EXPORT_FUNCTION(mint_file_rename, 2)
 MINT_EXPORT_FUNCTION(mint_file_remove, 1)
-MINT_EXPORT_FUNCTION(mint_file_fopen, 2)
-MINT_EXPORT_FUNCTION(mint_file_fclose, 1)
-MINT_EXPORT_FUNCTION(mint_file_fileno, 1)
-MINT_EXPORT_FUNCTION(mint_file_ftell, 1)
-MINT_EXPORT_FUNCTION(mint_file_fseek, 2)
+
+MINT_EXPORT_FUNCTION(mint_file_open, 2)
+MINT_EXPORT_FUNCTION(mint_file_close, 1)
+MINT_EXPORT_FUNCTION(mint_file_get_handle, 1)
+MINT_EXPORT_FUNCTION(mint_file_tell, 1)
+MINT_EXPORT_FUNCTION(mint_file_seek, 2)
 MINT_EXPORT_FUNCTION(mint_file_at_end, 1)
-MINT_EXPORT_FUNCTION(mint_file_fgetc, 1)
-MINT_EXPORT_FUNCTION(mint_file_fgetw, 1)
-MINT_EXPORT_FUNCTION(mint_file_readline, 1)
-MINT_EXPORT_FUNCTION(mint_file_read, 1)
-MINT_EXPORT_FUNCTION(mint_file_fwrite, 2)
-MINT_EXPORT_FUNCTION(mint_file_read_byte, 2)
-MINT_EXPORT_FUNCTION(mint_file_read_binary, 2)
-MINT_EXPORT_FUNCTION(mint_file_fwrite_binary, 2)
-MINT_EXPORT_FUNCTION(mint_file_fflush, 1)
+MINT_EXPORT_FUNCTION(mint_file_read, 2)
+MINT_EXPORT_FUNCTION(mint_file_read_some, 3)
+MINT_EXPORT_FUNCTION(mint_file_write, 2)
+MINT_EXPORT_FUNCTION(mint_file_flush, 1)
+
+MINT_EXPORT_FUNCTION(mint_file_open_async, 2)
+MINT_EXPORT_FUNCTION(mint_file_close_async, 1)
+MINT_EXPORT_FUNCTION(mint_file_tell_async, 1)
+MINT_EXPORT_FUNCTION(mint_file_seek_async, 2)
+MINT_EXPORT_FUNCTION(mint_file_at_end_async, 1)
+MINT_EXPORT_FUNCTION(mint_file_read_async, 4)
+MINT_EXPORT_FUNCTION(mint_file_read_some_async, 5)
+MINT_EXPORT_FUNCTION(mint_file_write_async, 4)
+MINT_EXPORT_FUNCTION(mint_file_flush_async, 3)

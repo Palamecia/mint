@@ -6,8 +6,8 @@ load test.case
 		while i is null or i < 5 {
 			try {
 				i++
-			} catch e {
-				e = 0
+			} catch error {
+				error = 0
 			}
 		}
 		self.expectEqual(5, i)
@@ -18,8 +18,8 @@ load test.case
 			a = null
 			try {
 				a++
-			} catch e {
-				e = i
+			} catch error {
+				error = i
 			}
 			self.expectEqual(i, a)
 		}
@@ -30,8 +30,8 @@ load test.case
 			if let foo = true {
 				raise foo
 			}
-		} catch e {
-			self.expectEqual(true, e)
+		} catch error {
+			self.expectEqual(true, error)
 		}
 		self.expectNotDefined(foo)
 	}

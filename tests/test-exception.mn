@@ -5,8 +5,8 @@ load exception.exception
 	const def testCatch(self) {
 		try {
 			raise 'test'
-		} catch e {
-			var received = e
+		} catch error {
+			var received = error
 		}
 		self.expectEqual('test', received)
 	}
@@ -17,8 +17,8 @@ load exception.exception
 				yield (none)
 				raise 'test'
 			} ()
-		} catch e {
-			var received = e
+		} catch error {
+			var received = error
 		}
 		self.expectEqual('test', received)
 	}
@@ -26,8 +26,8 @@ load exception.exception
 	const def testCatchRuntimeError(self) {
 		try {
 			raise Exception.RuntimeError('test')
-		} catch e {
-			var received = e
+		} catch error {
+			var received = error
 		}
 		self.expectEqual('test', received.toString())
 	}

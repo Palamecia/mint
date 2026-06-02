@@ -23,10 +23,12 @@
 
 #include "mint/debug/line_info.h"
 #include "mint/ast/module.h"
+#include "mint/debug/debug_info.h"
 #include "mint/debug/debug_tools.h"
 #include "mint/ast/abstract_syntax_tree.h"
 #include <cstddef>
 #include <filesystem>
+#include <format>
 #include <string>
 #include <utility>
 
@@ -59,13 +61,33 @@ std::size_t LineInfo::line_number() const {
 	return _line_number;
 }
 
-std::string LineInfo::to_string() const {
+namespace {
 
-	if (_line_number) {
-		return "Module '" + _module_name + "', line " + std::to_string(_line_number);
+std::string execution_location(const DebugInfo* debug_info, const std::string& module_name, std::size_t line_number) {
+
+	if (debug_info == nullptr) {
+		return module_name;
 	}
 
-	return "Module '" + _module_name + "', line unknown";
+	if (const auto* function = debug_info->find_function_from_line_number(line_number)) {
+		return function->name + "()";
+	}
+
+	return module_name;
+}
+
+}
+
+std::string LineInfo::to_string(const AbstractSyntaxTree& ast) const {
+	auto module_path = to_system_path(_module_name).string();
+	if (module_path.empty()) {
+		module_path = "unknown";
+	}
+	if (_line_number) {
+		const auto location = execution_location(ast.find_debug_info(_module_id), _module_name, _line_number);
+		return std::format("at {} ({}:{})", location, module_path, _line_number);
+	}
+	return std::format("at {} ({})", _module_name, module_path);
 }
 
 std::filesystem::path LineInfo::system_path() const {

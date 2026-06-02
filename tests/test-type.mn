@@ -114,8 +114,8 @@ load mint.type
             let b = Foo()
 
             self.fail()
-        } catch e {
-            self.expectEqual("multiple definition of class 'Foo'", e.toString())
+        } catch error {
+            self.expectEqual("multiple definition of class 'Foo'", error.toString())
         }
     }
 

@@ -1,0 +1,269 @@
+load test.case
+load runtime.scheduler
+load network.endpoints.ip
+load network.sockets.tcp
+
+@class NetworkSocketTest : Test.Case {
+    const def testOnTcpMessage(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
+
+        async def [...] serverMain() {
+            let server = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            server.setSocketOption(Network.SocketOption.REUSEADDR, true)
+            self.expectEqual(true, server.listen(endpoint))
+            let client = await server.accept()
+            await client.write('ok')
+            client.close()
+            server.close()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, await client.connect(endpoint))
+            let result = await client.read(def(buffer) => buffer.containsString())
+            client.close()
+            return result.getString()
+        }
+
+        scheduler.spawn(serverMain())
+
+        let promise = scheduler.spawn(clientMain())
+        scheduler.run()
+
+        self.expectEqual('ok', promise.get())
+    }
+
+    const def testTcpMultipleClients(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7358)
+        let results = []
+
+        async def [...] serverMain() {
+
+            let server = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            server.setSocketOption(Network.SocketOption.REUSEADDR, true)
+            self.expectEqual(true, server.listen(endpoint))
+
+            for (let i = 0, i < 3, i = i + 1) {
+                let client = await server.accept()
+                await client.write('ok')
+                client.close()
+            }
+
+            server.close()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, await client.connect(endpoint))
+            results.push((await client.read(def(buffer) => buffer.containsString())).getString())
+            client.close()
+        }
+
+        scheduler.spawn(serverMain())
+
+        scheduler.spawn(clientMain())
+        scheduler.spawn(clientMain())
+        scheduler.spawn(clientMain())
+
+        scheduler.run()
+
+        self.expectEqual(['ok','ok','ok'], results)
+    }
+
+    const def testTcpConcurrentClients(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7359)
+        let results = []
+
+        async def [...] serverMain() {
+
+            let server = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            server.setSocketOption(Network.SocketOption.REUSEADDR, true)
+            self.expectEqual(true, server.listen(endpoint))
+
+            for (let i = 0, i < 3, i = i + 1) {
+                let client = await server.accept()
+                await client.write('hello')
+                client.close()
+            }
+
+            server.close()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, await client.connect(endpoint))
+            results.push((await client.read(def(buffer) => buffer.containsString())).getString())
+            client.close()
+        }
+
+        scheduler.spawn(serverMain())
+
+        for (let i = 0, i < 3, i = i + 1) {
+            scheduler.spawn(clientMain())
+        }
+
+        scheduler.run()
+
+        self.expectEqual(3, results.size())
+    }
+
+    const def testTcpBidirectional(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7360)
+        let result = ''
+
+        async def [...] serverMain() {
+            let server = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            server.setSocketOption(Network.SocketOption.REUSEADDR, true)
+            self.expectEqual(true, server.listen(endpoint))
+            let client = await server.accept()
+            let message = (await client.read(def(buffer) => buffer.containsString())).getString()
+            await client.write(message + ' world')
+            client.close()
+            server.close()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, await client.connect(endpoint))
+            await client.write('hello')
+            result = (await client.read(def(buffer) => buffer.containsString())).getString()
+            client.close()
+        }
+
+        scheduler.spawn(serverMain())
+        scheduler.spawn(clientMain())
+
+        scheduler.run()
+
+        self.expectEqual('hello world', result)
+    }
+
+    const def testTcpClientDisconnect(self) {
+
+        let scheduler = Runtime.Scheduler()
+		let endpoint = Network.IpEndpoint('127.0.0.1', 7361)
+
+        async def [...] serverMain() {
+            let server = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            server.setSocketOption(Network.SocketOption.REUSEADDR, true)
+            self.expectEqual(true, server.listen(endpoint))
+            let client = await server.accept()
+            client.close()
+            server.close()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, await client.connect(endpoint))
+            client.close()
+        }
+
+        scheduler.spawn(serverMain())
+        scheduler.spawn(clientMain())
+
+        scheduler.run()
+    }
+
+    const def testTcpLargeMessage(self) {
+
+        let scheduler = Runtime.Scheduler()
+		let endpoint = Network.IpEndpoint('127.0.0.1', 7362)
+
+        let message = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+        let result = ''
+
+        async def [...] serverMain() {
+            let server = Network.TcpSocket().asyncOn(scheduler)
+			self.expectEqual(true, server.open(endpoint.getIpVersion()))
+			server.setSocketOption(Network.SocketOption.REUSEADDR, true)
+            self.expectEqual(true, server.listen(endpoint))
+            let client = await server.accept()
+            await client.write(message)
+            client.close()
+            server.close()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, await client.connect(endpoint))
+            result = (await client.read(def(buffer) => buffer.containsString())).getString()
+            client.close()
+        }
+
+        scheduler.spawn(serverMain())
+        scheduler.spawn(clientMain())
+
+        scheduler.run()
+
+        self.expectEqual(message, result)
+    }
+
+    const def testTcpAcceptLoop(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7363)
+        let results = []
+
+        async def [...] serverMain() {
+
+            let server = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            server.setSocketOption(Network.SocketOption.REUSEADDR, true)
+            self.expectEqual(true, server.listen(endpoint))
+
+            for (let i = 0, i < 2, i = i + 1) {
+                let client = await server.accept()
+                await client.write('ok')
+                client.close()
+            }
+
+            server.close()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, await client.connect(endpoint))
+            results.push((await client.read(def(buffer) => buffer.containsString())).getString())
+            client.close()
+        }
+
+        scheduler.spawn(serverMain())
+        scheduler.spawn(clientMain())
+        scheduler.spawn(clientMain())
+
+        scheduler.run()
+
+        self.expectEqual(['ok','ok'], results)
+    }
+
+    const def testTcpSocketMetadata(self) {
+
+        let socket = Network.TcpSocket()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7364)
+
+        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        self.expectEqual(Network.Socket.State.Open, socket.getState())
+        self.expectEqual(true, socket.setNonBlocking(true))
+        self.expectEqual(true, socket.isNonBlocking())
+
+        self.expectEqual(true, socket.listen(endpoint))
+        self.expectDefined(socket.getEndpoint())
+
+        self.expectEqual(true, socket.setNonBlocking(false))
+        self.expectEqual(false, socket.isNonBlocking())
+        socket.close()
+    }
+}

@@ -1,0 +1,100 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Codec.TextCodec} class which provide the text codec interface to convert text from/to
+ * UTF-8.
+ */
+
+load serializer.data-stream
+
+package Codec {
+	/**
+	 * Status of a byte conversions.
+	 */
+	@enum Status {
+		/// Conversion succeed.
+		Success
+		/// Conversion need more bytes.
+		NeedMoreInput
+        /// Invalid byte sequence provided.
+        InvalidSequence
+	}
+
+	/**
+	 * This class provides the interface to convert text from/to UTF-8. This implementation converts raw bytes into
+     * UTF-8 characters.
+	 */
+    @class TextCodec {
+        /**
+         * Decode the characters from `buffer` starting at position `pos`. Returns an iterator containing the completion
+         * status as an instance of {Codec.Status} and the decoded characters. If the status is {Codec.Status.Success},
+         * no more character can be decoded from the buffer. If the status is {Codec.Status.NeedMoreInput} more data
+         * should be added to continue decoding. If the status is {Codec.Status.InvalidSequence}, decoding can not be
+         * continued beyond this point. On any case, `pos` is moved to the position of the next byte to decode. The
+         * `buffer` parameter should be an instance of {Serializer.DataStream}.
+         */
+        const def decode(self, buffer, pos) {
+			let (status, value) = Codec.TextCodec.g_lib.call('mint_text_codec_decode', buffer.to_std_vector_uint8_t(), pos)
+			switch status {
+			case 0:
+				return (Codec.Status.Success, value)
+			case 1:
+				return (Codec.Status.NeedMoreInput, value)
+			case -1:
+                return (Codec.Status.InvalidSequence, value)
+			}
+        }
+
+        /**
+         * Encode the string `str` starting at position `pos`. Returns an iterator containing the completion status as
+         * an instance of {Codec.Status} and an instance of {Serializer.DataStream} containing the encoded bytes. If the
+         * status is {Codec.Status.Success}, no more character need to be encoded from the string. If the status is
+         * {Codec.Status.NeedMoreInput} more data should be added to continue encoding. If the status is
+         * {Codec.Status.InvalidSequence}, encoding can not be continued beyond this point. On any case, `pos` is moved
+         * to the position of the next byte to decode.
+         */
+        const def encode(self, str, pos) {
+            let buffer = Serializer.DataStream()
+            let status = Codec.TextCodec.g_lib.call('mint_text_codec_encode', str, buffer.to_std_vector_uint8_t(), pos)
+			switch status {
+			case 0:
+				return (Codec.Status.Success, buffer)
+			case 1:
+				return (Codec.Status.NeedMoreInput, buffer)
+			case -1:
+                return (Codec.Status.InvalidSequence, buffer)
+			}
+        }
+
+        /**
+         * Returns the encoding name used by the codec.
+         */
+        const def getEncoding(const self) {
+            return 'UTF-8'
+        }
+
+		/// Global library handle.
+        - @const g_lib = lib('libmint-codec')
+    }
+}

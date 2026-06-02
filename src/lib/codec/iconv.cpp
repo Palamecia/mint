@@ -24,18 +24,23 @@
 #include "mint/ast/cursor.h"
 #include "mint/ast/symbol.h"
 #include "mint/memory/builtin/libobject.h"
+#include "mint/memory/cast_tools.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/builtin/string.h"
+#include "mint/system/utf8.h"
 #include <algorithm>
 #include <array>
-#include <bit>
 #include <cerrno>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <iterator>
 #include <iconv.h>
+#include <span>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #ifdef MINT_OS_WINDOWS
@@ -51,19 +56,7 @@ struct IconvContext {
 	iconv_t encode_cd;
 };
 
-constexpr std::size_t iconv_failed = std::size_t(-1);
-
-namespace symbols {
-
-const mint::Symbol codec_type("Codec");
-const mint::Symbol iconv_type("Iconv");
-const mint::Symbol state_type("State");
-
-const mint::Symbol invalid("Invalid");
-const mint::Symbol success("Success");
-const mint::Symbol need_more("NeedMore");
-
-}
+constexpr auto iconv_failed = static_cast<std::size_t>(-1);
 
 mint::Reference mint_iconv_open(mint::Cursor& cursor, const mint::Reference& encoding) {
 	return mint::create_c_object(cursor.ast(),
@@ -73,29 +66,30 @@ mint::Reference mint_iconv_open(mint::Cursor& cursor, const mint::Reference& enc
 	    });
 }
 
-mint::Reference mint_iconv_close(mint::Cursor& /*cursor*/, const mint::Reference& context) {
-	iconv_close(context.data<mint::LibObject<IconvContext>>().ptr->decode_cd);
-	iconv_close(context.data<mint::LibObject<IconvContext>>().ptr->encode_cd);
-	delete context.data<mint::LibObject<IconvContext>>().ptr;
+mint::Reference mint_iconv_close(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+	iconv_close(d_ptr.data<mint::LibObject<IconvContext>>().ptr->decode_cd);
+	iconv_close(d_ptr.data<mint::LibObject<IconvContext>>().ptr->encode_cd);
+	delete d_ptr.data<mint::LibObject<IconvContext>>().ptr;
 	return {};
 }
 
-mint::Reference mint_iconv_decode(mint::FunctionHelper& helper, const mint::Reference& context, mint::Reference& buffer,
-    const mint::Reference& stream) {
+mint::Reference mint_iconv_decode(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& buffer,
+    const mint::Reference& pos) {
 
-	iconv_t cd = context.data<mint::LibObject<IconvContext>>().ptr->decode_cd;
-	auto state_type = helper.reference(symbols::codec_type).member(symbols::iconv_type).member(symbols::state_type);
+	const auto offset = mint::to_integer<std::size_t>(cursor, pos);
+	auto bytes = std::span(*buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr).subspan(offset);
+	auto* cd = d_ptr.data<mint::LibObject<IconvContext>>().ptr->decode_cd;
+	auto decoded = std::string();
 
 #ifdef MINT_OS_WINDOWS
-	WINICONV_CONST auto* inbuf =
-	    (WINICONV_CONST char*)(stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data());
+	WINICONV_CONST auto* inbuf = (WINICONV_CONST char*)(bytes.data());
 #else
-	auto* inbuf = (char*)(stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data());
+	auto* inbuf = (char*)(bytes.data());
 #endif
-	std::size_t inlen = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size();
+	auto inlen = bytes.size();
 
-	std::array<char, BUFSIZ> outbuf = {};
-	std::size_t outlen = BUFSIZ;
+	auto outbuf = std::array<char, BUFSIZ>();
+	auto outlen = outbuf.size();
 
 	for (;;) {
 
@@ -105,39 +99,51 @@ mint::Reference mint_iconv_decode(mint::FunctionHelper& helper, const mint::Refe
 		if (count == iconv_failed) {
 			switch (errno) {
 			case E2BIG:
-				std::copy_n(outbuf.data(), BUFSIZ - outlen, std::back_inserter(buffer.data<mint::String>().str));
+				decoded.append_range(std::span(outbuf.data(), outbuf.size() - outlen));
 				outlen = BUFSIZ;
 				break;
 			case EILSEQ:
-				return state_type.member(symbols::invalid).share();
+				decoded.append_range(std::span(outbuf.data(), outbuf.size() - outlen));
+				pos.data<mint::Number>().value = mint::to_number(offset + decoded.size());
+				return mint::create_iterator_from(cursor, mint::create_number(1),
+				    mint::create_string(cursor.ast(), decoded));
 			case EINVAL:
-				return state_type.member(symbols::need_more).share();
+				decoded.append_range(std::span(outbuf.data(), outbuf.size() - outlen));
+				pos.data<mint::Number>().value = mint::to_number(offset + decoded.size());
+				return mint::create_iterator_from(cursor, mint::create_number(-1), pos);
 			default:
 				break;
 			}
 		}
 		else {
-			std::copy_n(outbuf.data(), BUFSIZ - outlen, std::back_inserter(buffer.data<mint::String>().str));
-			return state_type.member(symbols::success).share();
+			decoded.append_range(std::span(outbuf.data(), outbuf.size() - outlen));
+			pos.data<mint::Number>().value = mint::to_number(offset + decoded.size());
+			return mint::create_iterator_from(cursor, mint::create_number(0),
+			    mint::create_string(cursor.ast(), decoded));
 		}
 	}
 }
 
-mint::Reference mint_iconv_encode(mint::FunctionHelper& helper, const mint::Reference& context, mint::Reference& buffer,
-    const mint::Reference& stream) {
+mint::Reference mint_iconv_encode(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& str,
+    const mint::Reference& buffer, const mint::Reference& pos) {
 
-	iconv_t cd = context.data<mint::LibObject<IconvContext>>().ptr->encode_cd;
-	auto state_type = helper.reference(symbols::codec_type).member(symbols::iconv_type).member(symbols::state_type);
+	auto* output = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto* cd = d_ptr.data<mint::LibObject<IconvContext>>().ptr->encode_cd;
+	auto input_string = mint::to_string(str);
+	const auto offset = mint::utf8_code_point_index_to_byte_index(input_string,
+	    mint::to_integer<std::size_t>(cursor, pos));
+	auto input_view = std::string_view(input_string).substr(offset);
+	auto bytes_pos = 0uz;
 
 #ifdef MINT_OS_WINDOWS
-	WINICONV_CONST auto* inbuf = (WINICONV_CONST char*)(buffer.data<mint::String>().str.c_str());
+	WINICONV_CONST auto* inbuf = (WINICONV_CONST char*)(input_view.data());
 #else
-	auto* inbuf = (char*)(buffer.data<mint::String>().str.c_str());
+	auto* inbuf = (char*)(input_view.data());
 #endif
-	std::size_t inlen = buffer.data<mint::String>().str.size();
+	std::size_t inlen = input_view.size();
 
-	std::array<char, BUFSIZ> outbuf = {};
-	std::size_t outlen = BUFSIZ;
+	auto outbuf = std::array<char, BUFSIZ>();
+	auto outlen = outbuf.size();
 
 	for (;;) {
 
@@ -147,24 +153,29 @@ mint::Reference mint_iconv_encode(mint::FunctionHelper& helper, const mint::Refe
 		if (count == iconv_failed) {
 			switch (errno) {
 			case E2BIG:
-				std::copy_n(reinterpret_cast<std::uint8_t*>(outbuf.data()), BUFSIZ - outlen,
-				    std::back_inserter(*stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
-				outlen = BUFSIZ;
+				output->append_range(std::span(outbuf.data(), outbuf.size() - outlen));
+				bytes_pos += outbuf.size() - outlen;
+				outlen = outbuf.size();
 				break;
-
 			case EILSEQ:
-				return state_type.member(symbols::invalid).share();
+				output->append_range(std::span(outbuf.data(), outbuf.size() - outlen));
+				bytes_pos += outbuf.size() - outlen;
+				pos.data<mint::Number>().value = mint::to_number(offset + bytes_pos);
+				return mint::create_number(1);
 			case EINVAL:
-				return state_type.member(symbols::need_more).share();
+				output->append_range(std::span(outbuf.data(), outbuf.size() - outlen));
+				bytes_pos += outbuf.size() - outlen;
+				pos.data<mint::Number>().value = mint::to_number(offset + bytes_pos);
+				return mint::create_number(-1);
 			default:
 				break;
 			}
 		}
 		else {
-			std::copy_n(reinterpret_cast<std::uint8_t*>(outbuf.data()), BUFSIZ - outlen,
-			    std::back_inserter(*stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
-			stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->push_back('\0');
-			return state_type.member(symbols::success).share();
+			output->append_range(std::span(outbuf.data(), outbuf.size() - outlen));
+			bytes_pos += outbuf.size() - outlen;
+			pos.data<mint::Number>().value = mint::to_number(offset + bytes_pos);
+			return mint::create_number(0);
 		}
 	}
 }
@@ -174,4 +185,4 @@ mint::Reference mint_iconv_encode(mint::FunctionHelper& helper, const mint::Refe
 MINT_EXPORT_FUNCTION(mint_iconv_open, 1)
 MINT_EXPORT_FUNCTION(mint_iconv_close, 1)
 MINT_EXPORT_FUNCTION(mint_iconv_decode, 3)
-MINT_EXPORT_FUNCTION(mint_iconv_encode, 3)
+MINT_EXPORT_FUNCTION(mint_iconv_encode, 4)

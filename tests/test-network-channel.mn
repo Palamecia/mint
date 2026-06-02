@@ -1,26 +1,28 @@
 load test.case
 load system.thread
+load network.poller
 load network.channel
-load network.endpoints.tcp-ip
-load network.endpoints.udp-ip
+load network.endpoints.ip
+load network.sockets.tcp
+load network.sockets.udp
 load network.serializers.server
 load network.serializers.datagram
-load network.protocols.http.client
-load network.protocols.http.server
 
 @class NetworkChannelTest : Test.Case {
-	const def testSynchronousTcpMessage(self) {
+	const def testTcpMessage(self) {
 
-        let scheduler = Network.SchedulerThread()
-        scheduler.startSynchronizationLoop()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
 
-        let server = Network.SynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357), Network.ServerSerializer)
-        self.expectEqual(true, server.listen())
+        let socket = Network.TcpSocket()
+        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+        let server = Network.Channel(socket, Network.ServerSerializer)
+        self.expectEqual(true, server.listen(endpoint))
 
-        let client = Network.SynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357))
-        self.expectEqual(true, client.connect())
+        let client = Network.Channel(Network.TcpSocket())
+        self.expectEqual(true, client.connect(endpoint))
 
-        let remoteClient = Network.SynchronousChannel(server.read())
+        let remoteClient = Network.Channel(server.read())
         server.close()
 
         remoteClient.write('ok')
@@ -29,249 +31,92 @@ load network.protocols.http.server
         let result = client.read()
         client.close()
 
-        scheduler.stopSynchronizationLoop()
         self.expectEqual('ok', result)
     }
 
-	const def testAsynchronousTcpMessage(self) {
+	const def testTcpMessageEvent(self) {
 
         let result = 'ko'
-        let scheduler = Network.Scheduler()
-        let client = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357))
-        let server = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357), Network.ServerSerializer)
+        let poller = Network.Poller()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
 
-        server.onMessage = def [result] (self, channel) {
-            let client = Network.AsynchronousChannel(channel.read())
-            client.onMessage = def [result] (self, channel) {
+        let socket = Network.TcpSocket()
+        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+        let server = Network.EventChannel(socket, Network.ServerSerializer)
+        server.onMessage = def [result, poller] (self, channel) {
+            let client = Network.EventChannel(channel.read())
+            client.onMessage = def [result, poller] (self, channel) {
                 result = channel.read()
                 channel.close()
-                channel.unwatch()
+                poller.unwatch(channel)
             }
-            client.watch()
+            poller.watch(client)
             channel.close()
-            channel.unwatch()
+            poller.unwatch(channel)
         }
 
+        self.expectEqual(true, poller.watch(server))
+        self.expectEqual(true, server.listen(endpoint))
+
+        let client = Network.EventChannel(Network.TcpSocket())
         client.onOpen = def (self, channel) {
             channel.write('ok')
         }
-
-        client.onClose = def (self, channel) {
-            channel.unwatch()
+        client.onClose = def [poller] (self, channel) {
+            poller.unwatch(channel)
         }
 
-        self.expectEqual(true, server.watch())
-        self.expectEqual(true, server.listen())
+        self.expectEqual(true, poller.watch(client))
+        self.expectEqual(true, client.connect(endpoint))
 
-        self.expectEqual(true, client.watch())
-        self.expectEqual(true, client.connect())
+        poller.run()
 
-        scheduler.run()
         self.expectEqual('ok', result)
     }
 
-	const def testSynchronousTcpMessageAsync(self) {
+	const def testTcpMessageAsync(self) {
 
-        let scheduler = Network.Scheduler()
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
 
         async def [...] serverMain() {
-            let server = Network.SynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357), Network.ServerSerializer)
-            self.expectEqual(true, server.listen())
-            let client = await server.readAsync()
-            await client.writeAsync('ok')
-            await client.closeAsync()
-            await server.closeAsync()
+            let socket = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+            socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+            let server = Network.AsyncChannel(socket, Network.AsyncServerSerializer)
+            self.expectEqual(true, server.listen(endpoint))
+            let client = await server.read()
+            await client.write('ok')
         }
 
         async def [...] clientMain() {
-            let client = Network.SynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357))
-            self.expectEqual(true, await client.connectAsync())
-            let result = await client.readAsync()
-            await client.closeAsync()
-            return result
+            let client = Network.AsyncChannel(Network.TcpSocket().asyncOn(scheduler))
+            self.expectEqual(true, await client.connect(endpoint))
+            return await client.read()
         }
 
         scheduler.spawn(serverMain())
 
         let promise = scheduler.spawn(clientMain())
-        scheduler.runAll()
+        scheduler.run()
 
         self.expectEqual('ok', promise.get())
     }
 
-	const def testAsynchronousTcpMessageAsync(self) {
-
-        let scheduler = Network.Scheduler()
-        let serverEvents = []
-        let clientEvents = []
-
-        async def [...] serverMain() {
-            let server = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357), Network.ServerSerializer)
-            server.onOpen = def [...] (self, channel) {
-                serverEvents.push('open')
-            }
-            server.onClose = def [...] (self, channel) {
-                serverEvents.push('close')
-            }
-            server.onMessage = def [...] (self, channel) {
-                serverEvents.push('message')
-            }
-            self.expectEqual(true, scheduler.watch(server))
-            self.expectEqual(true, server.listen())
-            let client = Network.AsynchronousChannel(await server.readAsync())
-            self.expectEqual(true, client.watch())
-            await client.writeAsync('ok')
-            await client.closeAsync()
-            await server.closeAsync()
-        }
-
-        async def [...] clientMain() {
-            let client = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357))
-            client.onOpen = def [...] (self, channel) {
-                clientEvents.push('open')
-            }
-            client.onClose = def [...] (self, channel) {
-                clientEvents.push('close')
-            }
-            client.onMessage = def [...] (self, channel) {
-                clientEvents.push('message')
-            }
-            self.expectEqual(true, scheduler.watch(client))
-            self.expectEqual(true, await client.connectAsync())
-            let result = await client.readAsync()
-            await client.closeAsync()
-            return result
-        }
-
-        scheduler.spawn(serverMain())
-
-        let promise = scheduler.spawn(clientMain())
-        scheduler.runAll()
-
-        self.expectEqual('ok', promise.get())
-        self.expectEqual(['open', 'message', 'close'], serverEvents)
-        self.expectEqual(['open', 'message', 'close'], clientEvents)
-    }
-
-	const def testHttpMessage(self) {
+    const def testUdpMessage(self) {
 
         let result = 'ko'
-        let scheduler = Network.Scheduler()
-        let client = Network.Http.Client(Network.TcpIp(scheduler, '127.0.0.1', 7357))
-        let server = Network.Http.Server(Network.TcpIp(scheduler, '127.0.0.1', 7357))
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
 
-        server.onConnection = def [result] (self, channel) {
-            channel.onMessage = def [result] (self, channel) {
-                result = channel.read().getBody()
-                channel.close()
-                channel.unwatch()
-            }
-            self.close()
-            self.unwatch()
-        }
+        let socket = Network.UdpSocket()
+        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+        let server = Network.Channel(socket, Network.DatagramSerializer)
+        self.expectEqual(true, server.bind(endpoint))
 
-        client.onOpen = def (self, channel) {
-            channel.write('ok')
-        }
-
-        client.onClose = def (self, channel) {
-            channel.unwatch()
-        }
-
-        self.expectEqual(true, server.watch())
-        self.expectEqual(true, server.listen())
-
-        self.expectEqual(true, client.watch())
-        self.expectEqual(true, client.connect())
-
-        scheduler.run()
-        self.expectEqual('ok', result)
-    }
-
-	const def testHttpMessageAsync(self) {
-
-        let result = 'ko'
-        let scheduler = Network.Scheduler()
-
-        async def [...] clientMain() {
-            let client = Network.Http.Client(Network.TcpIp(scheduler, '127.0.0.1', 7357))
-            self.expectEqual(true, client.watch())
-            self.expectEqual(true, await client.connectAsync())
-            await client.writeAsync('ok')
-            await client.closeAsync()
-        }
-    
-        // TODO: add some Network.Http.AsyncServer to use coroutine based API
-        let server = Network.Http.Server(Network.TcpIp(scheduler, '127.0.0.1', 7357))
-        server.onConnection = def [result] (self, channel) {
-            channel.onMessage = def [result] (self, channel) {
-                result = channel.read().getBody()
-                channel.close()
-                channel.unwatch()
-            }
-            self.close()
-            self.unwatch()
-        }
-
-        self.expectEqual(true, server.watch())
-        self.expectEqual(true, server.listen())
-
-        scheduler.spawn(clientMain())
-        scheduler.runAll()
-
-        self.expectEqual('ok', result)
-    }
-
-	const def testAsynchronousUdpMessage(self) {
-
-        let result = 'ko'
-        let scheduler = Network.Scheduler()
-        let client = Network.AsynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
-        let server = Network.AsynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
-
-        let sender = System.Thread(def [client, result] {
-            while result === 'ko' {
-                client.write('ok')
-                System.wait()
-            }
-            client.close()
-        })
-
-        server.onMessage = def [result] (self, channel) {
-            let datagram = channel.read()
-            result = datagram.data().getString()
-            channel.close()
-            channel.unwatch()
-        }
-
-        client.onClose = def (self, channel) {
-            channel.unwatch()
-        }
-
-        self.expectEqual(true, server.watch())
-        self.expectEqual(true, server.bind())
-
-        self.expectEqual(true, client.watch())
-        self.expectEqual(true, client.connect())
-
-        sender.start()
-        scheduler.run()
-
-        self.expectEqual('ok', result)
-    }
-
-    const def testSynchronousUdpMessage(self) {
-
-        let result = 'ko'
-        let scheduler = Network.SchedulerThread()
-        scheduler.startSynchronizationLoop()
-
-        let server = Network.SynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
-        self.expectEqual(true, server.bind())
-        self.expectEqual(true, server.setNonBlocking(true))
-
-        let client = Network.SynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
-        self.expectEqual(true, client.connect())
+        let client = Network.Channel(Network.UdpSocket(), Network.DatagramSerializer)
+        self.expectEqual(true, client.connect(endpoint))
 
         let sender = System.Thread(def [client, result] {
             while result === 'ko' {
@@ -291,97 +136,80 @@ load network.protocols.http.server
         result = datagram.data().getString()
         server.close()
 
-        scheduler.stopSynchronizationLoop()
         self.expectEqual('ok', result)
     }
 
-    const def testAsynchronousUdpMessageAsync(self) {
+	const def testUdpMessageEvent(self) {
 
-        let scheduler = Network.Scheduler()
-        let serverEvents = []
-        let clientEvents = []
         let result = 'ko'
+        let poller = Network.Poller()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
 
-        async def [...] serverMain() {
-            let server = Network.AsynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
-
-            server.onOpen = def [...] (self, channel) {
-                serverEvents.push('open')
-            }
-            server.onClose = def [...] (self, channel) {
-                serverEvents.push('close')
-            }
-
-            self.expectEqual(true, scheduler.watch(server))
-            self.expectEqual(true, server.bind())
-
-            let datagram = await server.readAsync()
+        let socket = Network.UdpSocket()
+        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+        let server = Network.EventChannel(socket, Network.DatagramSerializer)
+        server.onMessage = def [...] (self, channel) {
+            let datagram = channel.read()
             result = datagram.data().getString()
-            await server.closeAsync()
-
-            return result
+            channel.close()
+            poller.unwatch(channel)
         }
 
-        async def [...] clientMain() {
-            let client = Network.AsynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
+        let client = Network.EventChannel(Network.UdpSocket(), Network.DatagramSerializer)
+        client.onClose = def [...] (self, channel) {
+            poller.unwatch(channel)
+        }
 
-            client.onOpen = def [...] (self, channel) {
-                clientEvents.push('open')
-            }
-            client.onClose = def [...] (self, channel) {
-                clientEvents.push('close')
-            }
-
-            self.expectEqual(true, scheduler.watch(client))
-            self.expectEqual(true, await client.connectAsync())
-
+        let sender = System.Thread(def [client, result] {
             while result === 'ko' {
-                await client.writeAsync('ok')
+                client.write('ok')
+                System.wait()
             }
+            client.close()
+        })
 
-            await client.closeAsync()
-        }
+        self.expectEqual(true, poller.watch(server))
+        self.expectEqual(true, server.bind(endpoint))
 
-        let promise = scheduler.spawn(serverMain())
-        scheduler.spawn(clientMain())
-        scheduler.runAll()
+        self.expectEqual(true, poller.watch(client))
+        self.expectEqual(true, client.connect(endpoint))
 
-        self.expectEqual('ok', promise.get())
+        sender.start()
+        poller.run()
 
-        self.expectEqual(['open', 'close'], serverEvents)
-        self.expectEqual(['open', 'close'], clientEvents)
+        self.expectEqual('ok', result)
     }
 
-    const def testSynchronousUdpMessageAsync(self) {
+    const def testUdpMessageAsync(self) {
 
-        let scheduler = Network.Scheduler()
         let result = 'ko'
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
 
         async def [...] serverMain() {
-            let server = Network.SynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
-            self.expectEqual(true, server.bind())
-
-            let datagram = await server.readAsync()
+            let socket = Network.UdpSocket().asyncOn(scheduler)
+            self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+            socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+            let server = Network.AsyncChannel(socket, Network.AsyncDatagramSerializer)
+            self.expectEqual(true, server.bind(endpoint))
+            let datagram = await server.read()
             result = datagram.data().getString()
-            await server.closeAsync()
-
             return result
         }
 
         async def [...] clientMain() {
-            let client = Network.SynchronousChannel(Network.UdpIp(scheduler, '127.0.0.1', 7357), Network.DatagramSerializer)
-            self.expectEqual(true, await client.connectAsync())
+            let client = Network.AsyncChannel(Network.UdpSocket().asyncOn(scheduler), Network.AsyncDatagramSerializer)
+            self.expectEqual(true, await client.connect(endpoint))
 
             while result === 'ko' {
-                await client.writeAsync('ok')
+                await client.write('ok')
             }
-
-            await client.closeAsync()
         }
 
         let promise = scheduler.spawn(serverMain())
         scheduler.spawn(clientMain())
-        scheduler.runAll()
+        scheduler.run()
 
         self.expectEqual('ok', promise.get())
     }
@@ -389,32 +217,57 @@ load network.protocols.http.server
 	const def testWatch(self) {
 
         let i = 0
-        let scheduler = Network.Scheduler()
-        let client = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357))
-        let server = Network.AsynchronousChannel(Network.TcpIp(scheduler, '127.0.0.1', 7357), Network.ServerSerializer)
+        let poller = Network.Poller()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
+        let client = Network.EventChannel(Network.TcpSocket())
+        let socket = Network.TcpSocket()
+        let server = Network.EventChannel(socket, Network.ServerSerializer)
+
+        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
 
         server.onMessage = def [result] (self, channel) {
-            let client = Network.AsynchronousChannel(channel.read())
+            let client = Network.EventChannel(channel.read())
             client.close()
         }
 
-        client.onClose = def [i, server] (self, channel) {
+        client.onClose = def [i, endpoint, server, poller] (self, channel) {
             if (++i) < 3 {
-                channel.connect()
+                channel.connect(endpoint)
             } else {
-                channel.unwatch()
+                poller.unwatch(channel)
                 server.close()
-                server.unwatch()
+                poller.unwatch(server)
             }
         }
 
-        self.expectEqual(true, server.watch())
-        self.expectEqual(true, server.listen())
+        self.expectEqual(true, poller.watch(server))
+        self.expectEqual(true, server.listen(endpoint))
 
-        self.expectEqual(true, client.watch())
-        self.expectEqual(true, client.connect())
+        self.expectEqual(true, poller.watch(client))
+        self.expectEqual(true, client.connect(endpoint))
 
-        scheduler.run()
+        poller.run()
         self.expectEqual(3, i)
+    }
+
+    const def testChannelStateAndMetadata(self) {
+
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7364)
+        let socket = Network.TcpSocket()
+        let server = Network.Channel(socket, Network.ServerSerializer)
+
+        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        self.expectEqual(Network.Socket.State.Open, server.getState())
+        self.expectEqual(true, server.setNonBlocking(true))
+        self.expectEqual(true, server.isNonBlocking())
+
+        self.expectEqual(true, server.listen(endpoint))
+        self.expectEqual(Network.Socket.State.Listening, server.getState())
+        self.expectDefined(server.getSocket().getEndpoint())
+
+        self.expectEqual(true, server.setNonBlocking(false))
+        self.expectEqual(false, server.isNonBlocking())
+        server.close()
     }
 }

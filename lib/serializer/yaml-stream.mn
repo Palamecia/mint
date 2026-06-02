@@ -100,7 +100,7 @@ package Serializer {
 		}
 
 		/**
-		 * Begins the parsin of the stream. Returns an instance of
+		 * Begins the parsing of the stream. Returns an instance of
 		 * {Serializer.YamlDirective} corresponding to the next directive or an
 		 * instance of {Serializer.YamlDocument} corresponding to the next YAML
 		 * document in the stream or `none` if no more document is available.

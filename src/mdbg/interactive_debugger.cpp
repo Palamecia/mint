@@ -46,6 +46,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <optional>
+#include <ranges>
 #include <span>
 #include <sstream>
 #include <stdexcept>
@@ -203,16 +204,16 @@ void InteractiveDebugger::init_return(CommandRunner::Command& command) {
 
 void InteractiveDebugger::init_thread(CommandRunner::Command& command) {
 	command.add({{{"list"}}}, "Lists runing threads.",
-	    [](Debugger& debugger, mint::CursorDebugger& /*cursor*/,
+	    [](Debugger& debugger, mint::CursorDebugger& cursor,
 	        const std::span<CommandRunner::Parameter::value_t>& /*parameters*/) {
 		    for (const mint::ThreadList threads = debugger.get_threads(); const mint::CursorDebugger& thread : threads) {
-			    print_debug_trace("{}: {}", thread.get_thread_id(), thread.line_info().to_string());
+			    print_debug_trace("{}: {}", thread.get_thread_id(), thread.line_info().to_string(cursor.cursor().ast()));
 		    }
 	    });
 	command.add({{{"cur", "current"}}}, "Prints the current thread informations.",
 	    [](Debugger& /*debugger*/, mint::CursorDebugger& cursor,
 	        const std::span<CommandRunner::Parameter::value_t>& /*parameters*/) {
-		    print_debug_trace("{}: {}", cursor.get_thread_id(), cursor.line_info().to_string());
+		    print_debug_trace("{}: {}", cursor.get_thread_id(), cursor.line_info().to_string(cursor.cursor().ast()));
 	    });
 }
 
@@ -222,12 +223,12 @@ void InteractiveDebugger::init_backtrace(CommandRunner::Command& command) {
 
 	auto print_backtrace = [](Debugger& debugger, const mint::CursorDebugger& thread, bool with_context_lines = false,
 	                           int count = 0) {
-		for (const mint::LineInfo& line : thread.cursor().dump()) {
+		for (const mint::LineInfo& line : std::views::reverse(thread.cursor().dump())) {
 
 			const std::string module_name = line.module_name();
 			const std::size_t line_number = line.line_number();
 
-			print_debug_trace("{}", line.to_string());
+			print_debug_trace("{}", line.to_string(thread.cursor().ast()));
 			if (with_context_lines) {
 				if (count < 0) {
 					print_highlighted((std::cmp_less_equal(line_number, abs(count))) ? 1 : line_number + count,
@@ -263,8 +264,8 @@ void InteractiveDebugger::init_backtrace(CommandRunner::Command& command) {
 	command.add({}, "Prints the backtrace",
 	    [](Debugger& /*debugger*/, mint::CursorDebugger& cursor,
 	        const std::span<CommandRunner::Parameter::value_t>& /*parameters*/) {
-		    for (const mint::LineInfo& line : cursor.cursor().dump()) {
-			    print_debug_trace("{}", line.to_string());
+		    for (const mint::LineInfo& line : std::views::reverse(cursor.cursor().dump())) {
+			    print_debug_trace("{}", line.to_string(cursor.cursor().ast()));
 		    }
 	    });
 }
@@ -303,11 +304,11 @@ void InteractiveDebugger::init_breakpoint(CommandRunner::Command& command) {
 		    debugger.remove_breakpoint(id);
 	    });
 	command.add({{{"list"}}}, "Lists configured break points.",
-	    [](Debugger& debugger, mint::CursorDebugger& /*cursor*/,
+	    [](Debugger& debugger, mint::CursorDebugger& cursor,
 	        const std::span<CommandRunner::Parameter::value_t>& /*parameters*/) {
 		    for (const mint::BreakpointList breakpoints = debugger.get_breakpoints();
 		        const mint::Breakpoint& breakpoint : breakpoints) {
-			    print_debug_trace("{}: {}", breakpoint.id, breakpoint.info.to_string());
+			    print_debug_trace("{}: {}", breakpoint.id, breakpoint.info.to_string(cursor.cursor().ast()));
 		    }
 	    });
 }

@@ -117,10 +117,14 @@ mint::Reference mint_lang_to_module_path(mint::Cursor& cursor, const mint::Refer
 
 mint::Reference mint_lang_to_file_path(mint::Cursor& cursor, const mint::Reference& module_path) {
 
-	const std::filesystem::path file_path = std::filesystem::absolute(mint::to_system_path(to_string(module_path)));
-
-	if (std::filesystem::exists(file_path)) {
-		return mint::create_string(cursor.ast(), file_path.generic_string());
+	try {
+		const std::filesystem::path file_path = std::filesystem::absolute(mint::to_system_path(to_string(module_path)));
+		if (std::filesystem::exists(file_path)) {
+			return mint::create_string(cursor.ast(), file_path.generic_string());
+		}
+	}
+	catch (const std::filesystem::filesystem_error&) {
+		return {};
 	}
 
 	return {};
@@ -245,17 +249,20 @@ mint::Reference mint_at_error(mint::FunctionHelper& helper, const mint::Referenc
 		    _function(std::make_shared<mint::RootReference>(function)) {}
 
 		void operator()(const std::string& message) {
-			mint::Reference backtrace = mint::create_array(_scheduler.get().ast());
+			mint::Reference stacktrace = mint::create_array(_scheduler.get().ast());
 			if (const mint::Process* process = mint::Scheduler::current_process()) {
-				for (const mint::LineInfo& info : process->cursor().dump()) {
-					array_append(backtrace.data<mint::Array>(),
-					    array_item(create_iterator_from(process->cursor(),
-					        mint::create_string(_scheduler.get().ast(), info.module_name()),
-					        mint::create_unsigned_number(info.line_number()))));
+				if (auto* stack_frame_class = _scheduler.get().ast().global_data().find_class("StackFrame")) {
+					for (const auto& frame : process->cursor().dump()) {
+						mint::array_append(stacktrace.data<mint::Array>(),
+						    mint::array_item(_scheduler.get().invoke(*stack_frame_class,
+						        mint::create_unsigned_number(frame.module_id()),
+						        mint::create_string(_scheduler.get().ast(), frame.module_name()),
+						        mint::create_unsigned_number(frame.line_number()))));
+					}
 				}
 			}
 			_scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().ast(), message),
-			    std::move(backtrace));
+			    std::move(stacktrace));
 		}
 
 	private:
@@ -343,34 +350,6 @@ MINT_RAW_FUNCTION(mint_lang_load_module, 1, cursor) {
 	const auto& module_path = stack.back();
 	cursor.load_module(to_string(module_path));
 	stack.back() = mint::create_none();
-}
-
-MINT_RAW_FUNCTION(mint_lang_backtrace, 1, cursor) {
-
-	const auto& thread_id = cursor.stack().back();
-	auto result = mint::create_array(cursor.ast());
-
-	cursor.exit_call();
-	cursor.exit_call();
-
-	if (is_instance_of(thread_id, mint::Data::Format::none)) {
-		for (const mint::LineInfo& info : cursor.dump()) {
-			array_append(result.data<mint::Array>(),
-			    array_item(create_iterator_from(cursor, mint::create_string(cursor.ast(), info.module_name()),
-			        mint::create_unsigned_number(info.line_number()))));
-		}
-	}
-	else if (const auto* scheduler = mint::Scheduler::instance()) {
-		if (const auto* thread = scheduler->find_thread(mint::to_integer<mint::Process::ThreadId>(cursor, thread_id))) {
-			for (const mint::LineInfo& info : thread->cursor().dump()) {
-				array_append(result.data<mint::Array>(),
-				    array_item(create_iterator_from(cursor, mint::create_string(cursor.ast(), info.module_name()),
-				        mint::create_unsigned_number(info.line_number()))));
-			}
-		}
-	}
-
-	cursor.stack().back() = std::move(result);
 }
 
 MINT_EXPORT_FUNCTION(mint_lang_get_object_locals, 1);

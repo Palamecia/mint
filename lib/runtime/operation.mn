@@ -1,0 +1,131 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Runtime.Operation} abstraction used by the runtime
+ * scheduler to represent asynchronous I/O work and resume suspended coroutines.
+ */
+
+package Runtime {
+	/**
+	 * This class describe an asynchronous operation.
+	 * 
+	 * Operation objects represent asynchronous tasks executed by {Runtime.Scheduler}.
+	 *
+	 * An operation encapsulates the logic required to perform a specific
+	 * asynchronous action such as connecting, reading, writing or
+	 * accepting connections.
+	 *
+	 * The lifecycle of an operation is typically:
+	 *
+	 *  1. Created by an endpoint asynchronous method
+	 *  2. Submitted to the scheduler using {Runtime.Scheduler.suspend}
+	 *  3. Executed until the operation blocks
+	 *  4. Suspended until the required socket event occurs
+	 *  5. Resumed by the scheduler
+	 *  6. Completed when the operation's result is available
+	 *
+	 * This design allows asynchronous operations to be expressed in a
+	 * sequential style using coroutines while the scheduler handles the
+	 * underlying event loop and I/O readiness notifications.
+	 */
+	@class Operation {
+		/**
+		 * Returns `true` if `other` is equal to this operation; otherwise returns `false`.
+		 */
+		const def ==(const self, const other) {
+			return self is other
+		}
+
+		/**
+		 * Returns `false` if `other` is equal to this operation; otherwise returns `true`.
+		 */
+		const def !=(const self, const other) {
+			return not (self is other)
+		}
+
+		/**
+		 * Starts the asynchronous operation. The `scheduler` is the instance of {Runtime.Scheduler} that want to start
+		 * the operation. The `coroutine` parameter provides the coroutine associated with the operation execution.
+		 */
+		final const def start(self, scheduler, coroutine) {
+			self.coroutine = coroutine
+			self.d_ptr = self.setup(scheduler)
+			self.d_ptr.delete = def [g_lib = Runtime.Operation.g_lib](self) {
+				g_lib.call('mint_operation_delete', self)
+			}
+		}
+
+		/**
+		 * Returns the coroutine associated with the operation completion.
+		 */
+		final const def getCoroutine(self) {
+			return self.coroutine
+		}
+
+		/**
+		 * Returns the operation context pointer.
+		 */
+		# const def setup(self, scheduler) {
+			return Runtime.Operation.g_lib.call('mint_operation_create', self, scheduler.to_async_runtime())
+		}
+
+		/**
+		 * Checks for completion. Returns `true` if the operation is completed; otherwise returns `false`. An exception
+		 * may be raised on error and would be forwarded to the calling coroutine.
+		 */
+		const def check(self, result) {
+			return true
+		}
+
+		/**
+		 * Returns the operation result.
+		 */
+		const def get(self) {
+			return none
+		}
+
+		/**
+		 * Returns the pointer to the internal `mint::AsyncOperation` instance.
+		 */
+		final const def to_async_operation(self) {
+			return self.d_ptr
+		}
+
+		/**
+		 * Returns the result from the last operation completion.
+		 */
+		~ final const def getLastResult(self) {
+			return Runtime.Operation.g_lib.call('mint_operation_get', self.d_ptr)
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-runtime')
+
+		/// Internal operation context pointer.
+		- final d_ptr = null
+
+		/// Internal associated coroutine.
+		- final coroutine = null
+	}
+}

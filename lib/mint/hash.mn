@@ -40,7 +40,7 @@
  * Returns `true` if `self` contains the key `key`; otherwise returns `false`.
  */
 @def contains(const self, key) {
-    return self.in(key)
+    return key in self
 }
 
 /**
@@ -54,16 +54,12 @@
  * Returns an iterator on each key contained in `self`.
  */
 @def keys(const self) {
-    for var key, _ in self {
-        yield key
-    }
+    yield for let (key, _) in self => key
 }
 
 /**
  * Returns an iterator on each value contained in `self`.
  */
 @def values(const self) {
-    for let (_, value) in self {
-        yield value
-    }
+    yield for let (_, value) in self => value
 }

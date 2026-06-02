@@ -1,0 +1,34 @@
+This module describes how to implement a network socket in Mint.
+
+A concrete socket implementation should inherit {Network.Socket} and provide
+standard lifecycle methods that the higher-level channel and protocol classes
+expect. The implementation owns the low-level handle and updates the socket
+state as operations progress.
+
+> [!WARNING]
+> The constructor of a socket implementation must call the base constructor
+> before any other operation.
+>
+> ```mn
+> class MySocketClass : Network.Socket {
+>     const def new(self, ...) {
+>         if self = Network.Socket.new(self) {
+>             // initialize the low-level handle and state
+>             return self
+>         }
+>     }
+> }
+> ```
+
+A typical implementation provides the following methods:
+
+- `connect` and `finalizeConnection` to establish or complete a client connection.
+- `read` and `write` to exchange data as instances of {Serializer.DataStream}.
+- `bind`, `listen`, and `accept` to prepare the socket as a server and accept incoming peers.
+- `shutdown` and `close` to shut the socket down cleanly.
+- `getHandle`, `isNonBlocking`, and `setNonBlocking` to expose the low-level handle and readiness behavior.
+
+The implementation should also update the socket state with {Network.Socket.State}
+and raise {Exception.SocketError} on failures so higher-level wrappers such as
+{Network.Channel}, {Network.AsyncChannel}, and {Network.EventChannel} can react
+appropriately to the result.

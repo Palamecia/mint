@@ -1,0 +1,414 @@
+load test.case
+load mint.lang
+load system.file
+load network.channel
+load network.endpoints.ip
+load network.protocols.http.client
+load network.protocols.http.message
+load network.protocols.http.server
+
+@class NetworkHttpTest : Test.Case {
+	const def testHttpMessageEvent(self) {
+
+        let result = 'ko'
+        let poller = Network.Poller()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
+
+        let socket = Network.TcpSocket()
+        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+        let server = Network.Http.Server(socket)
+        server.onAccept = def [...] (self, handler) {
+            handler.onMessage = def [...] (self, handler) {
+                result = handler.read().getBodyText()
+                handler.close()
+                poller.unwatch(handler)
+            }
+            poller.watch(handler)
+            self.close()
+            poller.unwatch(self)
+        }
+
+        let client = Network.Http.Client(Network.TcpSocket())
+        client.onOpen = def (self, client) {
+            client.write('ok')
+        }
+        client.onClose = def [...] (self, client) {
+            poller.unwatch(client)
+        }
+
+        self.expectEqual(true, poller.watch(server))
+        self.expectEqual(true, server.listen(endpoint))
+
+        self.expectEqual(true, poller.watch(client))
+        self.expectEqual(true, client.connect(endpoint))
+
+        poller.run()
+        self.expectEqual('ok', result)
+    }
+
+	const def testHttpMessageAsync(self) {
+
+        let result = 'ko'
+        let scheduler = Runtime.Scheduler()
+
+        async def [...] serverMain() {
+            let socket = Network.TcpSocket().asyncOn(scheduler)
+            let endpoint = Network.IpEndpoint('127.0.0.1', 7358)
+            let server = Network.Http.AsyncServer(socket)
+            self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+            socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+            self.expectEqual(true, server.listen(endpoint))
+            let handler = await server.accept()
+            server.close()
+            let message = await handler.read()
+            handler.close()
+            return message.getBodyText()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.Http.AsyncClient(Network.TcpSocket().asyncOn(scheduler))
+            self.expectEqual(true, await client.connect(Network.IpEndpoint('127.0.0.1', 7358)))
+            await client.write('ok')
+            client.close()
+        }
+    
+        let promise = scheduler.spawn(serverMain())
+        scheduler.spawn(clientMain())
+        scheduler.run()
+
+        self.expectEqual('ok', promise.get())
+    }
+
+    const def testHttpMessageProtocolCompliance(self) {
+
+        let request = Network.Http.Message('GET', '/hello')
+        request.setHeader('Host', 'localhost')
+        request.setBody('hello')
+        self.expectEqual('GET', request.getMethod())
+        self.expectEqual('/hello', request.getTarget())
+        self.expectEqual('localhost', request.getHeader('Host'))
+        self.expectEqual(5, request.getHeader('Content-Length'))
+        self.expectEqual('hello', request.getBodyText())
+
+        let encodedRequest = request.encode()
+        let decodedRequest = Network.Http.Message.decode(encodedRequest, encodedRequest.size())
+
+        self.expectDefined(decodedRequest)
+        self.expectEqual('GET', decodedRequest.getMethod())
+        self.expectEqual('/hello', decodedRequest.getTarget())
+        self.expectEqual('localhost', decodedRequest.getHeader('Host'))
+        self.expectEqual(5, decodedRequest.getHeader('Content-Length'))
+        self.expectEqual('hello', decodedRequest.getBodyText())
+
+        let response = Network.Http.Message(200, 'OK')
+        response.setBody('ok')
+        let encodedResponse = response.encode()
+        let decodedResponse = Network.Http.Message.decode(encodedResponse, encodedResponse.size())
+
+        self.expectDefined(decodedResponse)
+        self.expectEqual(200, decodedResponse.getStatusCode())
+        self.expectEqual('OK', decodedResponse.getStatusText())
+        self.expectEqual('ok', decodedResponse.getBodyText())
+    }
+
+    const def testHttpClientServerExchange(self) {
+
+        let clientReceived = 'ko'
+        let poller = Network.Poller()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7359)
+
+		class TestHttpHandler : Network.Http.RequestHandler {
+
+			@var serverReceived = 'ko'
+            @var poller = null
+
+            const def onMessage(self, handler) {
+                let message = handler.read()
+                TestHttpHandler.serverReceived = message.getBodyText()
+                let response = Network.Http.Message(200, 'OK')
+                response.setBody('pong')
+                handler.write(response)
+                TestHttpHandler.poller.unwatch(handler)
+            }
+        }
+
+		let socket = Network.TcpSocket()
+		self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+		socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+        let server = Network.Http.Server(socket, TestHttpHandler).watchedBy(poller)
+
+        let client = Network.Http.Client(Network.TcpSocket()).watchedBy(poller)
+        client.onOpen = def [poller] (self, client) {
+            let request = Network.Http.Message('POST', '/echo')
+            request.setBody('ping')
+            client.write(request)
+        }
+        client.onMessage = def [clientReceived, poller] (self, client) {
+            let response = client.read()
+            clientReceived = response.getBodyText()
+            poller.unwatch(client)
+            client.close()
+        }
+
+        TestHttpHandler.poller = poller
+
+        self.expectEqual(true, server.listen(endpoint))
+        self.expectEqual(true, client.connect(endpoint))
+
+        while clientReceived === 'ko' {
+			poller.poll()
+		}
+
+        server.close()
+
+        self.expectEqual('ping', TestHttpHandler.serverReceived)
+        self.expectEqual('pong', clientReceived)
+    }
+
+    const def testHttpClientServerExchangeAsync(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7362)
+
+        async def [...] serverMain() {
+            let socket = Network.TcpSocket().asyncOn(scheduler)
+            self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+            socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+
+            let server = Network.Http.AsyncServer(socket)
+            self.expectEqual(true, server.listen(endpoint))
+
+            let handler = await server.accept()
+            let request = await handler.read()
+            let response = Network.Http.Message(200, 'OK')
+            response.setBody(request.getBodyText() + '!')
+            await handler.write(response)
+            await handler.close()
+            server.close()
+            return request.getBodyText()
+        }
+
+        async def [...] clientMain() {
+            let client = Network.Http.AsyncClient(Network.TcpSocket().asyncOn(scheduler))
+            self.expectEqual(true, await client.connect(endpoint))
+
+            let request = Network.Http.Message('POST', '/echo')
+            request.setBody('ping')
+            await client.write(request)
+
+            let response = await client.read()
+            client.close()
+            return response.getBodyText()
+        }
+
+        let serverPromise = scheduler.spawn(serverMain())
+        let promise = scheduler.spawn(clientMain())
+        scheduler.run()
+
+        self.expectEqual('ping', serverPromise.get())
+        self.expectEqual('ping!', promise.get())
+    }
+
+    const def testHttpServerConfigurationAndMode(self) {
+
+        let socket = Network.TcpSocket()
+        let server = Network.Http.Server(socket)
+        let configuration = Network.Http.ServerConfiguration()
+
+        configuration.resolver = Network.Http.StaticResolver('tests')
+        configuration.attributes['mode'] = 'unit'
+        server.setConfiguration(configuration)
+
+        self.expectDefined(server.getConfiguration().resolver)
+        self.expectEqual('tests', server.getConfiguration().resolver.getRootDirectory().getPath())
+        self.expectEqual('unit', server.getConfiguration().attributes['mode'])
+        self.expectEqual(true, server.setNonBlocking(true))
+        self.expectEqual(true, server.isNonBlocking())
+        self.expectEqual(true, server.setNonBlocking(false))
+        self.expectEqual(false, server.isNonBlocking())
+    }
+
+    const def testHttpRouterResolve(self) {
+
+        let router = Network.Http.Router()
+        router.get('/hello', def (client, message) {
+            let response = Network.Http.Message(200, 'OK')
+            response.setBody('hello')
+            client.write(response)
+        })
+
+        self.expectDefined(router.resolve(Network.Http.Message('GET', '/hello')))
+    }
+
+    const def testHttpClientServerExchangeWithRouter(self) {
+
+        let poller = Network.Poller()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7360)
+        let result = 'ko'
+
+        let socket = Network.TcpSocket()
+        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+
+        let server = Network.Http.Server(socket).watchedBy(poller)
+        let configuration = Network.Http.ServerConfiguration()
+        let router = Network.Http.Router()
+        router.get('/hello', def (client, message) {
+            let response = Network.Http.Message(200, 'OK')
+            response.setBody('hello')
+            client.write(response)
+        })
+        configuration.resolver = router
+        server.setConfiguration(configuration)
+
+        let client = Network.Http.Client(Network.TcpSocket()).watchedBy(poller)
+        client.onOpen = def (self, client) {
+            let request = Network.Http.Message('GET', '/hello')
+            client.write(request)
+        }
+        client.onMessage = def [result, poller] (self, client) {
+            let response = client.read()
+            result = response.getBodyText()
+            poller.unwatch(client)
+            client.close()
+        }
+
+        self.expectEqual(true, server.listen(endpoint))
+        self.expectEqual(true, client.connect(endpoint))
+
+        while result === 'ko' {
+			poller.poll()
+		}
+
+        server.close()
+
+        self.expectEqual('hello', result)
+    }
+
+    const def testHttpClientServerExchangeWithRouterAsync(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7361)
+
+        async def [...] serverMain() {
+            let socket = Network.TcpSocket().asyncOn(scheduler)
+            let open = socket.open(endpoint.getIpVersion())
+            socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+
+            let server = Network.Http.AsyncServer(socket)
+            let configuration = Network.Http.ServerConfiguration()
+            let router = Network.Http.Router()
+            router.get('/hello', async def (client, message) {
+                let response = Network.Http.Message(200, 'OK')
+                response.setBody('hello')
+                await client.write(response)
+                client.close()
+            })
+            configuration.resolver = router
+            server.setConfiguration(configuration)
+
+            let listening = server.listen(endpoint)
+            let handler = await server.accept()
+            await handler.run()
+            server.close()
+            return [open, listening]
+        }
+
+        async def [...] clientMain() {
+            let client = Network.Http.AsyncClient(Network.TcpSocket().asyncOn(scheduler))
+            let connected = await client.connect(endpoint)
+            let request = Network.Http.Message('GET', '/hello')
+            await client.write(request)
+            let response = await client.read()
+            client.close()
+            return [connected, response.getBodyText()]
+        }
+
+        let serverPromise = scheduler.spawn(serverMain())
+        let promise = scheduler.spawn(clientMain())
+
+        scheduler.run()
+
+        self.expectEqual([true, true], serverPromise.get())
+        self.expectEqual([true, 'hello'], promise.get())
+    }
+
+    const def testHttpStaticResolverServesFiles(self) {
+        let poller = Network.Poller()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7362)
+        let result = 'ko'
+
+        let socket = Network.TcpSocket()
+        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+
+        let server = Network.Http.Server(socket).watchedBy(poller)
+        let configuration = Network.Http.ServerConfiguration()
+        configuration.resolver = Network.Http.StaticResolver(System.File('test-network-http'.toFilePath()).getDirectory())
+        server.setConfiguration(configuration)
+
+        let client = Network.Http.Client(Network.TcpSocket()).watchedBy(poller)
+        client.onOpen = def (self, client) {
+            let request = Network.Http.Message('GET', '/test-network-http.mn')
+            client.write(request)
+        }
+        client.onMessage = def [result, poller] (self, client) {
+            let response = client.read()
+            result = response.getBodyText()
+            poller.unwatch(client)
+            client.close()
+        }
+
+        self.expectEqual(true, server.listen(endpoint))
+        self.expectEqual(true, client.connect(endpoint))
+
+        while result === 'ko' {
+            poller.poll()
+        }
+
+        server.close()
+
+        self.expectEqual(true, result.contains('class'))
+    }
+
+    const def testHttpStaticResolverServesFilesAsync(self) {
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.IpEndpoint('127.0.0.1', 7363)
+
+        async def [...] serverMain() {
+            let socket = Network.TcpSocket().asyncOn(scheduler)
+            socket.open(endpoint.getIpVersion())
+            socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+
+            let server = Network.Http.AsyncServer(socket)
+            let configuration = Network.Http.ServerConfiguration()
+            configuration.resolver = Network.Http.AsyncStaticResolver(System.File('test-network-http'.toFilePath()).getDirectory())
+            server.setConfiguration(configuration)
+            self.expectEqual(true, server.listen(endpoint))
+
+            let handler = await server.accept()
+            await handler.run()
+            server.close()
+            return true
+        }
+
+        async def [...] clientMain() {
+            let client = Network.Http.AsyncClient(Network.TcpSocket().asyncOn(scheduler))
+            self.expectEqual(true, await client.connect(endpoint))
+            let request = Network.Http.Message('GET', '/test-network-http.mn')
+            await client.write(request)
+            let response = await client.read()
+            client.close()
+            return response.getBodyText()
+        }
+
+        let serverPromise = scheduler.spawn(serverMain())
+        let promise = scheduler.spawn(clientMain())
+
+        scheduler.run()
+
+        self.expectEqual(true, serverPromise.get())
+        self.expectEqual(true, promise.get().contains('class'))
+    }
+}

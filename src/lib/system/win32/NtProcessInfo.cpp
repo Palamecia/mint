@@ -38,7 +38,7 @@
 #define LONG NTSTATUS
 #endif
 
-namespace mint {
+namespace mint_system {
 
 // Used in PEB struct
 typedef ULONG PPS_POST_PROCESS_INIT_ROUTINE;
@@ -256,7 +256,7 @@ static pfnNtQueryInformationProcess NtQueryInformationProcess = (pfnNtQueryInfor
 
 }
 
-BOOL mint::EnableTokenPrivilege(IN LPCTSTR pszPrivilege) {
+BOOL mint_system::EnableTokenPrivilege(IN LPCTSTR pszPrivilege) {
 
 	HANDLE hToken = 0;
 	TOKEN_PRIVILEGES tkp = {0};
@@ -299,15 +299,15 @@ static BOOL HasReadAccess(HANDLE hProcess, LPVOID pAddress, USHORT& nSize) {
 	return TRUE;
 }
 
-NTSTATUS LoadNtProcessBasicInformation(HANDLE hProcess, mint::PPROCESS_BASIC_INFORMATION* pbi, DWORD* dwSize) {
+NTSTATUS LoadNtProcessBasicInformation(HANDLE hProcess, mint_system::PPROCESS_BASIC_INFORMATION* pbi, DWORD* dwSize) {
 
 	DWORD dwSizeNeeded = 0;
 	HANDLE hHeap = 0;
 
 	// Try to allocate buffer
 	hHeap = GetProcessHeap();
-	*dwSize = sizeof(mint::PROCESS_BASIC_INFORMATION);
-	*pbi = (mint::PPROCESS_BASIC_INFORMATION)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, *dwSize);
+	*dwSize = sizeof(mint_system::PROCESS_BASIC_INFORMATION);
+	*pbi = (mint_system::PPROCESS_BASIC_INFORMATION)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, *dwSize);
 
 	// Did we successfully allocate memory
 	if (!*pbi) {
@@ -316,7 +316,8 @@ NTSTATUS LoadNtProcessBasicInformation(HANDLE hProcess, mint::PPROCESS_BASIC_INF
 	}
 
 	// Attempt to get basic info on process
-	NTSTATUS dwStatus = mint::NtQueryInformationProcess(hProcess, ProcessBasicInformation, *pbi, *dwSize, &dwSizeNeeded);
+	NTSTATUS dwStatus = mint_system::NtQueryInformationProcess(hProcess, ProcessBasicInformation, *pbi, *dwSize,
+	    &dwSizeNeeded);
 
 	// If we had error and buffer was too all, try again
 	// with larger buffer size (dwSizeNeeded)
@@ -326,20 +327,21 @@ NTSTATUS LoadNtProcessBasicInformation(HANDLE hProcess, mint::PPROCESS_BASIC_INF
 		}
 
 		*dwSize = dwSizeNeeded;
-		*pbi = (mint::PPROCESS_BASIC_INFORMATION)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, *dwSize);
+		*pbi = (mint_system::PPROCESS_BASIC_INFORMATION)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, *dwSize);
 
 		if (!*pbi) {
 			CloseHandle(hProcess);
 			return STATUS_NO_MEMORY;
 		}
 
-		dwStatus = mint::NtQueryInformationProcess(hProcess, ProcessBasicInformation, *pbi, *dwSize, &dwSizeNeeded);
+		dwStatus = mint_system::NtQueryInformationProcess(hProcess, ProcessBasicInformation, *pbi, *dwSize,
+		    &dwSizeNeeded);
 	}
 
 	return dwStatus;
 }
 
-BOOL mint::GetNtProcessInfo(IN const DWORD dwPID, OUT PROCESSINFO* ppi) {
+BOOL mint_system::GetNtProcessInfo(IN const DWORD dwPID, OUT PROCESSINFO* ppi) {
 
 	BOOL bReturnStatus = TRUE;
 	DWORD dwSize = 0;
@@ -523,7 +525,7 @@ gnpiFreeMemFailed:
 	return bReturnStatus;
 }
 
-LPWSTR mint::GetNtProcessCommandLine(HANDLE hProcess) {
+LPWSTR mint_system::GetNtProcessCommandLine(HANDLE hProcess) {
 
 	DWORD dwSize = 0;
 	PPROCESS_BASIC_INFORMATION pbi = NULL;
@@ -581,7 +583,7 @@ LPWSTR mint::GetNtProcessCommandLine(HANDLE hProcess) {
 	return NULL;
 }
 
-DWORD mint::GetNtProcessCurrentDirectory(HANDLE hProcess, LPWSTR lpCurrentDirectory, DWORD nSize) {
+DWORD mint_system::GetNtProcessCurrentDirectory(HANDLE hProcess, LPWSTR lpCurrentDirectory, DWORD nSize) {
 
 	DWORD dwSize = 0;
 	PPROCESS_BASIC_INFORMATION pbi = NULL;
@@ -627,7 +629,7 @@ DWORD mint::GetNtProcessCurrentDirectory(HANDLE hProcess, LPWSTR lpCurrentDirect
 	return 0;
 }
 
-LPWCH mint::GetNtProcessEnvironmentStrings(HANDLE hProcess) {
+LPWCH mint_system::GetNtProcessEnvironmentStrings(HANDLE hProcess) {
 
 	DWORD dwSize = 0;
 	PPROCESS_BASIC_INFORMATION pbi = NULL;

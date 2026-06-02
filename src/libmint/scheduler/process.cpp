@@ -31,6 +31,7 @@
 #include "mint/debug/debug_tools.h"
 #include "mint/debug/line_info.h"
 #include "mint/memory/builtin/iterator.h"
+#include "mint/memory/cast_tools.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/input_stream.h"
@@ -238,7 +239,7 @@ void Process::parse_argument(const std::string& arg) {
 void Process::setup() {
 	if (!_cursor->parent()) {
 		_error_handler = add_error_callback([this](const std::string&) {
-			dump();
+			on_error();
 		});
 	}
 }
@@ -314,10 +315,48 @@ Scheduler& Process::scheduler() const {
 	return _scheduler;
 }
 
-void Process::dump() {
-	std::println(stderr, "Traceback thread {}:", _thread_id);
-	for (const LineInfo& call : _cursor->dump()) {
-		std::println(stderr, "  {}", call.to_string());
-		std::println(stderr, "  {}", get_module_line(call.module_name(), call.line_number()));
+namespace {
+
+std::string format_exception(const Reference& exception) {
+	try {
+		return to_string(exception);
+	}
+	catch (...) {
+		return "<exception formatting failed>";
+	}
+}
+
+void dump_cause(const Cursor::Exception& cause, const AbstractSyntaxTree& ast) {
+	if (cause.cause) {
+		dump_cause(*cause.cause, ast);
+	}
+	std::println(stderr, "Caused by:");
+	for (const LineInfo& call : cause.stacktrace) {
+		std::println(stderr, "  {}", call.to_string(ast));
+		std::println(stderr, "    {}", get_module_line(call.module_name(), call.line_number()));
+	}
+	std::println("{}", format_exception(cause.object));
+	std::println();
+}
+
+}
+
+void Process::on_error() {
+	if (const auto* exception = _cursor->get_exception()) {
+		if (exception->cause) {
+			dump_cause(*exception->cause, _cursor->ast());
+		}
+		std::println(stderr, "Stacktrace thread {}:", _thread_id);
+		for (const LineInfo& call : exception->stacktrace) {
+			std::println(stderr, "  {}", call.to_string(_cursor->ast()));
+			std::println(stderr, "    {}", get_module_line(call.module_name(), call.line_number()));
+		}
+	}
+	else {
+		std::println(stderr, "Stacktrace thread {}:", _thread_id);
+		for (const LineInfo& call : _cursor->dump()) {
+			std::println(stderr, "  {}", call.to_string(_cursor->ast()));
+			std::println(stderr, "    {}", get_module_line(call.module_name(), call.line_number()));
+		}
 	}
 }

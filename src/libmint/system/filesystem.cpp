@@ -30,12 +30,14 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <fcntl.h>
 #include <filesystem>
 #include <gsl/pointers>
 #include <list>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <system_error>
 
 #ifdef MINT_OS_WINDOWS
 #include "win32/globalsid.h"
@@ -673,5 +675,66 @@ FILE* mint::open_file(const std::filesystem::path& path, const char* mode) {
 #else
 	const std::string generic_path = path.generic_string();
 	return fopen(generic_path.c_str(), mode);
+#endif
+}
+
+int mint::open_file_descriptor(const std::filesystem::path& path, const char* mode) {
+
+	if (mode == nullptr || *mode == '\0') {
+		throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+	}
+
+	int flags = 0;
+	bool plus = false;
+	bool binary = false;
+
+	switch (*mode) {
+	case 'r':
+		flags = O_RDONLY;
+		break;
+	case 'w':
+		flags = O_WRONLY | O_CREAT | O_TRUNC;
+		break;
+	case 'a':
+		flags = O_WRONLY | O_CREAT | O_APPEND;
+		break;
+	default:
+		throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+	}
+
+	while (*++mode) {
+		switch (*mode) {
+		case '+':
+			plus = true;
+			break;
+		case 'b':
+			binary = true;
+			break;
+		default:
+			throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+		}
+	}
+
+	if (plus) {
+		flags &= ~(O_RDONLY | O_WRONLY);
+		flags |= O_RDWR;
+	}
+
+#ifdef MINT_OS_WINDOWS
+	if (binary) {
+		flags |= O_BINARY;
+	}
+#endif
+
+	return open_file_descriptor(path, flags, 0666);
+}
+
+int mint::open_file_descriptor(const std::filesystem::path& path, int flags, int mode) {
+#ifdef MINT_OS_WINDOWS
+	const std::wstring generic_path = path.generic_wstring();
+	return _wopen(generic_path.c_str(), flags, mode);
+#else
+	const std::string generic_path = path.generic_string();
+	return open(generic_path.c_str(), flags, mode);
 #endif
 }

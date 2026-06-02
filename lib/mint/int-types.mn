@@ -290,7 +290,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-mint')
+	- @const g_lib = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -559,7 +559,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-mint')
+	- @const g_lib = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -828,7 +828,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-mint')
+	- @const g_lib = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -1097,7 +1097,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-mint')
+	- @const g_lib = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -1359,7 +1359,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-mint')
+	- @const g_lib = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -1621,7 +1621,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-mint')
+	- @const g_lib = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -1883,7 +1883,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-mint')
+	- @const g_lib = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -2145,7 +2145,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-mint')
+	- @const g_lib = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null

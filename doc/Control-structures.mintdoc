@@ -459,15 +459,30 @@ If an exception is raised outside of a try statement, the context of the excepti
 
 ### The catch statement
 
-The catch statement allows you to execute a part of the script if an exception is raised in a try statement.
+The catch statement allows to execute a part of the script if an exception is raised in a try statement.
 
 It is introduced by the `catch` keyword followed by a [[symbol name|Variables]]. The statement opens a block of script that is executed if an exception was raised in the previous try statement. The symbol is used to store the context of the exception.
 
 ```mn
 try {
     // Script that could raise exceptions
-} catch e {
-    // Script to recover a normal state after the e exception
+} catch error {
+    // Script to recover a normal state after the error exception
+}
+```
+
+Inside a catch block, the `raise` keyword can be used alone to reraise the current exception without changing the exception context. It will then behave as if the exception was never caught. The `raise` keyword can also be used followed by the `in` keyword and an expression. In that case, a new exception object will be raised but the current one will be bound to it as a cause to keep the exception chain.
+
+Those behaviors allows to add some context for some kinds of errors.
+
+```mn
+try {
+    loadConfiguration()
+} catch error {
+    switch typeof error {
+    case 'Serializer.DocumentStream.InvalidDocument' => raise in Exception.RuntimeError('failed to load the configuration')
+    default => raise
+    }
 }
 ```
 

@@ -312,7 +312,7 @@ mint::Reference mint_terminal_readchar(mint::Cursor& cursor) {
 	std::array<char, mint::utf8_code_point_length_max + 1> buffer = {};
 
 	if (read(fd, buffer.data(), sizeof(char)) > 0) {
-		if (const std::size_t length = mint::utf8_code_point_length(static_cast<byte_t>(buffer[0])); length > 1) {
+		if (const std::size_t length = mint::utf8_code_point_length(static_cast<std::uint8_t>(buffer[0])); length > 1) {
 			if (read(fd, std::next(buffer.data(), 1), static_cast<int>(buffer.size()) - 1) > 0) {
 				return mint::create_string(cursor.ast(), std::string(buffer.data(), length));
 			}

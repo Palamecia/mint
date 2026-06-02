@@ -241,6 +241,7 @@ PUBLIC
 	FILES
 	${MINT_INCLUDE_DIR}/mint/system/arguments.h
 	${MINT_INCLUDE_DIR}/mint/system/assert.h
+	${MINT_INCLUDE_DIR}/mint/system/async_io.h
 	${MINT_INCLUDE_DIR}/mint/system/buffer_stream.h
 	${MINT_INCLUDE_DIR}/mint/system/data_stream.h
 	${MINT_INCLUDE_DIR}/mint/system/errno.h
@@ -258,6 +259,7 @@ PUBLIC
 PRIVATE
 	system/arguments.cpp
 	system/assert.cpp
+	system/async_io.cpp
 	system/buffer_stream.cpp
 	system/data_stream.cpp
 	system/errno.cpp
@@ -276,6 +278,7 @@ if (WIN32)
 	target_sources(
 		mint-libmint
 	PRIVATE
+		system/win32/async_io.cpp
 		system/win32/globalsid.cpp
 		system/win32/globalsid.h
 		system/win32/pipe.cpp
@@ -287,6 +290,7 @@ else()
 	target_sources(
 		mint-libmint
 	PRIVATE
+		system/unix/async_io.cpp
 		system/unix/terminal.cpp
 		system/unix/terminal.h
 	)
@@ -312,9 +316,11 @@ PRIVATE
 if (UNIX)
 	target_link_libraries(
 		mint-libmint
+	PUBLIC
+		liburing::io_uring
 	PRIVATE
-		pthread
 		dl
+		pthread
 	)
 elseif (WIN32)
 	target_link_libraries(

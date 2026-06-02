@@ -1,44 +1,39 @@
-This module provides classes and functions to interacte with a network.
+This module provides the core abstractions used to interact with a network.
 
-It provides 3 main classes:
-* The {Network.EndPoint} interface allow to describe a network endpoint by
-  providing informations used to access a device using a set of specific protocols
-  of the layers 1 to 4 of the OSI model.
-* The {Network.AsynchronousChannel} class handle asynchronous exchanges with a
-  device. This device is described by an instance of {Network.EndPoint} or a
-  derived class. The {Network.SynchronousChannel} can also be used to perform
-  exchanges synchronously.
-* The {Network.Scheduler} class synchronize exchanges. It manages a set of channels
-  described by an instance of {Network.AsynchronousChannel} or a derived class
-  synchronously or asynchronously. The {Network.SchedulerThread} can work using
-  a thread.
+It is organized around three main layers:
 
-It also provides a set of protocol specific client and server classes that
-implement the layers 5 to 7 of the OSI model. That allow basic communication
-with a device using a specific protocol.
+* The {Network.Endpoint} abstraction describes a network peer address and the
+  protocol-specific information required to reach it.
+* The {Network.Socket} abstraction represents a transport endpoint for a
+  specific protocol family such as TCP or UDP.
+* The {Network.Channel} and {Network.EventChannel} classes expose message-based
+  communication over a socket. The synchronous channel is suitable for direct
+  operation, while the event channel integrates with the runtime scheduler for
+  asynchronous I/O.
+
+The module also provides protocol-specific client and server classes for layers
+5 to 7 of the OSI model, such as HTTP and JSON-RPC, together with polling and
+scheduler integration helpers.
 
 ```mn
-load network.scheduler
-load network.endpoints.tcp-ip
-load network.protocol.http.client
+load network.poller
+load network.sockets.tcp
+load network.endpoints.ip
+load network.protocols.http.client
 
-let scheduler = Network.SchedulerThread()
-scheduler.startSynchronizationLoop()
-
-if client = Network.Http.Client(Network.TcpIp(scheduler, server_host, server_port)) {
+if let client = Network.Http.Client(Network.TcpSocket()) {
     client.onMessage = def (self, channel) {
-        send_to_browser(self.read())
+        sendToBrowser(self.read())
     }
 
-    client.watch()
-    client.connect()
+    client.connect(Network.IpEndpoint(serverHost, serverPort))
 
-    // ...
+    let poller = Network.Poller()
+    poller.watch(client)
+    while running {
+        poller.poll()
+    }
 
     client.close()
-    client.unwatch()
 }
-
-scheduler.stopSynchronizationLoop()
-
 ```

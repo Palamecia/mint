@@ -28,6 +28,8 @@
 
 load mint.lang
 load mint.type
+load mint.math
+load mint.string
 
 package Serializer {
 
@@ -39,126 +41,61 @@ package Serializer {
 	 * Creates a new stream on the `str` object. If the object is an instance
 	 * of string, it will be directly used to be updated on write operations;
 	 * otherwise the object is cast to string using the `toString` method. The
-	 * writed data can then only be retrived by read operations.
+	 * written data can then only be retrieved by read operations.
 	 */
 	const def new(self, str) {
 		switch typeof str {
 		case 'string':
-			self.str = str
+			self.charBuffer = str
 			break
 		default:
-			self.str = str.toString()
+			self.charBuffer = str.toString()
 			break
 		}
 		return self
 	}
 
 	/**
-	 * Returns the next character of the string without moving the read index.
+	 * Returns at most `count` bytes from the string as an instance of {Serializer.DataStream}.
 	 */
-	const def getChar(self) {
-		if self.pos < self.str.size() {
-			return self.str[self.pos]
+	const def readSome(self, count) {
+		if self.bytePos < self.charBuffer.utf8ByteCount() {
+			count = min(count, self.charBuffer.utf8ByteCount() - self.bytePos)
+			let buffer = Serializer.DataStream.fromUtf8Bytes(self.charBuffer, self.bytePos, count)
+			self.bytePos += buffer.size()
+			return buffer
 		}
 	}
 
 	/**
-	 * Returns the next character of the string and move the read index to the
-	 * next element.
-	 */
-	const def readChar(self) {
-		if self.pos < self.str.size() {
-			return self.str[self.pos++]
-		}
-	}
-
-	/**
-	 * Returns the next word of the string and move the read index to the
-	 * next element. Words are separated by whitespace (i.e., all characters
-	 * for which {isSpace} returns `true`).
-	 * 
-	 * Leading whitespace are skipped.
-	 */
-	const def readWord(self) {
-		while self.pos < self.str.size() and self.str[self.pos] =~ /\s/ {
-			self.pos++
-		}
-		return self.readUntil(/\s/)
-	}
-
-	/**
-	 * Returns the next line from the string and move the read index to the
-	 * next element. Data is read until a `'\n'` character is read or if the
-	 * end of stream is detected.
-	 */
-	const def readLine(self) {
-		var line = self.readUntil('\n')
-		if self.pos < self.str.size() {
-			self.pos++ // skip the '\n' character
-		}
-		return line
-	}
-
-	/**
-	 * Returns an iterator on each remaining lines of the string.
-	 */
-	const def readLines(self) {
-		while not self.isEmpty() {
-			yield self.readLine()
-		}
-	}
-
-	/**
-	 * Returns all remaining data from the string.
+	 * Returns all remaining data from the string as an instance of {Serializer.DataStream}.
 	 */
 	const def read(self) {
-		if self.pos < self.str.size() {
-			var str = self.str[self.pos...self.str.size()]
-			self.pos = self.str.size()
-			return str
+		if self.bytePos < self.charBuffer.utf8ByteCount() {
+			let buffer = Serializer.DataStream.fromUtf8Bytes(self.charBuffer, self.bytePos, self.charBuffer.utf8ByteCount() - self.bytePos)
+			self.bytePos += buffer.size()
+			return buffer
 		}
 	}
 
 	/**
-	 * Reads data from the string until `delim` is found, and returns it. The
-	 * read index of the stream is then moved to the first character
-	 * identified by `delim`.
-	 */
-	const def readUntil(self, delim) {
-		if self.pos < self.str.size() {
-			if isDefined(index = self.str.indexOf(delim, self.pos)) {
-				var str = self.str[self.pos...index]
-				self.pos = index
-			} else {
-				var str = self.str[self.pos...self.str.size()]
-				self.pos = self.str.size()
-			}
-			return str
-		}
-	}
-
-	/**
-	 * Appends `data` to the end of the string.
+	 * Appends `data` to the end of the string. The `data` parameter should be an instance of {Serializer.DataStream}
+	 * encoding the string as an UTF-8 sequence of bytes.
 	 */
 	const def write(self, data) {
-		self.str << data
+		self.charBuffer << data.getString(0)
 	}
 
 	/**
-	 * Reads a word from the stream and stores it in `data`, then returns a
-	 * reference to the stream. Words are separated by whitespace (i.e., all
-	 * characters for which {isSpace} returns `true`).
-	 * 
-	 * Leading whitespace are skipped.
+	 * Reads the remaining data from the stream and stores it in `data`, then returns a reference to the stream.
 	 */
 	const def >>(self, data) {
-		data := self.readWord()
+		data := self.read()
 		return self
 	}
 
 	/**
-	 * Writes the string `data` to the stream, and returns a reference to the
-	 * stream.
+	 * Writes the string `data` to the stream, and returns a reference to the stream.
 	 */
 	const def <<(self, data) {
 		self.write(data)
@@ -169,7 +106,7 @@ package Serializer {
 	 * Returns the whole edited string.
 	 */
 	const def toString(const self) {
-		return self.str
+		return self.charBuffer
 	}
 
 	/**
@@ -177,14 +114,17 @@ package Serializer {
 	 * otherwise returns `false`.
 	 */
 	const def isEmpty(const self) {
-		return self.pos == self.str.size()
+		return self.bytePos == self.charBuffer.utf8ByteCount()
 	}
 
-	/// Internal string object.
-	- final str = null
+	/// Global library handle
+	- @const g_lib = lib('libmint-serializer')
+	
+	/// Internal read char buffer.
+	- final charBuffer = null
 
-	/// Internal read index.
-	- final pos = 0
+	/// Internal read byte buffer offset.
+	- final bytePos = 0
 }
 
 }

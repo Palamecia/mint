@@ -22,9 +22,8 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {Network.DatagramSerializer} class which implement the
- * serializer interface to receive datagrams from a datagram based end point such
- * as {Network.UdpIp}.
+ * This module provides the datagram serializer helpers used with datagram-based
+ * endpoints such as UDP sockets.
  */
 
 load container.queue
@@ -90,9 +89,8 @@ package Network {
 	}
 
 	/**
-	 * This class provides a serializer for datagram based end points. It should
-	 * be used with instances of {Network.AsynchronousChannel} created with an
-	 * instance of {Network.UdpIp}.
+	 * This class provides a serializer for datagram based end points. It should be used with instances of
+	 * {Network.EventChannel} created with an instance of {Network.UdpIp}.
 	 */
 	@class DatagramSerializer {
 		/**
@@ -129,21 +127,21 @@ package Network {
 		}
 
 		/**
-		 * Attempts to read data from the end point. Returns `true` if data was
-		 * receive; otherwise returns `false`.
+		 * Attempts to read data from the socket. Returns `true` if data was receive; otherwise returns `false`.
 		 */
-		const def read(self, endpoint) {
-			switch endpoint.getState() {
-			case is Network.EndPoint.State.Bound:
-				var (buffer, client) = endpoint.readFrom()
+		const def read(self, socket) {
+			switch socket.getState() {
+			case is Network.Socket.State.Open:
+			case is Network.Socket.State.Bound:
+				let (buffer, client) = socket.readFrom()
 				if buffer {
 					self.datagramQueue.push(Network.Datagram(buffer, client))
 					return true
 				}
 				return false
-			case is Network.EndPoint.State.Connected:
-				if var buffer = endpoint.read() {
-					self.datagramQueue.push(Network.Datagram(buffer, endpoint))
+			case is Network.Socket.State.Connected:
+				if let buffer = socket.read() {
+					self.datagramQueue.push(Network.Datagram(buffer, socket.getEndpoint()))
 					return true
 				}
 				return false
@@ -153,55 +151,17 @@ package Network {
 		}
 
 		/**
-		 * Attempts to read data asynchronously from the end point. Returns `true` if data was
-		 * receive; otherwise returns `false`.
+		 * Attempts to write data to the socket. Returns `true` if the data was successfully sent; otherwise returns
+		 * `false`. After this call, the sent data is removed from the buffer.
 		 */
-		const async def readAsync(self, endpoint) {
-			switch endpoint.getState() {
-			case is Network.EndPoint.State.Bound:
-				var (buffer, client) = await endpoint.readFromAsync()
-				if buffer {
-					self.datagramQueue.push(Network.Datagram(buffer, client))
-					return true
-				}
-				return false
-			case is Network.EndPoint.State.Connected:
-				if var buffer = await endpoint.readAsync() {
-					self.datagramQueue.push(Network.Datagram(buffer, endpoint))
-					return true
-				}
-				return false
-			default:
-				return false
-			}
-		}
-
-		/**
-		 * Attempts to write data to the end point. Returns `true` if the data
-		 * was successfully sent; otherwise returns `false`. After this call,
-		 * the sent data is removed from the buffer.
-		 */
-		const def write(self, endpoint) {
+		const def write(self, socket) {
 			if not self.datagramQueue.isEmpty() {
-				var datagram = self.datagramQueue.top()
-				var (success, count) = endpoint.write(datagram.data())
-				if success and count == datagram.size() {
-					self.datagramQueue.pop()
-					return true
+				let datagram = self.datagramQueue.top()
+				if let endpoint = datagram.getEndpoint() {
+					var (success, count) = socket.writeTo(endpoint, datagram.data())
+				} else {
+					var (success, count) = socket.write(datagram.data())
 				}
-			}
-			return false
-		}
-
-		/**
-		 * Attempts to write data asynchronously to the end point. Returns `true` if the data
-		 * was successfully sent; otherwise returns `false`. After this call,
-		 * the sent data is removed from the buffer.
-		 */
-		const async def writeAsync(self, endpoint) {
-			if not self.datagramQueue.isEmpty() {
-				var datagram = self.datagramQueue.top()
-				var (success, count) = await endpoint.writeAsync(datagram.data())
 				if success and count == datagram.size() {
 					self.datagramQueue.pop()
 					return true
@@ -212,18 +172,113 @@ package Network {
 
 		/**
 		 * Attempts to accept a connection on the end point. This method raises
-		 * an instance of {Exception.InvalidNetworkOperation}.
+		 * an instance of {Exception.InvalidOperation}.
 		 */
 		const def accept(self, endpoint) {
-			raise Exception.InvalidNetworkOperation('the socket can not accept', self)
+			raise Exception.InvalidOperation('the socket can not accept', self)
+		}
+
+		/**
+		 * Returns `true` if the serializer's buffer is empty; otherwise
+		 * returns `false`.
+		 */
+		const def isEmpty(const self) {
+			return self.datagramQueue.isEmpty()
+		}
+
+		/// Internal datagram queue.
+		- final datagramQueue = null
+	}
+	
+	/**
+	 * This class provides a serializer for datagram based end points. It should be used with instances of
+	 * {Network.EventChannel} created with an instance of {Network.UdpIp}. The data is exchanged asynchronously.
+	 */
+	@class AsyncDatagramSerializer {
+		/**
+		 * Creates a new serializer.
+		 */
+		const def new(self) {
+			self.datagramQueue = Container.Queue()
+			return self
+		}
+
+		/**
+		 * Pushes the datagram described by `datagram` to the serializer's queue.
+		 */
+		const def appendMessage(self, datagram) {
+			if defined datagram {
+				self.datagramQueue.push(Network.Datagram(datagram))
+			}
+		}
+
+		/**
+		 * Returns the next datagram in the serializer's queue or `none` if the
+		 * queue is empty. The datagram is then removed from the queue.
+		 */
+		const def nextMessage(self) {
+			return self.datagramQueue.pop()
+		}
+
+		/**
+		 * Returns `true` if the serializer's queue contains at least one
+		 * datagram; otherwise returns `false`.
+		 */
+		const def containsMessage(const self) {
+			return not self.datagramQueue.isEmpty()
+		}
+
+		/**
+		 * Attempts to read data asynchronously from the socket. Returns `true` if data was receive; otherwise returns
+		 * `false`.
+		 */
+		const async def read(self, socket) {
+			switch socket.getState() {
+			case is Network.Socket.State.Open:
+			case is Network.Socket.State.Bound:
+				let (buffer, client) = await socket.readFrom()
+				if buffer {
+					self.datagramQueue.push(Network.Datagram(buffer, client))
+					return true
+				}
+				return false
+			case is Network.Socket.State.Connected:
+				if let buffer = await socket.read() {
+					self.datagramQueue.push(Network.Datagram(buffer, socket.getEndpoint()))
+					return true
+				}
+				return false
+			default:
+				return false
+			}
+		}
+
+		/**
+		 * Attempts to write data asynchronously to the socket. Returns `true` if the data was successfully sent;
+		 * otherwise returns `false`. After this call, the sent data is removed from the buffer.
+		 */
+		const async def write(self, socket) {
+			if not self.datagramQueue.isEmpty() {
+				let datagram = self.datagramQueue.top()
+				if let endpoint = datagram.getEndpoint() {
+					var (success, count) = await socket.writeTo(endpoint, datagram.data())
+				} else {
+					var (success, count) = await socket.write(datagram.data())
+				}
+				if success and count == datagram.size() {
+					self.datagramQueue.pop()
+					return true
+				}
+			}
+			return false
 		}
 
 		/**
 		 * Attempts to accept a connection asynchronously on the end point. This method raises
-		 * an instance of {Exception.InvalidNetworkOperation}.
+		 * an instance of {Exception.InvalidOperation}.
 		 */
-		const async def acceptAsync(self, endpoint) {
-			raise Exception.InvalidNetworkOperation('the socket can not accept', self)
+		const async def accept(self, endpoint) {
+			raise Exception.InvalidOperation('the socket can not accept', self)
 		}
 
 		/**

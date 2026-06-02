@@ -76,7 +76,7 @@ public:
 	[[nodiscard]] Scheduler& scheduler() const;
 
 protected:
-	void dump();
+	void on_error();
 
 private:
 	std::reference_wrapper<Scheduler> _scheduler;

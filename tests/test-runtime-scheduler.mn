@@ -1,0 +1,225 @@
+load test.case
+load runtime.scheduler
+
+@class RuntimeSchedulerTest : Test.Case {
+    
+    class MockOperation : Runtime.Operation {
+        const def new(self, value) {
+            self.value = value
+            return self
+        }
+
+        override const def get(self) {
+            return self.value
+        }
+
+        - final value = null
+    }
+
+    class FailingOperation : Runtime.Operation {
+        override const def check(self, result) {
+            raise "boom"
+        }
+    }
+
+    def testSpawnAndRun(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let result = 0
+
+        async def [...] main() {
+            result = 42
+        }
+
+        scheduler.spawn(main())
+        scheduler.run()
+
+        self.expectEqual(42, result)
+    }
+
+    def testMultipleSpawn(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let result = []
+
+        async def [...] a() {
+            result.push(1)
+        }
+
+        async def [...] b() {
+            result.push(2)
+        }
+
+        scheduler.spawn(a())
+        scheduler.spawn(b())
+        scheduler.run()
+
+        self.expectEqual([1,2], result)
+    }
+
+    def testSuspendReturnsValue(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let result = 0
+
+        async def [...] main() {
+            result = await scheduler.suspend(RuntimeSchedulerTest.MockOperation(99))
+        }
+
+        scheduler.spawn(main())
+        scheduler.run()
+
+        self.expectEqual(99, result)
+    }
+
+    def testSuspendRaisesException(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let result = ""
+
+        async def [...] main() {
+            try {
+                await scheduler.suspend(RuntimeSchedulerTest.FailingOperation())
+            } catch error {
+                result = error
+            }
+        }
+
+        scheduler.spawn(main())
+        scheduler.run()
+
+        self.expectEqual("boom", result)
+    }
+
+    def testUnhandledException(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let failed = false
+
+        async def [...] main() {
+            await scheduler.suspend(RuntimeSchedulerTest.FailingOperation())
+        }
+
+        try {
+            scheduler.spawn(main())
+            scheduler.run()
+        } catch error {
+            failed = true
+        }
+
+        self.expectEqual(true, failed)
+    }
+
+    def testNestedAwaitSuspend(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let result = 0
+
+        async def [...] child() {
+            return await scheduler.suspend(RuntimeSchedulerTest.MockOperation(5))
+        }
+
+        async def [...] parent() {
+            let x = await child()
+            result = x * 2
+        }
+
+        scheduler.spawn(parent())
+        scheduler.run()
+
+        self.expectEqual(10, result)
+    }
+
+    def testMultipleSuspendPoints(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let result = 0
+
+        async def [...] main() {
+            let a = await scheduler.suspend(RuntimeSchedulerTest.MockOperation(2))
+            let b = await scheduler.suspend(RuntimeSchedulerTest.MockOperation(3))
+            result = a + b
+        }
+
+        scheduler.spawn(main())
+        scheduler.run()
+
+        self.expectEqual(5, result)
+    }
+
+    def testInterleaving(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let result = []
+
+        async def [...] a() {
+            result.push(1)
+            await scheduler.suspend(RuntimeSchedulerTest.MockOperation(0))
+            result.push(3)
+        }
+
+        async def [...] b() {
+            result.push(2)
+        }
+
+        scheduler.spawn(a())
+        scheduler.spawn(b())
+        scheduler.run()
+
+        self.expectEqual([1,2,3], result)
+    }
+
+    def testRunOne(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let result = 0
+
+        async def [...] main() {
+            result = 7
+        }
+
+        scheduler.spawn(main())
+        scheduler.runOne()
+
+        self.expectEqual(7, result)
+    }
+
+    def testRunAllTerminates(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let completed = false
+
+        async def [...] main() {
+            completed = true
+        }
+
+        scheduler.spawn(main())
+        scheduler.run()
+
+        self.expectEqual(true, completed)
+    }
+
+    const def testExceptionAfterSuspend(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let caught = false
+
+        async def [...] main() {
+            await scheduler.suspend(RuntimeSchedulerTest.MockOperation(1))
+            raise "x"
+        }
+
+        async def [...] wrapper() {
+            try {
+                await main()
+            } catch error {
+                caught = true
+            }
+        }
+
+        scheduler.spawn(wrapper())
+        scheduler.run()
+
+        self.expectEqual(true, caught)
+    }
+}

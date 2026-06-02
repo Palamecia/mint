@@ -1,0 +1,271 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the polling primitives used to monitor several network
+ * channels at once and notify them when their readiness state changes.
+ */
+
+package Network {
+	/**
+	 * This enum describe the events that can be watched on a specific channel.
+	 */
+	@enum PollEvent {
+		/// This event is set when the endpoint has some waiting data to read.
+		Read   = 0x0001
+		/// This event is set when the data can be sent to the endpoint.
+		Write  = 0x0002
+		/// This event is set when a new connection is detected.
+		Accept = 0x0004
+		/// This event is set when an error is detected.
+		Error  = 0x0008
+		/// This event is set when the connection is closed by the peer.
+		Close  = 0x0010
+	}
+
+	/**
+	 * This class describe the polling state of a specific channel.
+	 */
+	@class PollDescriptor {
+		/**
+		 * Creates a new context for the channel given by `channel`. The  `channel` object must provide a `getHandle`
+		 * method returning the socket's handle as an instance of `mint::handle_t`.
+		 */
+		const def new(self, channel) {
+			let handle = channel.getHandle()
+			if defined handle {
+				self.handle = self.g_lib.call('mint_pollfd_new', handle)
+				self.handle.delete = def [g_lib = Network.PollDescriptor.g_lib] (self) {
+					g_lib.call('mint_pollfd_delete', self)
+				}
+				return self
+			}
+		}
+
+		/**
+		 * Returns the handle of the channel used by {Runtime.Scheduler}.
+		 */
+		const def getHandle(const self) {
+			return self.handle
+		}
+
+		/**
+		 * Returns the events activated on the channel as a mask of value from
+		 * the {Network.PollEvent} enum.
+		 * 
+		 * Only events passed to {@see setRequestedEvents} can be activated.
+		 */
+		const def getEvents(const self) {
+			return self.g_lib.call('mint_get_revents', self.handle)
+		}
+
+		/**
+		 * Returns the events requested on the channel as a mask of value from
+		 * the {Network.PollEvent} enum.
+		 */
+		const def getRequestedEvents(const self) {
+			return self.g_lib.call('mint_get_events', self.handle)
+		}
+
+		/**
+		 * Sets requested events to `events` on the channel. The `events`
+		 * parameter must be a mask of values from the {Network.PollEvent}
+		 * enum.
+		 */
+		const def setRequestedEvents(self, events) {
+			self.g_lib.call('mint_set_events', self.handle, events)
+		}
+
+		/**
+		 * Waits until the activation of a requested event of the channel or until `timeout` milliseconds if no event
+		 * become activated during this period.
+		 * 
+		 * Returns `true` if an event was activated; otherwise returns `false`.
+		 * 
+		 * After a call to this method, the value returned by {@see getEvents} is updated.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def poll(self, timeout = 500) {
+			let (errno, status) = Network.PollDescriptor.g_lib.call('mint_poll', [self.getHandle()], timeout)
+			if errno {
+				raise Exception.SocketError(errno, self)
+			}
+			return status
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Internal channel handle.
+		- final handle = null
+	}
+
+	/**
+	 * This class provides mechanisms to wait for multiple network events.
+	 * 
+	 * An instance of {Network.Poller} watch a set of events. Severals instances of the class can be created to manage
+	 * distinct sets.
+	 * 
+	 * The watched event objects must provide a `getHandle` method that return an instance of `mint::handle_t`.
+	 */
+	@class Poller {
+
+		/**
+		 * Adds a `channel` to the watcher. 
+		 * 
+		 * The `channel` parameter can be either a {Network.PollDescriptor} or an object with a {Network.EventChannel}
+		 * like interface.
+		 * 
+		 * Returns `true` if the channel is successfully watched; otherwise returns `false`.
+		 */
+		const def watch(self, channel) {
+			if channel in self.channels {
+				return true
+			}
+			switch typeof channel {
+			case 'Network.PollDescriptor':
+				self.channels[channel] = channel
+				break
+			default:
+				if not channel.setNonBlocking(true) {
+					return false
+				}
+				self.channels[channel] = Network.PollDescriptor(channel)
+				break
+			}
+			return true
+		}
+
+		/**
+		 * Removes the `channel` from the watcher. Returns `true` if `channel` is watched by the watcher; otherwise returns `false`.
+		 */
+		const def unwatch(self, channel) {
+			if channel in self.channels {
+				self.channels.remove(channel)
+				return true
+			}
+			return false
+		}
+
+		/**
+		 * Waits until the activation of requested events from the watched channels or until `timeout` milliseconds if no
+		 * event become activated during this period.
+		 *
+		 * For instances of {Network.PollDescriptor}, the events to watch are set using the
+		 * {Network.PollDescriptor.setRequestedEvents} method. After a call to this function, the values returned by
+		 * {Network.PollDescriptor.getEvents} are updated with the triggered events.
+		 * 
+		 * For any other objects, the watched events are selected using the {Network.EventChannel.getEvents} method. Any
+		 * activated event on a channel will then be notified to the channel using the corresponding method:
+		 * 
+		 * | Event                      | EventChannel method                     |
+		 * | -------------------------- | --------------------------------------- |
+		 * | {Network.PollEvent.Read}   | {Runtime.EventChannel.notifyReadable}   |
+		 * | {Network.PollEvent.Write}  | {Runtime.EventChannel.notifyWritable}   |
+		 * | {Network.PollEvent.Accept} | {Runtime.EventChannel.notifyConnection} |
+		 * | {Network.PollEvent.Error}  | {Runtime.EventChannel.notifyError}      |
+		 * | {Network.PollEvent.Close}  | {Runtime.EventChannel.notifyClosed}     |
+		 * 
+		 * Returns `true` if an event was activated; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def poll(self, timeout = 500) {
+
+			var channelSet = []
+			var handleSet = []
+
+			for let (channel, fd) in self.channels {
+				if not defined fd {
+					if fd = Network.PollDescriptor(channel) {
+						self.channels[channel] = fd
+					} else {
+						continue
+					}
+				}
+				switch typeof channel {
+				case 'Network.PollDescriptor':
+					channelSet.push([channel, channel])
+					handleSet.push(channel.getHandle())
+					break
+				default:
+					if let events = channel.getEvents() {
+						fd.setRequestedEvents(events)
+						channelSet.push([channel, fd])
+						handleSet.push(fd.getHandle())
+					}
+					break
+				}
+			}
+
+			let (errno, status) = Network.Poller.g_lib.call('mint_poll', handleSet, timeout)
+			if errno {
+				raise Exception.SocketError(errno, self)
+			}
+			if not status {
+				return false
+			}
+
+			for let (channel, fd) in channelSet {
+				let const events = fd.getEvents()
+				if events & Network.PollEvent.Read and defined channel.notifyReadable {
+					channel.notifyReadable()
+				}
+				if events & Network.PollEvent.Write and defined channel.notifyWritable {
+					channel.notifyWritable()
+				}
+				if events & Network.PollEvent.Accept and defined channel.notifyConnection {
+					channel.notifyConnection()
+				}
+				if events & Network.PollEvent.Error and defined channel.notifyError {
+					channel.notifyError()
+				}
+				if events & Network.PollEvent.Close {
+					self.channels[channel] = none
+					if defined channel.notifyClosed {
+						channel.notifyClosed()
+					}
+				}
+			}
+
+			return true
+		}
+
+		/**
+		 * Runs a polling loop that calls {@see poll} until no more channel is watched. The `timeout` parameter is
+		 * forwarded to the called method.
+		 */
+		const def run(self, timeout = 500) {
+			while not self.channels.isEmpty() {
+				self.poll(timeout)
+			}
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Internal channels context.
+		- final channels = {}
+	}
+}

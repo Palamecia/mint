@@ -25,15 +25,17 @@
  * This module implements the language server protocol for the mint language.
  */
 
-load network.protocols.jsonrpc.serializer
-load network.protocols.jsonrpc.exception
-load network.protocols.jsonrpc.server
-load network.endpoints.tcp-ip
+load network.protocols.json-rpc.serializer
+load network.protocols.json-rpc.exception
+load network.protocols.json-rpc.server
+load network.endpoints.stdio
+load network.endpoints.ip
+load network.sockets.stdio
+load network.sockets.tcp
 load system.terminal
 load system.process
 load system.thread
 load system.os
-load event.pipe
 load container.set
 load mint.function
 load mint.range
@@ -69,13 +71,13 @@ load minter.config
 		if consumer {
 			self.jsonRpcEndpoint = def [consumer] (self, data) {
 				var message = self.toMessage(data)
-				log.debug("Sending response to client %s", message.toString())
+				logger.debug("Sending response to client %s", message.toString())
 				return consumer(message)
 			}
 		} else {
 			self.jsonRpcEndpoint = def (self, data) {
 				var message = self.toMessage(data)
-				log.debug("Sending response to client %s", message.toString())
+				logger.debug("Sending response to client %s", message.toString())
 				return self.jsonRpcStream.write(message)
 			}
 		}
@@ -94,9 +96,9 @@ load minter.config
 					self.consume(message)
 				}
 			} catch error {
-				log.error("Failed to read from stream: %s", error.toString())
+				logger.error("Failed to read from stream: %s", error.toString())
 				if typeof error == 'DocumentStream.InvalidDocument' {
-					log.error("Document error: %s", error.getError())
+					logger.error("Document error: %s", error.getError())
 				}
 				// Continue trying to read despite errors
 			}
@@ -113,29 +115,29 @@ load minter.config
 		const JsonRpcVersion = '2.0'
 
 		if 'jsonrpc' not in message or message['jsonrpc'] != JsonRpcVersion {
-			log.warning("Unknown message type %s", message.toString())
+			logger.warning("Unknown message type %s", message.toString())
 			return none
 		}
 
 		if 'id' not in message {
 			try {
-				log.debug("Handling notification from client %s", message.toString())
+				logger.debug("Handling notification from client %s", message.toString())
 				self.onRpcNotification(message['method'], message.get('params'))
 			} catch error {
-				log.error("Failed to handle notification %s", message['method'])
-				log.error(error.toString())
+				logger.error("Failed to handle notification %s", message['method'])
+				logger.error(error.toString())
 			}
 		} elif 'method' not in message {
 			try {
-				log.debug("Handling response from client %s", message.toString())
+				logger.debug("Handling response from client %s", message.toString())
 				self.onRpcResponse(message['id'], message.get('result'), message.get('error'))
 			} catch error {
-				log.error("Failed to handle request %s", message['id'])
-				log.error(error.toString())
+				logger.error("Failed to handle request %s", message['id'])
+				logger.error(error.toString())
 			}
 		} else {
 			try {
-				log.debug("Handling request from client %s", message.toString())
+				logger.debug("Handling request from client %s", message.toString())
 				var result = self.onRpcRequest(message['id'], message['method'], message.get('params'))
 				self.jsonRpcEndpoint({
 					"jsonrpc": JsonRpcVersion,
@@ -143,8 +145,8 @@ load minter.config
 					"id": message['id']
 				})
 			} catch error {
-				log.error("Failed to handle request %s (%s)", message['method'], message['id'])
-				log.error(error.toString())
+				logger.error("Failed to handle request %s (%s)", message['method'], message['id'])
+				logger.error(error.toString())
 				self.jsonRpcEndpoint({
 					'jsonrpc': JsonRpcVersion,
 					'id': message['id'],
@@ -157,14 +159,14 @@ load minter.config
 	var def onRpcNotification(self, method, params) {
 		if self.shutdown and method != 'exit' {
 			// exit is the only allowed method during shutdown
-			log.debug("Ignoring non-exit method during shutdown: %s", method)
+			logger.debug("Ignoring non-exit method during shutdown: %s", method)
 			raise Network.JsonRpc.InvalidRequest(method)
 		}
-		const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
-		log.debug("RPC call %s", callMethod)
+		const callMethod = Network.JsonRpc.AbstractRequestHandler.toMethodSymbol(method)
+		logger.debug("RPC call %s", callMethod)
 		if callMethod not in membersof self {
 			if method.startsWith('$/') {
-				log.debug("Ignoring unknown protocol notification: %s", method)
+				logger.debug("Ignoring unknown protocol notification: %s", method)
 				return none
 			}
 			raise Network.JsonRpc.MethodNotFound(method)
@@ -178,11 +180,11 @@ load minter.config
 	var def onRpcRequest(self, id, method, params) {
 		if self.shutdown and method != 'exit' {
 			// exit is the only allowed method during shutdown
-			log.debug("Ignoring non-exit method during shutdown: %s", method)
+			logger.debug("Ignoring non-exit method during shutdown: %s", method)
 			raise Network.JsonRpc.InvalidRequest(method)
 		}
-		const callMethod = Network.JsonRpc.RequestHandler.toMethodSymbol(method)
-		log.debug("RPC call %s", callMethod)
+		const callMethod = Network.JsonRpc.AbstractRequestHandler.toMethodSymbol(method)
+		logger.debug("RPC call %s", callMethod)
 		if callMethod not in membersof self {
 			raise Network.JsonRpc.MethodNotFound(method)
 		}
@@ -309,14 +311,14 @@ load minter.config
 		var capabilities = params.get('capabilities', {})
 		var initializationOptions = params.get('initializationOptions', {})
 
-		log.debug('Language server initialized with %s %s %s %s', processId, rootUri, rootPath, initializationOptions)
+		logger.debug('Language server initialized with %s %s %s %s', processId, rootUri, rootPath, initializationOptions)
 		if not rootUri {
 			rootUri = rootPath
 		}
 		if rootUri {
 			let config = MintLspConfig(rootUri, initializationOptions, processId, capabilities)
 			let workspace = MintLspWorkspace(rootUri, Callback(self, self.jsonRpcEndpoint), config)
-			log.debug('Updated workspace for %s', workspace.getRootPath())
+			logger.debug('Updated workspace for %s', workspace.getRootPath())
 			self.workspaces[rootUri] = workspace
 		}
 		for var folder in params.get('workspaceFolders') {
@@ -326,7 +328,7 @@ load minter.config
 			}
 			let config = MintLspConfig(uri, initializationOptions, processId, capabilities)
 			let workspace = MintLspWorkspace(uri, Callback(self, self.jsonRpcEndpoint), config)
-			log.debug('Updated workspace for %s', workspace.getRootPath())
+			logger.debug('Updated workspace for %s', workspace.getRootPath())
 			self.workspaces[uri] = workspace
 		}
 
@@ -340,18 +342,18 @@ load minter.config
 					System.sleep(PARENT_PROCESS_WATCH_INTERVAL * 1000)
 				}
 				// exit when the given pid is not alive
-				log.info("Parent process %s is not alive, exiting!", pid)
+				logger.info("Parent process %s is not alive, exiting!", pid)
 				self.onRpcNotification('exit', {})
 			}
 
-			log.debug('Starting parent process watcher for PID %d', processId)
+			logger.debug('Starting parent process watcher for PID %d', processId)
 			self.watchingThread = System.Thread(watchParentProcess)
 			self.watchingThread.start(processId)
 		}
 
 		// Get our capabilities
 		var serverCapabilities = self.capabilities(rootUri)
-		log.info('Server capabilities: %s', serverCapabilities)
+		logger.info('Server capabilities: %s', serverCapabilities)
 		return {
 			'capabilities': serverCapabilities,
 			'serverInfo': {
@@ -369,11 +371,11 @@ load minter.config
 
 	- const def rpc___setTrace(self, params) {
 		self.traceValue = params.get('value', 'off')
-		log.debug('Trace value set to %s', self.traceValue)
+		logger.debug('Trace value set to %s', self.traceValue)
 	}
 
 	- const def rpc___cancelRequest(self, params) {
-		log.debug('Cancel request received for %s', params.get('id'))
+		logger.debug('Cancel request received for %s', params.get('id'))
 	}
 
 	- const def rpc_completion_item__resolve(self, params) {
@@ -571,7 +573,7 @@ load minter.config
 			// NOTE: Removing the root workspace can only happen when the server
 			// is closed, thus the else condition of this if can never happen.
 			if self.workspaces {
-				log.debug('Root workspace deleted!')
+				logger.debug('Root workspace deleted!')
 				let available_workspaces = sorted(self.workspaces)
 				let first_workspace = available_workspaces[0]
 				let new_root_workspace = self.workspaces[first_workspace]
@@ -650,7 +652,7 @@ load minter.config
 	 * Calls hookName and returns a list of results from all registered handlers
 	 */
 	- const def hook(self, hookName, docUri, ...) {
-		log.debug('Call hook for %s on %s', hookName, docUri)
+		logger.debug('Call hook for %s on %s', hookName, docUri)
 		if let workspace = self.getWorkspaceFromUrl(docUri) {
 			let document = workspace.getDocument(docUri)
 			if let config = workspace.getConfig() {
@@ -690,14 +692,14 @@ load minter.config
 /**
  * Starts a language server described by the `MintLspServerClass` class initialized
  * to communicate using a TCP socket listening on the address `address` an the port
- * `port`. If the `checkParentProcess` is set to `true`, the server will automaticaly
+ * `port`. If the `checkParentProcess` is set to `true`, the server will automatically
  * be closed if its parent process is closed.
  */
-@$def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = MintLspServer) {
+@def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = MintLspServer) {
 
 	const shutdownServer = def (checkParentProcess, server) {
 		if checkParentProcess {
-			log.debug('Shutting down server')
+			logger.debug('Shutting down server')
 			// Shutdown call must be done on a thread, to prevent deadlocks
 			var stopThread = System.Thread(server, server.close)
 			stopThread.start()
@@ -715,12 +717,12 @@ load minter.config
 		'onOpen': def (self, channel) {
 			try {
 				channel.setNonBlocking(false)
-			} catch e {
+			} catch error {
 				if not SocketError.isBaseOf(e) or System.OS.getType() != System.OSType.Windows {
-					raise e
+					raise
 				}
-				if e.getErrno() != OSError.Errno.ECONNRESET {
-					raise e
+				if error.getErrno() != OSError.Errno.ECONNRESET {
+					raise
 				}
 				// Catch and pass on ConnectionResetError when parent process dies
 			}
@@ -736,7 +738,7 @@ load minter.config
 		private('delegate'): null
 	})
 
-	var scheduler = Network.Scheduler()
+	var scheduler = Runtime.Scheduler()
 	var endpoint = Network.TcpIp(scheduler, address, port)
 	endpoint.setSocketOption(Network.SocketOption.REUSEADDR, true)
 
@@ -745,80 +747,42 @@ load minter.config
 	try {
 		server.watch()
 		server.listen()
-		log.info('Serving %s on (%s, %s)', typeof MintLspServerClass, address, port)
+		logger.info('Serving %s on (%s, %s)', typeof MintLspServerClass, address, port)
 		scheduler.run()
 	}
 
-	log.info('Shutting down')
+	logger.info('Shutting down')
 	server.close()
 }
 
 /**
  * Starts a language server described by the `MintLspServerClass` class initialized
  * to communicate using a web socket listening on the the port `port`. If the
- * `checkParentProcess` is set to `true`, the server will automaticaly be closed if
+ * `checkParentProcess` is set to `true`, the server will automatically be closed if
  * its parent process is closed.
  */
-@$def startWSLangServer(port, checkParentProcess, MintLspServerClass = MintLspServer) {
+@def startWSLangServer(port, checkParentProcess, MintLspServerClass = MintLspServer) {
 	
 }
 
 /**
  * Starts a language server described by the `MintLspServerClass` class initialized
  * to communicate using the {System.IO} object. If the `checkParentProcess` is
- * set to `true`, the server will automaticaly be closed if its parent process is
+ * set to `true`, the server will automatically be closed if its parent process is
  * closed.
  */
-@$def startIOLangServer(checkParentProcess, MintLspServerClass = MintLspServer) {
-	log.info('Starting %s IO language server', typeof MintLspServerClass)
-	class SystemPipeEndPoint : Network.EndPoint {
-		const def new(self, readFd, writeFd) {
-			if self.pipe = Event.SystemPipe(readFd, writeFd) {
-				return self
-			}
-		}
-
-		const def getState(const self) {
-			return Network.EndPoint.State.Bound
-		}
-
-		const def read(self) {
-			try {
-				return self.pipe.read()
-			} catch error {
-				return none
-			}
-		}
-
-		const def write(self, data) {
-			try {
-				let count = data.size()
-				self.pipe.write(data)
-				return (true, count)
-			} catch error {
-				return (false, 0)
-			}
-		}
-
-		const def close(self) {
-			self.pipe.close()
-		}
-
-		- final pipe = null
-	}
-	log.debug("Creating SystemPipeEndPoint")
-	let endpoint = SystemPipeEndPoint(System.stdin, System.stdout)
-	if not endpoint {
-		log.error("Failed to create SystemPipeEndPoint")
-		return none
-	}
-	log.debug("Creating SynchronousChannel")
-	let channel = Network.SynchronousChannel(endpoint, Network.JsonRpc.Serializer)
+@def startIOLangServer(checkParentProcess, MintLspServerClass = MintLspServer) {
+	logger.info('Starting %s IO language server', typeof MintLspServerClass)
+	logger.debug("Creating Network.StdioSocket")
+	let socket = Network.StdioSocket()
+	socket.bind(Network.StdioEndpoint(System.stdin, System.stdout))
+	logger.debug("Creating Channel")
+	let channel = Network.Channel(socket, Network.JsonRpc.Serializer)
 	if not channel {
-		log.error("Failed to create SynchronousChannel")
+		logger.error("Failed to create Channel")
 		return none
 	}
-	log.info("Creating and starting MintLspServer")
+	logger.info("Creating and starting MintLspServer")
 	var server = MintLspServerClass(channel, checkParentProcess)
 	server.start()
 }

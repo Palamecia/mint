@@ -77,13 +77,13 @@ package System {
 				return System.Terminal.g_lib.call('mint_terminal_is_terminal', stream)
 			case 'string':
 				load system.file
-				return System.Terminal.g_lib.call('mint_terminal_is_terminal', System.open(stream).getDescriptor())
+				return System.Terminal.g_lib.call('mint_terminal_is_terminal', System.open(stream).getHandle())
 			default:
-				if defined stream.getDescriptor {
-					return System.Terminal.g_lib.call('mint_terminal_is_terminal', stream.getDescriptor())
+				if defined stream.getHandle {
+					return System.Terminal.g_lib.call('mint_terminal_is_terminal', stream.getHandle())
 				}
 				if defined stream.toFile {
-					return System.Terminal.g_lib.call('mint_terminal_is_terminal', stream.toFile().getDescriptor())
+					return System.Terminal.g_lib.call('mint_terminal_is_terminal', stream.toFile().getHandle())
 				}
 			}
 			return false
@@ -487,7 +487,7 @@ package System {
 		}
 
 		/**
-		 * Returns the handle used by {Event.Watcher}.
+		 * Returns the handle used by {System.Poller}.
 		 */
 		const def getHandle(const self) {
 			return System.Terminal.g_lib.call('mint_terminal_get_stdin_handle')
@@ -512,7 +512,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @g_lib = lib('libmint-system')
+		- @const g_lib = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null

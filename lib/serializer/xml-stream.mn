@@ -667,10 +667,10 @@ package Serializer {
 	}
 
 	/**
-	 * This enum describe the behaviour of the {@see readElementText} method when
-	 * a child element is encountred.
+	 * This enum describe the behavior of the {@see readElementText} method when
+	 * a child element is encountered.
 	 */
-	enum ReadElementTextBehaviour {
+	enum ReadElementTextBehavior {
 		/**
 		 * The children elements makes the stream raises an instance of
 		 * {Serializer.DocumentStream.InvalidDocument}.
@@ -687,13 +687,13 @@ package Serializer {
 	}
 
 	/**
-	 * Returns the whole text contained in the current element. The `behaviour`
-	 * must be a value from {@see ReadElementTextBehaviour} that describe the
-	 * behaviour of this method when a child element is encountred. If the stream
+	 * Returns the whole text contained in the current element. The `behavior`
+	 * must be a value from {@see ReadElementTextBehavior} that describe the
+	 * behavior of this method when a child element is encountered. If the stream
 	 * is not on an {Serializer.XmlStream.TokenType.StartElement} token, `none` is
 	 * returned.
 	 */
-	const def readElementText(self, behaviour = Serializer.XmlStream.ReadElementTextBehaviour.ErrorOnUnexpectedElement) {
+	const def readElementText(self, behavior = Serializer.XmlStream.ReadElementTextBehavior.ErrorOnUnexpectedElement) {
 		if self.isStartElement() {
 
 			var result = ''
@@ -710,18 +710,18 @@ package Serializer {
 				case Serializer.XmlStream.TokenType.Comment:
 					break
 				case Serializer.XmlStream.TokenType.StartElement:
-					if behaviour == Serializer.XmlStream.ReadElementTextBehaviour.SkipChildElements {
+					if behavior == Serializer.XmlStream.ReadElementTextBehavior.SkipChildElements {
 						self.skipCurrentElement()
 						break
-					} elif behaviour == Serializer.XmlStream.ReadElementTextBehaviour.IncludeChildElements {
+					} elif behavior == Serializer.XmlStream.ReadElementTextBehavior.IncludeChildElements {
 						result << self.reader.tokenString
-						result << self.readElementText(behaviour)
+						result << self.readElementText(behavior)
 						result << self.reader.tokenString
 						break
 					}
 					/* fallthrough */
 				default:
-					if behaviour == Serializer.XmlStream.ReadElementTextBehaviour.ErrorOnUnexpectedElement {
+					if behavior == Serializer.XmlStream.ReadElementTextBehavior.ErrorOnUnexpectedElement {
 						raise Serializer.DocumentStream.InvalidDocument(self, "expected character data")
 					}
 					return result
@@ -783,7 +783,7 @@ package Serializer {
 	 * Writes the XML described by `data` to the stream. The XML will be adapted
 	 * to match the configuration sets by {@see setIndented} and
 	 * {@see setAutoClosing}. Returns `true` if all the data have been correctly
-	 * writed; otherwise returns `false`.  If the content of the `data` is not a
+	 * written; otherwise returns `false`.  If the content of the `data` is not a
 	 * valid XML, an instance of {Serializer.DocumentStream.InvalidDocument} is
 	 * raised.
 	 */
@@ -988,7 +988,7 @@ package Serializer {
 	}
 
 	/**
-	 * Enables the indentation of the XML writed to the stream. If `indented`
+	 * Enables the indentation of the XML written to the stream. If `indented`
 	 * is `true`, the XML will be indented; otherwise the XML will be compact.
 	 * 
 	 * Indented example:
@@ -1011,7 +1011,7 @@ package Serializer {
 	}
 
 	/**
-	 * Returns `true` if the stream automaticaly close the markups when writing;
+	 * Returns `true` if the stream automatically close the markups when writing;
 	 * otherwise returns `false`.
 	 */
 	const def isAutoClosing(const self) {
@@ -1019,9 +1019,9 @@ package Serializer {
 	}
 
 	/**
-	 * Enables the automatic closing of the markups writed to the stream. If
-	 * `enabled` is `true`, the markups will be automaticaly closed; otherwise
-	 * the unclosed markups will be keeped to be slosed later.
+	 * Enables the automatic closing of the markups written to the stream. If
+	 * `enabled` is `true`, the markups will be automatically closed; otherwise
+	 * the unclosed markups will be kept to be closed later.
 	 * 
 	 * Closed markups example:
 	 * ```xml
@@ -1669,7 +1669,7 @@ package Serializer {
 		}
 
 		/**
-		 * Resolve all namepaces for the current element
+		 * Resolve all namespaces for the current element
 		 */
 		- final const def resolveNamespaces(self) {
 
@@ -1743,7 +1743,7 @@ package Serializer {
 	}
 
 	/**
-	 * This class provides a writer to convert events to formated XML into a
+	 * This class provides a writer to convert events to formatted XML into a
 	 * stream.
 	 */
 	- class Writer {
@@ -1802,7 +1802,7 @@ package Serializer {
 		/**
 		 * Writes a closing element to the output stream. If the element tag
 		 * name does not match the previously opened element, the function
-		 * returns `false` to interput the parsing; otherwise returns `true`.
+		 * returns `false` to interrupt the parsing; otherwise returns `true`.
 		 */
 		const def onEndElement(self, namespaceUri, localName, qualifiedName) {
 
@@ -1839,7 +1839,7 @@ package Serializer {
 		/**
 		 * Writes a closing element to the output stream matching the last opened
 		 * element.  If no element is open, the function returns `false` to
-		 * interput the parsing; otherwise returns `true`.
+		 * interrupt the parsing; otherwise returns `true`.
 		 */
 		const def onEndElement(self) {
 

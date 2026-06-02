@@ -145,14 +145,18 @@ mint::Reference mint_thread_join(mint::FunctionHelper& helper, const mint::Refer
 }
 
 mint::Reference mint_thread_wait(mint::Cursor& /*cursor*/) {
-	const auto _ = mint::ProcessorUnlocker();
-	std::this_thread::yield();
+	{
+		const auto _ = mint::ProcessorUnlocker();
+		std::this_thread::yield();
+	}
 	return {};
 }
 
 mint::Reference mint_thread_sleep(mint::Cursor& cursor, const mint::Reference& time) {
-	const auto _ = mint::ProcessorUnlocker();
-	std::this_thread::sleep_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)));
+	{
+		const auto _ = mint::ProcessorUnlocker();
+		std::this_thread::sleep_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)));
+	}
 	return {};
 }
 

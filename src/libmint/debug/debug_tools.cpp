@@ -26,6 +26,7 @@
 #include "mint/ast/module.h"
 #include "mint/ast/node.h"
 #include "mint/ast/symbol.h"
+#include "mint/debug/debug_info.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/cast_tools.h"
@@ -641,6 +642,16 @@ public:
 		return Node::Command::raise;
 	}
 
+	Node::Command on_reraise(Cursor& /*cursor*/) {
+		_stream.get() << to_debug_string("RERAISE");
+		return Node::Command::reraise;
+	}
+
+	Node::Command on_reraise_in(Cursor& /*cursor*/) {
+		_stream.get() << to_debug_string("RERAISE_IN");
+		return Node::Command::reraise_in;
+	}
+
 	Node::Command on_await(Cursor& /*cursor*/) {
 		_stream.get() << to_debug_string("AWAIT");
 		return Node::Command::await;
@@ -776,6 +787,11 @@ public:
 		return Node::Command::reset_exception;
 	}
 
+	Node::Command on_reset_uncaught_exception(Cursor& /*cursor*/) {
+		_stream.get() << to_debug_string("RESET_UNCAUGHT_EXCEPTION");
+		return Node::Command::reset_uncaught_exception;
+	}
+
 	Node::Command on_init_parameter(Cursor& /*cursor*/, const Symbol& symbol, Reference::Flags flags,
 	    std::size_t index) {
 		_stream.get() << to_debug_string("INIT_PARAMETER");
@@ -814,7 +830,13 @@ bool mint::is_module_file(const std::filesystem::path& file_path) {
 
 std::filesystem::path mint::to_system_path(const std::string& module) {
 	if (module == Module::main_name) {
-		return std::filesystem::absolute(FileSystem::instance().get_main_module_path());
+		auto main_module_path = FileSystem::instance().get_main_module_path();
+		try {
+			return std::filesystem::absolute(main_module_path);
+		}
+		catch (const std::filesystem::filesystem_error&) {
+			return main_module_path;
+		}
 	}
 	return FileSystem::instance().get_module_path(module);
 }
@@ -856,6 +878,18 @@ std::string mint::get_module_line(const std::string& module, std::size_t line) {
 	}
 
 	return line_content;
+}
+
+const mint::FunctionInfo* mint::find_function_info(const AbstractSyntaxTree& ast, const Function& function) {
+	for (const auto& mapping : function.mapping) {
+		const auto& handle = mapping.second.handle();
+		if (const auto* debug_info = ast.find_debug_info(handle.module)) {
+			if (const auto* function_info = debug_info->find_function_from_offset(handle.offset)) {
+				return function_info;
+			}
+		}
+	}
+	return nullptr;
 }
 
 Node::Command mint::dump_command(Cursor& cursor, std::ostream& stream) {

@@ -6,7 +6,7 @@
 // Unicode path usually prefix with '\\?\'
 #define MAX_UNICODE_PATH 32767L
 
-namespace mint {
+namespace mint_system {
 
 typedef struct _PROCESSINFO {
 	DWORD dwPID;

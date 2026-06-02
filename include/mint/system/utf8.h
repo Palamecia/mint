@@ -28,6 +28,7 @@
 
 #include <compare>
 #include <cstddef>
+#include <cstdint>
 #include <string_view>
 #include <iterator>
 #include <string>
@@ -38,9 +39,9 @@ namespace mint {
 
 constexpr inline std::size_t utf8_code_point_length_max = 4;
 
-MINT_EXPORT bool utf8_begin_code_point(byte_t b);
+MINT_EXPORT bool utf8_begin_code_point(std::uint8_t b);
 
-MINT_EXPORT std::string_view::size_type utf8_code_point_length(byte_t b);
+MINT_EXPORT std::string_view::size_type utf8_code_point_length(std::uint8_t b);
 MINT_EXPORT std::string_view::size_type utf8_code_point_count(std::string_view str);
 
 MINT_EXPORT std::string_view::size_type utf8_byte_index_to_code_point_index(std::string_view str,
@@ -109,7 +110,7 @@ public:
 	}
 
 	Utf8Iterator<container_type, iterator_type>& operator++() {
-		_data += static_cast<difference_type>(utf8_code_point_length(static_cast<byte_t>(*_data)));
+		_data += static_cast<difference_type>(utf8_code_point_length(static_cast<std::uint8_t>(*_data)));
 		return *this;
 	}
 
@@ -174,20 +175,20 @@ public:
 
 	pointer operator->() const {
 		if constexpr (std::is_pointer_v<iterator_type>) {
-			_buffer = value_type(_data, utf8_code_point_length(static_cast<byte_t>(*_data)));
+			_buffer = value_type(_data, utf8_code_point_length(static_cast<std::uint8_t>(*_data)));
 		}
 		else {
-			_buffer = value_type(_data.operator->(), utf8_code_point_length(static_cast<byte_t>(*_data)));
+			_buffer = value_type(_data.operator->(), utf8_code_point_length(static_cast<std::uint8_t>(*_data)));
 		}
 		return &_buffer;
 	}
 
 	reference operator*() const {
 		if constexpr (std::is_pointer_v<iterator_type>) {
-			_buffer = value_type(_data, utf8_code_point_length(static_cast<byte_t>(*_data)));
+			_buffer = value_type(_data, utf8_code_point_length(static_cast<std::uint8_t>(*_data)));
 		}
 		else {
-			_buffer = value_type(_data.operator->(), utf8_code_point_length(static_cast<byte_t>(*_data)));
+			_buffer = value_type(_data.operator->(), utf8_code_point_length(static_cast<std::uint8_t>(*_data)));
 		}
 		return _buffer;
 	}

@@ -1,0 +1,3 @@
+@package Network.JsonRpc
+This package provides a JSON-RPC implementation with event-driven and async
+client/server wrappers built on top of the network channel abstractions.

@@ -28,6 +28,7 @@
 #include "mint/system/string.h"
 
 #include <consoleapi2.h>
+#include <cstdint>
 #include <limits>
 #include <list>
 #include <optional>
@@ -323,11 +324,11 @@ namespace {
 
 void tty_push_bytes(Tty* tty, const std::string& bytes) {
 	for (char ch : bytes) {
-		tty->byte_buffer.push(static_cast<byte_t>(ch));
+		tty->byte_buffer.push(static_cast<std::uint8_t>(ch));
 	}
 }
 
-unsigned csi_mods(uint32_t mods) {
+unsigned csi_mods(std::uint32_t mods) {
 	unsigned m = 1;
 	if (mods & event_key_mod_shift) {
 		m += 1;
@@ -342,38 +343,38 @@ unsigned csi_mods(uint32_t mods) {
 }
 
 // Push ESC [ <vtcode> ; <mods> ~
-void tty_cpush_csi_vt(Tty* tty, uint32_t mods, uint32_t vtcode) {
+void tty_cpush_csi_vt(Tty* tty, std::uint32_t mods, std::uint32_t vtcode) {
 	tty_push_bytes(tty, "\033[" + std::to_string(vtcode) + ";" + std::to_string(csi_mods(mods)) + "~");
 }
 
 // push ESC [ 1 ; <mods> <xcmd>
-void tty_cpush_csi_xterm(Tty* tty, uint32_t mods, char xcode) {
+void tty_cpush_csi_xterm(Tty* tty, std::uint32_t mods, char xcode) {
 	tty_push_bytes(tty, "\033[1;" + std::to_string(csi_mods(mods)) + std::string(1, xcode));
 }
 
 // push ESC [ <unicode> ; <mods> u
-void tty_cpush_csi_unicode(Tty* tty, uint32_t mods, uint32_t unicode) {
+void tty_cpush_csi_unicode(Tty* tty, std::uint32_t mods, std::uint32_t unicode) {
 	if ((unicode < 0x80 && mods == 0)
 	    || (mods == event_key_mod_ctrl && unicode < ' ' && unicode != event_key_tab && unicode != event_key_enter
 	        && unicode != event_key_linefeed && unicode != event_key_backsp)
 	    || (mods == event_key_mod_shift && unicode >= ' ' && unicode <= event_key_rubout)) {
-		tty->byte_buffer.push(static_cast<byte_t>(unicode));
+		tty->byte_buffer.push(static_cast<std::uint8_t>(unicode));
 	}
 	else if (mods == 0) {
 		if (unicode < 0x0800) {
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 6 & 0x1F) | 0xC0));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 0 & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<std::uint8_t>((unicode >> 6 & 0x1F) | 0xC0));
+			tty->byte_buffer.push(static_cast<std::uint8_t>((unicode >> 0 & 0x3F) | 0x80));
 		}
 		else if (unicode < 0x010000) {
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 12 & 0x0F) | 0xE0));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 6 & 0x3F) | 0x80));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 0 & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<std::uint8_t>((unicode >> 12 & 0x0F) | 0xE0));
+			tty->byte_buffer.push(static_cast<std::uint8_t>((unicode >> 6 & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<std::uint8_t>((unicode >> 0 & 0x3F) | 0x80));
 		}
 		else if (unicode < 0x110000) {
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 18 & 0x07) | 0xF0));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 12 & 0x3F) | 0x80));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 6 & 0x3F) | 0x80));
-			tty->byte_buffer.push(static_cast<byte_t>((unicode >> 0 & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<std::uint8_t>((unicode >> 18 & 0x07) | 0xF0));
+			tty->byte_buffer.push(static_cast<std::uint8_t>((unicode >> 12 & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<std::uint8_t>((unicode >> 6 & 0x3F) | 0x80));
+			tty->byte_buffer.push(static_cast<std::uint8_t>((unicode >> 0 & 0x3F) | 0x80));
 		}
 	}
 	else {
@@ -391,7 +392,7 @@ void mint::term_read_input(Tty* tty, std::optional<std::chrono::milliseconds> ti
 	//  wait for a key down event
 	INPUT_RECORD inp;
 	DWORD count;
-	uint32_t surrogate_hi = 0;
+	std::uint32_t surrogate_hi = 0;
 
 	for (;;) {
 		// check if there are events if in non-blocking timeout mode
@@ -459,7 +460,7 @@ void mint::term_read_input(Tty* tty, std::optional<std::chrono::milliseconds> ti
 		}
 
 		// get modifiers
-		uint32_t mods = 0;
+		std::uint32_t mods = 0;
 		if ((modstate & (RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED)) != 0) {
 			mods |= event_key_mod_ctrl;
 		}
@@ -516,7 +517,7 @@ void mint::term_read_input(Tty* tty, std::optional<std::chrono::milliseconds> ti
 				return;
 			default:
 				{
-					uint32_t vtcode = 0;
+					std::uint32_t vtcode = 0;
 					if (virt >= VK_F1 && virt <= VK_F5) {
 						vtcode = 10 + (virt - VK_F1);
 					}

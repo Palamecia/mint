@@ -385,9 +385,14 @@ std::future<Reference> Scheduler::create_async_thread(std::unique_ptr<Cursor>&& 
 	return std::async(
 	    [this](std::unique_ptr<Future>&& future) -> Reference {
 		    auto process = std::move(future);
-		    Future::ResultHandle handle;
+		    lock_processor();
+		    auto handle = Future::ResultHandle();
 		    process->set_result_handle(&handle);
+		    unlock_processor();
 		    schedule(*process);
+		    lock_processor();
+		    process.reset();
+		    unlock_processor();
 		    return std::move(handle.result);
 	    },
 	    std::move(future));
@@ -400,6 +405,9 @@ Process::ThreadId Scheduler::create_thread(std::unique_ptr<Cursor>&& cursor) {
 	    [this](std::unique_ptr<Process>&& thread) {
 		    auto process = std::move(thread);
 		    schedule(*process);
+		    lock_processor();
+		    process.reset();
+		    unlock_processor();
 	    },
 	    std::move(process)));
 	return thread_id;

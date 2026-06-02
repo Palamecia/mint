@@ -769,7 +769,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			auto end = string_ref.begin()
 			           + static_cast<int>(utf8_code_point_index_to_byte_index(string_ref, end_index));
 
-			end += static_cast<int>(utf8_code_point_length(static_cast<byte_t>(*end)));
+			end += static_cast<int>(utf8_code_point_length(static_cast<std::uint8_t>(*end)));
 			result.data<String>().str = std::string(begin, end);
 		}
 		else {
@@ -796,7 +796,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			std::string& string_ref = self.data<String>().str;
 			auto offset = string_index(string_ref, to_signed_integer(cursor, index));
 			auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
-			auto utf8_length = utf8_code_point_length(static_cast<byte_t>(string_ref[utf8_index]));
+			auto utf8_length = utf8_code_point_length(static_cast<std::uint8_t>(string_ref[utf8_index]));
 			string_ref.replace(utf8_index, utf8_length, to_string(value));
 
 			cursor.stack().pop_back();
@@ -819,7 +819,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			const auto begin = string_next(string_ref, utf8_code_point_index_to_byte_index(string_ref, begin_index));
 			auto end = string_next(string_ref, utf8_code_point_index_to_byte_index(string_ref, end_index));
 
-			std::advance(end, utf8_code_point_length(static_cast<byte_t>(*end)));
+			std::advance(end, utf8_code_point_length(static_cast<std::uint8_t>(*end)));
 			string_ref.replace(begin, end, to_string(value));
 
 			cursor.stack().pop_back();
@@ -834,13 +834,13 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 				if (!index.data<Iterator>().ctx.empty()) {
 					offset = utf8_code_point_index_to_byte_index(string_ref,
 					    string_index(string_ref, to_signed_integer(cursor, index.data<Iterator>().ctx.get())));
-					const auto utf8_length = utf8_code_point_length(static_cast<byte_t>(string_ref.at(offset)));
+					const auto utf8_length = utf8_code_point_length(static_cast<std::uint8_t>(string_ref.at(offset)));
 					string_ref.replace(offset, utf8_length, to_string(ref));
 					index.data<Iterator>().ctx.next(cursor);
 					offset += utf8_length;
 				}
 				else {
-					const auto length = utf8_code_point_length(static_cast<byte_t>(string_ref.at(offset)));
+					const auto length = utf8_code_point_length(static_cast<std::uint8_t>(string_ref.at(offset)));
 					string_ref.insert(offset, to_string(ref));
 					offset += length;
 				}
@@ -851,7 +851,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			while (!index.data<Iterator>().ctx.empty()) {
 				offset = utf8_code_point_index_to_byte_index(string_ref,
 				    string_index(string_ref, to_signed_integer(cursor, index.data<Iterator>().ctx.get())));
-				const auto utf8_length = utf8_code_point_length(static_cast<byte_t>(string_ref.at(offset)));
+				const auto utf8_length = utf8_code_point_length(static_cast<std::uint8_t>(string_ref.at(offset)));
 				to_remove.insert({offset, utf8_length});
 				index.data<Iterator>().ctx.next(cursor);
 			}

@@ -26,18 +26,19 @@
 #include <cstddef>
 #include <iterator>
 #include <set>
+#include <utility>
 
 using namespace mint;
 
 std::size_t DebugInfo::line_number(std::size_t offset) const {
 
-	if (_lines.empty()) {
+	if (_offset_to_line.empty()) {
 		return 1;
 	}
 
-	auto line = _lines.upper_bound(offset);
+	auto line = _offset_to_line.upper_bound(offset);
 
-	if (line != _lines.begin()) {
+	if (line != _offset_to_line.begin()) {
 		line = std::prev(line);
 	}
 
@@ -45,22 +46,17 @@ std::size_t DebugInfo::line_number(std::size_t offset) const {
 }
 
 void DebugInfo::new_line(std::size_t offset, std::size_t line_number) {
-	auto [it, inserted] = _lines.emplace(offset, line_number);
-	if (!inserted) {
-		it->second = line_number;
-	}
+	_offset_to_line.insert_or_assign(offset, line_number);
+	_line_to_offset.emplace(line_number, offset);
 }
 
 void DebugInfo::new_line(const Module& module, std::size_t line_number) {
-	auto [it, inserted] = _lines.emplace(module.next_node_offset(), line_number);
-	if (!inserted) {
-		it->second = line_number;
-	}
+	new_line(module.next_node_offset(), line_number);
 }
 
 std::size_t DebugInfo::to_executable_line_number(std::size_t line_number) const {
 	auto executable_line_numbers = std::set<std::size_t>();
-	for (auto [_, executable_line_number] : _lines) {
+	for (auto [_, executable_line_number] : _offset_to_line) {
 		if (executable_line_number == line_number) {
 			return executable_line_number;
 		}
@@ -70,4 +66,24 @@ std::size_t DebugInfo::to_executable_line_number(std::size_t line_number) const 
 		return *it;
 	}
 	return 0;
+}
+
+const FunctionInfo* mint::DebugInfo::find_function_from_line_number(std::size_t line_number) const {
+	if (const auto it = _line_to_offset.lower_bound(line_number); it != _line_to_offset.end()) {
+		return find_function_from_offset(it->second);
+	}
+	return nullptr;
+}
+
+const mint::FunctionInfo* mint::DebugInfo::find_function_from_offset(std::size_t offset) const {
+	for (const auto& function_info : _functions) {
+		if (function_info.begin_offset <= offset && offset < function_info.end_offset) {
+			return &function_info;
+		}
+	}
+	return nullptr;
+}
+
+void mint::DebugInfo::register_function(FunctionInfo function_info) {
+	_functions.push_back(std::move(function_info));
 }

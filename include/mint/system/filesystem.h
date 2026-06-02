@@ -39,7 +39,7 @@
 #ifdef MINT_OS_WINDOWS
 using uid_t = std::intptr_t;
 using gid_t = std::intptr_t;
-#else
+#elifdef MINT_OS_LINUX
 #include <linux/limits.h>
 #endif
 
@@ -131,6 +131,8 @@ private:
 };
 
 MINT_EXPORT FILE* open_file(const std::filesystem::path& path, const char* mode);
+MINT_EXPORT int open_file_descriptor(const std::filesystem::path& path, const char* mode);
+MINT_EXPORT int open_file_descriptor(const std::filesystem::path& path, int flags, int mode);
 
 }
 

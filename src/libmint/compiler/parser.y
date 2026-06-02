@@ -133,7 +133,7 @@ stmt_rule:
 		context.start_jump_forward();
 		context.shift_jump_forward();
 		context.resolve_jump_forward();
-		context.push_node(Node::Command::unload_reference);
+		context.push_node(Node::Command::reset_uncaught_exception);
 		context.resolve_jump_forward();
 		context.close_block();
 	}
@@ -299,6 +299,29 @@ stmt_rule:
 		context.push_node(Node::Command::raise);
 		context.commit_line();
 	}
+	| raise_token in_token expr_rule line_end_token {
+		if (context.is_in_catch()) {
+			context.reset_scoped_symbols_until(BuildContext::BlockType::try_type);
+			context.push_node(Node::Command::reraise_in);
+			context.commit_line();
+		}
+		else {
+			context.parse_error("no active exception to reraise");
+			YYERROR;
+		}
+	}
+	| raise_token line_end_token {
+		if (context.is_in_catch()) {
+			context.reset_scoped_symbols_until(BuildContext::BlockType::try_type);
+			context.push_node(Node::Command::reraise);
+			context.commit_line();
+		}
+		else {
+			context.parse_error("no active exception to reraise");
+			YYERROR;
+		}
+	    
+	}
 	| exit_token expr_rule line_end_token {
 		context.push_node(Node::Command::exit_exec);
 		context.commit_line();
@@ -359,7 +382,7 @@ stmt_rule:
 		context.push_node(Node::Command::declare_function);
 		context.push_node($4.c_str());
 		context.push_node(flags);
-		context.save_definition();
+		context.save_definition($4);
 		context.push_node(Node::Command::function_overload);
 		context.push_node(Node::Command::unload_reference);
 	}
@@ -389,7 +412,7 @@ stmt_rule:
 		context.push_node(Node::Command::declare_function);
 		context.push_node($3.c_str());
 		context.push_node(flags);
-		context.save_definition();
+		context.save_definition($3);
 		context.push_node(Node::Command::function_overload);
 		context.push_node(Node::Command::unload_reference);
 	}
@@ -616,7 +639,7 @@ desc_rule:
 		}
 		context.resolve_jump_forward();
 
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.retrieve_definition())) {
+		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.retrieve_definition($1))) {
 			YYERROR;
 		}
 	}
@@ -643,7 +666,7 @@ desc_rule:
 		}
 		context.resolve_jump_forward();
 
-		if (!context.update_member(context.retrieve_modifiers(), Symbol($1), context.retrieve_definition())) {
+		if (!context.update_member(context.retrieve_modifiers(), Symbol($1), context.retrieve_definition($1))) {
 			YYERROR;
 		}
 	}
@@ -670,7 +693,7 @@ desc_rule:
 		}
 		context.resolve_jump_forward();
 
-		if (!context.update_member(Reference::default_flags, Symbol($2), context.retrieve_definition())) {
+		if (!context.update_member(Reference::default_flags, Symbol($2), context.retrieve_definition($2))) {
 			YYERROR;
 		}
 	}
@@ -697,7 +720,7 @@ desc_rule:
 		}
 		context.resolve_jump_forward();
 
-		if (!context.update_member(Reference::default_flags, Symbol($2), context.retrieve_definition())) {
+		if (!context.update_member(Reference::default_flags, Symbol($2), context.retrieve_definition($2))) {
 			YYERROR;
 		}
 	}
@@ -724,7 +747,8 @@ desc_rule:
 		}
 		context.resolve_jump_forward();
 
-		if (!context.update_member(Reference::default_flags, context.retrieve_operator_symbol(), context.retrieve_definition())) {
+		if (const auto symbol = context.retrieve_operator_symbol();
+		    !context.update_member(Reference::default_flags, symbol, context.retrieve_definition(symbol.str()))) {
 			YYERROR;
 		}
 	}
@@ -751,7 +775,7 @@ desc_rule:
 		}
 		context.resolve_jump_forward();
 
-		if (!context.update_member(context.retrieve_modifiers(), Symbol($3), context.retrieve_definition())) {
+		if (!context.update_member(context.retrieve_modifiers(), Symbol($3), context.retrieve_definition($3))) {
 			YYERROR;
 		}
 	}
@@ -778,7 +802,7 @@ desc_rule:
 		}
 		context.resolve_jump_forward();
 
-		if (!context.update_member(context.retrieve_modifiers(), Symbol($3), context.retrieve_definition())) {
+		if (!context.update_member(context.retrieve_modifiers(), Symbol($3), context.retrieve_definition($3))) {
 			YYERROR;
 		}
 	}
@@ -805,7 +829,8 @@ desc_rule:
 		}
 		context.resolve_jump_forward();
 
-		if (!context.update_member(context.retrieve_modifiers(), context.retrieve_operator_symbol(), context.retrieve_definition())) {
+		if (const auto symbol = context.retrieve_operator_symbol();
+		    !context.update_member(context.retrieve_modifiers(), symbol, context.retrieve_definition(symbol.str()))) {
 			YYERROR;
 		}
 	}
@@ -1185,6 +1210,26 @@ stmt_bloc_rule:
 	| open_brace_token raise_token expr_rule close_brace_token {
 		context.reset_scoped_symbols_until(BuildContext::BlockType::try_type);
 		context.push_node(Node::Command::raise);
+	}
+	| open_brace_token raise_token in_token expr_rule close_brace_token {
+		if (context.is_in_catch()) {
+			context.reset_scoped_symbols_until(BuildContext::BlockType::try_type);
+			context.push_node(Node::Command::reraise_in);
+		}
+		else {
+			context.parse_error("no active exception to reraise");
+			YYERROR;
+		}
+	}
+	| open_brace_token raise_token close_brace_token {
+		if (context.is_in_catch()) {
+			context.reset_scoped_symbols_until(BuildContext::BlockType::try_type);
+			context.push_node(Node::Command::reraise);
+		}
+		else {
+			context.parse_error("no active exception to reraise");
+			YYERROR;
+		}
 	}
 	| open_brace_token expr_rule close_brace_token {
 		context.commit_expr_result();
@@ -2308,7 +2353,7 @@ def_rule:
 			}
 		}
 		context.resolve_jump_forward();
-		context.save_definition();
+		context.save_definition("<unknown>");
 	}
 	| def_start_rule def_capture_rule def_no_args_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
@@ -2332,7 +2377,7 @@ def_rule:
 			}
 		}
 		context.resolve_jump_forward();
-		context.save_definition();
+		context.save_definition("<unknown>");
 	};
 
 def_arrow_rule:
@@ -2345,7 +2390,7 @@ def_arrow_rule:
 			context.push_node(Node::Command::exit_call);
 		}
 		context.resolve_jump_forward();
-		context.save_definition();
+		context.save_definition("<unknown>");
 	};
 
 def_start_rule:

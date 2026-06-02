@@ -317,7 +317,7 @@ load system.uri
         if let documentInfo = self.documents.get(document.getPath()) {
             return [...self.listSymbols(documentInfo)]
         }
-        log.error("Document %s not found", document.getPath())
+        logger.error("Document %s not found", document.getPath())
         return []
     }
 
@@ -397,7 +397,7 @@ load system.uri
     const def onDefinitions(self, config, workspace, document, position) {
         if let documentInfo = self.documents.get(document.getPath()) {
             if let symbol = self.findSymbol(documentInfo.get('symbols'), position) {
-                log.debug("Searching symbol '%s' (line: %d, character: %d)", symbol, position.get('line'), position.get('character'))
+                logger.debug("Searching symbol '%s' (line: %d, character: %d)", symbol, position.get('line'), position.get('character'))
                 let symbolDefinitions = []
                 if let context = self.findContext(documentInfo.get('definitions', {}), position) {
                     for let definition in self.listDefinitions(document.getPath(), context, symbol) {
@@ -413,31 +413,31 @@ load system.uri
                     }
                 }
                 if symbolDefinitions.isEmpty() {
-                    log.error("Symbol '%s' not found", symbol)
+                    logger.error("Symbol '%s' not found", symbol)
                 }
                 return symbolDefinitions
             }
-            log.error("No symbol found (line: %d, character: %d)", position.get('line'), position.get('character'))
+            logger.error("No symbol found (line: %d, character: %d)", position.get('line'), position.get('character'))
             return []
         }
-        log.error("Document %s not found", document.getPath())
+        logger.error("Document %s not found", document.getPath())
         return []
     }
 
     const def onReferences(self, config, workspace, document, position, includeDeclaration) {
         if let documentInfo = self.documents.get(document.getPath()) {
             if let symbol = self.findSymbol(documentInfo.get('symbols'), position) {
-                log.debug("Searching references '%s' (line: %d, character: %d)", symbol, position.get('line'), position.get('character'))
+                logger.debug("Searching references '%s' (line: %d, character: %d)", symbol, position.get('line'), position.get('character'))
                 if let context = self.findContext(documentInfo.get('definitions', {}), position) {
                     switch context.get('kind') {
                     case DefaultPlugin.Parser.SymbolKind.Function:
-                        log.debug("Searching in context '%s'", self.findSymbol(documentInfo.get('symbols'), context))
+                        logger.debug("Searching in context '%s'", self.findSymbol(documentInfo.get('symbols'), context))
                         return [...self.listReferences(document.getPath(), context, symbol, includeDeclaration)]
                     default:
                         break
                     }
                 }
-                log.debug("Searching in module context")
+                logger.debug("Searching in module context")
                 let symbolReferences = []
                 for let moduleInfo in self.visibleDocuments(documentInfo) {
                     for let reference in self.listReferences(moduleInfo.get('path'), moduleInfo, symbol, includeDeclaration) {
@@ -445,14 +445,14 @@ load system.uri
                     }
                 }
                 if symbolReferences.isEmpty() {
-                    log.error("Symbol '%s' not found", symbol)
+                    logger.error("Symbol '%s' not found", symbol)
                 }
                 return symbolReferences
             }
-            log.error("No symbol found (line: %d, character: %d)", position.get('line'), position.get('character'))
+            logger.error("No symbol found (line: %d, character: %d)", position.get('line'), position.get('character'))
             return []
         }
-        log.error("Document %s not found", document.getPath())
+        logger.error("Document %s not found", document.getPath())
         return []
     }
 
@@ -472,28 +472,26 @@ load system.uri
                 return none
             }
             if let stream = cacheFile.open('r') {
-                let cached = Serializer.JsonStream(stream).read()
-                stream.close()
-                return cached
+                return Serializer.JsonStream(stream).read()
             }
         } catch error {
-            log.debug("Failed to load cache for %s: %s", path, error.toString())
+            logger.debug("Failed to load cache for %s: %s", path, error.toString())
         }
         return none
     }
 
     - final const def createOrUpdateDocument(self, config, path, documentInfo) {
-        log.debug("Updating cache for %s", path)
+        logger.debug("Updating cache for %s", path)
         let rootDir = System.Dir(config.getRootPath())
         self.documents[path] = documentInfo
         try {
             let cacheFile = self.getCachePath(config, path)
             rootDir.mkpath(rootDir.getRelativeFilePath(cacheFile.getDirectory().getPath()))
-            cacheFile.open('w')
-            Serializer.JsonStream(cacheFile).write(documentInfo)
-            cacheFile.close()
+            if let stream = cacheFile.open('w') {
+                Serializer.JsonStream(stream).write(documentInfo)
+            }
         } catch error {
-            log.error("Failed to update cache for %s: %s", path, error.toString())
+            logger.error("Failed to update cache for %s: %s", path, error.toString())
         }
     }
 
@@ -504,7 +502,7 @@ load system.uri
         } elif index < symbolPath.size() {
             const symbol = symbolPath[index]
             let definitions = context.get('definitions', {})
-            log.debug("Searching token '%s' in definitions %s", symbol, [*definitions.keys()])
+            logger.debug("Searching token '%s' in definitions %s", symbol, [*definitions.keys()])
             if let symbolDefinitions = definitions.get(symbol) {
                 for let definition in symbolDefinitions {
                     for let item in self.findDefinitions(definition, symbolPath, index + 1, depth) {
@@ -512,7 +510,7 @@ load system.uri
                     }
                 }
             } else {
-                log.debug("Searching token '%s' in variables %s", symbol, [*context.get('variables', {}).keys()])
+                logger.debug("Searching token '%s' in variables %s", symbol, [*context.get('variables', {}).keys()])
                 let variable = context.get('variables', {}).get(symbol)
                 if defined variable and 'type' in variable {
                     let typePath = variable['type'].split('.')
@@ -783,7 +781,7 @@ load system.uri
         }
 
         const def scan(self, config, document) {
-            log.debug('Scanning %s', document.getPath())
+            logger.debug('Scanning %s', document.getPath())
             self.dependencies = []
             self.definitions = {}
             self.references = {}
@@ -811,7 +809,7 @@ load system.uri
                     'symbols': self.symbols
                 }
             } else {
-                log.error('Failed to scan %s', document.getPath())
+                logger.error('Failed to scan %s', document.getPath())
             }
         }
 
@@ -863,11 +861,11 @@ load system.uri
                     case is none:
                         break
                     case DefaultPlugin.Parser.SymbolKind.Enum:
-                        // log.debug("Found enum member '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                        // logger.debug("Found enum member '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                         self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.EnumMember, self.lineNumber - 1, offset - self.lineOffset)
                         break
                     case DefaultPlugin.Parser.SymbolKind.Class:
-                        // log.debug("Found class member '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                        // logger.debug("Found class member '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                         self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Field, self.lineNumber - 1, offset - self.lineOffset)
                         break
                     default:
@@ -880,7 +878,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectModule:
                 switch type {
                 case is LexicalHandler.Token.LineEnd:
-                    // log.debug("Found module '%s' (line: %d, character: %d)", self.symbol['module'], self.symbol['line'], self.symbol['character'])
+                    // logger.debug("Found module '%s' (line: %d, character: %d)", self.symbol['module'], self.symbol['line'], self.symbol['character'])
                     self.createReference(self.symbol['module'], self.symbol['module'], DefaultPlugin.Parser.SymbolKind.Module, self.symbol['line'], self.symbol['character'])
                     self.createSymbol(self.symbol['module'], self.symbol['module'], self.symbol['line'], self.symbol['character'])
                     self.dependencies << self.symbol
@@ -893,7 +891,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectPackage:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    // log.debug("Found package '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    // logger.debug("Found package '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Package, self.lineNumber - 1, offset - self.lineOffset))
                     self.popState()
                     break
@@ -904,7 +902,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectEnum:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    // log.debug("Found enum '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    // logger.debug("Found enum '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Enum, self.lineNumber - 1, offset - self.lineOffset))
                     self.popState()
                     break
@@ -915,7 +913,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectClass:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    // log.debug("Found class '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    // logger.debug("Found class '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Class, self.lineNumber - 1, offset - self.lineOffset))
                     self.popState()
                     break
@@ -926,7 +924,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectDefinition:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    // log.debug("Found function '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    // logger.debug("Found function '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Function, self.lineNumber - 1, offset - self.lineOffset))
                     break
                 default:
@@ -936,7 +934,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectMemberDefinition:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    // log.debug("Found method '%s' (line: %d, character: %d, owner: %s)", token, self.lineNumber - 1, offset - self.lineOffset, ([for let context in self.contexts => context['token']] + [self.context['token']]).join('.'))
+                    // logger.debug("Found method '%s' (line: %d, character: %d, owner: %s)", token, self.lineNumber - 1, offset - self.lineOffset, ([for let context in self.contexts => context['token']] + [self.context['token']]).join('.'))
                     self.pushContext(token, self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Function, self.lineNumber - 1, offset - self.lineOffset))
                     self.context['owner'] = [for let context in self.contexts => context['token']]
                     break
@@ -947,7 +945,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectVariable:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    // log.debug("Found variable '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    // logger.debug("Found variable '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     self.popState()
                     break
@@ -968,7 +966,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectVariableList:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    // log.debug("Found variable '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    // logger.debug("Found variable '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     break
                 default:
@@ -978,7 +976,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectCaptureList:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    // log.debug("Found capture '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    // logger.debug("Found capture '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     break
                 default:
@@ -988,7 +986,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectParameterList:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    // log.debug("Found parameter '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
+                    // logger.debug("Found parameter '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
                     self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     break
                 default:
@@ -998,7 +996,7 @@ load system.uri
             case DefaultPlugin.Parser.State.ExpectSelfParameter:
                 switch type {
                 case is LexicalHandler.Token.Symbol:
-                    // log.debug("Found parameter '%s' (line: %d, character: %d, type: %s)", token, self.lineNumber - 1, offset - self.lineOffset, [for let context in self.contexts => context['token']].join('.'))
+                    // logger.debug("Found parameter '%s' (line: %d, character: %d, type: %s)", token, self.lineNumber - 1, offset - self.lineOffset, [for let context in self.contexts => context['token']].join('.'))
                     self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     if not self.contexts.isEmpty() {
                         self.context['definition']['variables'][token]['type'] = self.contexts[-1].get('symbol')

@@ -1,0 +1,149 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {System.Pipe} class which provides a one-way awaitable communication mechanism.
+ */
+
+load serializer.data-stream
+
+package System {
+	/**
+	 * This class provides an awaitable pipe communication mechanism that trigger an event when data become available on
+	 * the read part.
+	 * 
+	 * > This type is not copyable
+	 */
+	@class Pipe {
+		/**
+		 * Creates a new pipe. The created pipe is empty.
+		 * 
+		 * If no pipe can be created, `none` is returned.
+		 */
+		const def new(self) {
+			(self.eventHandleRead, self.eventHandleWrite) := System.Pipe.g_lib.call('mint_pipe_create')
+			if defined self.eventHandleRead and defined self.eventHandleWrite {
+				return self
+			}
+		}
+
+		/**
+		 * Cleans up the pipe instance.
+		 */
+		const def delete(self) {
+			if defined self.eventHandleWrite {
+				System.Pipe.g_lib.call('mint_pipe_close', self.eventHandleWrite)
+			}
+
+			if defined self.eventHandleRead {
+				System.Pipe.g_lib.call('mint_pipe_close', self.eventHandleRead)
+			}
+		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- const clone
+
+		/**
+		 * Returns at most `count` bytes of data contained in the read end of the pipe.
+		 * 
+		 * The pipe's data is contained in an instance of {Serializer.DataStream}.
+		 */
+		const def readSome(self, count) {
+			var stream = Serializer.DataStream()
+			System.Pipe.g_lib.call('mint_pipe_read_some', self.eventHandleRead, stream.to_std_vector_uint8_t())
+			return stream
+		}
+
+		/**
+		 * Returns the data contained in the read end of the pipe.
+		 * 
+		 * The pipe's data is contained in an instance of {Serializer.DataStream}.
+		 */
+		const def read(self) {
+			var stream = Serializer.DataStream()
+			System.Pipe.g_lib.call('mint_pipe_read', self.eventHandleRead, stream.to_std_vector_uint8_t())
+			return stream
+		}
+		
+		/**
+		 * Writes the `data` on the write end of the pipe.
+		 */
+		const def write(self, data) {
+			var stream = Serializer.DataStream(data)
+			System.Pipe.g_lib.call('mint_pipe_write', self.eventHandleWrite, stream.to_std_vector_uint8_t())
+		}
+
+		/**
+		 * Waits until data is available on the read end of the pipe. If
+		 * `timeout` is given, the wait stop after `timeout` milliseconds if
+		 * the pipe still have no data to read.
+		 * 
+		 * Returns `true` if data is available on the read end of the pipe;
+		 * otherwise returns `false` if the wait timed out.
+		 * 
+		 * After a call to this method, the event is reseted.
+		 */
+		const def wait(self, timeout = none) {
+			return System.Pipe.g_lib.call('mint_pipe_wait', self.eventHandleRead, timeout)
+		}
+
+		/**
+		 * Returns a handle useable by {System.Poller} to wait for data on the read end of the pipe.
+		 */
+		const def getReadHandle(const self) {
+			return self.eventHandleRead
+		}
+
+		/**
+		 * Returns a handle useable by {System.Poller} to wait for data on the write end of the pipe.
+		 */
+		const def getWriteHandle(const self) {
+			return self.eventHandleWrite
+		}
+
+		/**
+		 * Returns the handle used by {System.Poller}.
+		 */
+		const def getHandle(const self) {
+			return self.eventHandleRead
+		}
+
+		/**
+		 * Reset the internal event state
+		 */
+		const def reset(self) {
+			self.read()
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-event')
+
+		/// Internal read handle.
+		- final eventHandleRead = none
+
+		/// Internal write handle.
+		- final eventHandleWrite = none
+	}
+}

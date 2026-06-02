@@ -28,10 +28,18 @@
 
 #include <cstddef>
 #include <map>
+#include <string>
+#include <vector>
 
 namespace mint {
 
 class Module;
+
+struct FunctionInfo {
+	std::string name;
+	std::size_t begin_offset;
+	std::size_t end_offset;
+};
 
 class MINT_EXPORT DebugInfo {
 public:
@@ -41,8 +49,14 @@ public:
 
 	[[nodiscard]] std::size_t to_executable_line_number(std::size_t line_number) const;
 
+	[[nodiscard]] const FunctionInfo* find_function_from_line_number(std::size_t line_number) const;
+	[[nodiscard]] const FunctionInfo* find_function_from_offset(std::size_t offset) const;
+	void register_function(FunctionInfo function_info);
+
 private:
-	std::map<std::size_t, std::size_t> _lines;
+	std::map<std::size_t, std::size_t> _offset_to_line;
+	std::map<std::size_t, std::size_t> _line_to_offset;
+	std::vector<FunctionInfo> _functions;
 };
 
 }

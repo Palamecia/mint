@@ -32,15 +32,13 @@ load system.date
 load system.directory
 load system.filesystem
 load exception.system
+load runtime.operation
 
 package System {
 
 	/**
 	 * This class provides informations about a file in the file system like path,
 	 * size, rights, ...
-	 * It also provides an interface to read or write data from/to the file.
-	 * 
-	 * > This type is not copyable
 	 */
 	@class File {
 
@@ -98,20 +96,6 @@ package System {
 				return self
 			}
 		}
-
-		/**
-		 * Destroy the instance and close the file descriptor if it is open.
-		 */
-		const def delete(self) {
-			if self.isOpen() {
-				self.close()
-			}
-		}
-
-		/**
-		 * Disable object copy.
-		 */
-		- const clone
 
 		/**
 		 * Returns the base name of the file without the path.
@@ -617,25 +601,119 @@ package System {
 		}
 
 		/**
-		 * Opens the file using `mode`, returning `true` if successful; otherwise `false`.
+		 * Opens the file using `mode`, returning an instance of {System.FileStream} if successful; otherwise `none`.
 		 * 
 		 * The `mode` parameter can be one of the following strings :
-		 * | String | Meaning |
-		 * |--------|---------|
-		 * | 'r' | Open file for input operations. The file must exist. |
-		 * | 'r+' | Open a file for update (both for input and output). The file must exist. |
-		 * | 'w' | Create an empty file for output operations. If a file with the same name already exists, its contents are discarded and the file is treated as a new empty file. |
-		 * | 'w+' | Create an empty file and open it for update (both for input and output). If a file with the same name already exists its contents are discarded and the file is treated as a new empty file. |
-		 * | 'a' | Open file for output at the end of a file. Output operations always write data at the end of the file, expanding it. The file is created if it does not exist. |
-		 * | 'a+' | Open a file for update (both for input and output) with all output operations writing data at the end of the file. The file is created if it does not exist. |
+		 * | String | Meaning                                                                                                                                                                                      |
+		 * |--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+		 * | `'r+'` | Open a file for update (both for input and output). The file must exist.                                                                                                                     |
+		 * | `'r' ` | Open file for input operations. The file must exist.                                                                                                                                         |
+		 * | `'w' ` | Create an empty file for output operations. If a file with the same name already exists, its contents are discarded and the file is treated as a new empty file.                             |
+		 * | `'w+'` | Create an empty file and open it for update (both for input and output). If a file with the same name already exists its contents are discarded and the file is treated as a new empty file. |
+		 * | `'a' ` | Open file for output at the end of a file. Output operations always write data at the end of the file, expanding it. The file is created if it does not exist.                               |
+		 * | `'a+'` | Open a file for update (both for input and output) with all output operations writing data at the end of the file. The file is created if it does not exist.                                 |
 		 * 
 		 * The `'b'` character can be added at the second position of any string to open the file in binary mode.
 		 * 
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
 		const def open(self, mode = 'r') {
+			try {
+				let stream = System.FileStream()
+				if stream.open(self.getAbsolutePath(), mode) {
+					return stream
+				}
+			} catch error {
+				if typeof error === 'Exception.SystemError' {
+					raise in Exception.SystemError(error.getErrno(), self)
+				} else {
+					raise
+				}
+			}
+		}
+
+		/**
+		 * Opens the file using `mode`, returning an instance of {System.AsyncFileStream} bound to `scheduler` if
+		 * successful; otherwise `none`. The `scheduler` parameter an instance of {Runtime.Scheduler} used to schedule
+		 * asynchronous operations on the file.
+		 * 
+		 * The `mode` parameter can be one of the following strings :
+		 * | String | Meaning                                                                                                                                                                                      |
+		 * |--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+		 * | `'r+'` | Open a file for update (both for input and output). The file must exist.                                                                                                                     |
+		 * | `'r' ` | Open file for input operations. The file must exist.                                                                                                                                         |
+		 * | `'w' ` | Create an empty file for output operations. If a file with the same name already exists, its contents are discarded and the file is treated as a new empty file.                             |
+		 * | `'w+'` | Create an empty file and open it for update (both for input and output). If a file with the same name already exists its contents are discarded and the file is treated as a new empty file. |
+		 * | `'a' ` | Open file for output at the end of a file. Output operations always write data at the end of the file, expanding it. The file is created if it does not exist.                               |
+		 * | `'a+'` | Open a file for update (both for input and output) with all output operations writing data at the end of the file. The file is created if it does not exist.                                 |
+		 * 
+		 * The `'b'` character can be added at the second position of any string to open the file in binary mode.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def openAsync(self, scheduler, mode = 'r') {
+			try {
+				let stream = System.AsyncFileStream(scheduler)
+				if stream.open(self.getAbsolutePath(), mode) {
+					return stream
+				}
+			} catch error {
+				if typeof error === 'Exception.SystemError' {
+					raise in Exception.SystemError(error.getErrno(), self)
+				} else {
+					raise
+				}
+			}
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-system')
+
+		/// Internal file path.
+		- final path = ''
+	}
+
+	/**
+	 * This class provides a stream interface to read and write data to a file.
+	 * 
+	 * > This type is not copyable
+	 */
+	@class FileStream {
+
+		/**
+		 * Destroy the instance and close the file handle if it is open.
+		 */
+		const def delete(self) {
+			if self.isOpen() {
+				self.close()
+			}
+		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- const clone
+
+		/**
+		 * Opens the file pointed by `path` using `mode`, returning `true` if successful; otherwise `false`.
+		 * 
+		 * The `mode` parameter can be one of the following strings :
+		 * | String | Meaning                                                                                                                                                                                      |
+		 * |--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+		 * | `'r+'` | Open a file for update (both for input and output). The file must exist.                                                                                                                     |
+		 * | `'r' ` | Open file for input operations. The file must exist.                                                                                                                                         |
+		 * | `'w' ` | Create an empty file for output operations. If a file with the same name already exists, its contents are discarded and the file is treated as a new empty file.                             |
+		 * | `'w+'` | Create an empty file and open it for update (both for input and output). If a file with the same name already exists its contents are discarded and the file is treated as a new empty file. |
+		 * | `'a' ` | Open file for output at the end of a file. Output operations always write data at the end of the file, expanding it. The file is created if it does not exist.                               |
+		 * | `'a+'` | Open a file for update (both for input and output) with all output operations writing data at the end of the file. The file is created if it does not exist.                                 |
+		 * 
+		 * The `'b'` character can be added at the second position of any string to open the file in binary mode.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def open(self, path, mode = 'r') {
 			if self.d_ptr is null {
-				var (file, errno) = System.File.g_lib.call('mint_file_fopen', self.getAbsolutePath(), mode)
+				let (file, errno) = System.FileStream.g_lib.call('mint_file_open', path, mode)
 				if errno {
 					raise Exception.SystemError(errno, self)
 				}
@@ -655,7 +733,7 @@ package System {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			var errno = System.File.g_lib.call('mint_file_fclose', self.d_ptr)
+			var errno = System.FileStream.g_lib.call('mint_file_close', self.d_ptr)
 			self.d_ptr = null
 			if errno {
 				raise Exception.SystemError(errno, self)
@@ -678,7 +756,7 @@ package System {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			return System.File.g_lib.call('mint_file_at_end', self.d_ptr)
+			return System.FileStream.g_lib.call('mint_file_at_end', self.d_ptr)
 		}
 
 		/**
@@ -690,7 +768,7 @@ package System {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			var (pos, errno) = System.File.g_lib.call('mint_file_ftell', self.d_ptr)
+			let (errno, pos) = System.FileStream.g_lib.call('mint_file_tell', self.d_ptr)
 			if errno {
 				raise Exception.SystemError(errno, self)
 			}
@@ -712,7 +790,7 @@ package System {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			if var errno = System.File.g_lib.call('mint_file_fseek', self.d_ptr, pos) {
+			if var errno = System.FileStream.g_lib.call('mint_file_seek', self.d_ptr, pos) {
 				raise Exception.SystemError(errno, self)
 			}
 		}
@@ -727,152 +805,40 @@ package System {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			if var errno = System.File.g_lib.call('mint_file_fseek', self.d_ptr, 0) {
+			if var errno = System.FileStream.g_lib.call('mint_file_seek', self.d_ptr, 0) {
 				raise Exception.SystemError(errno, self)
 			}
 		}
 
 		/**
-		 * Returns the file descriptor openned by this object or `none` if the
-		 * file is not oppened.
+		 * Returns the file's handle as an instance of `mint::handle_t` or `none` if the file has no handle.
 		 */
-		const def getDescriptor(const self) {
+		const def getHandle(const self) {
 			if self.isOpen() {
-				return System.File.g_lib.call('mint_file_fileno', self.d_ptr)
+				return System.FileStream.g_lib.call('mint_file_get_handle', self.d_ptr)
 			}
 		}
 
 		/**
-		 * Returns the codec that is current assigned to the file. If the file
-		 * use the default codec (UTF-8), `null` is returned.
-		 */
-		const def getCodec(const self) {
-			return self.codec
-		}
-
-		/**
-		 * Sets the codec for this file to `codec`. The codec is used for decoding
-		 * any data that is read from the file, and for encoding any data that
-		 * is written. By default, UTF-8 is used. This default behaviour can be
-		 * re enabled by setting a `null` codec.
-		 */
-		const def setCodec(self, codec) {
-			self.codec = codec
-		}
-
-		/**
-		 * Reads the next byte from the file, and returns it as a {uint8}.
+		 * Returns at most `count` bytes of data from the file as an instance of {Serializer.DataStream} or `none`
+		 * if no data is available.
 		 * 
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def readUInt8(self) {
+		const def readSome(self, count) {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			var stream = Serializer.DataStream()
-			if System.File.g_lib.call('mint_file_read_byte', self.d_ptr, stream.to_std_vector_uint8_t()) {
-				return stream.getUInt8()
+			let stream = Serializer.DataStream()
+			if let errno = System.FileStream.g_lib.call('mint_file_read_some', self.d_ptr, stream.to_std_vector_uint8_t(), count) {
+				raise Exception.SystemError(errno, self)
 			}
+			return stream
 		}
 
 		/**
-		 * Reads all remaining data from the file, and returns it as a
-		 * {Serializer.DataStream}.
-		 * 
-		 * > [!IMPORTANT]
-		 * > The purpose of this method is to read raw data, to read text use
-		 * > {System.File.read}.
-		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
-		 */
-		const def readDataStream(self) {
-			if not self.isOpen() {
-				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
-			}
-			var stream = Serializer.DataStream()
-			if System.File.g_lib.call('mint_file_read_binary', self.d_ptr, stream.to_std_vector_uint8_t()) {
-				return stream
-			}
-		}
-
-		/**
-		 * Reads the next character from the file, and returns it as a string.
-		 * Data is read until a valid character is read or if the end of file
-		 * is detected.
-		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
-		 */
-		const def readChar(self) {
-			if not self.isOpen() {
-				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
-			}
-			if self.codec {
-				return self.codec.decodeChar(Callback(self, self.readUInt8))
-			} else {
-				return System.File.g_lib.call('mint_file_fgetc', self.d_ptr)
-			}
-		}
-
-		/**
-		 * Reads a word from the file, and returns it as a string. Words are
-		 * separated by whitespace (i.e., all characters for which {isSpace}
-		 * returns `true`).
-		 * 
-		 * Leading whitespace are skipped.
-		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
-		 */
-		const def readWord(self) {
-			if not self.isOpen() {
-				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
-			}
-			if self.codec {
-				return self.codec.decodeWord(Callback(self, self.readUInt8))
-			} else {
-				return System.File.g_lib.call('mint_file_fgetw', self.d_ptr)
-			}
-		}
-
-		/**
-		 * Reads the next line from the file, and returns it as a string.
-		 * Data is read until a `'\n'` character is read or if the end of
-		 * file is detected.
-		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
-		 */
-		const def readLine(self) {
-			if not self.isOpen() {
-				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
-			}
-			if self.codec {
-				return self.codec.decodeLine(Callback(self, self.readUInt8))
-			} else {
-				return System.File.g_lib.call('mint_file_readline', self.d_ptr)
-			}
-		}
-
-		/**
-		 * Returns an iterator on each remaining lines of the file.
-		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
-		 */
-		const def readLines(self) {
-			if not self.isOpen() {
-				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
-			}
-			if self.codec {
-				for var line in self.codec.decodeLines(Callback(self, self.readUInt8)) {
-					yield line
-				}
-			} else {
-				while let line = System.File.g_lib.call('mint_file_readline', self.d_ptr) {
-					yield line
-				}
-			}
-		}
-
-		/**
-		 * Reads all remaining data from the file, and returns it as a string.
+		 * Returns all remaining data from the file as an instance of {Serializer.DataStream} or `none` if no data is
+		 * available.
 		 * 
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
@@ -880,20 +846,16 @@ package System {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			if self.codec {
-				if var stream = self.readDataStream() {
-					return self.codec.decode(stream)
-				}
-			} else {
-				return System.File.g_lib.call('mint_file_read', self.d_ptr)
+			let stream = Serializer.DataStream()
+			if let errno = System.FileStream.g_lib.call('mint_file_read', self.d_ptr, stream.to_std_vector_uint8_t()) {
+				raise Exception.SystemError(errno, self)
 			}
+			return stream
 		}
 
 		/**
-		 * Writes the content of `data` to the file. Returns the number of bytes
-		 * that were actually written. The content of data is converted to string
-		 * using the codec set by {System.File.setCodec} or to an UTF-8 string by
-		 * default.
+		 * Writes the content of `data` to the file. The `data` parameter must be an instance of
+		 * {Serializer.DataStream}. Returns the number of bytes that were actually written.
 		 * 
 		 * An instance of {Exception.SystemError} is raised on error.
 		 */
@@ -901,22 +863,8 @@ package System {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			if typeof data === 'Serializer.DataStream' {
-				var (written, errno) = System.File.g_lib.call('mint_file_fwrite_binary', self.d_ptr, data.to_std_vector_uint8_t())
-				if errno {
-					raise Exception.SystemError(errno, self)
-				}
-				return written
-			}
-			if self.codec {
-				var stream = self.codec.encode(data)
-				var (written, errno) = System.File.g_lib.call('mint_file_fwrite_binary', self.d_ptr, stream.to_std_vector_uint8_t())
-				if errno {
-					raise Exception.SystemError(errno, self)
-				}
-				return written
-			}
-			var (written, errno) = System.File.g_lib.call('mint_file_fwrite', self.d_ptr, data)
+			let stream = Serializer.DataStream(data)
+			let (errno, written) = System.FileStream.g_lib.call('mint_file_write', self.d_ptr, stream.to_std_vector_uint8_t())
 			if errno {
 				raise Exception.SystemError(errno, self)
 			}
@@ -932,64 +880,454 @@ package System {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			if errno = System.File.g_lib.call('mint_file_fflush', self.d_ptr) {
+			if errno = System.FileStream.g_lib.call('mint_file_flush', self.d_ptr) {
 				raise Exception.SystemError(errno, self)
 			}
 		}
 
-		/**
-		 * Reads a word from the stream and stores it in `data`, then returns a
-		 * reference to the stream. Words are separated by whitespace (i.e., all
-		 * characters for which {isSpace} returns `true`).
-		 * 
-		 * Leading whitespace are skipped.
-		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
-		 */
-		const def >>(self, data) {
-			data := self.readWord()
-			return self
-		}
-
-		/**
-		 * Writes the string `data` to the stream, and returns a reference to the
-		 * {System.File}. The string is first encoded using the assigned codec
-		 * (the default is UTF-8) before it is written to the stream.
-		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
-		 */
-		const def <<(self, data) {
-			self.write(data)
-			return self
-		}
-
 		/// Global library handle.
-		- @g_lib = lib('libmint-system')
+		- @const g_lib = lib('libmint-system')
 
-		/// Internal file codec.
-		- final codec = null
-
-		/// Internal file path.
-		- final path = ''
-		
 		/// Object data.
 		- final d_ptr = null
 	}
 
 	/**
-	 * Creates a new {System.File} to represent the file with the specified `path`.
+	 * Creates a new {System.FileStream} to represent the file with the specified `path`.
 	 * The file is then opened with the given `mode`. Returns the file on success;
 	 * otherwise returns `null`.
 	 */
 	@def open(path, mode = 'r') {
 		var file = System.File(path)
 		try {
-			if file.open(mode) {
-				return file
+			if let stream = file.open(mode) {
+				return stream
 			}
 		} catch error {
 			return null
 		}
 		return null
 	}
+
+	/**
+	 * This class provides a stream interface to read and write data to a file asynchronously.
+	 * 
+	 * > This type is not copyable
+	 */
+	@class AsyncFileStream {
+		/**
+		 * Scheduler operation used to read some data from a file asynchronously.
+		 *
+		 * Instances of this operation are created by {System.AsyncFileStream.readWord}.
+		 *
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		class ReadSomeOperation : Runtime.Operation {
+			const def new(self, stream, count) {
+				self.stream = stream
+				self.count = count
+				self.buffer = Serializer.DataStream()
+				return self
+			}
+
+			# override const def setup(self, scheduler) {
+				return System.AsyncFileStream.WriteOperation.g_lib.call('mint_file_read_some_async', self, scheduler.to_async_runtime(), self.stream.getHandle(), self.buffer.to_std_vector_uint8_t(), self.count)
+			}
+
+			/**
+			 * Checks for the operation completion.
+			 */
+			override const def check(self, result) {
+				if let errno = result {
+					raise Exception.SystemError(errno, self.stream)
+				}
+				return true
+			}
+
+			/**
+			 * Returns the word that was actually read.
+			 */
+			override const def get(self) {
+				return self.buffer
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-system')
+
+			/// Internal stream.
+			- final stream = null
+
+			/// Internal byte count.
+			- final count = 0
+
+			/// Internal read buffer.
+			- final buffer = null
+		}
+
+		/**
+		 * Scheduler operation used to read all the remaining data from a file asynchronously.
+		 *
+		 * Instances of this operation are created by {System.AsyncFileStream.readWord}.
+		 *
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		class ReadOperation : Runtime.Operation {
+			const def new(self, stream) {
+				self.stream = stream
+				self.buffer = Serializer.DataStream()
+				return self
+			}
+
+			# override const def setup(self, scheduler) {
+				return System.AsyncFileStream.ReadOperation.g_lib.call('mint_file_read_async', self, scheduler.to_async_runtime(), self.stream.getHandle(), self.buffer.to_std_vector_uint8_t())
+			}
+
+			/**
+			 * Checks for the operation completion.
+			 */
+			override const def check(self, result) {
+				if let errno = result {
+					raise Exception.SystemError(errno, self.stream)
+				}
+				return true
+			}
+
+			/**
+			 * Returns the word that was actually read.
+			 */
+			override const def get(self) {
+				return self.buffer
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-system')
+
+			/// Internal stream.
+			- final stream = null
+
+			/// Internal read buffer.
+			- final buffer = null
+		}
+
+		/**
+		 * Scheduler operation used to write data into a file asynchronously.
+		 *
+		 * Instances of this operation are created by {System.AsyncFileStream.write}.
+		 *
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		class WriteOperation : Runtime.Operation {
+			const def new(self, stream, buffer) {
+				self.stream = stream
+				self.buffer = Serializer.DataStream(buffer)
+				return self
+			}
+
+			# override const def setup(self, scheduler) {
+				return System.AsyncFileStream.WriteOperation.g_lib.call('mint_file_write_async', self, scheduler.to_async_runtime(), self.stream.getHandle(), self.buffer.to_std_vector_uint8_t())
+			}
+
+			/**
+			 * Checks for the operation completion.
+			 */
+			override const def check(self, result) {
+				let (errno, written) = result
+				if errno {
+					raise Exception.SystemError(errno, self.stream)
+				}
+				self.written = written
+				return true
+			}
+
+			/**
+			 * Returns the number of bytes that were actually written.
+			 */
+			override const def get(self) {
+				return self.written
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-system')
+
+			/// Internal stream.
+			- final stream = null
+
+			/// Internal write buffer.
+			- final buffer = null
+
+			/// Internal written byte count.
+			- final written = none
+		}
+
+		/**
+		 * Scheduler operation used to flush buffered file's modifications asynchronously.
+		 *
+		 * Instances of this operation are created by {System.AsyncFileStream.flush}.
+		 *
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		class FlushOperation : Runtime.Operation {
+			const def new(self, stream) {
+				self.stream = stream
+				return self
+			}
+
+			# override const def setup(self, scheduler) {
+				return System.AsyncFileStream.FlushOperation.g_lib.call('mint_file_flush_async', self, scheduler.to_async_runtime(), self.stream.getHandle())
+			}
+
+			/**
+			 * Checks for the operation completion.
+			 */
+			override const def check(self, result) {
+				if let errno = result {
+					raise Exception.SystemError(errno, self.stream)
+				}
+				return true
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-system')
+
+			/// Internal stream.
+			- final stream = null
+		}
+
+		/**
+		 * Creates a new file stream bound to `scheduler`. The `scheduler` parameter an instance of {Runtime.Scheduler}
+		 * used to schedule asynchronous operations on the file.
+		 */
+		const def new(self, scheduler) {
+			self.scheduler = scheduler
+			return self
+		}
+
+		/**
+		 * Destroy the instance and close the file handle if it is open.
+		 */
+		const def delete(self) {
+			if self.isOpen() {
+				self.close()
+			}
+		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- const clone
+
+		/**
+		 * Opens the file pointed by `path` using `mode`, returning `true` if successful; otherwise `false`.
+		 * 
+		 * The `mode` parameter can be one of the following strings :
+		 * | String | Meaning                                                                                                                                                                                      |
+		 * |--------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+		 * | `'r+'` | Open a file for update (both for input and output). The file must exist.                                                                                                                     |
+		 * | `'r' ` | Open file for input operations. The file must exist.                                                                                                                                         |
+		 * | `'w' ` | Create an empty file for output operations. If a file with the same name already exists, its contents are discarded and the file is treated as a new empty file.                             |
+		 * | `'w+'` | Create an empty file and open it for update (both for input and output). If a file with the same name already exists its contents are discarded and the file is treated as a new empty file. |
+		 * | `'a' ` | Open file for output at the end of a file. Output operations always write data at the end of the file, expanding it. The file is created if it does not exist.                               |
+		 * | `'a+'` | Open a file for update (both for input and output) with all output operations writing data at the end of the file. The file is created if it does not exist.                                 |
+		 * 
+		 * The `'b'` character can be added at the second position of any string to open the file in binary mode.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def open(self, path, mode = 'r') {
+			if self.d_ptr is null {
+				let (file, errno) = System.AsyncFileStream.g_lib.call('mint_file_open_async', path, mode)
+				if errno {
+					raise Exception.SystemError(errno, self)
+				}
+				if self.d_ptr = file {
+					self.scheduler.watch(self)
+					return true
+				}
+			}
+			return false
+		}
+
+		/**
+		 * Flushes buffered modifications and closes the file.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def close(self) {
+			if not self.isOpen() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			var errno = System.AsyncFileStream.g_lib.call('mint_file_close_async', self.d_ptr)
+			self.d_ptr = null
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+		}
+
+		/**
+		 * Returns `true` if the file is open; otherwise returns `false`.
+		 */
+		const def isOpen(const self) {
+			return self.d_ptr != null
+		}
+
+		/**
+		 * Returns `true` if the end of the file has been reached; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def atEnd(const self) {
+			if not self.isOpen() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			return System.AsyncFileStream.g_lib.call('mint_file_at_end_async', self.d_ptr)
+		}
+
+		/**
+		 * Returns the position that data is written to or read from.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def tell(const self) {
+			if not self.isOpen() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			let (errno, pos) = System.AsyncFileStream.g_lib.call('mint_file_tell_async', self.d_ptr)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return pos
+		}
+
+		/**
+		 * Sets the position that data is written to or read from to `pos`.
+		 * 
+		 * If `pos` is in the range `0...self.size()`, the position is moved
+		 * relatively from the begin of the file.
+		 * 
+		 * If `pos` is in the range `-1..-self.size()`, the position is moved
+		 * relatively from the end of the file.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def seek(self, pos) {
+			if not self.isOpen() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			if var errno = System.AsyncFileStream.g_lib.call('mint_file_seek_async', self.d_ptr, pos) {
+				raise Exception.SystemError(errno, self)
+			}
+		}
+
+		/**
+		 * Sets the position that data is written to or read from to the beginning
+		 * of the file.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def rewind(self) {
+			if not self.isOpen() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			if var errno = System.AsyncFileStream.g_lib.call('mint_file_seek_async', self.d_ptr, 0) {
+				raise Exception.SystemError(errno, self)
+			}
+		}
+
+		/**
+		 * Returns the scheduler associated with the file.
+		 */
+		const def getScheduler(const self) {
+			return self.scheduler
+		}
+
+		/**
+		 * Returns the file's handle as an instance of `mint::handle_t` or `none` if the file has no handle.
+		 */
+		const def getHandle(const self) {
+			if self.isOpen() {
+				return self.d_ptr
+			}
+		}
+
+		/**
+		 * Returns at most `count` bytes of data from the file as an instance of {Serializer.DataStream} or `none`
+		 * if no data is available.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const async def readSome(self, count) {
+			if not self.isOpen() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			return await self.scheduler.suspend(System.AsyncFileStream.ReadSomeOperation(self, count))
+		}
+
+		/**
+		 * Returns all remaining data from the file as an instance of {Serializer.DataStream} or `none` if no data is
+		 * available.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const async def read(self) {
+			if not self.isOpen() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			return await self.scheduler.suspend(System.AsyncFileStream.ReadOperation(self))
+		}
+
+		/**
+		 * Writes the content of `data` to the file. The `data` parameter must be an instance of
+		 * {Serializer.DataStream}. Returns the number of bytes that were actually written.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const async def write(self, data) {
+			if not self.isOpen() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			return await self.scheduler.suspend(System.AsyncFileStream.WriteOperation(self, self.codec, data))
+		}
+
+		/**
+		 * Flushes any buffered data to the file.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const async def flush(self) {
+			if not self.isOpen() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
+			}
+			await self.scheduler.suspend(System.AsyncFileStream.FlushOperation(self))
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-system')
+
+		/// Internal scheduler.
+		- final scheduler = null
+
+		/// Internal file codec.
+		- final codec = null
+
+		/// Object data.
+		- final d_ptr = null
+	}
+
+	/**
+	 * Creates a new {System.AsyncFileStream} to represent the file with the specified `path`.
+	 * The file is then opened with the given `mode`. Returns the file on success;
+	 * otherwise returns `null`.
+	 */
+	@def openAsync(scheduler, path, mode = 'r') {
+		var file = System.File(path)
+		try {
+			if let stream = file.openAsync(scheduler, mode) {
+				return stream
+			}
+		} catch error {
+			return null
+		}
+		return null
+	}
+
 }

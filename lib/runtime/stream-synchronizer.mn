@@ -1,0 +1,166 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Event.StreamSynchronizer} helper that bridges
+ * synchronous-style stream access with asynchronous devices by waiting for
+ * readiness before forwarding read and write operations.
+ */
+
+package Event {
+	/**
+	 * This class allows synchronous-style I/O operations on an asynchronous
+	 * device. The wrapped stream must expose the relevant read and write methods
+	 * and either provide its own readiness mechanism or be usable by the
+	 * runtime scheduler.
+	 */
+	@class StreamSynchronizer {
+		/**
+		 * Creates a new synchronizer for the object given by `stream`.
+		 */
+		const def new(self, stream) {
+			if self.stream = stream {
+				if defined stream.wait {
+					self.wait = def (self) {
+						return self.stream.wait()
+					}
+				} else {
+					load Runtime.Scheduler
+					self.wait = def (self) {
+						var watcher = Runtime.Scheduler()
+						watcher.watch(self.stream)
+						return not watcher.poll().isEmpty()
+					}
+				}
+				if not defined stream.readChar {
+					self.readChar = none
+				}
+				if not defined stream.readWord {
+					self.readWord = none
+				}
+				if not defined stream.readLine {
+					self.readLine = none
+				}
+				if not defined stream.readLines {
+					self.readLines = none
+				}
+				return self
+			}
+		}
+
+		/**
+		 * Waits for available data and calls the `readChar` method of the
+		 * underlying object.
+		 */
+		var def readChar(self) {
+			if self.wait() {
+				return self.stream.readChar()
+			}
+		}
+
+		/**
+		 * Waits for available data and calls the `readWord` method of the
+		 * underlying object.
+		 */
+		var def readWord(self) {
+			if self.wait() {
+				return self.stream.readWord()
+			}
+		}
+
+		/**
+		 * Waits for available data and calls the `readLine` method of the
+		 * underlying object.
+		 */
+		var def readLine(self) {
+			if self.wait() {
+				return self.stream.readLine()
+			}
+		}
+
+		/**
+		 * Waits for available data and calls the `readLines` method of the
+		 * underlying object.
+		 */
+		var def readLines(self) {
+			while self.wait() {
+				for var line in self.stream.readLines() {
+					yield line
+				}
+			}
+		}
+
+		/**
+		 * Waits for available data and calls the `read` method of the
+		 * underlying object.
+		 */
+		const def read(self) {
+			if self.wait() {
+				return self.stream.read()
+			}
+		}
+
+		/**
+		 * calls the `write` method of the underlying object.
+		 */
+		const def write(self, data) {
+			return self.stream.write(data)
+		}
+
+		/**
+		 * Waits for available data and calls the `readWord` method of the
+		 * underlying object, stores the result in `data`, then returns a
+		 * reference to the stream.
+		 */
+		const def >>(self, data) {
+			data := self.readWord()
+			return self
+		}
+
+		/**
+		 * calls the `write` method of the underlying object, then returns a
+		 * reference to the stream.
+		 */
+		const def <<(self, data) {
+			self.write(data)
+			return self
+		}
+
+		/**
+		 * Returns `true` if the stream has no more data to read; otherwise returns
+		 * `false`.
+		 */
+		const def isEmpty(const self) {
+			if self.wait() {
+				return self.stream.isEmpty()
+			}
+			return true
+		}
+
+		/// Internal stream object.
+		- final stream = null
+
+		/// Internal wait method.
+		- final wait = null
+	}
+}

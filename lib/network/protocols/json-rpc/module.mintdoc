@@ -1,0 +1,3 @@
+This module provides the JSON-RPC protocol implementation. It exposes
+event-driven client and server wrappers for use with {Network.Poller} and
+coroutine-friendly async wrappers for use with {Runtime.Scheduler}.

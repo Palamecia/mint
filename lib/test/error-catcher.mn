@@ -68,9 +68,9 @@ package Test {
 	 * try {
 	 *     let catcher = Test.ErrorCatcher()
 	 *     1 % 0
-	 * } catch e {
-	 *     self.expectEquel('Test.RuntimeError', typeof e)
-	 *     self.expectEquel('modulo by zero', e.toString())
+	 * } catch error {
+	 *     self.expectEquel('Test.RuntimeError', typeof error)
+	 *     self.expectEquel('modulo by zero', error.toString())
 	 * }
 	 * ```
 	 */
@@ -87,7 +87,7 @@ package Test {
 		}
 
 		/// Global library handle.
-		- @g_lib = lib('libmint-test')
+		- @const g_lib = lib('libmint-test')
 
 		/// Internal context.
 		- final d_ptr = null

@@ -18,19 +18,30 @@ PRIVATE
 	date.cpp
 	directory.cpp
 	errno.cpp
+	event.cpp
+	file_watcher.cpp
 	file.cpp
 	filesystem.cpp
 	locale.cpp
 	mutex.cpp
 	os.cpp
+	pipe.cpp
+	poll.cpp
 	process.cpp
 	promise.cpp
 	terminal.cpp
 	thread.cpp
+	timer.cpp
 	timezone.cpp
 )
 
-if (WIN32)
+if (UNIX)
+	target_link_libraries(
+		mint-lib-module-system
+	PUBLIC
+		liburing::io_uring
+	)
+elseif (WIN32)
 	target_sources(
 		mint-lib-module-system
 	PRIVATE

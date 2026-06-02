@@ -1,10 +1,6 @@
 #ifndef MINT_CONFIG_H
 #define MINT_CONFIG_H
 
-#ifndef MINT_NO_BYTE_TYPE
-using byte_t = unsigned char;
-#endif
-
 #define MINT_TO_STR(__str) #__str
 #define MINT_MACRO_TO_STR(__str) MINT_TO_STR(__str)
 
@@ -50,5 +46,14 @@ using byte_t = unsigned char;
 #define MINT_DECL_EXPORT
 #define MINT_EXPORT
 #endif
+
+namespace mint {
+
+template<class... Ts>
+struct Overloaded : Ts... {
+	using Ts::operator()...;
+};
+
+}
 
 #endif // MINT_CONFIG_H

@@ -1,50 +1,16 @@
-This module provides classes implementing the network serializer interface. A
-network serializer class allows conversions between message objects and byte
-streams (represented by an instance of {Serializer.DataStream}).
+This module describes the serializer contract used by the network channel
+classes.
 
-A serializer class must follow this interface:
+A serializer implementation converts between message objects and byte streams
+represented by {Serializer.DataStream}. The same contract is used by
+{Network.Channel}, {Network.AsyncChannel}, and {Network.EventChannel}.
 
-## appendMessage
+The core synchronous interface consists of the following methods:
 
-`def appendMessage(self, message)`
+- `appendMessage` to queue a message in the serializer buffer.
+- `nextMessage` and `containsMessage` to decode and inspect complete messages.
+- `read`, `write`, and `accept` to exchange data with an underlying socket or accepted peer.
 
-Appends the message object provided by `message` to the serializer's buffer.
-
-## nextMessage
-
-`def nextMessage(self)`
-
-Returns the next message object in the serializer's buffer or `none` if no
-message object can be constructed from the data in the buffer. The data used to
-create the message is then removed from the buffer.
-
-## containsMessage
-
-`def containsMessage(const self)`
-
-Returns `true` if a message can be constructed from the data in the serializer's
-buffer; otherwise returns `false`.
-
-## read
-
-`def read(self, endpoint)`
-
-Performs a read operation on `endpoint` and append received data to the
-serializer's buffer. Returns `true` if data was receive; otherwise returns
-`false`.
-
-## write
-
-`def write(self, endpoint)`
-
-Performs a write operation on `endpoint` using the data available in the
-serializer's buffer. Returns `true` if the data was successfully sent; otherwise
-returns `false`. After this call, the sent data should be removed from the buffer.
-
-## accept
-
-`def accept(self, endpoint)`
-
-Performs an accept operation on `endpoint` and push the new endpoint in the
-serializer's buffer. Returns `true` if a new connection was successfully accepted;
-otherwise returns `false`.
+For coroutine-based code, a second implementation may also provide async variants. The methods suspend until more data
+becomes available or a connection is accepted, and they are used by {Network.AsyncChannel}. Event-driven code typically
+relies on the synchronous interface together with the channel layer's readiness handling.

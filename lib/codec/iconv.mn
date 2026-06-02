@@ -26,8 +26,7 @@
  * text using the iconv backend.
  */
 
-load mint.lang
-load exception.exception
+load exception.codec
 load serializer.data-stream
 
 package Codec {
@@ -36,10 +35,11 @@ package Codec {
  * This class use the iconv backend to convert text from and to others encodings.
  * 
  * ```mn
+ * load serializer.text-stream
  * load system.file
  * load codec.iconv
  * 
- * if file = System.open(path) {
+ * if let file = Serializer.TextStream(System.open(path)) {
  * 
  *     file.setCodec(Codec.Iconv('ISO-8859-1'))
  * 
@@ -48,180 +48,76 @@ package Codec {
  * ```
  */
 @class Iconv {
-	/**
-	 * State of a byte conversion. This type is used by the
-	 * {Codec.Iconv.decodeChar}, {Codec.Iconv.decode} and
-	 * {Codec.Iconv.encode} methods to make the conversion.
-	 */
-	enum State {
-		/// Conversion succeed.
-		Success
-		/// Invalid byte sequence.
-		Invalid
-		/// Conversion need more bytes.
-		NeedMore
-	}
-
-	/**
-	 * This class provides the context of an invalid byte sequence exception.
-	 */
-	class InvalidByteSequence : Exception.Exception {
 		/**
-		 * Create a new instance of the exception for the given `stream` byte
-		 * sequence.
+		 * Create a new instance of the codec. The `encoding` parameter must be a valid encoding name supported by
+		 * [iconv]().
 		 */
-		const def new(self, stream) {
-			self.stream = stream
-			return self
+		const def new(self, encoding) {
+			if self.d_ptr = Codec.Iconv.g_lib.call('mint_iconv_open', encoding) {
+				self.d_ptr.delete = def [g_lib = Codec.Iconv.g_lib] (self) {
+					g_lib.call('mint_iconv_close', self)
+				}
+				self.encoding = encoding
+				return self
+			}
 		}
-
+	
 		/**
-		 * Returns the exception informations as a string.
-		 */
-		const def toString(const self) {
-			const byteSequenceToString = def (stream) {
-				var str = ''
-				for byte in stream.getUInt8(10) {
-					str << '0x%02x ' % number(byte)
-				}
-				if stream.size() > 10 {
-					str << '...'
-				}
-				return str
+         * Decode the characters from `buffer` starting at position `pos`. Returns an iterator containing the completion
+         * status as an instance of {Codec.Status} and the decoded characters. If the status is {Codec.Status.Success},
+         * no more character can be decoded from the buffer. If the status is {Codec.Status.NeedMoreInput} more data
+         * should be added to continue decoding. If the status is {Codec.Status.InvalidSequence}, decoding can not be
+         * continued beyond this point. On any case, `pos` is moved to the position of the next byte to decode. The
+         * `buffer` parameter should be an instance of {Serializer.DataStream}.
+         */
+        const def decode(self, buffer, pos) {
+			let (status, value) = Codec.Iconv.g_lib.call('mint_iconv_decode', self.d_ptr, buffer.to_std_vector_uint8_t(), pos)
+			switch status {
+			case 0:
+				return (Codec.Status.Success, value)
+			case 1:
+				return (Codec.Status.NeedMoreInput, value)
+			case -1:
+                return (Codec.Status.InvalidSequence, value)
 			}
-			return 'invalid byte sequence : %s' % byteSequenceToString(self.stream)
-		}
-		
-		/// Internal byte sequence.
-		- final stream = null
-	}
-	
-	/**
-	 * Create a new instance of the codec. The `encoding` parameter must be a
-	 * valid encoding name supported by [iconv]().
-	 */
-	const def new(self, encoding) {
-		if isDefined(self.d_ptr = Codec.Iconv.g_lib.call('mint_iconv_open', encoding)) {
-			self.d_ptr.delete = def [g_lib = Codec.Iconv.g_lib] (self) {
-				g_lib.call('mint_iconv_close', self)
-			}
-			return self
-		}
-	}
-	
-	/**
-	 * Returns one character decoded from the source encoding to UTF-8. The
-	 * `readCallback` parameter must be a function that provide the next byte
-	 * of the source. If the byte sequence can not be decoded with the source
-	 * encoding, an instance of {@see InvalidByteSequence} is raised.
-	 */
-	const def decodeChar(self, readCallback) {
-		var buffer = ''
-		var stream = Serializer.DataStream()
-		while byte = readCallback() {
-			stream.write(byte)
-			switch Codec.Iconv.g_lib.call('mint_iconv_decode', self.d_ptr, buffer, stream.to_std_vector_uint8_t()) {
-			case Codec.Iconv.State.Success:
-				return buffer
-			case Codec.Iconv.State.Invalid:
-				raise Codec.Iconv.InvalidByteSequence(stream)
-			case Codec.Iconv.State.NeedMore:
-				break
-			}
-		}
-		if not stream.isEmpty() {
-			raise Codec.Iconv.InvalidByteSequence(stream)
-		}
-	}
-	
-	/**
-	 * Returns one word decoded from the source encoding to UTF-8. The
-	 * `readCallback` parameter must be a function that provide the next byte
-	 * of the source. If the byte sequence can not be decoded with the source
-	 * encoding, an instance of {@see InvalidByteSequence} is raised.
-	 */
-	const def decodeWord(self, readCallback) {
-		var c = self.decodeChar(readCallback)
-		while defined c and c =~ /\s/ {
-			c = self.decodeChar(readCallback)
-		}
-		if defined c {
-			var buffer = ''
-			while defined c and c !~ /\s/ {
-				buffer << c
-				c = self.decodeChar(readCallback)
-			}
-			return buffer
-		}
-	}
-	
-	/**
-	 * Returns one line decoded from the source encoding to UTF-8. The
-	 * `readCallback` parameter must be a function that provide the next byte
-	 * of the source. If the byte sequence can not be decoded with the source
-	 * encoding, an instance of {@see InvalidByteSequence} is raised.
-	 */
-	const def decodeLine(self, readCallback) {
-		if isDefined(var c = self.decodeChar(readCallback)) {
-			var buffer = ''
-			while defined c and c != '\n' {
-				buffer << c
-				c = self.decodeChar(readCallback)
-			}
-			return buffer
-		}
-	}
-	
-	/**
-	 * Returns each line decoded from the source encoding to UTF-8. The
-	 * `readCallback` parameter must be function that provide the next byte
-	 * of the source. If the byte sequence can not be decoded with the source
-	 * encoding, an instance of {@see InvalidByteSequence} is raised.
-	 */
-	const def decodeLines(self, readCallback) {
-		while let buffer = self.decodeLine(readCallback) {
-			yield buffer
-		}
-	}
-	
-	/**
-	 * Returns whole content decoded from the source encoding to UTF-8. The
-	 * `stream` parameter must be an instance of {Serializer.DataStream}
-	 * containing the source. If the byte sequence can not be decoded with the
-	 * source encoding, an instance of {@see InvalidByteSequence} is raised.
-	 */
-	const def decode(self, stream) {
-		var buffer = ''
-		switch Codec.Iconv.g_lib.call('mint_iconv_decode', self.d_ptr, buffer, stream.to_std_vector_uint8_t()) {
-		case Codec.Iconv.State.Success:
-			return buffer
-		case Codec.Iconv.State.Invalid:
-		case Codec.Iconv.State.NeedMore:
-			raise Codec.Iconv.InvalidByteSequence(stream)
-		}
-	}
-	
-	/**
-	 * Returns an instance of {Serializer.DataStream} containing the `buffer`
-	 * encoded to the source encoding. If the buffer can not be encoded to the
-	 * target encoding, an instance of {@see InvalidByteSequence} is raised.
-	 */
-	const def encode(self, buffer) {
-		var stream = Serializer.DataStream()
-		switch Codec.Iconv.g_lib.call('mint_iconv_encode', self.d_ptr, buffer, stream.to_std_vector_uint8_t()) {
-		case Codec.Iconv.State.Success:
-			return stream
-		case Codec.Iconv.State.Invalid:
-		case Codec.Iconv.State.NeedMore:
-			raise Codec.Iconv.InvalidByteSequence(stream)
-		}
-	}
-	
-	/// Global library handle.
-	- @g_lib = lib('libmint-codec')
+        }
 
-	/// Object data.
-	- final d_ptr = null
-}
+        /**
+         * Encode the string `str` starting at position `pos`. Returns an iterator containing the completion status as
+         * an instance of {Codec.Status} and an instance of {Serializer.DataStream} containing the encoded bytes. If the
+         * status is {Codec.Status.Success}, no more character need to be encoded from the string. If the status is
+         * {Codec.Status.NeedMoreInput} more data should be added to continue encoding. If the status is
+         * {Codec.Status.InvalidSequence}, encoding can not be continued beyond this point. On any case, `pos` is moved
+         * to the position of the next byte to decode.
+         */
+        const def encode(self, str, pos) {
+            let buffer = Serializer.DataStream()
+			let status = Codec.Iconv.g_lib.call('mint_iconv_encode', self.d_ptr, str, buffer.to_std_vector_uint8_t(), pos)
+			switch status {
+			case 0:
+				return (Codec.Status.Success, buffer)
+			case 1:
+				return (Codec.Status.NeedMoreInput, buffer)
+			case -1:
+                return (Codec.Status.InvalidSequence, buffer)
+			}
+        }
+	
+        /**
+         * Returns the encoding name used by the codec.
+         */
+        const def getEncoding(const self) {
+            return self.encoding
+        }
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-codec')
+
+		/// Object data.
+		- final d_ptr = null
+
+		/// Internal encoding name.
+		- final encoding = 'UTF-8'
+	}
 
 }

@@ -1,0 +1,126 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {System.FileWatcher} class which provides a waitable file
+ * implementation.
+ */
+
+package System {
+	/**
+	 * This class provides a waitable file implementation that trigger an event
+	 * when the file is modified.
+	 * 
+	 * This class only provides basic file mecanisme as write and read raw data.
+	 * To perform extanded operations on files, use {System.File}.
+	 * 
+	 * > This type is not copyable
+	 */
+	@class FileWatcher {
+		/**
+		 * This enum describes the differents modifications that can be watched
+		 * on a file.
+		 */
+		enum Change {
+			/// The file name has changed
+			Name = 0x01
+			/// The content of the file has changed
+			Data = 0x02
+			/// The attributes of the file has changed
+			Attributes = 0x04
+		}
+
+		/**
+		 * Creates a new file. The file is automaticaly opened.
+		 * 
+		 * The `path` parameter must be a string containing the path to the file
+		 * to open.
+		 * 
+		 * The `flags` parameter must be a combination of values from the
+		 * {System.FileWatcher.Change} enum and describes the watched events types.
+		 * 
+		 * If no file can be openned at the given `path` with the given `mode`,
+		 * `none` is returned.
+		 */
+		const def new(self, path, flags = System.FileWatcher.Change.Data) {
+			self.eventHandle = System.FileWatcher.g_lib.call('mint_file_watcher_create', path, flags)
+			if defined self.fileHandle and defined self.eventHandle {
+				return self
+			}
+		}
+
+		/**
+		 * Cleans up the file instance.
+		 */
+		const def delete(self) {
+			if defined self.eventHandle {
+				System.FileWatcher.g_lib.call('mint_file_watcher_close', self.eventHandle)
+			}
+		}
+
+		/**
+		 * Disable object copy.
+		 */
+		- const clone
+
+		/**
+		 * Returns a {System.File} instance associated with this file watcher. The returned file is opened with the same mode as the file watcher.
+		 */
+		const def toFile(self) {
+			return System.File(self.fileHandle)
+		}
+
+		/**
+		 * Waits until the file is modified. If `timeout` is given, the wait
+		 * stop after `timeout` milliseconds if the file is still not modified.
+		 * 
+		 * Returns `true` if the file is modified; otherwise returns `false` if
+		 * the wait timed out.
+		 * 
+		 * After a call to this method, the event is reseted.
+		 */
+		const def wait(self, timeout = none) {
+			return System.FileWatcher.g_lib.call('mint_file_watcher_wait', self.eventHandle, timeout)
+		}
+
+		/**
+		 * Returns the handle used by {System.FileWatcher}.
+		 */
+		const def getHandle(const self) {
+			return self.eventHandle
+		}
+
+		/**
+		 * Reset the internal event state
+		 */
+		const def reset(self) {
+			System.FileWatcher.g_lib.call('mint_file_watcher_wait', self.eventHandle, 0)
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-system')
+
+		/// Internal handle.
+		- final eventHandle = none
+	}
+}

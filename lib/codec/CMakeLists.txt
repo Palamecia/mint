@@ -3,6 +3,7 @@ project(module-codec)
 add_custom_target(
 	mint-module-codec
 SOURCES
+	codec.mn
 	iconv.mn
 	mime-types.mn
 )

@@ -69,7 +69,7 @@ std::size_t Pipe::write(FILE* stream, const std::string& str) {
 		pipe = std::bit_cast<HANDLE>(_get_osfhandle(fd));
 		break;
 	}
-	if (!WriteFile(pipe, str.data(), static_cast<DWORD>(str.length() + 1), &number_of_bytes_written, nullptr)) {
+	if (!WriteFile(pipe, str.data(), static_cast<DWORD>(str.length()), &number_of_bytes_written, nullptr)) {
 		throw std::system_error(last_error_code());
 	}
 	return number_of_bytes_written;
@@ -101,7 +101,7 @@ void Pipe::print(FILE* stream, const std::string& str) {
 		pipe = std::bit_cast<HANDLE>(_get_osfhandle(fd));
 		break;
 	}
-	if (!WriteFile(pipe, str.data(), static_cast<DWORD>(str.length() + 1), &number_of_bytes_written, nullptr)) {
+	if (!WriteFile(pipe, str.data(), static_cast<DWORD>(str.length()), &number_of_bytes_written, nullptr)) {
 		throw std::system_error(last_error_code());
 	}
 #else

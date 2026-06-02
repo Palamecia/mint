@@ -26,6 +26,7 @@
 
 load mint.commandline-parser
 load serializer.json-stream
+load serializer.text-stream
 load system.timezone
 load system.date
 load mint.lang
@@ -107,11 +108,11 @@ def configureLogger(verbose = 0, logFile = none) {
     }
 
     var logFormatter = Logger.Formatter()
-    var logHandler = Logger.Handler(logFile ? System.open(logFile, 'w') : StdErrorStream())
+    var logHandler = Logger.Handler(Serializer.TextStream(logFile ? System.open(logFile, 'w') : StdErrorStream()))
 
     if logHandler {
         logHandler.setFormatter(logFormatter)
-        log.addHandler(logHandler)
+        logger.addHandler(logHandler)
     }
 
     switch verbose {
@@ -127,17 +128,17 @@ def configureLogger(verbose = 0, logFile = none) {
     }
 
     atError(def (message, callstack) {
-        log.fatal(message)
+        logger.fatal(message)
         for let (module, lineNumber) in callstack {
-            log.fatal('  %s:%d', module, lineNumber)
+            logger.fatal('  %s:%d', module, lineNumber)
         }
     })
 
     atExit(def (code) {
-        log.debug('Exited with code %d' % code)
+        logger.debug('Exited with code %d' % code)
     })
 
-    log.setLevel(level)
+    logger.setLevel(level)
 }
 
 def [...] main(args) {

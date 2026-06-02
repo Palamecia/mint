@@ -82,7 +82,7 @@ package Serializer {
 	}
 
 	/**
-	 * Enables the indentation of the JSON writed to the stream. If `indented`
+	 * Enables the indentation of the JSON wrote to the stream. If `indented`
 	 * is `true`, the JSON will be indented; otherwise the JSON will be
 	 * compact.
 	 * 

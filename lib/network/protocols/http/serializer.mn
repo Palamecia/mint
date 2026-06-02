@@ -23,7 +23,7 @@
  *
  * @module
  * This module provides the {Network.Http.Serializer} class which implement the
- * serializer interface for HTTP messages on a stream based end point such
+ * serializer interface for HTTP messages on a stream based socket such
  * as {Network.TcpIp}. Message objects uses the {Network.Http.Message} class.
  */
 
@@ -34,8 +34,8 @@ load mint.type
 package Network {
 	package Http {
 		/**
-		 * This class provides a serializer for plain HTTP messages. The message
-		 * objects uses the {Network.Http.Message} class.
+		 * This class provides a serializer for plain HTTP messages. The message objects uses the {Network.Http.Message}
+		 * class.
 		 */
 		@class Serializer {
 			/**
@@ -82,11 +82,11 @@ package Network {
 			}
 
 			/**
-			 * Attempts to read data from the end point. Returns `true` if data
+			 * Attempts to read data from the socket. Returns `true` if data
 			 * was receive; otherwise returns `false`.
 			 */
-			const def read(self, endpoint) {
-				if var buffer = endpoint.read() {
+			const def read(self, socket) {
+				if var buffer = socket.read() {
 					self.stream.write(buffer)
 					return true
 				}
@@ -94,25 +94,13 @@ package Network {
 			}
 
 			/**
-			 * Attempts to read data asynchronously from the end point. Returns `true` if data
-			 * was receive; otherwise returns `false`.
-			 */
-			const async def readAsync(self, endpoint) {
-				if var buffer = await endpoint.readAsync() {
-					self.stream.write(buffer)
-					return true
-				}
-				return false
-			}
-
-			/**
-			 * Attempts to write data to the end point. Returns `true` if the data
+			 * Attempts to write data to the socket. Returns `true` if the data
 			 * was successfully sent; otherwise returns `false`. After this call,
 			 * the sent data is removed from the buffer.
 			 */
-			const def write(self, endpoint) {
+			const def write(self, socket) {
 				if not self.stream.isEmpty() {
-					var (success, count) = endpoint.write(self.stream)
+					var (success, count) = socket.write(self.stream)
 					if success {
 						self.stream.remove(count)
 						return true
@@ -122,13 +110,124 @@ package Network {
 			}
 
 			/**
-			 * Attempts to write data asynchronously to the end point. Returns `true` if the data
+			 * Attempts to accept a connection on the socket. This method raises
+			 * an instance of {Exception.InvalidOperation}.
+			 */
+			const def accept(self, socket) {
+				raise Exception.InvalidOperation('the socket can not accept', self)
+			}
+
+			/**
+			 * Returns `true` if the serializer's buffer is empty; otherwise
+			 * returns `false`.
+			 */
+			const def isEmpty(const self) {
+				return self.stream.isEmpty()
+			}
+
+			/**
+			 * Returns the size of the next message in the buffer in bytes or
+			 * `none` if the size un unknown. The size include the header and
+			 * the body.
+			 */
+			- final const def nextMessageLength(self) {
+				if var str = self.stream.getString(0) {
+					var index = str.indexOf('Content-Length:')
+					if defined index {
+						var eol = str.indexOf(/\r?\n/, index)
+						var begin = str.indexOf(/\r?\n\r?\n/, index)
+						if defined begin {
+							begin += str[begin] == '\r' ? 2 : 1
+							begin += str[begin] == '\r' ? 2 : 1
+							// The header should only contains ASCII characters so one code point is equal to one byte
+							// No need to convert begin
+							return begin + str[(index + 16)...eol].toNumber()
+						}
+					} else {
+						var begin = str.indexOf(/\r?\n\r?\n/)
+						if defined begin {
+							begin += str[begin] == '\r' ? 2 : 1
+							begin += str[begin] == '\r' ? 2 : 1
+							// The header should only contains ASCII characters so one code point is equal to one byte
+							// No need to convert begin
+							return begin
+						}
+					}
+				}
+			}
+
+			/// Internal buffer.
+			- final stream = null
+		}
+
+		/**
+		 * This class provides a serializer for plain HTTP messages. The message objects uses the {Network.Http.Message}
+		 * class. The data is exchanged asynchronously.
+		 */
+		@class AsyncSerializer {
+			/**
+			 * Creates a new serializer.
+			 */
+			const def new(self) {
+				self.stream = Serializer.DataStream()
+				return self
+			}
+
+			/**
+			 * Appends the message object provided by `message` to the serializer's
+			 * buffer. The `message` parameter must be an instance of
+			 * {Network.Http.Message}.
+			 */
+			const def appendMessage(self, message) {
+				if defined message {
+					self.stream.write(message.encode())
+				}
+			}
+
+			/**
+			 * Returns the next message object in the serializer's buffer as an
+			 * instance of {Network.Http.Message} or `none` if no message object
+			 * can be constructed from the data in the buffer. The data used to
+			 * create the message is then removed from the buffer.
+			 */
+			const def nextMessage(self) {
+				var length = self.nextMessageLength()
+				if var message = Network.Http.Message.decode(self.stream, length) {
+					self.stream.remove(length)
+					return message
+				}
+			}
+
+			/**
+			 * Returns `true` if a message can be constructed from the data in the
+			 * serializer's buffer (i.e. a full HTTP message was added); otherwise
+			 * returns `false`.
+			 */
+			const def containsMessage(const self) {
+				var length = self.nextMessageLength()
+				return defined length and length <= self.stream.size()
+			}
+
+			/**
+			 * Attempts to read data asynchronously from the socket. Returns `true` if data
+			 * was receive; otherwise returns `false`.
+			 */
+			const async def read(self, socket) {
+				if var buffer = await socket.read() {
+					self.stream.write(buffer)
+					return true
+				}
+				return false
+			}
+
+			/**
+			 * Attempts to write data asynchronously to the socket. Returns `true` if the data
 			 * was successfully sent; otherwise returns `false`. After this call,
 			 * the sent data is removed from the buffer.
 			 */
-			const async def writeAsync(self, endpoint) {
+			const async def write(self, socket) {
 				if not self.stream.isEmpty() {
-					var (success, count) = await endpoint.writeAsync(self.stream)
+					var (success, count) = await socket.write(self.stream)
 					if success {
 						self.stream.remove(count)
 						return true
@@ -138,19 +237,11 @@ package Network {
 			}
 
 			/**
-			 * Attempts to accept a connection on the end point. This method raises
-			 * an instance of {Exception.InvalidNetworkOperation}.
+			 * Attempts to accept a connection asynchronously on the socket. This method raises
+			 * an instance of {Exception.InvalidOperation}.
 			 */
-			const def accept(self, endpoint) {
-				raise Exception.InvalidNetworkOperation('the socket can not accept', self)
-			}
-
-			/**
-			 * Attempts to accept a connection asynchronously on the end point. This method raises
-			 * an instance of {Exception.InvalidNetworkOperation}.
-			 */
-			const async def acceptAsync(self, endpoint) {
-				raise Exception.InvalidNetworkOperation('the socket can not accept', self)
+			const async def accept(self, socket) {
+				raise Exception.InvalidOperation('the socket can not accept', self)
 			}
 
 			/**

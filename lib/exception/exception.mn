@@ -27,6 +27,7 @@
  */
 
 load mint.type
+load mint.stacktrace
 
 package Exception {
 
@@ -56,6 +57,177 @@ package Exception {
 
     /// Internal error message.
     - final message = ''
+}
+
+/**
+ * This class provides the context of an exception raised on attempt to perform
+ * an invalide operation on an object.
+ */
+@class InvalidOperation : Exception.Exception {
+	/**
+	 * Creates a new context. The `message` parameter provides a description of
+	 * the attempted operation. The `object` parameter is the object that raised
+	 * the error.
+	 */
+	 const def new(self, message, object) {
+		self.message = message
+		self.object = object
+		return null
+	 }
+
+	/**
+	 * Returns the exception informations as a string.
+	 */
+	const def toString(const self) {
+		return '%s, %s' % (typeof self.object, self.message)
+	}
+
+	/**
+	 * Returns the object that raised the error.
+	 */
+	const def getObject(const self) {
+		return self.object
+	}
+
+	/**
+	 * Returns the error description.
+	 */
+	const def getMessage(const self) {
+		return self.message
+	}
+
+	/// Internal error message.
+	- final message = ''
+
+	/// Internal object.
+	- final object = null
+}
+
+/**
+ * This class provides the cause context from an exception.
+ */
+@class Cause {
+    /**
+     * Creates a new exception cause context for the exception object `object` and the exception chain depth `depth`.
+     * The depth start from 0 for the root exception and increase for each reraise.
+     */
+    const def new(self, %object, depth) {
+        self.object = object
+        self.depth = depth
+        return self
+    }
+
+    /**
+     * Returns the exception object associated to this cause.
+     */
+    const def getObject(const self) {
+        return self.object
+    }
+
+    /**
+     * Returns the chaining depth of this cause as a number. The depth starts from 0 for the root cause and increase for
+     * each reraise.
+     */
+    const def getDepth(const self) {
+        return self.depth
+    }
+
+    /**
+     * Returns the parent cause of this cause as an instance of {Exception.Cause} or `none` if this cause is the root
+     * cause.
+     */
+    const def getCause(const self) {
+        if let cause = Exception.Cause.g_lib.call('mint_exception_cause_for', self.object, self.depth) {
+            return Exception.Cause(...cause)
+        }
+    }
+
+    /**
+     * Returns the parent causes of this cause as an array of {Exception.Cause} starting from the root cause or `none`
+     * if this cause is the root cause.
+     */
+    const def getCauses(const self) {
+        if let causes = Exception.Cause.g_lib.call('mint_exception_causes_for', self.object, self.depth) {
+            return [for let cause in causes => Exception.Cause(...cause)]
+        }
+    }
+
+    /**
+     * Returns the stacktrace for this cause as an array of {StackFrame} or `none` if the stacktrace is unknown.
+     */
+    const def stacktrace(const self) {
+        if let stack = Exception.Cause.g_lib.call('mint_exception_stacktrace_for', self.object, self.depth) {
+            return [for let frame in stack => StackFrame(...frame)]
+        }
+    }
+
+    /// Global library handle.
+    - @const g_lib = lib('libmint-exception')
+
+    /// Internal exception object.
+    - final %object = null
+
+    /// Internal chaining depth.
+    - final depth = none
+}
+
+/**
+ * Returns the current exception's stacktrace as an array of {StackFrame}.
+ */
+@def [g_lib = lib('libmint-exception')] stacktrace() {
+    return [for let (id, name, line) in g_lib.call('mint_exception_stacktrace') => StackFrame(id, name, line)]
+}
+
+/**
+ * Returns the stacktrace for the `cause` exception object as an array of {StackFrame} or `none` if `cause` is not an
+ * object from the current exception chain. The `cause` parameter can be an instance of {Exception.Cause} or the object
+ * that was raised.
+ */
+@def [g_lib = lib('libmint-exception')] stacktrace(cause) {
+    switch typeof error {
+    case 'Exception.Cause':
+        if let stack = g_lib.call('mint_exception_stacktrace_for', error.getObject(), error.getDepth()) {
+            return [for let (id, name, line) in stack => StackFrame(id, name, line)]
+        }
+        break
+    default:
+        if let stack = g_lib.call('mint_exception_stacktrace_for', cause) {
+            return [for let (id, name, line) in stack => StackFrame(id, name, line)]
+        }
+        break
+    }
+}
+
+/**
+ * Returns the cause exception for `error` as an insistance of {Exception.Cause} or `none` if `error` is not an object
+ * from the current exception chain or is the root cause. The `error` parameter can be an instance of {Exception.Cause}
+ * or the object that was raised.
+ */
+@def [g_lib = lib('libmint-exception')] cause(error) {
+    return switch typeof error {
+    case 'Exception.Cause' =>  g_lib.call('mint_exception_cause_for', error.getObject(), error.getDepth())
+    default =>  g_lib.call('mint_exception_cause_for', error, none)
+    }
+}
+
+/**
+ * Returns the causes exceptions for `error` as an array of {Exception.Cause} or `none` if `error` is not an object from
+ * the current exception chain. The causes list start from the root cause until the the error that caused `error`
+ * excluding it. The `error` parameter can be an instance of {Exception.Cause} or the object that was raised.
+ */
+@def [g_lib = lib('libmint-exception')] causes(error) {
+    return switch typeof error {
+    case 'Exception.Cause':
+        if let causes = g_lib.call('mint_exception_causes_for', error.getObject(), error.getDepth()) {
+            return [for let cause in causes => Exception.Cause(...cause)]
+        }
+        break
+    default:
+        if let causes = g_lib.call('mint_exception_causes_for', error, none) {
+            return [for let cause in causes => Exception.Cause(...cause)]
+        }
+        break
+    }
 }
 
 }

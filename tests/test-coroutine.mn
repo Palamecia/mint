@@ -179,7 +179,7 @@ load mint.coroutine
         async def [...] test() {
             try {
                 await boom()
-            } catch e {
+            } catch error {
                 return "caught"
             }
         }
@@ -196,7 +196,7 @@ load mint.coroutine
         async def [...] top() {
             try {
                 await middle()
-            } catch e {
+            } catch error {
                 return "ok"
             }
         }
@@ -213,8 +213,8 @@ load mint.coroutine
             let catcher = Test.ErrorCatcher()
             spawn(c)
             self.fail()
-        } catch e {
-            self.expectEqual("cannot reuse already awaited coroutine", e.toString())
+        } catch error {
+            self.expectEqual("cannot reuse already awaited coroutine", error.toString())
         }
     }
 
@@ -333,7 +333,7 @@ load mint.coroutine
         async def child() {
             try {
                 raise "boom"
-            } catch e {
+            } catch error {
                 return "handled"
             }
         }
@@ -347,7 +347,7 @@ load mint.coroutine
         async def child() {
             try {
                 raise "boom"
-            } catch e {
+            } catch error {
                 raise "rethrow"
             }
         }
@@ -355,8 +355,8 @@ load mint.coroutine
             try {
                 await child()
                 return "bad"
-            } catch e {
-                return e
+            } catch error {
+                return error
             }
         }
         self.expectEqual("rethrow", spawn(parent()))
@@ -372,7 +372,7 @@ load mint.coroutine
         async def [...] test() {
             try {
                 await fail()
-            } catch e {
+            } catch error {
                 return await recover()
             }
         }
@@ -390,8 +390,8 @@ load mint.coroutine
         async def [...] wrapper() {
             try {
                 await test()
-            } catch e {
-                return e
+            } catch error {
+                return error
             }
         }
         self.expectEqual("after", spawn(wrapper()))
@@ -408,7 +408,7 @@ load mint.coroutine
         async def [...] wrapper() {
             try {
                 await test()
-            } catch e {
+            } catch error {
                 return "caught"
             }
         }
@@ -440,8 +440,8 @@ load mint.coroutine
         async def [...] test() {
             try {
                 await fail()
-            } catch e {
-                return e
+            } catch error {
+                return error
             }
         }
         self.expectEqual("boom", spawn(test()))
@@ -457,8 +457,8 @@ load mint.coroutine
         async def [...] test() {
             try {
                 await chain(10)
-            } catch e {
-                return e
+            } catch error {
+                return error
             }
         }
         self.expectEqual("end", spawn(test()))
@@ -472,7 +472,7 @@ load mint.coroutine
             let x = 5
             try {
                 await fail()
-            } catch e {
+            } catch error {
                 return x
             }
         }
@@ -505,8 +505,8 @@ load mint.coroutine
         async def [...] wrapper() {
             try {
                 await test()
-            } catch e {
-                return e
+            } catch error {
+                return error
             }
         }
         self.expectEqual("second", spawn(wrapper()))
@@ -519,15 +519,15 @@ load mint.coroutine
         async def [...] test() {
             try {
                 await fail()
-            } catch e {
+            } catch error {
                 raise "caller_error"
             }
         }
         async def [...] wrapper() {
             try {
                 await test()
-            } catch e {
-                return e
+            } catch error {
+                return error
             }
         }
         self.expectEqual("caller_error", spawn(wrapper()))
@@ -543,7 +543,7 @@ load mint.coroutine
         async def [...] test() {
             try {
                 await fail()
-            } catch e {
+            } catch error {
                 return await ok()
             }
         }
@@ -558,7 +558,7 @@ load mint.coroutine
             let x = 10
             try {
                 await fail()
-            } catch e {
+            } catch error {
                 return x + 1
             }
         }
@@ -650,7 +650,7 @@ load mint.coroutine
             let it = spawn(f())
             self.expectEqual(1, spawn(it.next()))
             spawn(it.next())
-        } catch e {
+        } catch error {
             caught = true
         }
 

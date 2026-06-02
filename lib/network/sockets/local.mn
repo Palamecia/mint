@@ -1,0 +1,896 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Network.LocalSocket} class which provides inter-process communication.
+ */
+
+load network.socket
+
+package Network {
+
+	/**
+	 * This enum describes the options of a local socket. The effective value of the option code can depend on the current
+	 * system.
+	 */
+	@enum LocalSocketOption {
+		// TODO: add options
+	}
+
+	/**
+	 * This class provides an awaitable socket communication mechanism that trigger an event when data become available on
+	 * the read part and can be used to performe inter-process communication.
+	 */
+	@class LocalSocket : Network.Socket {
+		
+		/**
+		 * Returns a new instance of {Network.AsyncLocalSocket} initialized with the current socket and the `scheduler`
+		 * parameter.
+		 */
+		const def asyncOn(self, scheduler) {
+			return Network.AsyncLocalSocket(self, scheduler)
+		}
+
+		/**
+		 * Closes the communication with the peer if the socket was in the {Network.Socket.State.Connected} state or
+		 * stops listening if the socket was in the {Network.Socket.State.Listening} state.
+		 * 
+		 * On success, the socket enter the {Network.Socket.State.Closed} state.
+		 * 
+		 * > [!NOTE]
+		 * > On Windows, closing the socket can discard the data that was not yet sent to the peer if the system does
+		 * > not support UNIX sockets. The application should ensure that all data is sent before closing the socket.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		override const def close(self) {
+			if self.isOpen() {
+				if let errno = Network.LocalSocket.g_lib.call('mint_local_socket_close', self.d_ptr) {
+					self.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(errno, self)
+				}
+				self.releaseHandle()
+			}
+			self.setState(Network.Socket.State.Closed)
+		}
+
+		/**
+		 * Attempts to make a connection to the device identified by the `endpoint` parameter. Returns `true` if
+		 * connection succeed or if the connection request was successfully sent and is waiting for acknowledgment;
+		 * otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def connect(self, endpoint) {
+
+			let (status, d_ptr, value) = Network.LocalSocket.g_lib.call('mint_local_socket_connect', endpoint.getName(), endpoint.to_sockaddr())
+			self.setObjectData(d_ptr)
+
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				self.setHandle(value)
+				self.setEndpoint(endpoint)
+				self.setState(Network.Socket.State.Connected)
+				return true
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				self.setHandle(value)
+				self.setEndpoint(endpoint)
+				self.setState(Network.Socket.State.Connecting)
+				return true
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return false
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(value, self)
+			}
+
+			return false
+		}
+
+		/**
+		 * Returns at most `count` bytes of data received from the peer as an instance of {Serializer.DataStream} or
+		 * `none` if no data is available.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def readSome(self, count) {
+
+			if not self.isOpen() {
+				return none
+			}
+
+			let stream = Serializer.DataStream()
+			let (status, errno) = Network.LocalSocket.g_lib.call('mint_local_socket_recv_some', self.d_ptr, stream.to_std_vector_uint8_t(), count)
+
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				return stream
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				return none
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return none
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+		}
+
+		/**
+		 * Returns all available data received from the peer as an instance of {Serializer.DataStream} or `none` if no
+		 * data is available.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def read(self) {
+
+			if not self.isOpen() {
+				return none
+			}
+
+			let stream = Serializer.DataStream()
+			let (status, errno) = Network.LocalSocket.g_lib.call('mint_local_socket_recv', self.d_ptr, stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				return stream
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				return none
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return none
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+		}
+
+		/**
+		 * Sends the data described by the `data` parameter to the peer. The `data` parameter must be an instance of
+		 * {Serializer.DataStream}. Returns an iterator containing `true` and the amount of sent data in bytes if the
+		 * data was successfully sent to the peer; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def write(self, data) {
+
+			let handle = self.getHandle()
+			if not defined handle {
+				return false
+			}
+
+			let stream = Serializer.DataStream(data)
+			let (status, value) = Network.LocalSocket.g_lib.call('mint_local_socket_send', self.d_ptr, stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				return (true, value)
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				return false
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return false
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(value, self)
+			}
+		}
+
+		/**
+		 * Tells the socket to listen for incoming connections from `endpoint`. Returns `true` on success; otherwise
+		 * returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def listen(self, endpoint) {
+
+			let (errno, d_ptr, handle) = Network.LocalSocket.g_lib.call('mint_local_socket_listen', endpoint.getName(), endpoint.to_sockaddr())
+			if errno {
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+
+			self.setObjectData(d_ptr)
+			self.setHandle(handle)
+			self.setEndpoint(endpoint)
+			self.setState(Network.Socket.State.Listening)
+			return true
+		}
+
+		/**
+		 * Returns a new end point initialized for the next waiting connection
+		 * if any; otherwise returns `none`. The waiting connection will then
+		 * be accepted and dequeued.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def accept(self) {
+			let handle = self.getHandle()
+			if not defined handle {
+				return none
+			}
+			let endpoint = self.getEndpoint()
+			if not defined endpoint {
+				return none
+			}
+			let (errno, d_ptr, clientHandle) = Network.LocalSocket.g_lib.call('mint_local_socket_accept', self.d_ptr, self.getHandle())
+			if errno {
+				raise Exception.SocketError(errno, self)
+			}
+			if defined clientHandle {
+				let client = Network.LocalSocket()
+				client.setObjectData(d_ptr)
+				client.setHandle(clientHandle)
+				client.setEndpoint(endpoint)
+				client.setState(Network.Socket.State.Connected)
+				return client
+			}
+		}
+
+		/**
+		 * Sets the non blocking mode of the socket to `enabled`. Returns `true` if the mode was successfully changed;
+		 * otherwise returns `false`.
+		 */
+		override const def setNonBlocking(self, enabled) {
+			if self.isOpen() {
+				if let errno = Network.LocalSocket.g_lib.call('mint_local_socket_set_non_blocking', self.d_ptr, enabled) {
+					raise Exception.SocketError(errno, self)
+				}
+			}
+			self.overrideNonBlockingFlag(enabled)
+            return true
+		}
+
+		/**
+		 * Returns the value of the socket option described by `option`. The `option` parameter must be a value of the
+		 * {Network.LocalSocketOption} enum.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		override const def getSocketOption(self, %option) {
+			if not defined option {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			let handle = self.getHandle()
+			if not defined handle {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			switch (option) {
+			default:
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+		}
+
+		/**
+		 * Sets the value of the socket option described by `option` to `value`. The `option` parameter must be a value
+		 * of the {Network.LocalSocketOption} enum.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		override const def setSocketOption(self, %option, value) {
+			if not defined option {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			let handle = self.getHandle()
+			if not defined handle {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			switch (option) {
+			default:
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+		}
+
+		/**
+		 * Returns the internal object data.
+		 */
+		~ final const def getObjectData(self) {
+			return self.d_ptr
+		}
+
+		/**
+		 * Sets the internal object data to `d_ptr`.
+		 */
+		~ final const def setObjectData(self, d_ptr) {
+			self.d_ptr = d_ptr
+		}
+
+        /// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Object data.
+		- final d_ptr = null
+	}
+
+	/**
+	 * This class provides an asynchronous socket communication mechanism that can be used to performe inter-process
+	 * communication.
+	 */
+	@class AsyncLocalSocket : Network.AsyncSocket {
+		
+		/**
+		 * Scheduler operation used to establish a connection asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.AsyncLocalSocket.connect}.
+		 * 
+		 * The operation asynchronously connects the socket. Once the connection
+		 * operation completes, the coroutine resumes and the result of the operation
+		 * is checked.
+		 *
+		 * If the connection succeeds the socket enters the {Network.Socket.State.Connected} state.
+		 *
+		 * If the connection fails the socket enters the {Network.Socket.State.Error} state and an instance of
+		 * {Exception.SocketError} is raised.
+		 */
+		class ConnectOperation : Runtime.Operation {
+			/**
+			 * Creates a new asynchronous operation to wait for `socket` connection.
+			 */
+			const def new(self, socket, endpoint) {
+				self.socket = socket
+				self.endpoint = endpoint
+				return self
+			}
+
+			/**
+			 * Setup the operation by calling the underlying asynchronous connect function. Returns the internal object data
+			 * of the operation. The operation will be completed using `scheduler`.
+			 */
+			# override const def setup(self, scheduler) {
+				let (errno, d_ptr) = Network.AsyncLocalSocket.ConnectOperation.g_lib.call('mint_local_socket_connect_async', self, scheduler.to_async_runtime(), self.endpoint.getName(), self.endpoint.to_sockaddr())
+				if errno {
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(errno, self.socket)
+				}
+				self.socket.setState(Network.Socket.State.Connecting)
+				return d_ptr
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if the underlying socket enter the
+			 * {Network.Socket.State.Connected} state. It fails on error.
+			 */
+			override const def check(self, result) {
+				let (status, d_ptr, value) = result
+				self.socket.setObjectData(d_ptr)
+				switch status {
+				case Network.Socket.IOStatus.IOSuccess:
+					self.socket.setState(Network.Socket.State.Connected)
+					self.socket.setEndpoint(self.endpoint)
+					self.socket.setHandle(value)
+					self.socket.getScheduler().watch(self.socket)
+					self.status = true
+					return true
+				case Network.Socket.IOStatus.IOClosed:
+					self.socket.setState(Network.Socket.State.Closed)
+					self.status = false
+					return true
+				case Network.Socket.IOStatus.IOError:
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(value, self.socket)
+				}
+				self.status = false
+				return true
+			}
+
+			/**
+			 * Returns `true` if the connection was correctly established; otherwise returns `false`.
+			 */
+			override const def get(self) {
+				return self.status
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-network')
+
+			/// Internal socket.
+			- final socket = null
+
+			/// Internal endpoint.
+			- final endpoint = null
+
+			/// Internal connection status.
+			- final status = none
+		}
+
+		/**
+		 * Scheduler operation used to receive data asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.AsyncLocalSocket.readSome}.
+		 * 
+		 * The operation asynchronously reads data from the socket and appends it to
+		 * the internal receive buffer until enough data has been received.
+		 * 
+		 * If the peer closes the connection before enough data is received, the
+		 * operation completes with the data accumulated so far.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		class ReadSomeOperation : Runtime.Operation {
+			/**
+			 * Creates a new asynchronous operation to read at most `count` bytes of data from `socket`.
+			 */
+			const def new(self, socket, count) {
+				self.socket = socket
+				self.count = count
+				self.buffer = Serializer.DataStream()
+				return self
+			}
+
+			/**
+			 * Setup the operation by calling the underlying asynchronous read function. Returns the internal object data
+			 * of the operation. The operation will be completed using `scheduler`.
+			 */
+			# override const def setup(self, scheduler) {
+				return Network.AsyncLocalSocket.ReadSomeOperation.g_lib.call('mint_local_socket_recv_some_async', self, self.socket.getObjectData(), self.buffer.to_std_vector_uint8_t(), self.count)
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if data is available and the completion
+			 * predicate returns `true` for the current read buffer. It fails on error.
+			 */
+			override const def check(self, result) {
+				let (status, errno) = result
+				switch status {
+				case Network.Socket.IOStatus.IOSuccess:
+					return true
+				case Network.Socket.IOStatus.IOClosed:
+					self.socket.setState(Network.Socket.State.Closed)
+					self.buffer = none
+					return true
+				case Network.Socket.IOStatus.IOError:
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(errno, self.socket)
+				}
+				return true
+			}
+
+			/**
+			 * Returns the received data as an instance of {Serializer.DataStream}.
+			 */
+			override const def get(self) {
+				return self.buffer
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-network')
+
+			/// Internal socket.
+			- final socket = null
+
+			/// Internal expected byte count.
+			- final count = null
+
+			/// Internal read buffer.
+			- final buffer = null
+		}
+
+		/**
+		 * Scheduler operation used to receive data asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.AsyncLocalSocket.read}.
+		 * 
+		 * The operation asynchronously reads data from the socket and appends it to
+		 * the internal receive buffer until the completion predicate returns `true`.
+		 *
+		 * The completion predicate receives the current buffer and determines when
+		 * the operation should finish. This allows callers to implement custom read
+		 * conditions such as:
+		 *
+		 * * reading a fixed number of bytes
+		 * * reading until a delimiter is encountered
+		 * * reading until the buffer is non-empty
+		 *
+		 * If the peer closes the connection before the completion condition is
+		 * satisfied, the operation completes with the data accumulated so far.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		class ReadOperation : Runtime.Operation {
+			/**
+			 * Creates a new asynchronous operation to read data from `socket` until the `completion` predicate
+			 * returns `true`.
+			 * 
+			 * The `completion` parameter is a function that receives the current
+			 * receive buffer and returns `true` when the operation should complete.
+			 */
+			const def new(self, socket, completion) {
+				self.socket = socket
+				self.completion = completion
+				self.buffer = Serializer.DataStream()
+				return self
+			}
+
+			/**
+			 * Setup the operation by calling the underlying asynchronous read function. Returns the internal object data
+			 * of the operation. The operation will be completed using `scheduler`.
+			 */
+			# override const def setup(self, scheduler) {
+				return Network.AsyncLocalSocket.ReadOperation.g_lib.call('mint_local_socket_recv_async', self, self.socket.getObjectData(), self.buffer.to_std_vector_uint8_t())
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if data is available and the completion
+			 * predicate returns `true` for the current read buffer. It fails on error.
+			 */
+			override const def check(self, result) {
+				let (status, errno) = result
+				switch status {
+				case Network.Socket.IOStatus.IOSuccess:
+					return (self.completion)(self.buffer)
+				case Network.Socket.IOStatus.IOClosed:
+					self.socket.setState(Network.Socket.State.Closed)
+					self.buffer = none
+					return true
+				case Network.Socket.IOStatus.IOError:
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(errno, self.socket)
+				}
+				return true
+			}
+
+			/**
+			 * Returns the received data as an instance of {Serializer.DataStream}.
+			 */
+			override const def get(self) {
+				return self.buffer
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-network')
+
+			/// Internal socket.
+			- final socket = null
+
+			/// Internal combination condition.
+			- final completion = null
+
+			/// Internal read buffer.
+			- final buffer = null
+		}
+
+		/**
+		 * Scheduler operation used to send data asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.AsyncLocalSocket.write}.
+		 *
+		 * The operation asynchronously sends the provided {Serializer.DataStream}
+		 * using the socket.
+		 *
+		 * Because network writes may be partial, the operation may perform multiple
+		 * asynchronous writes until the entire buffer has been transmitted. The
+		 * coroutine is suspended while the operation is in progress and resumes once
+		 * the entire buffer has been sent.
+		 * 
+		 * Returns an iterator containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		class WriteOperation : Runtime.Operation {
+			/**
+			 * Creates a new asynchronous operation to send the data provided by `buffer` to `socket`.
+			 */
+			const def new(self, socket, buffer) {
+				self.socket = socket
+				self.buffer = Serializer.DataStream(buffer)
+				return self
+			}
+
+			/**
+			 * Setup the operation by calling the underlying asynchronous write function. Returns the internal object data
+			 * of the operation. The operation will be completed using `scheduler`.
+			 */
+			# override const def setup(self, scheduler) {
+				return Network.AsyncLocalSocket.WriteOperation.g_lib.call('mint_local_socket_send_async', self, self.socket.getObjectData(), self.buffer.to_std_vector_uint8_t())
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if all the data in the buffer is sent.
+			 * It fails on error.
+			 */
+			override const def check(self, result) {
+				let (status, value) = result
+				switch status {
+				case Network.Socket.IOStatus.IOSuccess:
+					self.count += value
+					self.status = true
+					return self.count == self.buffer.size()
+
+				case Network.Socket.IOStatus.IOWouldBlock:
+					return false
+
+				case Network.Socket.IOStatus.IOClosed:
+					self.socket.setState(Network.Socket.State.Closed)
+					self.status = false
+					return true
+
+				case Network.Socket.IOStatus.IOError:
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(value, self.socket)
+				}
+				return true
+			}
+
+			/**
+			 * Returns an iterator containing `true` and the amount of sent data in bytes if the data was successfully
+			 * sent to the peer; otherwise returns `false`.
+			 */
+			override const def get(self) {
+				return (self.status, self.count)
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-network')
+
+			/// Internal socket.
+			- final socket = null
+
+			/// Internal write buffer.
+			- final buffer = null
+
+			/// Internal write status.
+			- final status = false
+
+			/// Internal sent byte counter.
+			- final count = 0
+		}
+
+		/**
+		 * Scheduler operation used to accept incoming connections asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.AsyncLocalSocket.accept}.
+		 *
+		 * The operation asynchronously accepts a pending connection on the listening
+		 * socket. The coroutine is suspended until the operating system completes the
+		 * accept operation, at which point the coroutine resumes with the result.
+		 *
+		 * When a connection is successfully accepted, the operation returns a new socket instance representing the
+		 * client connection. The returned socket is already initialized and ready for communication.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		class AcceptOperation : Runtime.Operation {
+			/**
+			 * Creates a new asynchronous operation to accept a pending connection on `socket`.
+			 */
+			const def new(self, socket) {
+				self.socket = socket
+				return self
+			}
+
+			/**
+			 * Setup the operation by calling the underlying asynchronous accept function. Returns the internal object data
+			 * of the operation. The operation will be completed using `scheduler`.
+			 */
+			# override const def setup(self, scheduler) {
+				self.scheduler = scheduler
+				return Network.AsyncLocalSocket.AcceptOperation.g_lib.call('mint_local_socket_accept_async', self, self.socket.getObjectData(), self.socket.getHandle())
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if a connection is accepted.
+			 * It fails on error.
+			 */
+			override const def check(self, result) {
+				let (errno, d_ptr, clientHandle) = result
+				if errno {
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(errno, self.socket)
+				}
+				if defined clientHandle {
+					let client = Network.LocalSocket()
+					let endpoint = self.socket.getEndpoint()
+					client.setObjectData(d_ptr)
+					client.setHandle(clientHandle)
+					client.setEndpoint(endpoint)
+					client.setState(Network.Socket.State.Connected)
+					if endpoint.getPath() {
+						self.scheduler.watch(client)
+					} else {
+						self.scheduler.watch(self.socket)
+					}
+					self.client = client
+				}
+				return true
+			}
+
+			/**
+			 * Returns the accepted socket or `none` if no connection was established.
+			 */
+			override const def get(self) {
+				return self.client
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-network')
+
+			/// Internal socket.
+			- final socket = null
+
+			/// Internal scheduler.
+			- final scheduler = null
+
+			/// Internal accepted client connection socket.
+			- final client = none
+		}
+
+		/**
+		 * Attempts to establish a connection to the remote device identified by `endpoint` asynchronously.
+		 *
+		 * This method suspends the current coroutine until the connection attempt either succeeds or fails.
+		 *
+		 * Returns `true` if the connection was successfully established; otherwise returns `false`.
+		 * 
+		 * On success, the socket should enter the {Network.Socket.State.Connected} state.
+		 *
+		 * On failure, the socket should enter the {Network.Socket.State.Error} state.
+		 */
+		const async def connect(self, endpoint) {
+			return await self.getScheduler().suspend(Network.AsyncLocalSocket.ConnectOperation(self, endpoint))
+		}
+
+		/**
+		 * Asynchronously receives at most `count` bytes of data from the peer.
+		 *
+		 * The operation suspends the current coroutine until new data becomes
+		 * available.
+		 * 
+		 * Returns the received data as an instance of {Serializer.DataStream}.
+		 * 
+		 * If the peer closes the connection before the completion condition
+		 * is met, the returned buffer may contain fewer bytes than expected.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const async def readSome(self, count) {
+			if not self.isOpen() {
+				return none
+			}
+			return await self.getScheduler().suspend(Network.AsyncLocalSocket.ReadSomeOperation(self, count))
+		}
+
+		/**
+		 * Asynchronously receives data from the peer.
+		 *
+		 * The operation suspends the current coroutine until new data becomes
+		 * available and the `completion` predicate returns `true`.
+		 * 
+		 * The `completion` parameter is a function that receives the current
+		 * receive buffer and returns `true` when the operation should complete.
+		 * By default the operation completes when at least one byte has been
+		 * received.
+		 * 
+		 * Returns the received data as an instance of {Serializer.DataStream}.
+		 * 
+		 * If the peer closes the connection before the completion condition
+		 * is met, the returned buffer may contain fewer bytes than expected.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const async def read(self, completion = def(buffer) { return not buffer.isEmpty() }) {
+			if not self.isOpen() {
+				return none
+			}
+			return await self.getScheduler().suspend(Network.AsyncLocalSocket.ReadOperation(self, completion))
+		}
+
+		/**
+		 * Asynchronously sends the data described by `data` to the peer.
+		 *
+		 * The `data` parameter must be an instance of {Serializer.DataStream}.
+		 *
+		 * The operation suspends the current coroutine until all bytes have been
+		 * written or an error occurs. Partial writes may occur internally and
+		 * the operation will continue sending the remaining data until the buffer
+		 * is empty.
+		 *
+		 * Returns an iterator containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 *
+		 * The socket must be in the {Network.Socket.State.Connected} state.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const async def write(self, data) {
+			return await self.getScheduler().suspend(Network.AsyncLocalSocket.WriteOperation(self, data))
+		}
+
+		/**
+		 * Tells the socket to listen for incoming connections from `endpoint`. Returns `true` on success; otherwise
+		 * returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def listen(self, endpoint) {
+
+			let (errno, d_ptr, handle) = Network.AsyncLocalSocket.g_lib.call('mint_local_socket_listen', endpoint.getName(), endpoint.to_sockaddr())
+			if errno {
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+
+			self.setObjectData(d_ptr)
+			self.setHandle(handle)
+			self.setEndpoint(endpoint)
+			self.getScheduler().watch(self)
+			self.setState(Network.Socket.State.Listening)
+			return true
+		}
+
+		/**
+		 * Waits asynchronously for the next incoming connection.
+		 *
+		 * The current coroutine is suspended until a client connection becomes
+		 * available or an error occurs.
+		 *
+		 * Returns a new socket instance representing the accepted client
+		 * connection.
+		 *
+		 * The socket must be in the {Network.Socket.State.Listening} state.
+		 *
+		 * The returned socket is already initialized and ready for I/O
+		 * operations.
+		 *
+		 * An instance of {Exception.SocketError} is raised if the accept
+		 * operation fails.
+		 */
+		const async def accept(self) {
+			if let client = await self.getScheduler().suspend(Network.AsyncLocalSocket.AcceptOperation(self)) {
+				return Network.AsyncLocalSocket(client, self.getScheduler())
+			}
+		}
+
+		/**
+		 * Returns the internal object data.
+		 */
+		~ final const def getObjectData(self) {
+			return self.getSocket().getObjectData()
+		}
+
+		/**
+		 * Sets the internal object data to `d_ptr`.
+		 */
+		~ final const def setObjectData(self, d_ptr) {
+			self.getSocket().setObjectData(d_ptr)
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-network')
+	}
+}

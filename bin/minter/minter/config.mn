@@ -40,7 +40,7 @@ load mint.lang
                     self.plugins << type()
                 }
             }
-            log.info("Loaded plugins: %s", [for plugin in self.plugins => typeof plugin])
+            logger.info("Loaded plugins: %s", [for plugin in self.plugins => typeof plugin])
             return self
         }
 
@@ -73,7 +73,7 @@ load mint.lang
                     try {
                         yield plugin.${hookName}(config, workspace, document, *va_args)
                     } catch error {
-                        log.warning("Failed to load hook %s: %s", hookName, error.toString())
+                        logger.warning("Failed to load hook %s: %s", hookName, error.toString())
                     }
                 }
             }
@@ -92,7 +92,7 @@ load mint.lang
 
         for let plugin in 'minter.plugins'.modulesList() {
             if not plugin.loadModule() {
-                log.info("Failed to load plugin '%s'", plugin)
+                logger.info("Failed to load plugin '%s'", plugin)
             }
         }
 
@@ -100,7 +100,7 @@ load mint.lang
 
         for let (name, plugin) in self.pluginManager.getPlugins() {
             if defined plugin {
-                log.info("Loaded minter plugin %s from %s", name, plugin)
+                logger.info("Loaded minter plugin %s from %s", name, plugin)
             }
         }
 
@@ -169,7 +169,7 @@ load mint.lang
                 continue
             }
             source_conf = source.user_config()
-            log.debug("Got user config from %s: %s", typeof source, source_conf)
+            logger.debug("Got user config from %s: %s", typeof source, source_conf)
             settings = _utils.merge_dicts(settings, source_conf)
         }
 
@@ -180,11 +180,11 @@ load mint.lang
                 continue
             }
             source_conf = source.project_config(document_path or self.rootPath)
-            log.debug("Got project config from %s: %s", typeof source, source_conf)
+            logger.debug("Got project config from %s: %s", typeof source, source_conf)
             settings = _utils.merge_dicts(settings, source_conf)
         }
 
-        log.debug("With configuration: %s", settings)
+        logger.debug("With configuration: %s", settings)
 
         return settings
     }
@@ -204,7 +204,7 @@ load mint.lang
     const def update(self, settings) {
         self.settings.cache_clear()
         self._settings = settings
-        log.info("Updated settings to %s", self._settings)
+        logger.info("Updated settings to %s", self._settings)
         self.updateDisabledPlugins()
     }
 
@@ -217,7 +217,7 @@ load mint.lang
             var plugin = item.next()
             return plugin
         }))
-        log.info("Disabled plugins: %s", self.disabledPlugins)
+        logger.info("Disabled plugins: %s", self.disabledPlugins)
     }
 
     - final rootUri = null
@@ -234,11 +234,11 @@ load mint.lang
 
 const mainModule = System.File(mainModuleFilePath())
 const pluginsDir = mainModule.getDirectory() / 'plugins'
-log.debug("Loading plugin modules from: %s", pluginsDir.getPath())
+logger.debug("Loading plugin modules from: %s", pluginsDir.getPath())
 pluginsDir.list().each(def [pluginsDir] (plugin) {
     if let const module = pluginsDir.getAbsoluteFilePath(plugin).toModulePath() {
         if loadModule(module) {
-            log.debug("Loaded plugin module: %s", module)
+            logger.debug("Loaded plugin module: %s", module)
         }
     }
 })

@@ -222,7 +222,7 @@
 	/**
 	 * Creates a new member information with the name given by `name` and the
 	 * modifiers described by `flags`. The `flags` parameter must be a mask of
-	 * values givent by {@see Flag}. Optionally, the owner class of the member
+	 * values given by {@see Flag}. Optionally, the owner class of the member
 	 * can be provided using the `owner` parameter.
 	 */
 	const def new(self, name, flags = None, owner = none) {
@@ -445,14 +445,14 @@
 }
 
 /**
- * Returns `true` if `object` is a non instanciated class; otherwise returns `false`.
+ * Returns `true` if `object` is a non instantiated class; otherwise returns `false`.
  */
 @def [g_lib = lib('libmint-mint')] isClass(object) {
 	return g_lib.call('mint_type_is_class', object)
 }
 
 /**
- * Returns `true` if `object` is an instanciated object; otherwise returns `false`.
+ * Returns `true` if `object` is an instantiated object; otherwise returns `false`.
  */
 @def [g_lib = lib('libmint-mint')] isObject(object) {
 	if defined object {

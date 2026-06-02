@@ -25,6 +25,8 @@
  * This module provides functions to extend the language abilities.
  */
 
+load mint.stacktrace
+
 /**
  * This enum provides standard values to use with the `exit` keyword.
  */
@@ -91,16 +93,6 @@
  */
 @def [g_lib = lib('libmint-mint')] loadModule(const modulePath) {
 	g_lib.call('mint_lang_load_module', modulePath)
-}
-
-/**
- * Returns the current backtrace as an array of iterators containing the module
- * path and the line number. The array starts from the most recent call to the
- * oldest. If the `threadId` parameter is given, the backtrace of the thread
- * with the given id is used; otherwise the current thread is used.
- */
-@def [g_lib = lib('libmint-mint')] backtrace(const threadId = none) {
-	return g_lib.call('mint_lang_backtrace', threadId)
 }
 
 /**
@@ -176,17 +168,16 @@
 }
 
 /**
- * Adds `callback` function to be called when the script crash. The function will
- * take two parameters corresponding to the error message and the state of the
- * call stack when crash occured as returned by {backtrace}.
+ * Adds `callback` function to be called when the script crash. The function will take two parameters corresponding to
+ * the error message and the state of the call stack when crash occurred as returned by {stacktrace}.
  * 
  * ```mn
  * atError(def (message, callstack) {
  *     print {
  *         'Exited with error %s\n' % message
  *         'The call stack is:\n'
- *         for let (module, line) in callstack {
- *             '  Module %s, line %d\n' % (module, line)
+ *         for let frame in callstack {
+ *             '  %s\n' % frame.toString()
  *         }
  *     }
  * })

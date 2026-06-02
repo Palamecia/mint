@@ -22,8 +22,7 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides classes to store exception contexts raised by the
- * {@module network} module.
+ * This module provides classes to store exception contexts raised by the {@module network} module.
  */
 
 load exception.exception
@@ -32,60 +31,15 @@ load exception.system
 package Exception {
 
 /**
- * This class provides the context of an exception raised on attempt to perform
- * an invalide operation on a network device.
- */
-@class InvalidNetworkOperation : Exception.Exception {
-	/**
-	 * Creates a new context. The `message` parameter provides a description of
-	 * the attempted operation. The `device` parameter is the object that raised
-	 * the error.
-	 */
-	 const def new(self, message, device) {
-		self.message = message
-		self.device = device
-		return null
-	 }
-
-	/**
-	 * Returns the exception informations as a string.
-	 */
-	const def toString(const self) {
-		return '%s, %s' % (typeof self.device, self.message)
-	}
-
-	/**
-	 * Returns the device that raised the error.
-	 */
-	const def getDevice(const self) {
-		return self.device
-	}
-
-	/**
-	 * Returns the error description.
-	 */
-	const def getMessage(const self) {
-		return self.message
-	}
-
-	/// Internal message
-	- final message = ''
-
-	/// Internal device object.
-	- final device = null
-}
-
-/**
  * This class provides the context of an exception raised by a socket.
  */
 @class SocketError : Exception.Exception {
 	/**
-	 * Creates a new context. The `object` parameter is the object that raised
-	 * the error. It must provides a `getSocket` method. The error is retrived
-	 * from this socket.
+	 * Creates a new context. The `object` parameter is the object that raised the error. It must provides a `getHandle`
+	 * method. The error is retrieved from this socket.
 	 */
 	const def new(self, object) {
-		var socket = object.getSocket()
+		var socket = object.getHandle()
 		if defined socket {
 			self.errno = Exception.SystemError.Errno.findEnumValue(Exception.SocketError.g_lib.call('mint_socket_get_error', socket))
 		} else {
@@ -98,7 +52,7 @@ package Exception {
 	/**
 	 * Creates a new context. The `errno` parameter must be an instance of
 	 * {Exception.SystemError.Errno} describing the error. The `object` parameter
-	 * is the object that raised the error. It must provides a `getSocket` method.
+	 * is the object that raised the error. It must provides a `getHandle` method.
 	 */
 	const def new(self, errno, object) {
 		self.errno = Exception.SystemError.Errno.findEnumValue(errno)
@@ -131,10 +85,10 @@ package Exception {
 	}
 
 	/**
-	 * Returns the object that raised the error or `none` if not specified.
+	 * Returns the file handle for the object that raised the error or `none` if not specified.
 	 */
-	const def getSocket(const self) {
-		return self.object.getSocket()
+	const def getHandle(const self) {
+		return self.object.getHandle()
 	}
 
 	/**
@@ -145,7 +99,7 @@ package Exception {
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-network')
+	- @const g_lib = lib('libmint-network')
 
 	/// Internal error identifier.
 	- final %errno = none

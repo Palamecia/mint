@@ -263,6 +263,10 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_unset_retrieve_point(cursor);
 	case Node::Command::raise:
 		return walker.on_raise(cursor);
+	case Node::Command::reraise:
+		return walker.on_reraise(cursor);
+	case Node::Command::reraise_in:
+		return walker.on_reraise_in(cursor);
 	case Node::Command::await:
 		return walker.on_await(cursor);
 	case Node::Command::resume_coroutine:
@@ -319,6 +323,8 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_init_exception(cursor, cursor.next().as_symbol());
 	case Node::Command::reset_exception:
 		return walker.on_reset_exception(cursor, cursor.next().as_symbol());
+	case Node::Command::reset_uncaught_exception:
+		return walker.on_reset_uncaught_exception(cursor);
 	case Node::Command::init_parameter:
 		{
 			const auto& symbol = cursor.next().as_symbol();

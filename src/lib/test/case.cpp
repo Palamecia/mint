@@ -29,8 +29,8 @@
 MINT_RAW_FUNCTION(mint_test_case_line_infos, 0, cursor) {
 	cursor.exit_call();
 	const auto call_stack = cursor.dump();
-	const auto& line_info = call_stack.at(1);
+	const auto& line_info = call_stack.at(call_stack.size() - 2);
 	cursor.stack().emplace_back(mint::create_string(cursor.ast(),
-	    std::format("{}:\n{}", line_info.to_string(),
+	    std::format("{}:\n  {}", line_info.to_string(cursor.ast()),
 	        mint::get_module_line(line_info.module_name(), line_info.line_number()))));
 }

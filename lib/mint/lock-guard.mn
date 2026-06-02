@@ -28,13 +28,13 @@
 
 
 /**
- * This class provides a scoped lock mecanisme. It allows to ensure that the
+ * This class provides a scoped lock mechanism. It allows to ensure that the
  * {System.Mutex} lock is released after a function call.
  * 
  * ```mn
  * def thread_safe_operation(mutex) {
  *     lock = LockGuard(mutex)
- *     // Performe critical operation
+ *     // Perform critical operation
  * }
  * ```
  * 

@@ -1,0 +1,785 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Network.Socket} abstraction for protocol-specific
+ * socket implementations and the helper value objects used to configure them.
+ */
+
+load exception.network
+load serializer.data-stream
+
+package Network {
+
+	/**
+	 * This enum describes the options of a socket. The effective value of the option code can depend on the current
+	 * system.
+	 */
+	@enum SocketOption {
+		/// Permit sending of broadcast datagrams (boolean).
+		BROADCAST
+		/// Enable debug tracing (boolean).
+		DEBUG
+		/// Bypass routing table lookup (boolean).
+		DONTROUTE
+		/// Get pending error and clear ({Exception.SocketError}, read only).
+		ERROR
+		/// Periodically test if connection still alive (boolean).
+		KEEPALIVE
+		/// Linger on close if data to send ({Network.SocketLinger}).
+		LINGER
+		/// Leave received out-of-band data inline (boolean).
+		OOBINLINE
+		/// Receive buffer size (number).
+		RCVBUF
+		/// Send buffer size (number).
+		SNDBUF
+		/// Receive buffer low-water mark (number).
+		RCVLOWAT
+		/// Send buffer low-water mark (number).
+		SNDLOWAT
+		/// Receive timeout ({Network.SocketTime}).
+		RCVTIMEO
+		/// Send timeout ({Network.SocketTime}).
+		SNDTIMEO
+		/// Allow local address reuse (boolean).
+		REUSEADDR
+		/// Allow local port reuse (boolean).
+		REUSEPORT
+		/// Get socket type (number, read only).
+		TYPE
+		/// Routing socket gets copy of what it sends (boolean).
+		USELOOPBACK
+	}
+
+	/**
+	 * This class maintains information about a specific socket that specifies
+	 * how that socket should behave when data is queued to be sent and
+	 * {Network.Socket.close} is called on the socket.
+	 */
+	@class SocketLinger {
+		/**
+		 * Creates a new linger object for the given `data`. The data parameter
+		 * can be an instance of {Network.SocketLinger}, in this case the object
+		 * is returned as the new instance, or an instance of the `linger` C
+		 * struct. The parameter can also provide a `toSocketLinger` method that
+		 * will be used to create the object.
+		 */
+		const def new(self, data) {
+			switch typeof data {
+			case 'Network.SocketLinger':
+				return data
+			case 'libobject':
+				self.d_ptr = data
+				self.d_ptr.delete = def [g_lib = Network.SocketLinger.g_lib] (self) {
+					g_lib.call('mint_socket_linger_delete', self)
+				}
+				return self
+			default:
+				if defined data.toSocketLinger {
+					return data.toSocketLinger()
+				}
+			}
+		}
+
+		/**
+		 * Creates a new linger object. The `enable` parameter must be a boolean
+		 * value used to specifies whether a socket should remain open for a
+		 * specified amount of time after closed to enable queued data to be sent.
+		 * The `linger_time` parameter must be a number used, if enabled, to sets
+		 * the linger time in seconds. This value specifies how long to remain open
+		 * after a closesocket function call to enable queued data to be sent.
+		 */
+		const def new(self, const enable, const linger_time) {
+			self.d_ptr = Network.SocketLinger.g_lib.call('mint_socket_linger_create', enable, linger_time)
+			self.d_ptr.delete = def [g_lib = Network.SocketLinger.g_lib] (self) {
+				g_lib.call('mint_socket_linger_delete', self)
+			}
+			return self
+		}
+
+		/**
+		 * Returns `true` if enabled; otherwise returns `false`. This attribute
+		 * specifies whether a socket should remain open for a specified amount
+		 * of time after closed to enable queued data to be sent.
+		 */
+		const def isEnabled(const self) {
+			return Network.SocketLinger.g_lib.call('mint_socket_linger_get_onoff', self.d_ptr)
+		}
+
+		/**
+		 * Specifies whether a socket should remain open for a specified amount
+		 * of time after closed to enable queued data to be sent.
+		 */
+		const def setEnabled(self, const enabled) {
+			Network.SocketLinger.g_lib.call('mint_socket_linger_set_onoff', self.d_ptr, enabled)
+		}
+
+		/**
+		 * Specifies how long to remain open after closed to enable queued data
+		 * to be sent. This attribute is only applicable if enabled.
+		 */
+		const def getLingerTime(const self) {
+			return Network.SocketLinger.g_lib.call('mint_socket_linger_get_linger', self.d_ptr)
+		}
+
+		/**
+		 * Sets the linger time in seconds. This attribute specifies how long to
+		 * remain open after closed to enable queued data to be sent. It is only
+		 * applicable if enabled.
+		 */
+		const def setLingerTime(self, const linger_time) {
+			Network.SocketLinger.g_lib.call('mint_socket_linger_set_linger', self.d_ptr, linger_time)
+		}
+
+		/**
+		 * Returns the pointer to the internal `struct linger` instance.
+		 */
+		~ const def to_linger(const self) {
+			return self.d_ptr
+		}
+
+        /// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Object data.
+		- final d_ptr = null
+	}
+ 
+	/**
+	 * This class is used to specify a time interval.
+	 */
+    @class SocketTime {
+		/**
+		 * Creates a new time interval object for the given `data`. The data
+		 * parameter can be an instance of {Network.SocketTime}, in this case
+		 * the object is returned as the new instance, or an instance of the
+		 * `timeval` C struct. The parameter can also provide a `toTime` method
+		 * that will be used to create the object.
+		 */
+		const def new(self, data) {
+			switch typeof data {
+			case 'Network.SocketTime':
+				return data
+			case 'libobject':
+				self.d_ptr = data
+				self.d_ptr.delete = def [g_lib = Network.SocketTime.g_lib] (self) {
+					g_lib.call('mint_socket_timeval_delete', self)
+				}
+				return self
+			default:
+				if defined data.toTime {
+					return data.toTime()
+				}
+			}
+		}
+
+		/**
+		 * Creates a new time interval object. The `sec` parameter must be a number
+		 * used to specifies the time interval in seconds. The `usec` parameter
+		 * must be a number used to specifies the time interval, in microseconds.
+		 * This parameter is used in combination with the `sec` parameter to
+		 * represent time interval values that are not a multiple of seconds.
+		 */
+		const def new(self, const sec, const usec) {
+			self.d_ptr = Network.SocketTime.g_lib.call('mint_socket_timeval_create', sec, usec)
+			self.d_ptr.delete = def [g_lib = Network.Time.g_lib] (self) {
+                g_lib.call('mint_socket_timeval_delete', self)
+            }
+			return self
+		}
+
+		/**
+		 * Returns the time interval, in seconds.
+		 */
+		const def getSeconds(const self) {
+			return Network.SocketTime.g_lib.call('mint_socket_timeval_get_sec', self.d_ptr)
+		}
+
+		/**
+		 * Specifies the time interval in seconds.
+		 */
+		const def setSeconds(self, const sec) {
+			Network.SocketTime.g_lib.call('mint_socket_timeval_set_sec', self.d_ptr, sec)
+		}
+
+		/**
+		 * Returns the time interval, in microseconds. This value is used in
+		 * combination with the value of {@see getSeconds} to represent time
+		 * interval values that are not a multiple of seconds.
+		 */
+		const def getMicroseconds(const self) {
+			return Network.SocketTime.g_lib.call('mint_socket_timeval_get_usec', self.d_ptr)
+		}
+
+		/**
+		 * Specifies the time interval in microseconds. This value is used in
+		 * combination with the value passed to {@see setSeconds} to represent
+		 * time interval values that are not a multiple of seconds.
+		 */
+		const def setMicroseconds(self, const usec) {
+			Network.SocketTime.g_lib.call('mint_socket_linger_set_linger', self.d_ptr, usec)
+		}
+
+		/**
+		 * Returns the pointer to the internal `struct timeval` instance.
+		 */
+		~ const def to_timeval(const self) {
+			return self.d_ptr
+		}
+
+        /// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Object data.
+		- final d_ptr = null
+    }
+
+	/**
+	 * Base class representing a network communication socket (layers 4 of the OSI model).
+	 * 
+	 * A socket encapsulates a network connection and provides both synchronous and
+	 * asynchronous operations for connecting, sending and receiving data.
+	 * 
+	 * Asynchronous operations integrate with {Runtime.Scheduler} and use
+	 * Mint coroutines to suspend execution until the underlying socket
+	 * becomes ready for the requested operation.
+	 * 
+	 * Concrete implementations such as TCP/IP sockets must implement
+	 * the low-level synchronous methods while the asynchronous variants
+	 * are implemented using {Runtime.Operation}.
+	 */
+	@class Socket {
+		/**
+		 * This enum describes the different states in which a socket can be.
+		 */
+		enum State {
+			/// The socket is not initialized.
+			Unknown
+			/// The socket is open.
+			Open
+			/// The socket is bound to an address and port.
+			Bound
+			/// The socket has started establishing a connection.
+			Connecting
+			/// A connection is established.
+			Connected
+			/// The socket is ready to receive connection requests.
+			Listening
+			/// The socket is about to close (data may still be waiting to be written).
+			Closing
+			/// The socket was closed.
+			Closed
+			/// The socket entered an invalid state.
+			Error
+		}
+
+		/**
+		 * This enum describes the status of an I/O operation.
+		 */
+		enum IOStatus {
+			/// The I/O operation has succeed.
+			IOSuccess
+			/// The I/O operation would block.
+			IOWouldBlock
+			/// The I/O operation was performed on a closed device.
+			IOClosed
+			/// The I/O operation has failed.
+			IOError
+		}
+
+		/**
+		 * Creates a new socket.
+		 * 
+		 * > This method initialize the internal socket's state and must be called in the implementation class
+		 * > constructor.
+		 */
+		const def new(self) {
+			self.state = Network.Socket.State.Unknown
+			return self
+		}
+
+		/**
+		 * Cleanup the socket.
+		 */
+		const def delete(self) {
+			self.close()
+		}
+
+		/**
+		 * Closes the communication with the peer if the socket was in the {Network.Socket.State.Connected} state or
+		 * stops listening if the socket was in the {Network.Socket.State.Listening} state.
+		 * 
+		 * On success, the socket enter the {Network.Socket.State.Closed} state.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def close(self) {
+			if not self.isOpen() {
+				self.setState(Network.Socket.State.Closed)
+				return none
+			}
+			if var errno = Network.Socket.g_lib.call('mint_socket_close', self.getHandle()) {
+				raise Exception.SocketError(errno, self)
+			}
+			self.setState(Network.Socket.State.Closed)
+			self.handle = none
+		}
+
+		/**
+		 * Returns `true` if the socket is open; otherwise returns `false`.
+		 */
+		const def isOpen(const self) {
+			return defined self.handle
+		}
+
+		/**
+		 * Returns the socket's handle as an instance of `mint::handle_t` or `none` if the socket has no handle.
+		 */
+		const def getHandle(const self) {
+			return self.handle
+		}
+
+		/**
+		 * Sets the socket's handle to `handle`. If the socket already had a handle, the previous handle is closed and
+		 * replaced by the new one.
+		 */
+		~ const def setHandle(self, handle) {
+			if defined self.handle {
+				if let errno = Network.Socket.g_lib.call('mint_socket_close', self.handle) {
+					raise Exception.SocketError(errno, self)
+				}
+			}
+			self.handle = handle
+			if defined self.nonBlocking {
+				self.setNonBlocking(self.nonBlocking)
+			}
+		}
+
+		/**
+		 * Resets the socket's handle without closing it.
+		 */
+		~ const def releaseHandle(self) {
+			self.handle = none
+		}
+
+		/**
+		 * Returns `true` if the socket is bound; otherwise returns `false`.
+		 */
+		const def isBound(const self) {
+			return defined self.endpoint
+		}
+
+		/**
+		 * Returns the endpoint associated with the object.
+		 */
+		const def getEndpoint(const self) {
+			return self.endpoint
+		}
+
+		/**
+		 * Sets the endpoint associated with the object to `endpoint`.
+		 */
+		~ const def setEndpoint(self, endpoint) {
+			self.endpoint = endpoint
+		}
+
+		/**
+		 * Returns `true` if the end point performs I/O operations without blocking (i.e. {Network.Socket.read} or
+		 * {Network.Socket.write} returns immediately without waiting for I/O completion); otherwise returns `false`.
+		 */
+		const def isNonBlocking(const self) {
+			if self.isOpen() {
+				return Network.Socket.g_lib.call('mint_socket_is_non_blocking', self.getHandle())
+			}
+			return self.nonBlocking
+		}
+
+		/**
+		 * Sets the non blocking mode of the socket to `enabled`. Returns `true` if the mode was successfully changed;
+		 * otherwise returns `false`.
+		 */
+		const def setNonBlocking(self, enabled) {
+			if self.isOpen() {
+				if let errno = Network.Socket.g_lib.call('mint_socket_set_non_blocking', self.getHandle(), enabled) {
+					raise Exception.SocketError(errno, self)
+				}
+			}
+			self.nonBlocking = enabled
+            return true
+		}
+
+		/**
+		 * Sets the non blocking mode of the socket to `enabled` without changing the handle.
+		 */
+		~ const def overrideNonBlockingFlag(self, enabled) {
+			self.nonBlocking = enabled
+		}
+
+		/**
+		 * Returns the value of the socket option described by `option`. The `option` parameter must be a value of the
+		 * {Network.SocketOption} enum.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def getSocketOption(self, %option) {
+			if not defined option {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			let handle = self.getHandle()
+			if not defined handle {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			switch option {
+			case is Network.SocketOption.RCVBUF:
+			case is Network.SocketOption.SNDBUF:
+			case is Network.SocketOption.RCVLOWAT:
+			case is Network.SocketOption.SNDLOWAT:
+			case is Network.SocketOption.TYPE:
+				var (value, errno) = Network.Socket.g_lib.call('mint_socket_get_option_number', handle, option)
+				if errno {
+					raise Exception.SocketError(errno, self)
+				}
+				return value
+			case is Network.SocketOption.BROADCAST:
+			case is Network.SocketOption.DEBUG:
+			case is Network.SocketOption.DONTROUTE:
+			case is Network.SocketOption.KEEPALIVE:
+			case is Network.SocketOption.OOBINLINE:
+			case is Network.SocketOption.REUSEADDR:
+			case is Network.SocketOption.REUSEPORT:
+			case is Network.SocketOption.USELOOPBACK:
+				var (value, errno) = Network.Socket.g_lib.call('mint_socket_get_option_boolean', handle, option)
+				if errno {
+					raise Exception.SocketError(errno, self)
+				}
+				return value
+			case is Network.SocketOption.ERROR:
+				var (value, errno) = Network.Socket.g_lib.call('mint_socket_get_option_number', handle, option)
+				if errno {
+					raise Exception.SocketError(errno, self)
+				}
+				return value ? Exception.SocketError(value, self) : none
+			case is Network.SocketOption.LINGER:
+				var (value, errno) = Network.Socket.g_lib.call('mint_socket_get_option_linger', handle, option)
+				if errno {
+					raise Exception.SocketError(errno, self)
+				}
+				return Network.SocketLinger(value)
+			case is Network.SocketOption.RCVTIMEO:
+			case is Network.SocketOption.SNDTIMEO:
+				var (value, errno) = Network.Socket.g_lib.call('mint_socket_get_option_timeval', handle, option)
+				if errno {
+					raise Exception.SocketError(errno, self)
+				}
+				return Network.SocketTime(value)
+			default:
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+		}
+
+		/**
+		 * Sets the value of the socket option described by `option` to `value`. The `option` parameter must be a value
+		 * of the {Network.SocketOption} enum.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def setSocketOption(self, %option, value) {
+			if not defined option {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			let handle = self.getHandle()
+			if not defined handle {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			switch option {
+			case is Network.SocketOption.RCVBUF:
+			case is Network.SocketOption.SNDBUF:
+			case is Network.SocketOption.RCVLOWAT:
+			case is Network.SocketOption.SNDLOWAT:
+			case is Network.SocketOption.TYPE:
+				if var errno = Network.Socket.g_lib.call('mint_socket_set_option_number', handle, option, value) {
+					raise Exception.SocketError(errno, self)
+				}
+				break
+			case is Network.SocketOption.BROADCAST:
+			case is Network.SocketOption.DEBUG:
+			case is Network.SocketOption.DONTROUTE:
+			case is Network.SocketOption.KEEPALIVE:
+			case is Network.SocketOption.OOBINLINE:
+			case is Network.SocketOption.REUSEADDR:
+			case is Network.SocketOption.REUSEPORT:
+			case is Network.SocketOption.USELOOPBACK:
+				if var errno = Network.Socket.g_lib.call('mint_socket_set_option_boolean', handle, option, value) {
+					raise Exception.SocketError(errno, self)
+				}
+				break
+			case is Network.SocketOption.ERROR:
+				if var errno = Network.Socket.g_lib.call('mint_socket_set_option_number', handle, option, value ? value.getErrno() : 0) {
+					raise Exception.SocketError(errno, self)
+				}
+				break
+			case is Network.SocketOption.LINGER:
+				if var errno = Network.Socket.g_lib.call('mint_socket_set_option_linger', handle, option, value.to_linger()) {
+					raise Exception.SocketError(errno, self)
+				}
+				break
+			case is Network.SocketOption.RCVTIMEO:
+			case is Network.SocketOption.SNDTIMEO:
+				if var errno = Network.Socket.g_lib.call('mint_socket_set_option_timeval', handle, option, value.to_timeval()) {
+					raise Exception.SocketError(errno, self)
+				}
+				break
+			default:
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+		}
+
+		/**
+		 * Returns the current state of the socket as a value of {Network.Socket.State}.
+		 */
+		const def getState(const self) {
+			return self.state
+		}
+
+		/**
+		 * Updates the current socket state.
+		 *
+		 * The `state` parameter must be a value from the {Network.Socket.State} enumeration.
+		 *
+		 * If the state differs from the current one, the {@see onState} callback is invoked before the internal state
+		 * is updated.
+		 *
+		 * Implementations may override {@see onState} to react to state transitions.
+		 */
+		~ const def setState(self, %state) {
+			if self.state != state {
+				self.onState(state)
+				self.state = state
+			}
+		}
+
+		/**
+		 * Handles socket state transitions.
+		 *
+		 * This method can be overridden by subclasses to react to state changes.
+		 *
+		 * The `state` parameter represents the new state that will be applied to
+		 * the socket. The previous state can still be retrieved using
+		 * {@see getState} during the execution of this method.
+		 *
+		 * > [!WARNING]
+		 * > Calling {@see setState} from within this method may cause an
+		 * > infinite recursion and should generally be avoided.
+		 */
+		var def onState(self, %state) {}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Internal endpoint object.
+		- final endpoint = none
+
+		/// Internal handle.
+		- final handle = none
+
+		/// Internal socket's state.
+		- final %state = null
+
+		/// Internal non blocking state.
+		- final nonBlocking = none
+	}
+
+	/**
+	 * Wrapper class used to associate a socket with its scheduler.
+	 * This class is used internally by the asynchronous operations to access the socket's scheduler and handle.
+	 */
+	@class AsyncSocket {
+
+		/**
+		 * Creates a new wrapper for `socket` associated with `scheduler`.
+		 */
+		const def new(self, socket, scheduler) {
+			self.socket = socket
+			self.scheduler = scheduler
+			return self
+		}
+
+		/**
+		 * Asynchronously closes the socket.
+		 *
+		 * If the socket is currently connected, this operation terminates the
+		 * communication with the peer. If the socket is listening, it stops
+		 * accepting new connections.
+		 *
+		 * Returns `true` if the socket was successfully closed.
+		 *
+		 * The socket will enter the {Network.Socket.State.Closed} state on success or
+		 * {Network.Socket.State.Error} on error.
+		 */
+		const def close(self) {
+			try {
+				return self.getSocket().close()
+			} catch error {
+				if typeof error === 'Exception.SocketError' {
+					raise in Exception.SocketError(error.getErrno(), self)
+				} else {
+					raise
+				}
+			}
+		}
+
+		/**
+		 * Returns the underlying socket object.
+		 */
+		const def getSocket(const self) {
+			return self.socket
+		}
+
+		/**
+		 * Returns the scheduler associated with the socket.
+		 */
+		const def getScheduler(const self) {
+			return self.scheduler
+		}
+
+		/**
+		 * Returns `true` if the socket is open; otherwise returns `false`.
+		 */
+		const def isOpen(const self) {
+			return self.socket.isOpen()
+		}
+
+		/**
+		 * Returns the socket's handle as an instance of `mint::handle_t` or `none` if the socket has no handle.
+		 */
+		const def getHandle(const self) {
+			return self.socket.getHandle()
+		}
+
+		/**
+		 * Sets the socket's handle to `handle`. If the socket already had a handle, the previous handle
+		 * is closed and replaced.
+		 */
+		~ const def setHandle(self, handle) {
+			try {
+				self.socket.setHandle(handle)
+			} catch error {
+				if typeof error === 'Exception.SocketError' {
+					raise in Exception.SocketError(error.getErrno(), self)
+				} else {
+					raise
+				}
+			}
+		}
+
+		/**
+		 * Returns `true` if the socket is bound; otherwise returns `false`.
+		 */
+		const def isBound(const self) {
+			return self.socket.isBound()
+		}
+
+		/**
+		 * Returns the endpoint associated with the object.
+		 */
+		const def getEndpoint(const self) {
+			return self.socket.getEndpoint()
+		}
+
+		/**
+		 * Sets the endpoint associated with the object to `endpoint`.
+		 */
+		~ const def setEndpoint(self, endpoint) {
+			self.socket.setEndpoint(endpoint)
+		}
+
+		/**
+		 * Returns the current state of the socket as a value of {Network.Socket.State}.
+		 */
+		const def getState(const self) {
+			return self.socket.getState()
+		}
+
+		/**
+		 * Returns `true` if the socket performs I/O operations without blocking; otherwise returns `false`.
+		 */
+		const def isNonBlocking(const self) {
+			return self.socket.isNonBlocking()
+		}
+
+		/**
+		 * Sets the non blocking mode of the socket to `enabled`. Returns `true` if the mode was successfully changed;
+		 * otherwise returns `false`.
+		 */
+		const def setNonBlocking(self, enabled) {
+			return self.socket.setNonBlocking(enabled)
+		}
+
+		/**
+		 * Returns the value of the socket option described by `option`. The `option` parameter must be a value of the
+		 * {Network.SocketOption} enum.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def getSocketOption(self, %option) {
+			return self.socket.getSocketOption(option)
+		}
+
+		/**
+		 * Sets the value of the socket option described by `option` to `value`. The `option` parameter must be a value
+		 * of the {Network.SocketOption} enum.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def setSocketOption(self, %option, value) {
+			return self.socket.setSocketOption(option, value)
+		}
+
+		/**
+		 * Updates the current socket state.
+		 *
+		 * The `state` parameter must be a value from the {Network.Socket.State} enumeration.
+		 *
+		 * If the state differs from the current one, the {@see onState} callback is invoked before the internal state
+		 * is updated.
+		 *
+		 * Implementations may override {@see onState} to react to state transitions.
+		 */
+		~ const def setState(self, %state) {
+			self.socket.setState(state)
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Internal socket object.
+		- final socket = null
+
+		/// Internal scheduler object.
+		- final scheduler = null
+	}
+}
+
+const g_lib = lib('libmint-network')
+g_lib.call('mint_socket_setup_options', Network.SocketOption)

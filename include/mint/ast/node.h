@@ -147,6 +147,8 @@ union MINT_EXPORT Node {
 		set_retrieve_point,
 		unset_retrieve_point,
 		raise,
+		reraise,
+		reraise_in,
 
 		await,
 		resume_coroutine,
@@ -174,6 +176,7 @@ union MINT_EXPORT Node {
 		init_defined_var_member_call,
 		init_exception,
 		reset_exception,
+		reset_uncaught_exception,
 		init_parameter,
 		exit_call,
 		exit_thread,

@@ -98,6 +98,16 @@
 								"type": "boolean",
 								"description": "Automatically stop after launch.",
 								"default": true
+							},
+							"environment": {
+								"type": "array",
+								"description": "Environment variables passed to the script",
+								"default": []
+							},
+							"cwd": {
+								"type": "string",
+								"description": "Working directory of the script.",
+								"default": "${workspaceFolder}"
 							}
 						}
 					}

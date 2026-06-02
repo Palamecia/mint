@@ -95,6 +95,7 @@ public:
 	void reset_scoped_symbols_until(BlockType type);
 	void close_block();
 
+	[[nodiscard]] bool is_in_catch() const;
 	[[nodiscard]] bool is_in_loop() const;
 	[[nodiscard]] bool is_in_switch() const;
 	[[nodiscard]] bool is_in_range_loop() const;
@@ -137,8 +138,8 @@ public:
 	void set_exit_point();
 	bool save_parameters();
 	bool add_definition_signature();
-	void save_definition();
-	Function& retrieve_definition();
+	void save_definition(std::string name);
+	Function& retrieve_definition(std::string name);
 
 	[[nodiscard]] PackageData& current_package() const;
 	void open_package(const std::string& name);

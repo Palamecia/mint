@@ -1,0 +1,860 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Network.IpSocket} abstraction for IP-based sockets
+ * and the helper objects used to configure IPv4 and IPv6 behavior.
+ */
+
+load network.socket
+load exception.network
+
+package Network {
+
+	/**
+	 * This enum describes the options of an IP v4 socket. The effective
+	 * value of the option code can depend on the current system.
+	 */
+	@enum IpV4SocketOption {
+		/// IP header included with data (boolean).
+		HDRINCL
+		/// IP header options (number).
+		OPTIONS
+		/// Return destination IP address (boolean).
+		RECVDSTADDR
+		/// Return received interface index (boolean).
+		RECVIF
+		/// Type-of-service and precedence (number).
+		TOS
+		/// TTL (number).
+		TTL
+		/// Specify outgoing interface (string).
+		MULTICAST_IF
+		/// Specify outgoing TTL (number).
+		MULTICAST_TTL
+		/// Specify loopback (boolean).
+		MULTICAST_LOOP
+		/// Join or leave multicast group ({Network.IpV4MulticastGroup}, write only).
+		ADD_MEMBERSHIP
+		/// Join or leave multicast group ({Network.IpV4MulticastGroup}, write only).
+		DROP_MEMBERSHIP
+		/// Block or unblock multicast source ({Network.IpV4MulticastSourceGroup}, write only).
+		BLOCK_SOURCE
+		/// Block or unblock multicast source ({Network.IpV4MulticastSourceGroup}, write only).
+		UNBLOCK_SOURCE
+		/// Join or leave source-specific multicast ({Network.IpV4MulticastSourceGroup}, write only).
+		ADD_SOURCE_MEMBERSHIP
+		/// Join or leave source-specific multicast ({Network.IpV4MulticastSourceGroup}, write only).
+		DROP_SOURCE_MEMBERSHIP
+	}
+
+	/**
+	 * This class provides multicast group information for IPv4 addresses.
+	 */
+	@class IpV4MulticastGroup {
+		/**
+		 * Creates a new multicast group object for the given `data`. The data
+		 * parameter can be an instance of {Network.IpV4MulticastGroup}, in this
+		 * case the object is returned as the new instance, or an instance of the
+		 * `ip_mreq` C struct. The parameter can also provide a `toIpV4MulticastGroup`
+		 * method that will be used to create the object.
+		 */
+		const def new(self, data) {
+			switch typeof data {
+			case 'Network.IpV4MulticastGroup':
+				return data
+			case 'libobject':
+				self.d_ptr = data
+				self.d_ptr.delete = def [g_lib = Network.IpV4MulticastGroup.g_lib] (self) {
+					g_lib.call('mint_ipv4_mreq_delete', self)
+				}
+				return self
+			default:
+				if defined data.toIpV4MulticastGroup {
+					return data.toIpV4MulticastGroup()
+				}
+			}
+		}
+
+		/**
+		 * Creates a new multicast group object. The `multiaddr` parameter must
+		 * be a string used to specifies the address of the IPv4 multicast group.
+		 * The `interface` parameter must be a string used to specifies the local
+		 * IPv4 address of the interface. If this parameter specifies an IPv4
+		 * address of `0.0.0.0`, the default IPv4 multicast interface is used.
+		 */
+		const def new(self, const multiaddr, const interface) {
+			if self.d_ptr = Network.IpV4MulticastGroup.g_lib.call('mint_ipv4_socket_mreq_create', multiaddr, interface) {
+				self.d_ptr.delete = def [g_lib = Network.IpV4MulticastGroup.g_lib] (self) {
+					g_lib.call('mint_ipv4_mreq_delete', self)
+				}
+				return self
+			}
+		}
+
+		/**
+		 * Returns the address of the IPv4 multicast group.
+		 */
+		const def getMulticastAddress(const self) {
+			return Network.IpV4MulticastGroup.g_lib.call('mint_ipv4_socket_mreq_get_multiaddr', self.d_ptr)
+		}
+
+		/**
+		 * Sets the address of the IPv4 multicast group. Returns `true` on success;
+		 * otherwise returns `false`.
+		 */
+		const def setMulticastAddress(const self, const address) {
+			return Network.IpV4MulticastGroup.g_lib.call('mint_ipv4_socket_mreq_set_multiaddr', self.d_ptr, address)
+		}
+
+		/**
+		 * Returns the local IPv4 address of the interface on which the multicast
+		 * group should be joined or dropped.
+		 */
+		const def getInterfaceAddress(const self) {
+			return Network.IpV4MulticastGroup.g_lib.call('mint_ipv4_socket_mreq_get_interface', self.d_ptr)
+		}
+
+		/**
+		 * Sets the local IPv4 address of the interface on which the multicast group
+		 * should be joined or dropped. This value is in network byte order. If this
+		 * member specifies an IPv4 address of 0.0.0.0, the default IPv4 multicast
+		 * interface is used. Returns `true` on success; otherwise returns `false`.
+		 */
+		const def setInterfaceAddress(const self, const address) {
+			return Network.IpV4MulticastGroup.g_lib.call('mint_ipv4_socket_mreq_set_interface', self.d_ptr, address)
+		}
+
+		/**
+		 * Returns the pointer to the internal `struct ip_mreq` instance.
+		 */
+		~ const def to_ip_mreq(const self) {
+			return self.d_ptr
+		}
+
+        /// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Object data.
+		- final d_ptr = null
+	}
+
+	/**
+	 * This class provides multicast group information for IPv4 addresses.
+	 */
+	@class IpV4MulticastSourceGroup {
+		/**
+		 * Creates a new multicast group object for the given `data`. The data
+		 * parameter can be an instance of {Network.IpV4MulticastSourceGroup},
+		 * in this case the object is returned as the new instance, or an instance
+		 * of the `ip_mreq_source` C struct. The parameter can also provide a
+		 * `toIpV4MulticastSourceGroup` method that will be used to create the
+		 * object.
+		 */
+		const def new(self, data) {
+			switch typeof data {
+			case 'Network.IpV4MulticastSourceGroup':
+				return data
+			case 'libobject':
+				self.d_ptr = data
+				self.d_ptr.delete = def [g_lib = Network.IpV4MulticastSourceGroup.g_lib] (self) {
+					g_lib.call('mint_ipv4_mreq_source_delete', self)
+				}
+				return self
+			default:
+				if defined data.toIpV4MulticastSourceGroup {
+					return data.toIpV4MulticastSourceGroup()
+				}
+			}
+		}
+
+		/**
+		 * Creates a new multicast group object. The `multiaddr` parameter must
+		 * be a string used to specifies the address of the IPv4 multicast group.
+		 * The `sourceaddr` parameter must be a string used to specifies the address
+		 * of the IPv4 multicast source. The `interface` parameter must be a string
+		 * used to specifies the local IPv4 address of the interface. If this
+		 * parameter specifies an IPv4 address of `0.0.0.0`, the default IPv4
+		 * multicast interface is used.
+		 */
+		const def new(self, const multiaddr, const sourceaddr, const interface) {
+			if self.d_ptr = Network.IpV4MulticastSourceGroup.g_lib.call('mint_ipv4_socket_mreq_source_create', multiaddr, interface) {
+				self.d_ptr.delete = def [g_lib = Network.IpV4MulticastSourceGroup.g_lib] (self) {
+					g_lib.call('mint_ipv4_mreq_source_delete', self)
+				}
+				return self
+			}
+		}
+
+		/**
+		 * Returns the address of the IPv4 multicast group.
+		 */
+		const def getMulticastAddress(const self) {
+			return Network.IpV4MulticastSourceGroup.g_lib.call('mint_ipv4_socket_mreq_source_get_multiaddr', self.d_ptr)
+		}
+
+		/**
+		 * Sets the address of the IPv4 multicast group. Returns `true` on success;
+		 * otherwise returns `false`.
+		 */
+		const def setMulticastAddress(const self, const address) {
+			return Network.IpV4MulticastSourceGroup.g_lib.call('mint_ipv4_socket_mreq_source_set_multiaddr', self.d_ptr, address)
+		}
+
+		/**
+		 * Returns the address of the IPv4 multicast source.
+		 */
+		const def getSourceAddress(const self) {
+			return Network.IpV4MulticastSourceGroup.g_lib.call('mint_ipv4_socket_mreq_source_get_sourceaddr', self.d_ptr)
+		}
+
+		/**
+		 * Sets the address of the IPv4 multicast source. Returns `true` on success;
+		 * otherwise returns `false`.
+		 */
+		const def setSourceAddress(const self, const address) {
+			return Network.IpV4MulticastSourceGroup.g_lib.call('mint_ipv4_socket_mreq_source_set_sourceaddr', self.d_ptr, address)
+		}
+
+		/**
+		 * Returns the local IPv4 address of the interface on which the multicast
+		 * group should be joined, dropped, blocked, or unblocked.
+		 */
+		const def getInterfaceAddress(const self) {
+			return Network.IpV4MulticastSourceGroup.g_lib.call('mint_ipv4_socket_mreq_source_get_interface', self.d_ptr)
+		}
+
+		/**
+		 * Sets the local IPv4 address of the interface on which the multicast group
+		 * should be joined, dropped, blocked, or unblocked. This value is in
+		 * network byte order. If this method specifies an IPv4 address of 0.0.0.0,
+		 * the default IPv4 multicast interface is used. Returns `true` on success;
+		 * otherwise returns `false`.
+		 */
+		const def setInterfaceAddress(const self, const address) {
+			return Network.IpV4MulticastSourceGroup.g_lib.call('mint_ipv4_socket_mreq_source_set_interface', self.d_ptr, address)
+		}
+
+		/**
+		 * Returns the pointer to the internal `struct ip_mreq_source` instance.
+		 */
+		~ const def to_ip_mreq_source(const self) {
+			return self.d_ptr
+		}
+
+        /// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Object data.
+		- final d_ptr = null
+	}
+
+	/**
+	 * This enum describes the options of an IP v6 socket. The effective
+	 * value of the option code can depend on the current system.
+	 */
+	@enum IpV6SocketOption {
+		/// Offset of checksum field for raw sockets (number).
+		CHECKSUM
+		/// Drop instead of fragment large packets (boolean).
+		DONTFRAG
+		/// Specify next-hop address.
+		NEXTHOP
+		/// Retrieve current path MTU.
+		PATHMTU
+		/// Receive destination options (boolean).
+		RECVDSTOPTS
+		/// Receive unicast hop limit (boolean).
+		RECVHOPLIMIT
+		/// Receive hop-by-hop options (boolean).
+		RECVHOPOPTS
+		/// Receive path MTU (boolean).
+		RECVPATHMTU
+		/// Receive packet information (boolean).
+		RECVPKTINFO
+		/// Receive source route (boolean).
+		RECVRTHDR
+		/// Receive traffic class (boolean).
+		RECVTCLASS
+		/// Default unicast hop limit (number).
+		UNICAT_HOPS
+		/// Use minimum MTU (boolean).
+		USE_MIN_MTU
+		/// Disable v4 compatibility (boolean).
+		V6ONLY
+		/// Sticky ancillary data (number).
+		XXX
+		/// Specify outgoing interface (number).
+		MULTICAST_IF
+		/// Specify outgoing hop limit (number).
+		MULTICAST_HOPS
+		/// Specify loopback (boolean).
+		MULTICAST_LOOP
+		/// Join multicast group ({Network.IpV6MulticastGroup}, write only).
+		JOIN_GROUP
+		/// Leave multicast group ({Network.IpV6MulticastGroup}, write only).
+		LEAVE_GROUP
+	}
+
+	/**
+	 * This class provides multicast group information for IPv6 addresses.
+	 */
+	@class IpV6MulticastGroup {
+		/**
+		 * Creates a new multicast group object for the given `data`. The data
+		 * parameter can be an instance of {Network.IpV6MulticastGroup}, in this
+		 * case the object is returned as the new instance, or an instance of the
+		 * `ipv6_mreq` C struct. The parameter can also provide a `toIpV6MulticastGroup`
+		 * method that will be used to create the object.
+		 */
+		const def new(self, data) {
+			switch typeof data {
+			case 'Network.IpV6MulticastGroup':
+				return data
+			case 'libobject':
+				self.d_ptr = data
+				self.d_ptr.delete = def [g_lib = Network.IpV6MulticastGroup.g_lib] (self) {
+					g_lib.call('mint_ipv6_mreq_delete', self)
+				}
+				return self
+			default:
+				if defined data.toIpV6MulticastGroup {
+					return data.toIpV6MulticastGroup()
+				}
+			}
+		}
+
+		/**
+		 * Creates a new multicast group object. The `multiaddr` parameter must
+		 * be a string used to specifies the address of the IPv6 multicast group.
+		 * The `interface` parameter must be a number used to specifies the index
+		 * of the local interfaceon which the multicast group should be joined
+		 * or dropped. If this parameter specifies an interface index of 0, the
+		 * default multicast interface is used.
+		 */
+		const def new(self, const multiaddr, const interface) {
+			if self.d_ptr = Network.IpV6MulticastGroup.g_lib.call('mint_ipv6_socket_mreq_create', multiaddr, interface) {
+				self.d_ptr.delete = def [g_lib = Network.IpV6MulticastGroup.g_lib] (self) {
+					g_lib.call('mint_ipv6_mreq_delete', self)
+				}
+				return self
+			}
+		}
+
+		/**
+		 * Returns the address of the IPv6 multicast group.
+		 */
+		const def getMulticastAddress(const self) {
+			return Network.IpV6MulticastGroup.g_lib.call('mint_ipv6_socket_mreq_get_multiaddr', self.d_ptr)
+		}
+
+		/**
+		 * Sets the address of the IPv6 multicast group. Returns `true` on success;
+		 * otherwise returns `false`.
+		 */
+		const def setMulticastAddress(const self, const address) {
+			return Network.IpV6MulticastGroup.g_lib.call('mint_ipv6_socket_mreq_set_multiaddr', self.d_ptr, address)
+		}
+
+		/**
+		 * Returns the interface index of the local interface on which the multicast
+		 * group should be joined or dropped.
+		 */
+		const def getInterfaceIndex(const self) {
+			return Network.IpV6MulticastGroup.g_lib.call('mint_ipv6_socket_mreq_get_interface', self.d_ptr)
+		}
+
+		/**
+		 * Sets interface index of the local interface on which the multicast
+		 * group should be joined or dropped. If this method specifies an
+		 * interface index of 0, the default multicast interface is used.
+		 */
+		const def setInterfaceIndex(const self, const index) {
+			return Network.IpV6MulticastGroup.g_lib.call('mint_ipv6_socket_mreq_set_interface', self.d_ptr, index)
+		}
+
+		/**
+		 * Returns the pointer to the internal `struct ipv6_mreq` instance.
+		 */
+		~ const def to_ipv6_mreq(const self) {
+			return self.d_ptr
+		}
+
+        /// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Object data.
+		- final d_ptr = null
+	}
+
+	/**
+	 * This enum describes the options of an IP socket. The effective
+	 * value of the option code can depend on the current system.
+	 */
+	@enum IpSocketOption {
+		/// Join multicast group.
+		MCAST_JOIN_GROUP
+		/// Leave multicast group.
+		MCAST_LEAVE_GROUP
+		/// Block multicast source.
+		MCAST_BLOCK_SOURCE
+		/// Unblock multicast source.
+		MCAST_UNBLOCK_SOURCE
+		/// Join source-specific multicast.
+		MCAST_JOIN_SOURCE_GROUP
+		/// Leave source-specific multicast.
+		MCAST_LEAVE_SOURCE_GROUP
+	}
+
+	/**
+	 * This class provides an abstract interface to implement socket classes
+	 * that manage communication with a peer using one specific protocol from
+	 * layer 4 of the OSI model over the IP protocol. It also implement the
+	 * internal mechanisms of the interface.
+	 */
+    @class IpSocket : Network.Socket {
+
+		/**
+		 * Finalize the connection to the peer. Return `true` if the connection
+		 * succeed; otherwise returns `false`. On success, the end point enter
+		 * the {Network.Socket.State.Connected} state.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def finalizeConnection(self) {
+			let (status, errno) = Network.IpSocket.g_lib.call('mint_socket_finalize_connection', self.getHandle())
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				self.setState(Network.Socket.State.Connected)
+				return true
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				return false
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return false
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+		}
+
+		/**
+		 * Disable sends or receives on the socket if it was in the {Network.Socket.State.Connected} state or stops
+		 * listening if it was in the {Network.Socket.State.Listening} state. Returns `true` if the operation was
+		 * completed or `false` if it can't be performed synchronously.
+		 * 
+		 * On success, the socket enter the {Network.Socket.State.Closing} state.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def shutdown(self) {
+			if self.isOpen() {
+				let (status, errno) = Network.IpSocket.g_lib.call('mint_socket_shutdown', self.getHandle())
+				switch status {
+				case Network.Socket.IOStatus.IOSuccess:
+					self.setState(Network.Socket.State.Closing)
+					return true
+
+				case Network.Socket.IOStatus.IOWouldBlock:
+					self.setState(Network.Socket.State.Closing)
+					return false
+
+				case Network.Socket.IOStatus.IOClosed:
+					self.setState(Network.Socket.State.Closed)
+					return true
+
+				case Network.Socket.IOStatus.IOError:
+					self.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(errno, self)
+				}
+			}
+		}
+
+		/**
+		 * Returns the value of the socket option described by `option`. The `option` parameter must be a value of the
+		 * {Network.IpV4SocketOption}, {Network.IpV6SocketOption}, {Network.IpSocketOption} or {Network.SocketOption}
+		 * enum.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		override const def getSocketOption(self, %option) {
+			if not defined option {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			let handle = self.getHandle()
+			if not defined handle {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			switch self.getIpVersion() {
+			case 4:
+				switch option {
+				case is Network.IpSocketOption.MCAST_JOIN_GROUP:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv4_socket_get_option_group_req', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpSocketOption.MCAST_LEAVE_GROUP:
+				case is Network.IpSocketOption.MCAST_BLOCK_SOURCE:
+				case is Network.IpSocketOption.MCAST_UNBLOCK_SOURCE:
+				case is Network.IpSocketOption.MCAST_JOIN_SOURCE_GROUP:
+				case is Network.IpSocketOption.MCAST_LEAVE_SOURCE_GROUP:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv4_socket_get_option_group_source_req', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpV4SocketOption.HDRINCL:
+				case is Network.IpV4SocketOption.RECVDSTADDR:
+				case is Network.IpV4SocketOption.RECVIF:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv4_socket_get_option_boolean', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpV4SocketOption.OPTIONS:
+				case is Network.IpV4SocketOption.TOS:
+				case is Network.IpV4SocketOption.TTL:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv4_socket_get_option_number', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpV4SocketOption.MULTICAST_IF:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv4_socket_get_option_addr', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpV4SocketOption.MULTICAST_TTL:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv4_socket_get_option_byte', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpV4SocketOption.MULTICAST_LOOP:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv4_socket_get_option_flag', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpV4SocketOption.ADD_MEMBERSHIP:
+				case is Network.IpV4SocketOption.DROP_MEMBERSHIP:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv4_socket_get_option_mreq', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return Network.IpV4MulticastGroup(value)
+				case is Network.IpV4SocketOption.BLOCK_SOURCE:
+				case is Network.IpV4SocketOption.UNBLOCK_SOURCE:
+				case is Network.IpV4SocketOption.ADD_SOURCE_MEMBERSHIP:
+				case is Network.IpV4SocketOption.DROP_SOURCE_MEMBERSHIP:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv4_socket_get_option_mreq_source', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return Network.IpV4MulticastSourceGroup(value)
+				}
+				break
+			case 6:
+				switch option {
+				case is Network.IpSocketOption.MCAST_JOIN_GROUP:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv6_socket_get_option_group_req', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpSocketOption.MCAST_LEAVE_GROUP:
+				case is Network.IpSocketOption.MCAST_BLOCK_SOURCE:
+				case is Network.IpSocketOption.MCAST_UNBLOCK_SOURCE:
+				case is Network.IpSocketOption.MCAST_JOIN_SOURCE_GROUP:
+				case is Network.IpSocketOption.MCAST_LEAVE_SOURCE_GROUP:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv6_socket_get_option_group_source_req', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpV6SocketOption.CHECKSUM:
+				case is Network.IpV6SocketOption.UNICAT_HOPS:
+				case is Network.IpV6SocketOption.XXX:
+				case is Network.IpV6SocketOption.MULTICAST_IF:
+				case is Network.IpV6SocketOption.MULTICAST_HOPS:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv6_socket_get_option_number', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpV6SocketOption.DONTFRAG:
+				case is Network.IpV6SocketOption.RECVDSTOPTS:
+				case is Network.IpV6SocketOption.RECVHOPLIMIT:
+				case is Network.IpV6SocketOption.RECVHOPOPTS:
+				case is Network.IpV6SocketOption.RECVPATHMTU:
+				case is Network.IpV6SocketOption.RECVPKTINFO:
+				case is Network.IpV6SocketOption.RECVRTHDR:
+				case is Network.IpV6SocketOption.RECVTCLASS:
+				case is Network.IpV6SocketOption.USE_MIN_MTU:
+				case is Network.IpV6SocketOption.V6ONLY:
+				case is Network.IpV6SocketOption.MULTICAST_LOOP:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv6_socket_get_option_boolean', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return value
+				case is Network.IpV6SocketOption.NEXTHOP:
+					// TODO
+				case is Network.IpV6SocketOption.PATHMTU:
+					// TODO
+				case is Network.IpV6SocketOption.JOIN_GROUP:
+				case is Network.IpV6SocketOption.LEAVE_GROUP:
+					let (value, errno) = Network.IpSocket.g_lib.call('mint_ipv6_socket_get_option_mreq', handle, option)
+					if errno {
+						raise Exception.SocketError(errno, self)
+					}
+					return Network.IpV6MulticastGroup(value)
+				}
+				break
+			}
+			return Network.Endpoint.getSocketOption(self, option, value)
+		}
+
+		/**
+		 * Sets the value of the socket option described by `option` to `value`. The `option` parameter must be a value
+		 * of the {Network.IpV4SocketOption}, {Network.IpV6SocketOption}, {Network.IpSocketOption} or
+		 * {Network.SocketOption} enum.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		override const def setSocketOption(self, %option, value) {
+			if not defined option {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			let handle = self.getHandle()
+			if not defined handle {
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+			switch self.getIpVersion() {
+			case 4:
+				switch option {
+				case is Network.IpSocketOption.MCAST_JOIN_GROUP:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv4_socket_set_option_group_req', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpSocketOption.MCAST_LEAVE_GROUP:
+				case is Network.IpSocketOption.MCAST_BLOCK_SOURCE:
+				case is Network.IpSocketOption.MCAST_UNBLOCK_SOURCE:
+				case is Network.IpSocketOption.MCAST_JOIN_SOURCE_GROUP:
+				case is Network.IpSocketOption.MCAST_LEAVE_SOURCE_GROUP:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv4_socket_set_option_group_source_req', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV4SocketOption.HDRINCL:
+				case is Network.IpV4SocketOption.RECVDSTADDR:
+				case is Network.IpV4SocketOption.RECVIF:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv4_socket_set_option_boolean', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV4SocketOption.OPTIONS:
+				case is Network.IpV4SocketOption.TOS:
+				case is Network.IpV4SocketOption.TTL:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv4_socket_set_option_number', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV4SocketOption.MULTICAST_IF:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv4_socket_set_option_addr', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV4SocketOption.MULTICAST_TTL:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv4_socket_set_option_byte', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV4SocketOption.MULTICAST_LOOP:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv4_socket_set_option_flag', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV4SocketOption.ADD_MEMBERSHIP:
+				case is Network.IpV4SocketOption.DROP_MEMBERSHIP:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv4_socket_set_option_mreq', handle, option, value.to_ip_mreq()) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV4SocketOption.BLOCK_SOURCE:
+				case is Network.IpV4SocketOption.UNBLOCK_SOURCE:
+				case is Network.IpV4SocketOption.ADD_SOURCE_MEMBERSHIP:
+				case is Network.IpV4SocketOption.DROP_SOURCE_MEMBERSHIP:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv4_socket_set_option_mreq_source', handle, option, value.to_ip_mreq_source()) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				default:
+					return Network.Socket.setSocketOption(self, option, value)
+				}
+				break
+			case 6:
+				switch option {
+				case is Network.IpSocketOption.MCAST_JOIN_GROUP:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv6_socket_set_option_group_req', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpSocketOption.MCAST_LEAVE_GROUP:
+				case is Network.IpSocketOption.MCAST_BLOCK_SOURCE:
+				case is Network.IpSocketOption.MCAST_UNBLOCK_SOURCE:
+				case is Network.IpSocketOption.MCAST_JOIN_SOURCE_GROUP:
+				case is Network.IpSocketOption.MCAST_LEAVE_SOURCE_GROUP:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv6_socket_set_option_group_source_req', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV6SocketOption.CHECKSUM:
+				case is Network.IpV6SocketOption.UNICAT_HOPS:
+				case is Network.IpV6SocketOption.XXX:
+				case is Network.IpV6SocketOption.MULTICAST_IF:
+				case is Network.IpV6SocketOption.MULTICAST_HOPS:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv6_socket_set_option_number', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV6SocketOption.DONTFRAG:
+				case is Network.IpV6SocketOption.RECVDSTOPTS:
+				case is Network.IpV6SocketOption.RECVHOPLIMIT:
+				case is Network.IpV6SocketOption.RECVHOPOPTS:
+				case is Network.IpV6SocketOption.RECVPATHMTU:
+				case is Network.IpV6SocketOption.RECVPKTINFO:
+				case is Network.IpV6SocketOption.RECVRTHDR:
+				case is Network.IpV6SocketOption.RECVTCLASS:
+				case is Network.IpV6SocketOption.USE_MIN_MTU:
+				case is Network.IpV6SocketOption.V6ONLY:
+				case is Network.IpV6SocketOption.MULTICAST_LOOP:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv6_socket_set_option_boolean', handle, option, value) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV6SocketOption.NEXTHOP:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv6_socket_set_option_addr', handle, option, value.to_sockaddr_in6()) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV6SocketOption.PATHMTU:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv6_socket_set_option_mtuinfo', handle, option, value.to_ip6_mtuinfo()) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				case is Network.IpV6SocketOption.JOIN_GROUP:
+				case is Network.IpV6SocketOption.LEAVE_GROUP:
+					if let errno = Network.IpSocket.g_lib.call('mint_ipv6_socket_set_option_mreq', handle, option, value.to_ipv6_mreq()) {
+						raise Exception.SocketError(errno, self)
+					}
+					break
+				default:
+					return Network.Socket.setSocketOption(self, option, value)
+				}
+				break
+			default:
+				raise Exception.SocketError(Exception.SystemError.Errno.EINVAL, self)
+			}
+		}
+
+		/**
+		 * Returns the IP version of the socket. The return value is either `4` or
+		 * `6` for IPv4 and IPv6 sockets, respectively.
+		 */
+		~ const def getIpVersion(const self) {
+			return self.ipVersion
+		}
+
+		/**
+		 * Sets the IP version of the socket. The `ipVersion` parameter must be
+		 * either `4` or `6` for IPv4 and IPv6 sockets, respectively.
+		 */
+		~ const def setIpVersion(self, ipVersion) {
+			self.ipVersion = ipVersion
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-network')
+
+		/// Internal IP version.
+		- final ipVersion = none
+    }
+
+	/**
+	 * This class provides an abstract interface to implement asynchronous socket
+	 * classes that manage communication with a peer using one specific protocol
+	 * from layer 4 of the OSI model over the IP protocol. It also implement the
+	 * internal mechanisms of the interface.
+	 */
+	@class AsyncIpSocket : Network.AsyncSocket {
+
+		/**
+		 * Disable sends or receives on the socket if it was in the {Network.Socket.State.Connected} state or stops
+		 * listening if it was in the {Network.Socket.State.Listening} state. Returns `true` if the operation was
+		 * completed or `false` if it can't be performed synchronously.
+		 * 
+		 * On success, the socket enter the {Network.Socket.State.Closing} state.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def shutdown(self) {
+			try {
+				return self.getSocket().shutdown()
+			} catch error {
+				if typeof error === 'Exception.SocketError' {
+					raise in Exception.SocketError(error.getErrno(), self)
+				} else {
+					raise
+				}
+			}
+		}
+
+		/**
+		 * Returns the IP version of the socket. This method calls the {Network.IpSocket.getIpVersion} method of the
+		 * underlying socket.
+		 */
+		~ const def getIpVersion(const self) {
+			return self.getSocket().getIpVersion()
+		}
+
+		/**
+		 * Sets the IP version of the socket. This method calls the {Network.IpSocket.setIpVersion} method of the
+		 * underlying socket.
+		 */
+		~ const def setIpVersion(self, ipVersion) {
+			self.getSocket().setIpVersion(ipVersion)
+		}
+	}
+}
+
+const g_lib = lib('libmint-network')
+g_lib.call('mint_ip_socket_setup_options', Network.IpSocketOption)
+g_lib.call('mint_ipv4_socket_setup_options', Network.IpV4SocketOption)
+g_lib.call('mint_ipv6_socket_setup_options', Network.IpV6SocketOption)

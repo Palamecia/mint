@@ -22,9 +22,8 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {Network.TextSerializer} class which implement the
- * serializer interface for plain text messages on a stream based end point such
- * as {Network.TcpIp}.
+ * This module provides the {Network.TextSerializer} implementation for plain
+ * text messages on stream-oriented endpoints.
  */
 
 load serializer.data-stream
@@ -33,8 +32,8 @@ load mint.type
 
 package Network {
 	/**
-	 * This class provides a serializer for plain text messages. The message
-	 * end is detected by finding a byte with a value of `0`.
+	 * This class provides a serializer for plain text messages. The message end is detected by finding a byte with a
+	 * value of `0`.
 	 */
 	@class TextSerializer {
 		/**
@@ -87,18 +86,6 @@ package Network {
 		}
 
 		/**
-		 * Attempts to read data asynchronously from the end point. Returns `true` if data was
-		 * receive; otherwise returns `false`.
-		 */
-		const async def readAsync(self, endpoint) {
-			if var buffer = await endpoint.readAsync() {
-				self.stream.write(buffer)
-				return true
-			}
-			return false
-		}
-
-		/**
 		 * Attempts to write data to the end point. Returns `true` if the data
 		 * was successfully sent; otherwise returns `false`. After this call,
 		 * the sent data is removed from the buffer.
@@ -115,13 +102,87 @@ package Network {
 		}
 
 		/**
+		 * Attempts to accept a connection on the end point. This method raises
+		 * an instance of {Exception.InvalidOperation}.
+		 */
+		const def accept(self, endpoint) {
+			raise Exception.InvalidOperation('the socket can not accept', self)
+		}
+
+		/**
+		 * Returns `true` if the serializer's buffer is empty; otherwise
+		 * returns `false`.
+		 */
+		const def isEmpty(const self) {
+			return self.stream.isEmpty()
+		}
+
+		/// Internal buffer.
+		- final stream = null
+	}
+	
+	/**
+	 * This class provides a serializer for plain text messages. The message end is detected by finding a byte with a
+	 * value of `0`. The data is exchanged asynchronously.
+	 */
+	@class AsyncTextSerializer {
+		/**
+		 * Creates a new serializer.
+		 */
+		const def new(self) {
+			self.stream = Serializer.DataStream()
+			return self
+		}
+
+		/**
+		 * Appends the message object provided by `message` to the serializer's
+		 * buffer. The `message` parameter must be a string or castable to string.
+		 */
+		const def appendMessage(self, message) {
+			if defined message {
+				self.stream.write(message.toString())
+			}
+		}
+
+		/**
+		 * Returns the next message object in the serializer's buffer as a string
+		 * or `none` if no message object can be constructed from the data in the
+		 * buffer. The data used to create the message is then removed from the
+		 * buffer.
+		 */
+		const def nextMessage(self) {
+			return self.stream.readString()
+		}
+
+		/**
+		 * Returns `true` if a message can be constructed from the data in the
+		 * serializer's buffer (i.e. at least one byte with a value of `0` was
+		 * found); otherwise returns `false`.
+		 */
+		const def containsMessage(const self) {
+			return self.stream.containsString()
+		}
+
+		/**
+		 * Attempts to read data asynchronously from the end point. Returns `true` if data was
+		 * receive; otherwise returns `false`.
+		 */
+		const async def read(self, endpoint) {
+			if var buffer = await endpoint.read() {
+				self.stream.write(buffer)
+				return true
+			}
+			return false
+		}
+
+		/**
 		 * Attempts to write data asynchronously to the end point. Returns `true` if the data
 		 * was successfully sent; otherwise returns `false`. After this call,
 		 * the sent data is removed from the buffer.
 		 */
-		const async def writeAsync(self, endpoint) {
+		const async def write(self, endpoint) {
 			if not self.stream.isEmpty() {
-				var (success, count) = await endpoint.writeAsync(self.stream)
+				var (success, count) = await endpoint.write(self.stream)
 				if success {
 					self.stream.remove(count)
 					return true
@@ -131,19 +192,11 @@ package Network {
 		}
 
 		/**
-		 * Attempts to accept a connection on the end point. This method raises
-		 * an instance of {Exception.InvalidNetworkOperation}.
-		 */
-		const def accept(self, endpoint) {
-			raise Exception.InvalidNetworkOperation('the socket can not accept', self)
-		}
-
-		/**
 		 * Attempts to accept a connection asynchronously on the end point. This method raises
-		 * an instance of {Exception.InvalidNetworkOperation}.
+		 * an instance of {Exception.InvalidOperation}.
 		 */
-		const async def acceptAsync(self, endpoint) {
-			raise Exception.InvalidNetworkOperation('the socket can not accept', self)
+		const async def accept(self, endpoint) {
+			raise Exception.InvalidOperation('the socket can not accept', self)
 		}
 
 		/**

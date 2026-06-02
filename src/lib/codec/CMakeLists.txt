@@ -1,6 +1,7 @@
 project(mint-codec)
 
 find_package(Iconv REQUIRED)
+find_package(ICU REQUIRED COMPONENTS uc i18n data)
 
 add_library(mint-lib-module-codec MODULE)
 
@@ -17,12 +18,16 @@ target_sources(
 PRIVATE
 	iconv.cpp
 	mime_types.cpp
+	text_codec.cpp
 )
 
 target_link_libraries(
 	mint-lib-module-codec
 PRIVATE
 	mint::mint
+	ICU::i18n
+	ICU::uc
+	ICU::data
 )
 
 if (UNIX)

@@ -28,11 +28,23 @@
 #include "mint/memory/builtin/string.h"
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
 #ifdef MINT_OS_WINDOWS
+#include <Windows.h>
+#include <format>
+#include <minwindef.h>
+#include <string_view>
+#include <stringapiset.h>
+#include <unicode/ucsdet.h>
+#include <unicode/urename.h>
+#include <unicode/utypes.h>
 #include <urlmon.h>
+#include <winerror.h>
+#include <winnls.h>
+#include <winnt.h>
 #else
 #include <magic.h>
 #endif
@@ -41,27 +53,58 @@ namespace {
 
 std::string mime_type_from_data(const void* buffer, std::size_t length) {
 #ifdef MINT_OS_WINDOWS
-	LPWSTR content_type = nullptr;
+	if (LPWSTR content_type = nullptr; FindMimeFromData(nullptr, nullptr, const_cast<LPVOID>(buffer),
+	                                       static_cast<DWORD>(length), nullptr, 0, &content_type, 0)
+	                                   == S_OK) {
 
-	if (FindMimeFromData(nullptr, nullptr, const_cast<LPVOID>(buffer), static_cast<DWORD>(length), nullptr, 0,
-	        &content_type, 0)
-	    == S_OK) {
+		const auto length = WideCharToMultiByte(CP_UTF8, 0, content_type, -1, nullptr, 0, nullptr, nullptr);
+		auto mime_type = std::string(length, '\0');
 
-		const int length = WideCharToMultiByte(CP_UTF8, 0, content_type, -1, nullptr, 0, nullptr, nullptr);
-		if (std::string mime_type(length, '\0');
-		    WideCharToMultiByte(CP_UTF8, 0, content_type, -1, mime_type.data(), length, nullptr, nullptr)) {
+		if (!WideCharToMultiByte(CP_UTF8, 0, content_type, -1, mime_type.data(), length, nullptr, nullptr)) {
+			return {};
+		}
+
+		UErrorCode status = U_ZERO_ERROR;
+		auto* detector = ucsdet_open(&status);
+		if (U_FAILURE(status)) {
 			return mime_type;
 		}
 
-		return {};
+		ucsdet_setText(detector, reinterpret_cast<const char*>(buffer), static_cast<int32_t>(length), &status);
+		if (U_FAILURE(status)) {
+			ucsdet_close(detector);
+			return mime_type;
+		}
+
+		const auto* match = ucsdet_detect(detector, &status);
+		if (U_FAILURE(status) || !match) {
+			ucsdet_close(detector);
+			return mime_type;
+		}
+
+		auto charset = std::string();
+		if (const char* name = ucsdet_getName(match, &status); U_SUCCESS(status) && name) {
+			charset = name;
+		}
+
+		ucsdet_close(detector);
+
+		return std::format("{}; charset={}", mime_type, charset);
 	}
 #else
-	magic_t cookie = magic_open(MAGIC_MIME);
-	const char* mime_type = magic_buffer(cookie, buffer, length);
-	magic_close(cookie);
-
-	if (mime_type) {
-		return mime_type;
+	if (magic_t cookie = magic_open(MAGIC_MIME)) {
+		if (magic_load(cookie, nullptr) != 0) {
+			magic_close(cookie);
+			return {};
+		}
+		auto result = std::optional<std::string>();
+		if (const char* mime_type = magic_buffer(cookie, buffer, length)) {
+			result = mime_type;
+		}
+		magic_close(cookie);
+		if (result) {
+			return *result;
+		}
 	}
 #endif
 

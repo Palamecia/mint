@@ -18,17 +18,23 @@ if stream = Serializer.JsonStream(System.open('./target/path', 'w')) {
 }
 ```
 
-A stream class must, at least, provide 2 methods: `read` and `write`. It can
-also provides extra methods:
+A stream class must, at least, provide 2 methods: `read` and `write`.
+
+It can also provides extra methods depending on the stream kind.
+
+For byte based stream the class can provide the following methods:
+* `readSome` for reading up to a specified amount of bytes
+
+For text based stream the class can provide the following methods:
 * `readChar` for reading one character after the other
 * `readWord` for reading one word after the other
+* `readUntil` for reading text until a separator
 * `readLine` for reading one line after the other
 * `readLines` to iterate over each lines
 
-An other stream can be used to construct a stream instance. It allow to create
-a stream chain to provide missing features. For example, the {Serializer.BufferedStream}
-class add the extra methods to a class which anly provides `read` and `write`.
-An instance of this class can then be used to create a bridge between an instance
-of {Serializer.YamlStream} and a custom stream class.
+An other stream can be used to construct a stream instance. It allow to create a stream chain to provide missing
+features. For example, the {Serializer.BufferedStream} class add buffering to a classes where reading may be expensive.
+The {Serializer.TextStream} class provides a text based interface to byte based streams. An instance of this class can
+ then be used to create a bridge between an instance of {Serializer.YamlStream} and a custom stream class.
 
 Some other classes can act like a stream like {System.File}.

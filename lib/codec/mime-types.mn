@@ -52,6 +52,6 @@ package Codec {
 		}
 
 		/// Global library handle.
-		- @g_lib = lib('libmint-codec')
+		- @const g_lib = lib('libmint-codec')
 	}
 }

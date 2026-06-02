@@ -168,8 +168,8 @@ int errno_from_windows_last_error(int last_error) {
 	    {ERROR_WRITE_PROTECT, EROFS},
 	};
 
-	auto i = g_errno_for.find(last_error);
-	return (i != g_errno_for.end()) ? i->second : EINVAL;
+	const auto it = g_errno_for.find(last_error);
+	return (it != g_errno_for.end()) ? it->second : EINVAL;
 }
 #endif
 
@@ -177,16 +177,21 @@ int errno_from_windows_last_error(int last_error) {
 
 int mint::errno_from_error_code(const std::error_code& code) {
 #ifdef MINT_OS_WINDOWS
-	return errno_from_windows_last_error(code.value());
-#else
-	return code.value();
+	if (code.category() == std::system_category()) {
+		return errno_from_windows_last_error(code.value());
+	}
 #endif
+	return code.value();
 }
 
 std::error_code mint::last_error_code() {
+	return {errno_from_last_error(), std::generic_category()};
+}
+
+int mint::errno_from_last_error() {
 #ifdef MINT_OS_WINDOWS
-	return {static_cast<int>(GetLastError()), std::system_category()};
+	return errno_from_windows_last_error(static_cast<int>(GetLastError()));
 #else
-	return {errno, std::system_category()};
+	return errno;
 #endif
 }

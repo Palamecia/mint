@@ -36,7 +36,7 @@
 
 namespace {
 
-std::string get_member_name(mint::Class::MemberInfo& infos) {
+std::string get_member_name(const mint::Class::MemberInfo& infos) {
 
 	mint::Class& metadata = infos.owner.get();
 	const auto members = metadata.members();
@@ -62,7 +62,7 @@ mint::Reference mint_get_member_info(mint::Cursor& cursor, const mint::Reference
 
 mint::Reference mint_function_name(mint::Cursor& cursor, const mint::Reference& infos) {
 	return mint::create_string(cursor.ast(),
-	    get_member_name(*infos.data<mint::LibObject<mint::Class::MemberInfo>>().ptr));
+	    get_member_name(*infos.data<mint::LibObject<const mint::Class::MemberInfo>>().ptr));
 }
 
 }
@@ -86,7 +86,7 @@ MINT_RAW_FUNCTION(mint_function_call, 4, cursor) {
 	cursor.stack().append_range(args.data<mint::Iterator>().ctx);
 
 	cursor.waiting_calls().emplace(std::move(func),
-	    member_info.data<mint::LibObject<mint::Class::MemberInfo>>().ptr->owner);
+	    member_info.data<mint::LibObject<const mint::Class::MemberInfo>>().ptr->owner);
 
 	call_member_operator(cursor, signature);
 }

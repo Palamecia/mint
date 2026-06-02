@@ -890,7 +890,7 @@ package System {
 		 * Returns the pointer to the internal `std::chrono::sys_time<std::chrono::milliseconds>`
 		 * instance.
 		 */
-		~ const def to_std_chrono_time_point(const self) {
+		final const def to_std_chrono_time_point(const self) {
 			return self.timepoint
 		}
 
@@ -916,7 +916,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @g_lib = lib('libmint-system')
+		- @const g_lib = lib('libmint-system')
 		
 		/// Internal time point.
 		- final timepoint = null

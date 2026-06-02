@@ -68,6 +68,7 @@ MINT_EXPORT void init_operator_call(Cursor& cursor, Class::Operator op);
 MINT_EXPORT void exit_call(Cursor& cursor);
 MINT_EXPORT void init_exception(Cursor& cursor, const Symbol& symbol);
 MINT_EXPORT void reset_exception(Cursor& cursor, const Symbol& symbol);
+MINT_EXPORT void reset_exception(Cursor& cursor);
 MINT_EXPORT void init_parameter(Cursor& cursor, const Symbol& symbol, Reference::Flags flags, std::size_t index);
 MINT_EXPORT Function::Mapping::const_iterator find_function_signature(Cursor& cursor, Function::Mapping& mapping,
     int signature);

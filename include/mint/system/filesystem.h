@@ -39,7 +39,7 @@
 #ifdef MINT_OS_WINDOWS
 using uid_t = std::intptr_t;
 using gid_t = std::intptr_t;
-#else
+#elifdef MINT_OS_LINUX
 #include <linux/limits.h>
 #endif
 
@@ -101,7 +101,6 @@ public:
 	static bool check_file_permissions(const std::filesystem::path& path, Permissions permissions);
 
 	static bool is_root(const std::filesystem::path& path);
-	static bool is_bundle(const std::filesystem::path& path);
 	static bool is_hidden(const std::filesystem::path& path);
 	static bool is_canonical(const std::filesystem::path& path);
 	static bool is_normalized(const std::filesystem::path& path);
@@ -131,6 +130,8 @@ private:
 };
 
 MINT_EXPORT FILE* open_file(const std::filesystem::path& path, const char* mode);
+MINT_EXPORT int open_file_descriptor(const std::filesystem::path& path, const char* mode);
+MINT_EXPORT int open_file_descriptor(const std::filesystem::path& path, int flags, int mode);
 
 }
 

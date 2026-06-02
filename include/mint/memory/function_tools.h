@@ -35,12 +35,14 @@
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/class.h"
+#include "mint/memory/garbage_collector.h"
 #include "mint/memory/global_data.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/assert.h"
+#include "mint/system/async_io.h"
 
 #include <algorithm>
 #include <cassert>
@@ -49,6 +51,7 @@
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <optional>
 #include <regex>
 #include <span>
 #include <string>
@@ -218,6 +221,37 @@ private:
 	void return_value(Reference&& value);
 };
 
+class MintAsyncOperation : public AsyncOperation {
+	Reference _self;
+	std::optional<RootReference> _result;
+public:
+	MintAsyncOperation(mint::Reference self, handle_t handle) :
+	    AsyncOperation(handle),
+	    _self(std::move(self)) {}
+
+	MintAsyncOperation(const MintAsyncOperation&) = delete;
+	MintAsyncOperation(MintAsyncOperation&&) = delete;
+
+	~MintAsyncOperation() {}
+
+	MintAsyncOperation& operator=(const MintAsyncOperation&) = delete;
+	MintAsyncOperation& operator=(MintAsyncOperation&&) = delete;
+
+	[[nodiscard]] const Reference& self() const {
+		return _self;
+	}
+
+	[[nodiscard]] const Reference& get() const {
+		assert(_result.has_value());
+		return _result.value();
+	}
+
+protected:
+	void done(Reference result) {
+		_result = std::move(result);
+	}
+};
+
 MINT_EXPORT Reference create_function();
 MINT_EXPORT Reference create_function(Function::Mapping mapping);
 MINT_EXPORT Reference create_function(int signature, Function::Signature&& handle);
@@ -278,17 +312,11 @@ Reference create_c_object(AbstractSyntaxTree& ast, Type* object) {
 	return ref;
 }
 
-#ifdef MINT_OS_WINDOWS
-using handle_t = HANDLE;
 MINT_EXPORT Reference create_handle(AbstractSyntaxTree& ast, handle_t handle);
 MINT_EXPORT handle_t to_handle(const Reference& reference);
 MINT_EXPORT handle_t* to_handle_ptr(const Reference& reference);
-#else
-using handle_t = int;
-MINT_EXPORT Reference create_handle(AbstractSyntaxTree& ast, handle_t handle);
-MINT_EXPORT handle_t to_handle(const Reference& reference);
-MINT_EXPORT handle_t* to_handle_ptr(const Reference& reference);
-#endif
+
+MINT_EXPORT Reference create_async_operation(AbstractSyntaxTree& ast, MintAsyncOperation* operation);
 
 // ...
 

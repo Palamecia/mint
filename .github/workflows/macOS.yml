@@ -1,0 +1,43 @@
+name: C/C++ CI macOS
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: install dependencies
+      run: |
+        brew update
+        brew install bison autoconf automake autoconf-archive libmagic
+
+        git clone https://github.com/microsoft/vcpkg.git
+        pushd vcpkg
+        ./bootstrap-vcpkg.sh
+        popd
+
+    - name: configure
+      run: |
+        export VCPKG_ROOT=$PWD/vcpkg
+        export PATH=$VCPKG_ROOT:$PATH
+
+        cmake --preset=vcpkg \
+              -DBISON_EXECUTABLE="$(brew --prefix bison)/bin/bison" \
+              -DCMAKE_BUILD_TYPE=Release
+
+    - name: build
+      run: |
+        cmake --build build --target all
+        cmake --build build --target install
+
+    - name: run tests
+      working-directory: ./build
+      run: ctest
+
+    - name: run library tests
+      working-directory: ./tests
+      run: /usr/local/bin/mint ./test.mn

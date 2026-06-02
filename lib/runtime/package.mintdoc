@@ -1,0 +1,32 @@
+@package Network
+The `Runtime` package provides the coroutine scheduling and asynchronous
+operation primitives used to execute and coordinate Mint coroutines.
+
+A {Runtime.Scheduler} manages the execution of spawned coroutines. Coroutines can
+suspend their execution by providing an {Runtime.Operation} and are resumed when
+the operation completes. Operations provide the mechanism for representing
+work that may complete asynchronously.
+
+Spawning a coroutine returns a {Runtime.Promise} that can be used to observe its
+completion and retrieve its result. Promises allow the caller to coordinate
+with spawned coroutines without directly managing their execution.
+
+The package provides the following core abstractions:
+* {Runtime.Scheduler} manages coroutine scheduling and execution.
+* {Runtime.Operation} represents an asynchronous operation that a coroutine can suspend on.
+* {Runtime.Promise} represents the eventual completion and result of a spawned coroutine.
+
+Together, these abstractions provide the foundation for asynchronous and
+concurrent programming with Mint coroutines.
+
+```mn
+let scheduler = Runtime.Scheduler()
+
+let promise = scheduler.spawn(def [...]() {
+    return await scheduler.suspend(MyOperation())
+})
+
+scheduler.run()
+
+let result = promise.get()
+```

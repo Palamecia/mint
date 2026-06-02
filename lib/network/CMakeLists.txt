@@ -2,9 +2,8 @@ project(module-network)
 
 set(${PROJECT_NAME}_ENDPOINTS_SOURCES
 	endpoints/ip.mn
-	endpoints/sctp-ip.mn
-	endpoints/tcp-ip.mn
-	endpoints/udp-ip.mn
+	endpoints/local.mn
+	endpoints/stdio.mn
 )
 
 set(${PROJECT_NAME}_FTP_SOURCES
@@ -22,11 +21,11 @@ set(${PROJECT_NAME}_HTTP_SOURCES
 )
 
 set(${PROJECT_NAME}_JSONRPC_SOURCES
-	protocols/jsonrpc/exception.mn
-	protocols/jsonrpc/client.mn
-	protocols/jsonrpc/message.mn
-	protocols/jsonrpc/serializer.mn
-	protocols/jsonrpc/server.mn
+	protocols/json-rpc/exception.mn
+	protocols/json-rpc/client.mn
+	protocols/json-rpc/message.mn
+	protocols/json-rpc/serializer.mn
+	protocols/json-rpc/server.mn
 )
 
 set(${PROJECT_NAME}_PROTOCOLS_SOURCES
@@ -42,10 +41,20 @@ set(${PROJECT_NAME}_SERIALIZERS_SOURCES
 	serializers/text.mn
 )
 
+set(${PROJECT_NAME}_SOCKETS_SOURCES
+	sockets/ip.mn
+	sockets/local.mn
+	sockets/sctp.mn
+	sockets/stdio.mn
+	sockets/tcp.mn
+	sockets/udp.mn
+)
+
 set(${PROJECT_NAME}_SOURCES
 	channel.mn
 	endpoint.mn
-	scheduler.mn
+	poller.mn
+	socket.mn
 )
 
 add_custom_target(
@@ -55,6 +64,7 @@ SOURCES
 	${${PROJECT_NAME}_ENDPOINTS_SOURCES}
 	${${PROJECT_NAME}_PROTOCOLS_SOURCES}
 	${${PROJECT_NAME}_SERIALIZERS_SOURCES}
+	${${PROJECT_NAME}_SOCKETS_SOURCES}
 )
 
 # Copy source files into build output (optional)
@@ -79,9 +89,13 @@ install(
 )
 install(
 	FILES ${${PROJECT_NAME}_JSONRPC_SOURCES}
-	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/network/protocols/jsonrpc
+	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/network/protocols/json-rpc
 )
 install(
 	FILES ${${PROJECT_NAME}_SERIALIZERS_SOURCES}
 	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/network/serializers
+)
+install(
+	FILES ${${PROJECT_NAME}_SOCKETS_SOURCES}
+	COMPONENT runtime DESTINATION ${MINT_MODULES_INSTALL_DIR}/network/sockets
 )

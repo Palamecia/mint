@@ -260,7 +260,7 @@ package System {
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-system')
+	- @const g_lib = lib('libmint-system')
 
 	/// Internal time zone informations.
 	- final d_ptr = null

@@ -30,12 +30,14 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <fcntl.h>
 #include <filesystem>
 #include <gsl/pointers>
 #include <list>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <system_error>
 
 #ifdef MINT_OS_WINDOWS
 #include "win32/globalsid.h"
@@ -464,14 +466,6 @@ bool FileSystem::is_root(const std::filesystem::path& path) {
 	return path == path.root_path();
 }
 
-bool FileSystem::is_bundle(const std::filesystem::path& path) {
-#ifdef MINT_OS_MAC
-	return /// \todo OSX
-#else
-	return false;
-#endif
-}
-
 bool FileSystem::is_hidden(const std::filesystem::path& path) {
 #ifdef MINT_OS_WINDOWS
 	const std::wstring generic_path = path.generic_wstring();
@@ -501,11 +495,20 @@ std::filesystem::path FileSystem::normalized(const std::filesystem::path& path) 
 }
 
 std::filesystem::file_time_type FileSystem::from_system_time(const std::chrono::system_clock::time_point& time) {
+#ifdef MINT_OS_MAC
+	return std::filesystem::file_time_type::clock::from_sys(time);
+#else
 	return std::chrono::clock_cast<std::filesystem::file_time_type::clock>(time);
+#endif
 }
 
 std::chrono::system_clock::time_point FileSystem::to_system_time(const std::filesystem::file_time_type& time) {
+#ifdef MINT_OS_MAC
+	return std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+	    std::filesystem::file_time_type::clock::to_sys(time));
+#else
 	return std::chrono::clock_cast<std::chrono::system_clock>(time);
+#endif
 }
 
 std::filesystem::file_time_type FileSystem::birth_time(const std::filesystem::path& path) {
@@ -530,8 +533,14 @@ std::filesystem::file_time_type FileSystem::birth_time(const std::filesystem::pa
 	if (stat(generic_path.c_str(), &infos) != 0) {
 		throw std::filesystem::filesystem_error("birth_time", path, last_error_code());
 	}
+#ifdef MINT_OS_MAC
+	return from_system_time(
+	    std::chrono::system_clock::time_point(std::chrono::duration_cast<std::chrono::system_clock::duration>(
+	        std::chrono::seconds(infos.st_ctimespec.tv_sec) + std::chrono::nanoseconds(infos.st_ctimespec.tv_nsec))));
+#else
 	return from_system_time(std::chrono::system_clock::time_point(
 	    std::chrono::seconds(infos.st_ctim.tv_sec) + std::chrono::nanoseconds(infos.st_ctim.tv_nsec)));
+#endif
 #endif
 }
 
@@ -557,8 +566,14 @@ std::filesystem::file_time_type FileSystem::last_read_time(const std::filesystem
 	if (stat(generic_path.c_str(), &infos) != 0) {
 		throw std::filesystem::filesystem_error("last_read_time", path, last_error_code());
 	}
+#ifdef MINT_OS_MAC
+	return from_system_time(
+	    std::chrono::system_clock::time_point(std::chrono::duration_cast<std::chrono::system_clock::duration>(
+	        std::chrono::seconds(infos.st_atimespec.tv_sec) + std::chrono::nanoseconds(infos.st_atimespec.tv_nsec))));
+#else
 	return from_system_time(std::chrono::system_clock::time_point(
 	    std::chrono::seconds(infos.st_atim.tv_sec) + std::chrono::nanoseconds(infos.st_atim.tv_nsec)));
+#endif
 #endif
 }
 
@@ -673,5 +688,66 @@ FILE* mint::open_file(const std::filesystem::path& path, const char* mode) {
 #else
 	const std::string generic_path = path.generic_string();
 	return fopen(generic_path.c_str(), mode);
+#endif
+}
+
+int mint::open_file_descriptor(const std::filesystem::path& path, const char* mode) {
+
+	if (mode == nullptr || *mode == '\0') {
+		throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+	}
+
+	int flags = 0;
+	bool plus = false;
+	bool binary = false;
+
+	switch (*mode) {
+	case 'r':
+		flags = O_RDONLY;
+		break;
+	case 'w':
+		flags = O_WRONLY | O_CREAT | O_TRUNC;
+		break;
+	case 'a':
+		flags = O_WRONLY | O_CREAT | O_APPEND;
+		break;
+	default:
+		throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+	}
+
+	while (*++mode) {
+		switch (*mode) {
+		case '+':
+			plus = true;
+			break;
+		case 'b':
+			binary = true;
+			break;
+		default:
+			throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+		}
+	}
+
+	if (plus) {
+		flags &= ~(O_RDONLY | O_WRONLY);
+		flags |= O_RDWR;
+	}
+
+#ifdef MINT_OS_WINDOWS
+	if (binary) {
+		flags |= O_BINARY;
+	}
+#endif
+
+	return open_file_descriptor(path, flags, 0666);
+}
+
+int mint::open_file_descriptor(const std::filesystem::path& path, int flags, int mode) {
+#ifdef MINT_OS_WINDOWS
+	const std::wstring generic_path = path.generic_wstring();
+	return _wopen(generic_path.c_str(), flags, mode);
+#else
+	const std::string generic_path = path.generic_string();
+	return open(generic_path.c_str(), flags, mode);
 #endif
 }

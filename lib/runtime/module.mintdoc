@@ -1,0 +1,28 @@
+This module provides the coroutine scheduling primitives used to execute
+asynchronous Mint coroutines.
+
+A {Runtime.Scheduler} is used to spawn coroutines and coordinate their execution.
+A spawned coroutine can suspend by providing an {Runtime.Operation}, allowing it
+to wait asynchronously until the operation completes. Once the operation
+completes, the scheduler resumes the suspended coroutine.
+
+Spawning a coroutine produces a {Runtime.Promise} representing its eventual
+completion. The promise can be used to determine whether the coroutine has
+completed and to retrieve its result.
+
+The module provides three core abstractions:
+* {Runtime.Scheduler} schedules and executes coroutines.
+* {Runtime.Operation} represents an asynchronous operation on which a coroutine can suspend.
+* {Runtime.Promise} represents the completion and result of a spawned coroutine.
+
+```mn
+let scheduler = Runtime.Scheduler()
+
+let promise = scheduler.spawn(def [...]() {
+    return await scheduler.suspend(MyOperation())
+})
+
+scheduler.run()
+
+let result = promise.get()
+```

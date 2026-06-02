@@ -176,4 +176,4 @@ load mint.type
     - final handlers = []
 }
 
-@$log = Logger()
+@$ logger = Logger()

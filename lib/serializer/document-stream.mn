@@ -28,11 +28,12 @@
 
 load serializer.text-stream
 load exception.exception
+load mint.string
 
 package Serializer {
 
 /**
- * This class creates a conveniant interface for reading and writing data on a
+ * This class creates a convenient interface for reading and writing data on a
  * text document. It provides informations such as current line and column
  * number.
  */
@@ -130,14 +131,14 @@ package Serializer {
 	 * is detected.
 	 */
 	const def readChar(self) {
-		var c = self.stream.readChar()
-		if c == '\n' {
+		let char = self.stream.readChar()
+		if char == '\n' {
 			self.column = 0
 			self.line++
 		} else {
 			self.column++
 		}
-		return c
+		return char
 	}
 
 	/**
@@ -148,19 +149,17 @@ package Serializer {
 	 * Leading whitespace are skipped.
 	 */
 	const def readWord(self) {
-		var c = self.readChar()
-		while defined c and c =~ /\s/ {
-			c = self.readChar()
-		}
-		if defined c {
-			word = c
-			c = self.readChar()
-			while defined c and c !~ /\s/ {
-				word << c
-				c = self.readChar()
+		let word = ''
+		while true {
+			let char = self.readChar()
+			if char.isSpace() {
+				if not word.isEmpty() {
+					return word
+				}
+			} else {
+				word += char
 			}
 		}
-		return word
 	}
 
 	/**
@@ -191,7 +190,7 @@ package Serializer {
 	const def read(self) {
 		var data = self.stream.read()
 		const length = data.size()
-		for (i = data.indexOf('\n'), defined i, i = data.indexOf('\n', i + 1)) {
+		for (var i = data.indexOf('\n'), defined i, i = data.indexOf('\n', i + 1)) {
 			self.column = 0
 			self.line++
 		}

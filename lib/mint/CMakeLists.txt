@@ -18,6 +18,7 @@ SOURCES
 	operator.mn
 	printer.mn
 	range.mn
+	stacktrace.mn
 	string.mn
 	regex.mn
 	type.mn

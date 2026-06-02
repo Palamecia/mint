@@ -52,11 +52,13 @@
 #include <print>
 #include <ranges>
 #include <regex>
+#include <stdlib.h>
 #include <string>
 #include <tuple>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <vector>
 
 #ifdef MINT_OS_UNIX
 #include <sys/file.h>
@@ -541,7 +543,7 @@ void DapDebugger::on_threads(const DapRequestMessage& request, const JsonObject&
 
 void DapDebugger::on_stack_trace(const DapRequestMessage& request, const JsonObject& arguments, Debugger& debugger) {
 	if (const mint::CursorDebugger* cursor = debugger.find_thread(to_thread_id(*arguments.get_number("threadId")))) {
-		const mint::LineInfoList& call_stack = cursor->cursor().dump();
+		const auto call_stack = std::vector(std::from_range, std::views::reverse(cursor->cursor().dump()));
 		std::size_t i = 0;
 		if (const JsonNumber* start_frame = arguments.get_number("startFrame")) {
 			i = *start_frame;
@@ -850,6 +852,22 @@ void DapDebugger::on_launch(const DapRequestMessage& request, const JsonObject& 
 				if (*stop_on_entry) {
 					debugger.pause_on_next_step();
 				}
+			}
+			if (const JsonArray* environment = arguments.get_array("environment")) {
+				for (const Json& env : *environment) {
+					if (const JsonString* name = env.if_object()->get_string("name")) {
+						if (const JsonString* value = env.if_object()->get_string("value")) {
+#ifdef MINT_OS_WINDOWS
+							_putenv_s(name->data(), value->data());
+#else
+							setenv(name->data(), value->data(), true);
+#endif
+						}
+					}
+				}
+			}
+			if (const JsonString* cwd = arguments.get_string("cwd")) {
+				std::filesystem::current_path(cwd->data());
 			}
 			scheduler.push_waiting_process(std::move(process));
 			send_response(request);

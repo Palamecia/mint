@@ -3,6 +3,7 @@ project(module-exception)
 add_custom_target(
 	mint-module-exception
 SOURCES
+	codec.mn
 	container.mn
 	exception.mn
 	network.mn

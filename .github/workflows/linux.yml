@@ -16,11 +16,19 @@ jobs:
         pushd vcpkg
         ./bootstrap-vcpkg.sh
         popd
+    - name: Install GCC 15
+      run: |
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+        sudo apt-get update
+        sudo apt-get install -y gcc-15 g++-15
     - name: configure
       run: |
         export VCPKG_ROOT=./vcpkg
         export PATH=$VCPKG_ROOT:$PATH
-        cmake --preset=vcpkg -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+        cmake --preset=vcpkg -DCMAKE_BUILD_TYPE=Release
+      env:
+        CC: gcc-15
+        CXX: g++-15
     - name: make
       run: |
         cmake --build build --target all

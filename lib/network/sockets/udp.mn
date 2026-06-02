@@ -1,0 +1,732 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Network.UdpSocket} implementation for UDP/IP
+ * communication and its scheduler-based asynchronous companion.
+ */
+
+load mint.lang
+load network.sockets.ip
+load serializer.data-stream
+
+package Network {
+	/**
+	 * This class provides an end point implementation for communication with a
+	 * peer device using the UDP/IP protocol.
+	 */
+	@class UdpSocket : Network.IpSocket {
+		/**
+		 * Returns a new instance of {Network.AsyncUdpSocket} initialized with the current socket and the `scheduler`
+		 * parameter.
+		 */
+		const def asyncOn(self, scheduler) {
+			return Network.AsyncUdpSocket(self, scheduler)
+		}
+
+		/**
+		 * Attempts to open the socket without connection to the remote device. The socket is open using the `ipVersion`
+		 * version of the IP protocol. Returns `true` if the socket was correctly opened; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def open(self, ipVersion) {
+			let (handle, errno) = Network.UdpSocket.g_lib.call('mint_udp_socket_open', ipVersion)
+			if errno {
+			    self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+			if not defined handle {
+				return false
+			}
+			self.setIpVersion(ipVersion)
+			self.setHandle(handle)
+			self.setState(Network.Socket.State.Open)
+			return true
+		}
+
+		/**
+		 * Tells the socket to listen for incoming messages from `endpoint`. Returns `true` on success; otherwise
+		 * returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def bind(self, endpoint) {
+
+			if not self.isOpen() {
+				if not self.open(endpoint.getIpVersion()) {
+					return false
+				}
+			}
+
+			if errno = Network.UdpSocket.g_lib.call('mint_socket_bind', self.getHandle(), endpoint.to_sockaddr()) {
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+
+			self.setEndpoint(endpoint)
+			self.setState(Network.Socket.State.Bound)
+			return true
+		}
+
+		/**
+		 * Returns an iterator containing the available data received from any
+		 * peer as an instance of {Serializer.DataStream} and an instance of
+		 * {Network.UdpSocket} initialized (but not connected) with the informations
+		 * of that peer. This endpoint can be used to open a dedicated channel
+		 * with that peer. Returns `none` if no data is available.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def readFrom(self) {
+
+			let handle = self.getHandle()
+			if not defined handle {
+				return none
+			}
+
+			let stream = Serializer.DataStream()
+			let (status, address, port, errno) = Network.UdpSocket.g_lib.call('mint_udp_socket_recvfrom', handle, stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				return (stream, Network.IpEndpoint(address, port))
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				return none
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return none
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+		}
+
+		/**
+		 * Sends the data described by the `data` parameter to the peer described by `endpoint`. The `data` parameter
+		 * must be an instance of {Serializer.DataStream}. Returns an iterator containing `true` and the amount of sent
+		 * data in bytes if the data was successfully sent to the peer; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def writeTo(self, endpoint, data) {
+
+			var handle = self.getHandle()
+			if not defined handle {
+				return false
+			}
+
+			var stream = Serializer.DataStream(data)
+			var (status, value) = Network.UdpSocket.g_lib.call('mint_udp_socket_sendto', handle, endpoint.to_sockaddr(), stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				return (true, value)
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				return false
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return false
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(value, self)
+			}
+		}
+
+		/**
+		 * Attempts to make a connection to the device identified by the `endpoint` parameter. Returns `true` if
+		 * connection succeed or if the connection request was successfully sent and is waiting for acknowledgment;
+		 * otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def connect(self, endpoint) {
+
+			if not self.isOpen() {
+				if not self.open(endpoint.getIpVersion()) {
+					return false
+				}
+			}
+
+			let status, errno = Network.UdpSocket.g_lib.call('mint_socket_connect', self.getHandle(), endpoint.to_sockaddr())
+
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				self.setEndpoint(endpoint)
+				self.setState(Network.Socket.State.Connected)
+				return true
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				self.setEndpoint(endpoint)
+				self.setState(Network.Socket.State.Connecting)
+				return true
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return false
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+
+			return false
+		}
+
+		/**
+		 * Returns all available data received from the peer as an instance of
+		 * {Serializer.DataStream} or `none` if no data is available.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def read(self) {
+
+			var handle = self.getHandle()
+			if not defined handle {
+				return none
+			}
+
+			var stream = Serializer.DataStream()
+			var (status, errno) = Network.UdpSocket.g_lib.call('mint_udp_socket_recv', handle, stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				return stream
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				return none
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return none
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+		}
+
+		/**
+		 * Sends the data described by the `data` parameter to the peer. The
+		 * `data` parameter must be an instance of {Serializer.DataStream}.
+		 * Returns an iterator containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def write(self, data) {
+
+			var handle = self.getHandle()
+			if not defined handle {
+				return false
+			}
+
+			var stream = Serializer.DataStream(data)
+			var (status, value) = Network.UdpSocket.g_lib.call('mint_udp_socket_send', handle, stream.to_std_vector_uint8_t())
+
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				return (true, value)
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				return false
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return false
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(value, self)
+			}
+		}
+
+        /// Global library handle.
+		- @const g_lib = lib('libmint-network')
+	}
+	
+	@class AsyncUdpSocket : Network.AsyncIpSocket {
+		/**
+		 * Scheduler operation used to receive data asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.UdpSocket.readFrom}.
+		 *
+		 * The operation asynchronously receives a datagram from the socket. The
+		 * coroutine is suspended until a datagram is received, at which point the
+		 * operation completes with the received data and the sender's address.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		class ReadFromOperation : Runtime.Operation {
+			/**
+			 * Creates a new asynchronous operation to read data from `socket`.
+			 */
+			const def new(self, socket) {
+				self.socket = socket
+				self.buffer = Serializer.DataStream()
+				return self
+			}
+
+			# override const def setup(self, scheduler) {
+				return Network.AsyncUdpSocket.ReadFromOperation.g_lib.call('mint_udp_socket_recvfrom_async', self, self.socket.getHandle(), self.buffer.to_std_vector_uint8_t())
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if data is available. It fails on error.
+			 */
+			override const def check(self, result) {
+				let (status, address, port, errno) = result
+				if errno {
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(errno, self.socket)
+				}
+				self.endpoint = Network.IpEndpoint(address, port)
+				return true
+			}
+
+			/**
+			 * Returns the received data as an instance of {Serializer.DataStream}.
+			 */
+			override const def get(self) {
+				return (self.buffer, self.endpoint)
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-network')
+
+			/// Internal socket.
+			- final socket = null
+
+			/// Internal peer endpoint.
+			- final endpoint = null
+
+			/// Internal read buffer.
+			- final buffer = null
+		}
+
+		/**
+		 * Scheduler operation used to send data asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.AsyncUdpSocket.writeTo}.
+		 *
+		 * The operation asynchronously sends the provided {Serializer.DataStream}
+		 * as a datagram to the specified destination address.
+		 * 
+		 * The coroutine is suspended until the datagram send operation completes.
+		 *
+		 * Returns an iterator containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		class WriteToOperation : Runtime.Operation {
+			/**
+			 * Creates a new asynchronous operation to send the data provided by `buffer` to the peer accessible
+			 * with the IP address descibed by `address` and the UDP port descibed by `port` using `socket`.
+			 */
+			const def new(self, socket, endpoint, buffer) {
+				self.socket = socket
+				self.endpoint = endpoint
+				self.buffer = Serializer.DataStream(buffer)
+				return self
+			}
+
+			# override const def setup(self, scheduler) {
+				let (errno, d_ptr) = Network.AsyncUdpSocket.WriteToOperation.g_lib.call('mint_udp_socket_sendto_async', self, self.socket.getHandle(), self.endpoint.to_sockaddr(), self.buffer.to_std_vector_uint8_t())
+				if errno {
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(errno, self.socket)
+				}
+				self.socket.setState(Network.Socket.State.Connecting)
+				return d_ptr
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if all the data in the buffer is sent.
+			 * It fails on error.
+			 */
+			override const def check(self, result) {
+				let (status, value) = result
+				switch status {
+				case Network.Socket.IOStatus.IOSuccess:
+					self.buffer.remove(value)
+					self.count += value
+					self.status = true
+					return self.buffer.isEmpty()
+
+				case Network.Socket.IOStatus.IOWouldBlock:
+					return false
+
+				case Network.Socket.IOStatus.IOClosed:
+					self.socket.setState(Network.Socket.State.Closed)
+					self.status = false
+					return true
+
+				case Network.Socket.IOStatus.IOError:
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(value, self.socket)
+				}
+				return true
+			}
+
+			/**
+			 * Returns an iterator containing `true` and the amount of sent data in
+			 * bytes if the data was successfully sent to the peer; otherwise returns
+			 * `false`.
+			 */
+			override const def get(self) {
+				return (self.status, self.count)
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-network')
+
+			/// Internal socket.
+			- final socket = null
+
+			/// Internal peer endpoint.
+			- final endpoint = null
+
+			/// Internal write buffer.
+			- final buffer = null
+
+			/// Internal write status.
+			- final status = false
+
+			/// Internal sent byte counter.
+			- final count = 0
+		}
+
+		/**
+		 * Scheduler operation used to receive data asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.AsyncUdpSocket.read}.
+		 *
+		 * The operation asynchronously receives a datagram from the socket. The
+		 * coroutine is suspended until a datagram is received, at which point the
+		 * operation completes with the received data.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		class ReadOperation : Runtime.Operation {
+			/**
+			 * Creates a new asynchronous operation to read data from `socket` until the `completion` predicate
+			 * returns `true`.
+			 * 
+			 * The `completion` parameter is a function that receives the current
+			 * receive buffer and returns `true` when the operation should complete.
+			 */
+			const def new(self, socket) {
+				self.socket = socket
+				self.buffer = Serializer.DataStream()
+				return self
+			}
+
+			# override const def setup(self, scheduler) {
+				return Network.AsyncUdpSocket.ReadOperation.g_lib.call('mint_udp_socket_recv_async', self, self.socket.getHandle(), self.buffer.to_std_vector_uint8_t())
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if data is available and the completion
+			 * predicate returns `true` for the current read buffer. It fails on error.
+			 */
+			override const def check(self, result) {
+				let (status, errno) = result
+				switch status {
+				case Network.Socket.IOStatus.IOSuccess:
+					return true
+				case Network.Socket.IOStatus.IOClosed:
+					self.socket.setState(Network.Socket.State.Closed)
+					return true
+				case Network.Socket.IOStatus.IOError:
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(errno, self.socket)
+				}
+				return true
+			}
+
+			/**
+			 * Returns the received data as an instance of {Serializer.DataStream}.
+			 */
+			override const def get(self) {
+				return self.buffer
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-network')
+
+			/// Internal socket.
+			- final socket = null
+
+			/// Internal combination condition.
+			- final completion = null
+
+			/// Internal read buffer.
+			- final buffer = null
+		}
+
+		/**
+		 * Scheduler operation used to send data asynchronously.
+		 *
+		 * Instances of this operation are created by {Network.AsyncUdpSocket.write}.
+		 *
+		 * The operation asynchronously sends the provided {Serializer.DataStream}
+		 * as a datagram using the socket.
+		 * 
+		 * The coroutine is suspended until the datagram send operation completes.
+		 *
+		 * Returns an iterator containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		class WriteOperation : Runtime.Operation {
+			/**
+			 * Creates a new asynchronous operation to send the data provided by `buffer` to `socket`.
+			 */
+			const def new(self, socket, buffer) {
+				self.socket = socket
+				self.buffer = Serializer.DataStream(buffer)
+				return self
+			}
+
+			# override const def setup(self, scheduler) {
+				return Network.AsyncUdpSocket.WriteOperation.g_lib.call('mint_udp_socket_send_async', self, self.socket.getHandle(), self.buffer.to_std_vector_uint8_t())
+			}
+
+			/**
+			 * Checks for the operation completion. The operation succeed if all the data in the buffer is sent.
+			 * It fails on error.
+			 */
+			override const def check(self, result) {
+				let (status, value) = result
+				switch status {
+				case Network.Socket.IOStatus.IOSuccess:
+					self.count += value
+					self.status = true
+					return self.count == self.buffer.size()
+
+				case Network.Socket.IOStatus.IOWouldBlock:
+					return false
+
+				case Network.Socket.IOStatus.IOClosed:
+					self.socket.setState(Network.Socket.State.Closed)
+					self.status = false
+					return true
+
+				case Network.Socket.IOStatus.IOError:
+					self.socket.setState(Network.Socket.State.Error)
+					raise Exception.SocketError(value, self.socket)
+				}
+				return true
+			}
+
+			/**
+			 * Returns an iterator containing `true` and the amount of sent data in bytes if the data was successfully
+			 * sent to the peer; otherwise returns `false`.
+			 */
+			override const def get(self) {
+				return (self.status, self.count)
+			}
+
+			/// Global library handle.
+			- @const g_lib = lib('libmint-network')
+
+			/// Internal socket.
+			- final socket = null
+
+			/// Internal write buffer.
+			- final buffer = null
+
+			/// Internal write status.
+			- final status = false
+
+			/// Internal sent byte counter.
+			- final count = 0
+		}
+
+		/**
+		 * Attempts to open the socket without connection to the remote device. The socket is open using the `ipVersion`
+		 * version of the IP protocol. Returns `true` if the socket was correctly opened; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def open(self, ipVersion) {
+			let (handle, errno) = Network.AsyncUdpSocket.g_lib.call('mint_udp_socket_open', ipVersion)
+			if errno {
+			    self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+			if not defined handle {
+				return false
+			}
+			self.setIpVersion(ipVersion)
+			self.setHandle(handle)
+			self.getScheduler().watch(self)
+			self.setState(Network.Socket.State.Open)
+			return true
+		}
+
+		/**
+		 * Tells the socket to listen for incoming messages from `endpoint`. Returns `true` on success; otherwise
+		 * returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def bind(self, endpoint) {
+
+			if not self.isOpen() {
+				if not self.open(endpoint.getIpVersion()) {
+					return false
+				}
+			}
+
+			if errno = Network.AsyncUdpSocket.g_lib.call('mint_socket_bind', self.getHandle(), endpoint.to_sockaddr()) {
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+
+			self.setEndpoint(endpoint)
+			self.setState(Network.Socket.State.Bound)
+			return true
+		}
+
+		/**
+		 * Asynchronously receives a data from any peer.
+		 *
+		 * The operation suspends the current coroutine until new data becomes
+		 * available.
+		 * 
+		 * Returns the received data as an instance of {Serializer.DataStream} and
+		 * an instance of {Network.UdpSocket} initialized (but not connected) with the
+		 * informations of that peer. This endpoint can be used to open a dedicated
+		 * channel with that peer.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const async def readFrom(self) {
+			if not self.isOpen() {
+				return none
+			}
+			return await self.getScheduler().suspend(Network.AsyncUdpSocket.ReadFromOperation(self))
+		}
+
+		/**
+		 * Asynchronously sends the data described by the `data` parameter to the peer described by `endpoint`.
+		 *
+		 * The `data` parameter must be an instance of {Serializer.DataStream}.
+		 *
+		 * The operation suspends the current coroutine until all bytes have been
+		 * written or an error occurs. Partial writes may occur internally and
+		 * the operation will continue sending the remaining data until the buffer
+		 * is empty.
+		 *
+		 * Returns an iterator containing `true` and the amount of sent data in
+		 * bytes if the data was successfully sent to the peer; otherwise returns
+		 * `false`.
+		 *
+		 * The endpoint must be in the {Network.Socket.State.Bound} state.
+		 *
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const async def writeTo(self, endpoint, data) {
+			return await self.getScheduler().suspend(Network.AsyncUdpSocket.WriteToOperation(self, endpoint, data))
+		}
+
+		/**
+		 * Attempts to make a connection to the device identified by the `endpoint` parameter. Returns `true` if
+		 * connection succeed or if the connection request was successfully sent and is waiting for acknowledgment;
+		 * otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const def connect(self, endpoint) {
+
+			if not self.isOpen() {
+				if not self.open(endpoint.getIpVersion()) {
+					return false
+				}
+			}
+
+			let (status, errno) = Network.AsyncUdpSocket.g_lib.call('mint_socket_connect', self.getHandle(), endpoint.to_sockaddr())
+
+			switch status {
+			case Network.Socket.IOStatus.IOSuccess:
+				self.setEndpoint(endpoint)
+				self.setState(Network.Socket.State.Connected)
+				return true
+
+			case Network.Socket.IOStatus.IOWouldBlock:
+				self.setEndpoint(endpoint)
+				self.setState(Network.Socket.State.Connecting)
+				return true
+
+			case Network.Socket.IOStatus.IOClosed:
+				self.setState(Network.Socket.State.Closed)
+				return false
+
+			case Network.Socket.IOStatus.IOError:
+				self.setState(Network.Socket.State.Error)
+				raise Exception.SocketError(errno, self)
+			}
+
+			return false
+		}
+
+		/**
+		 * Returns all available data received from the peer as an instance of {Serializer.DataStream} or `none` if no
+		 * data is available.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const async def read(self) {
+			if not self.isOpen() {
+				return none
+			}
+			return await self.getScheduler().suspend(Network.AsyncUdpSocket.ReadOperation(self))
+		}
+
+		/**
+		 * Sends the data described by the `data` parameter to the peer. The `data` parameter must be an instance of
+		 * {Serializer.DataStream}. Returns an iterator containing `true` and the amount of sent data in bytes if the
+		 * data was successfully sent to the peer; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SocketError} is raised on error.
+		 */
+		const async def write(self, data) {
+			return await self.getScheduler().suspend(Network.AsyncUdpSocket.WriteOperation(self, data))
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-network')
+	}
+}

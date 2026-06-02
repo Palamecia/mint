@@ -1,0 +1,26 @@
+load test.case
+load serializer.data-stream
+load serializer.string-stream
+
+@class TestStringStream : Test.Case {
+	const def testReadSome(self) {
+		var s = Serializer.StringStream('test')
+		self.expectEqual(Serializer.DataStream.fromUtf8Bytes('t', 1).getString(0), s.readSome(1).getString(0))
+		self.expectEqual(Serializer.DataStream.fromUtf8Bytes('es', 2).getString(0), s.readSome(2).getString(0))
+		self.expectEqual(Serializer.DataStream.fromUtf8Bytes('t', 1).getString(0), s.readSome(1).getString(0))
+		self.expectNotDefined(s.readSome(1))
+	}
+
+	const def testRead(self) {
+		var s = Serializer.StringStream('test')
+		self.expectEqual(Serializer.DataStream.fromUtf8Bytes('test', 4).getString(0), s.read().getString(0))
+		self.expectNotDefined(s.read())
+	}
+
+	const def testWrite(self) {
+		let str = 'foo\n'
+		let s = Serializer.StringStream(str)
+		s.write(Serializer.DataStream.fromUtf8Bytes('bar', 3))
+		self.expectEqual('foo\nbar', str)
+	}
+}

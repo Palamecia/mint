@@ -1,0 +1,135 @@
+load test.case
+load system.file
+load network.channel
+load network.endpoints.local
+load network.sockets.local
+
+@class NetworkLocalSocketTest : Test.Case {
+	const def testMessage(self) {
+
+        let endpoint = Network.LocalEndpoint('test-1')
+
+        try {
+            if let path = endpoint.getPath() {
+                System.File(path).remove()
+            }
+        }
+
+        let server = Network.Channel(Network.LocalSocket(), Network.ServerSerializer)
+        self.expectEqual(true, server.listen(endpoint))
+
+        let client = Network.Channel(Network.LocalSocket())
+        self.expectEqual(true, client.connect(endpoint))
+
+        let remoteClient = Network.Channel(server.read())
+        remoteClient.write('ok')
+        let result = client.read()
+
+        remoteClient.close()
+        server.close()
+        client.close()
+
+        self.expectEqual('ok', result)
+    }
+
+    const def testMessageEvent(self) {
+
+        let result = 'ko'
+        let poller = Network.Poller()
+        let endpoint = Network.LocalEndpoint('test-2')
+
+        try {
+            if let path = endpoint.getPath() {
+                System.File(path).remove()
+            } else {
+                // If the path is not available, this is as named pipe: we cannot proceed with the test.
+                return none
+            }
+        }
+
+        let server = Network.EventChannel(Network.LocalSocket(), Network.ServerSerializer)
+        server.onMessage = def [result, poller] (self, channel) {
+            let client = Network.EventChannel(channel.read())
+            client.onMessage = def [result, poller] (self, channel) {
+                result = channel.read()
+                channel.close()
+                poller.unwatch(channel)
+            }
+            poller.watch(client)
+            channel.close()
+            poller.unwatch(channel)
+        }
+
+        let client = Network.EventChannel(Network.LocalSocket())
+        client.onOpen = def (self, client) {
+            client.write('ok')
+        }
+        client.onClose = def [...] (self, client) {
+            poller.unwatch(client)
+        }
+
+        self.expectEqual(true, poller.watch(server))
+        self.expectEqual(true, server.listen(endpoint))
+
+        self.expectEqual(true, poller.watch(client))
+        self.expectEqual(true, client.connect(endpoint))
+
+        poller.run()
+        self.expectEqual('ok', result)
+    }
+
+	const def testMessageAsync(self) {
+
+        let scheduler = Runtime.Scheduler()
+        let endpoint = Network.LocalEndpoint('test-3')
+
+        try {
+            if let path = endpoint.getPath() {
+                System.File(path).remove()
+            }
+        }
+
+        async def [...] serverMain() {
+            let server = Network.AsyncChannel(Network.LocalSocket().asyncOn(scheduler), Network.AsyncServerSerializer)
+            self.expectEqual(true, server.listen(endpoint))
+            let client = await server.read()
+            await client.write('ok')
+        }
+
+        async def [...] clientMain() {
+            let client = Network.AsyncChannel(Network.LocalSocket().asyncOn(scheduler))
+            self.expectEqual(true, await client.connect(endpoint))
+            return await client.read()
+        }
+
+        scheduler.spawn(serverMain())
+
+        let promise = scheduler.spawn(clientMain())
+        scheduler.run()
+
+        self.expectEqual('ok', promise.get())
+    }
+
+    const def testStateAndEndpoint(self) {
+
+        let endpoint = Network.LocalEndpoint('test-4')
+
+        try {
+            if let path = endpoint.getPath() {
+                System.File(path).remove()
+            }
+        }
+
+        let server = Network.Channel(Network.LocalSocket(), Network.ServerSerializer)
+
+        self.expectEqual(Network.Socket.State.Unknown, server.getState())
+        self.expectEqual(true, server.listen(endpoint))
+        self.expectEqual(Network.Socket.State.Listening, server.getState())
+        self.expectDefined(server.getSocket().getEndpoint())
+        self.expectEqual(true, server.setNonBlocking(true))
+        self.expectEqual(true, server.isNonBlocking())
+        self.expectEqual(true, server.setNonBlocking(false))
+        self.expectEqual(false, server.isNonBlocking())
+        server.close()
+    }
+}

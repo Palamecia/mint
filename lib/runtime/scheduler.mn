@@ -1,0 +1,205 @@
+/**
+ * @license
+ * Copyright (c) 2026 Gauvain CHERY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ *
+ * @module
+ * This module provides the {Runtime.Scheduler} class which coordinates
+ * asynchronous I/O operations, suspended coroutines, and readiness-driven
+ * resumption.
+ */
+
+load runtime.promise
+
+package Runtime {
+	/**
+	 * This class manages synchronization between the asynchronous devices.
+	 */
+	@class Scheduler {
+		/**
+		 * Creates a new scheduler for asynchronous operations.
+		 */
+		const def new(self) {
+			self.d_ptr = self.g_lib.call('mint_scheduler_new')
+			self.d_ptr.delete = def [g_lib = Runtime.Scheduler.g_lib] (self) {
+				g_lib.call('mint_scheduler_delete', self)
+			}
+			return self
+		}
+
+		/**
+		 * Schedules a `coroutine` for execution. Returns an instance of {Runtime.Promise} associated to
+		 * the `coroutine` object.
+		 * 
+		 * The coroutine is added to the scheduler's ready queue and will be
+		 * executed during the next iteration of the event loop.
+		 *
+		 * Coroutines spawned using this method run concurrently with other
+		 * scheduled coroutines.
+		 *
+		 * The scheduler does not guarantee execution order beyond fairness
+		 * between ready coroutines.
+		 */
+		const def spawn(self, coroutine) {
+			let promise = Runtime.Promise(self, coroutine)
+			self.waiting.push(promise)
+			return promise
+		}
+
+		/**
+		 * Removes a completed promise from the running set.
+		 */
+		const def complete(self, promise) {
+			self.running.remove(self.running.indexOf(promise))
+		}
+
+		/**
+		 * Adds an `object` to the scheduler. The object must provides the `getHandle` method.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def watch(self, object) {
+			if let errno = Runtime.Scheduler.g_lib.call('mint_scheduler_watch', self.d_ptr, object.getHandle()) {
+				raise Exception.SystemError(errno, object)
+			}
+		}
+
+		/**
+		 * Suspends the current coroutine and registers an asynchronous `operation`. The operation must implement the
+		 * {Runtime.Operation} interface.
+		 *
+		 * When invoked:
+		 *
+		 *  1. The current coroutine is suspended
+		 *  2. The operation is registered with the scheduler
+		 *  3. The scheduler continues executing other coroutines
+		 *
+		 * The operation is responsible for indicating when it is ready to resume. Once the required condition is met
+		 * (for example, a socket becomes readable), the scheduler resumes the suspended coroutine.
+		 *
+		 * The result of the operation is returned to the coroutine when it resumes.
+		 *
+		 * This mechanism allows asynchronous operations to be written in a sequential style using `await`.
+		 * 
+		 * An instance of {Exception.InvalidOperation} is raised on error.
+		 */
+		const async def suspend(self, operation) {
+
+			let coroutine = Runtime.Scheduler.g_lib.call('mint_scheduler_current_coroutine')
+			if not defined coroutine {
+				raise Exception.InvalidOperation('suspend must be called inside a coroutine', self)
+			}
+
+			operation.start(self, coroutine)
+
+			if Runtime.Scheduler.g_lib.call('mint_scheduler_submit', self.d_ptr, operation.to_async_operation()) {
+				self.operations.push(operation)
+				Runtime.Scheduler.g_lib.call('mint_scheduler_suspend', coroutine)
+			} else {
+				operation.check(operation.getLastResult())
+			}
+			return operation.get()
+		}
+
+		/**
+		 * Waits for I/O events on the running operation. The `timeout` parameter specifies the maximum amount of time
+		 * (in milliseconds) to wait for an event. If `timeout` is not specified, a default value of 500 milliseconds is
+		 * used. If an operation is completed, it will resume its coroutine.
+		 */
+		const def poll(self, timeout = 500) {
+			if let completion = self.g_lib.call('mint_scheduler_poll', self.d_ptr, timeout) {
+				let (operation, result) = completion
+				let coroutine = operation.getCoroutine()
+				try {
+					while true {
+						if operation.check(result) {
+							self.operations.remove(self.operations.indexOf(operation))
+							return Runtime.Scheduler.g_lib.call('mint_scheduler_resume', coroutine)
+						} elif Runtime.Scheduler.g_lib.call('mint_scheduler_submit', self.d_ptr, operation.to_async_operation()) {
+							return none
+						} else {
+							result = operation.getLastResult()
+						}
+					}
+				} catch error {
+					self.operations.remove(self.operations.indexOf(operation))
+					return Runtime.Scheduler.g_lib.call('mint_scheduler_raise', coroutine, error)
+				}
+			}
+		}
+
+		/**
+		 * Runs the synchronization loop synchronously. This loop calls {@see poll} until all coroutines added
+		 * with {Runtime.Scheduler.spawn} is completed. The `timeout` parameter is forwarded to the
+		 * {Runtime.Scheduler.poll} method.
+		 */
+		const def run(self, timeout = 500) {
+			while not self.operations.isEmpty() or not self.waiting.isEmpty() {
+				if not self.waiting.isEmpty() {
+					let promise = self.waiting.shift()
+					self.running.push(promise)
+					Runtime.Scheduler.g_lib.call('mint_scheduler_spawn', promise.start())
+				} elif not self.operations.isEmpty() {
+					self.poll(timeout)
+				}
+			}
+		}
+
+		/**
+		 * Runs the synchronization loop synchronously. This loop calls {@see poll} until a coroutine added with
+		 * {Runtime.Scheduler.spawn} is completed. The `timeout` parameter is forwarded to the
+		 * {Runtime.Scheduler.poll} method.
+		 */
+		const def runOne(self, timeout = 500) {
+			if not self.waiting.isEmpty() {
+				let promise = self.waiting.shift()
+				self.running.push(promise)
+				Runtime.Scheduler.g_lib.call('mint_scheduler_spawn', promise.start())
+			} 
+			while not self.operations.isEmpty() {
+				self.poll(timeout)
+			}
+		}
+
+		/**
+		 * Returns the pointer to the internal `mint::AsyncRuntime` instance.
+		 */
+		final const def to_async_runtime(self) {
+			return self.d_ptr
+		}
+
+		/// Global library handle.
+		- @const g_lib = lib('libmint-runtime')
+
+		/// Internal scheduler context pointer.
+		- final d_ptr = null
+
+		/// Internal list of waiting coroutines.
+		- final waiting = []
+
+		/// Internal list of running promises.
+		- final running = []
+
+		/// Internal list of waiting operations.
+		- final operations = []
+	}
+
+}

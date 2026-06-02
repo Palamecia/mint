@@ -1,0 +1,267 @@
+load test.case
+load network.channel
+load network.endpoints.ip
+load network.protocols.json-rpc.client
+load network.protocols.json-rpc.message
+load network.protocols.json-rpc.server
+
+@class NetworkJsonRpcTest : Test.Case {
+	const def testJsonRpcMessageEvent(self) {
+
+		let result = 'ko'
+		let poller = Network.Poller()
+		let endpoint = Network.IpEndpoint('127.0.0.1', 7361)
+
+		let socket = Network.TcpSocket()
+		let server = Network.JsonRpc.Server(socket)
+		server.onAccept = def [poller] (self, handler) {
+			handler.onMessage = def [poller] (self, handler) {
+				if let message = handler.read() {
+					let body = message.getBody()
+					let value = body.get('params').get('value')
+					handler.write(Network.JsonRpc.Message({
+						'jsonrpc': '2.0',
+						'id': body.get('id'),
+						'result': value
+					}))
+				}
+			}
+			handler.onOpen = def [poller] (self, handler) {
+				poller.watch(handler)
+			}
+			handler.onClose = def [poller] (self, handler) {
+				poller.unwatch(handler)
+			}
+            poller.watch(handler)
+			self.close()
+			poller.unwatch(self)
+		}
+
+		let client = Network.JsonRpc.Client(Network.TcpSocket())
+		client.onOpen = def [poller] (self, client) {
+			client.write(Network.JsonRpc.Message({
+				'jsonrpc': '2.0',
+				'id': 1,
+				'method': 'ping',
+				'params': {'value': 'ok'}
+			}))
+		}
+		client.onMessage = def [result, poller] (self, client) {
+			if let message = client.read() {
+				result = message.getBody().get('result')
+				client.close()
+			}
+		}
+		client.onClose = def [poller] (self, client) {
+			poller.unwatch(client)
+		}
+
+		self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+		socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+		self.expectEqual(true, poller.watch(server))
+		self.expectEqual(true, server.listen(endpoint))
+
+		self.expectEqual(true, poller.watch(client))
+		self.expectEqual(true, client.connect(endpoint))
+
+		poller.run()
+		self.expectEqual('ok', result)
+	}
+
+	const def testJsonRpcMessageAsync(self) {
+
+		let scheduler = Runtime.Scheduler()
+		let endpoint = Network.IpEndpoint('127.0.0.1', 7362)
+
+		async def [...] serverMain() {
+			let socket = Network.TcpSocket().asyncOn(scheduler)
+			let server = Network.JsonRpc.AsyncServer(socket)
+			self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+			socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+			self.expectEqual(true, server.listen(endpoint))
+			let handler = await server.accept()
+			let message = await handler.read()
+			let body = message.getBody()
+			let value = body.get('params').get('value')
+			await handler.write(Network.JsonRpc.Message({
+				'jsonrpc': '2.0',
+				'id': body.get('id'),
+				'result': value
+			}))
+			await handler.close()
+			server.close()
+			return body.get('params').get('value')
+		}
+
+		async def [...] clientMain() {
+			let client = Network.JsonRpc.AsyncClient(Network.TcpSocket().asyncOn(scheduler))
+			self.expectEqual(true, await client.connect(endpoint))
+			await client.write(Network.JsonRpc.Message({
+				'jsonrpc': '2.0',
+				'id': 1,
+				'method': 'ping',
+				'params': {'value': 'ok'}
+			}))
+			let message = await client.read()
+			let result = message.getBody().get('result')
+			client.close()
+            return result
+		}
+
+		scheduler.spawn(serverMain())
+		let promise = scheduler.spawn(clientMain())
+		scheduler.run()
+
+		self.expectEqual('ok', promise.get())
+	}
+
+	const def testJsonRpcMessageProtocolCompliance(self) {
+
+		let message = Network.JsonRpc.Message({
+			'jsonrpc': '2.0',
+			'id': 1,
+			'method': 'ping',
+			'params': {'value': 'ok'}
+		})
+		message.setHeader('Content-Type', 'application/json')
+
+		let encoded = message.encode()
+		let decoded = Network.JsonRpc.Message.decode(encoded, encoded.size())
+
+		self.expectDefined(decoded)
+		self.expectEqual('2.0', decoded.getBody().get('jsonrpc'))
+		self.expectEqual('ping', decoded.getBody().get('method'))
+		self.expectEqual(1, decoded.getBody().get('id'))
+		self.expectEqual('ok', decoded.getBody().get('params').get('value'))
+		self.expectEqual('application/json', decoded.getHeader('Content-Type'))
+		self.expectDefined(decoded.getHeader('Content-Length'))
+
+		let fromString = Network.JsonRpc.Message.fromString('{"jsonrpc":"2.0","id":2,"method":"pong","params":{"value":"done"}}', {'Content-Type': 'application/json'})
+		self.expectDefined(fromString)
+		self.expectEqual('pong', fromString.getBody().get('method'))
+		self.expectEqual('done', fromString.getBody().get('params').get('value'))
+	}
+
+	const def testJsonRpcClientServerExchange(self) {
+
+		let clientReceived = 'ko'
+		let poller = Network.Poller()
+		let endpoint = Network.IpEndpoint('127.0.0.1', 7365)
+
+		class TestJsonRpcHandler : Network.JsonRpc.RequestHandler {
+
+			@var serverReceived = 'ko'
+            @var poller = null
+
+			const def rpc_ping(self, params) {
+				TestJsonRpcHandler.serverReceived = params.get('value')
+                TestJsonRpcHandler.poller.unwatch(handler)
+				return TestJsonRpcHandler.serverReceived + '!'
+			}
+		}
+
+		let socket = Network.TcpSocket()
+		self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+		socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+		let server = Network.JsonRpc.Server(socket, TestJsonRpcHandler).watchedBy(poller)
+
+		let client = Network.JsonRpc.Client(Network.TcpSocket()).watchedBy(poller)
+		client.onOpen = def [poller] (self, client) {
+			client.write(Network.JsonRpc.Message({
+				'jsonrpc': '2.0',
+				'id': 1,
+				'method': 'ping',
+				'params': {'value': 'ok'}
+			}))
+		}
+		client.onMessage = def [clientReceived, poller] (self, client) {
+			if let message = client.read() {
+				clientReceived = message.getBody().get('result')
+				poller.unwatch(client)
+				client.close()
+			}
+		}
+
+        TestJsonRpcHandler.poller = poller
+
+		self.expectEqual(true, server.listen(endpoint))
+		self.expectEqual(true, client.connect(endpoint))
+
+		while clientReceived === 'ko' {
+			poller.poll()
+		}
+
+		server.close()
+
+		self.expectEqual('ok', TestJsonRpcHandler.serverReceived)
+		self.expectEqual('ok!', clientReceived)
+	}
+
+	const def testJsonRpcClientServerExchangeAsync(self) {
+
+		let scheduler = Runtime.Scheduler()
+		let endpoint = Network.IpEndpoint('127.0.0.1', 7366)
+
+		async def [...] serverMain() {
+			let socket = Network.TcpSocket().asyncOn(scheduler)
+			self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+			socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
+
+			let server = Network.JsonRpc.AsyncServer(socket)
+			self.expectEqual(true, server.listen(endpoint))
+
+			let handler = await server.accept()
+			let message = await handler.read()
+			let body = message.getBody()
+			let value = body.get('params').get('value')
+			await handler.write(Network.JsonRpc.Message({
+				'jsonrpc': '2.0',
+				'id': body.get('id'),
+				'result': value + '!'
+			}))
+			await handler.close()
+			server.close()
+			return value
+		}
+
+		async def [...] clientMain() {
+			let client = Network.JsonRpc.AsyncClient(Network.TcpSocket().asyncOn(scheduler))
+			self.expectEqual(true, await client.connect(endpoint))
+			await client.write(Network.JsonRpc.Message({
+				'jsonrpc': '2.0',
+				'id': 1,
+				'method': 'ping',
+				'params': {'value': 'ok'}
+			}))
+			let response = await client.read()
+			client.close()
+			return response.getBody().get('result')
+		}
+
+		let serverPromise = scheduler.spawn(serverMain())
+		let promise = scheduler.spawn(clientMain())
+		scheduler.run()
+
+		self.expectEqual('ok', serverPromise.get())
+		self.expectEqual('ok!', promise.get())
+	}
+
+	const def testJsonRpcServerConfigurationAndMode(self) {
+
+		let socket = Network.TcpSocket()
+		let server = Network.JsonRpc.Server(socket)
+		let poller = Network.Poller()
+		let configuration = server.getConfiguration()
+
+		configuration.attributes['mode'] = 'unit'
+		server.setConfiguration(configuration)
+
+		self.expectEqual('unit', server.getConfiguration().attributes['mode'])
+		let watched = server.watchedBy(poller)
+		self.expectDefined(watched)
+		self.expectEqual(true, server.setNonBlocking(true))
+		self.expectEqual(true, server.isNonBlocking())
+		self.expectEqual(true, server.setNonBlocking(false))
+		self.expectEqual(false, server.isNonBlocking())
+	}
+}

@@ -163,7 +163,11 @@ public:
 
 template<std::derived_from<Data> Type>
 Type& Reference::data() const {
+#ifdef MINT_BUILD_TYPE_DEBUG
+	return dynamic_cast<Type&>(*_info->data());
+#else
 	return *static_cast<Type*>(_info->data());
+#endif
 }
 
 Reference::Flags Reference::flags() const {

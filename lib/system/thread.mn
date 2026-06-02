@@ -44,10 +44,10 @@ package System {
 		/**
 		 * This enum describe the behavior of the mutex.
 		 */
-		enum Type {
+		enum Kind {
 			/**
 			 * Normal mutex must be unlocked before an other lock is performed.
-			 * If the thread try to relock an already locked normal mutex, the
+			 * If the thread try to re-lock an already locked normal mutex, the
 			 * mutex will deadlock.
 			 */
 			Normal
@@ -60,11 +60,11 @@ package System {
 		}
 
 		/**
-		 * Creates a new mutex. The `type` parameter describe the behavior of
-		 * the mutex an must be an instance of {System.Mutex.Type}.
+		 * Creates a new mutex. The `kind` parameter describe the behavior of
+		 * the mutex an must be an instance of {System.Mutex.Kind}.
 		 */
-		const def new(self, type = System.Mutex.Type.Normal) {
-			self.d_ptr = System.Mutex.g_lib.call('mint_mutex_create', type)
+		const def new(self, kind = System.Mutex.Kind.Normal) {
+			self.d_ptr = System.Mutex.g_lib.call('mint_mutex_create', kind)
 			self.d_ptr.delete = def [g_lib = System.Mutex.g_lib] (self) {
 				g_lib.call('mint_mutex_delete', self)
 			}
@@ -75,7 +75,7 @@ package System {
 		 * Locks the mutex. If another thread has locked the mutex then this
 		 * call will block until that thread has unlocked it.
 		 * 
-		 * If the mutex use the {System.Mutex.Type.Recursive} behavior, this
+		 * If the mutex use the {System.Mutex.Kind.Recursive} behavior, this
 		 * method can be called multiple times in the same thread; otherwise
 		 * multiple calls will cause a dead-lock.
 		 */
@@ -101,14 +101,14 @@ package System {
 		}
 
 		/**
-		 * Returns the behavior of this mutex.
+		 * Returns the behavior of this mutex as a value from {System.Mutex.Kind}.
 		 */
-		const def getType(const self) {
-			return System.Mutex.g_lib.call('mint_mutex_get_type', self.d_ptr)
+		const def getKind(const self) {
+			return System.Mutex.g_lib.call('mint_mutex_get_kind', self.d_ptr)
 		}
 
 		/// Global library handle.
-		- @g_lib = lib('libmint-system')
+		- @const g_lib = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null
@@ -235,7 +235,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @g_lib = lib('libmint-system')
+		- @const g_lib = lib('libmint-system')
 
 		/// Internal thread id.
 		- final id = none
@@ -390,7 +390,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @g_lib = lib('libmint-system')
+		- @const g_lib = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null

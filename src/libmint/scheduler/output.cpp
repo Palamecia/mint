@@ -25,6 +25,7 @@
 #include "mint/ast/abstract_syntax_tree.h"
 #include "mint/ast/module.h"
 #include "mint/debug/debug_info.h"
+#include "mint/debug/debug_tools.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
@@ -65,8 +66,9 @@ std::string reference_value(const AbstractSyntaxTree& ast, const Reference& refe
 		        [&ast](const auto& item) {
 			        const auto& module = item.second.handle().module;
 			        const auto* debug_info = ast.find_debug_info(module);
-			        return std::format("{}@{}(line {})", std::to_string(item.first), ast.get_module_name(module),
-			            std::to_string(debug_info->line_number(item.second.handle().offset)));
+			        const auto module_name = ast.get_module_name(module);
+			        return std::format("{}@{}({}:{})", std::to_string(item.first), module_name,
+			            to_system_path(module_name).string(), debug_info->line_number(item.second.handle().offset));
 		        })
 		        | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 	case Data::Format::coroutine:

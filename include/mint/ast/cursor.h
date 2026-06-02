@@ -135,6 +135,14 @@ public:
 		void mark();
 	};
 
+	struct Exception {
+		Reference object;
+		LineInfoList stacktrace;
+		std::unique_ptr<Exception> cause;
+		std::size_t depth = 0;
+		bool caught = false;
+	};
+
 	Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent = nullptr);
 	Cursor(AbstractSyntaxTree& ast, Cursor* parent = nullptr);
 	Cursor(const Cursor& other) = delete;
@@ -185,7 +193,11 @@ public:
 
 	void set_retrieve_point(std::size_t offset);
 	void unset_retrieve_point();
-	void raise(Reference&& exception);
+
+	[[nodiscard]] std::unique_ptr<Exception> take_exception();
+	[[nodiscard]] Exception* get_exception() const;
+	void raise(Reference&& exception, std::unique_ptr<Exception>&& cause = {});
+	void reset_exception();
 
 	void resume();
 	void retrieve();

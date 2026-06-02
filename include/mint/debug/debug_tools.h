@@ -24,8 +24,10 @@
 #ifndef MINT_DEBUG_DEBUG_TOOLS_H
 #define MINT_DEBUG_DEBUG_TOOLS_H
 
+#include "mint/ast/abstract_syntax_tree.h"
 #include "mint/ast/node.h"
 #include "mint/config.h"
+#include "mint/debug/debug_info.h"
 #include "mint/memory/reference.h"
 #include <cstddef>
 #include <filesystem>
@@ -54,6 +56,8 @@ MINT_EXPORT std::string to_module_path(const std::filesystem::path& file_path);
 
 MINT_EXPORT std::ifstream get_module_stream(const std::string& module);
 MINT_EXPORT std::string get_module_line(const std::string& module, std::size_t line);
+
+MINT_EXPORT const FunctionInfo* find_function_info(const AbstractSyntaxTree& ast, const Function& function);
 
 MINT_EXPORT Node::Command dump_command(Cursor& cursor, std::ostream& stream);
 

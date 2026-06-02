@@ -54,7 +54,7 @@ load mint.type
 	/**
 	 * Returns the captured text at position `index`. The text returned for
 	 * position `0` is the entire matched string. Each subsequent indexes
-	 * returns a string that matched a (capturing) subexpression of the regexp.
+	 * returns a string that matched a (capturing) subexpressions of the regexp.
 	 * 
 	 * ```mn
 	 * re = /Looking for (\S+) (and (\S+))/

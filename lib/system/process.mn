@@ -26,9 +26,9 @@
  */
 
 load mint.type
-load event.pipe
 load system.directory
 load exception.system
+load network.sockets.stdio
 
 package System {
 
@@ -223,7 +223,7 @@ package System {
 				var handleset = []
 				self.pipes = []
 				for i in 0...3 {
-					let pipe = Event.SystemPipe(i, i)
+					let pipe = Network.StdioSocket.fromDescriptors(i, i)
 					self.pipes << pipe
 					handleset << [pipe.getReadHandle(), pipe.getWriteHandle()]
 				}
@@ -334,7 +334,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @g_lib = lib('libmint-system')
+		- @const g_lib = lib('libmint-system')
 
 		/// Global instance of current process.
 		- @g_current = none

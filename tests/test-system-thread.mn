@@ -4,9 +4,9 @@ load mint.coroutine
 
 @class ThreadTest : Test.Case {
 	const def testMutexType(self) {
-		self.expectIsSame(System.Mutex.Type.Normal, System.Mutex().getType())
-		self.expectIsSame(System.Mutex.Type.Normal, System.Mutex(System.Mutex.Type.Normal).getType())
-		self.expectIsSame(System.Mutex.Type.Recursive, System.Mutex(System.Mutex.Type.Recursive).getType())
+		self.expectIsSame(System.Mutex.Kind.Normal, System.Mutex().getKind())
+		self.expectIsSame(System.Mutex.Kind.Normal, System.Mutex(System.Mutex.Kind.Normal).getKind())
+		self.expectIsSame(System.Mutex.Kind.Recursive, System.Mutex(System.Mutex.Kind.Recursive).getKind())
 	}
 
 	const def testSharedReference(self) {

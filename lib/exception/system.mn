@@ -36,7 +36,7 @@ package Exception {
  */
 @class SystemError : Exception.Exception {
 	/**
-	 * This enum provides the list of `errno` codes. The effetive value of the
+	 * This enum provides the list of `errno` codes. The effective value of the
 	 * error code can depend on the current system.
 	 */
 	enum Errno {
@@ -398,7 +398,7 @@ package Exception {
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-system')
+	- @const g_lib = lib('libmint-system')
 
 	/// Internal error identifier.
 	- final %errno = none
@@ -409,5 +409,5 @@ package Exception {
 
 }
 
-var g_lib = lib('libmint-system')
+const g_lib = lib('libmint-system')
 g_lib.call('mint_errno_setup', Exception.SystemError.Errno)

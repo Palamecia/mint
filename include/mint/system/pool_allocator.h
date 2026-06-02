@@ -32,6 +32,7 @@
 #include <cstddef>
 #include <cstdlib>
 #include <new>
+#include <type_traits>
 
 namespace mint {
 

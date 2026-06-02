@@ -25,6 +25,7 @@
 #include "mint/ast/abstract_syntax_tree.h"
 #include "mint/ast/cursor.h"
 #include "mint/ast/symbol.h"
+#include "mint/debug/debug_tools.h"
 #include "mint/memory/algorithm.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
@@ -97,7 +98,12 @@ bool mint::call_overload(Cursor& cursor, Class::Operator operator_overload, int 
 			}
 			auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
 			if (it == function.data<Function>().mapping.end()) [[unlikely]] {
-				error("called member doesn't take {} parameter(s)", signature);
+				if (const auto* function_info = find_function_info(cursor.ast(), function.data<Function>())) {
+					error("member '{}' doesn't take {} parameter(s)", function_info->name, signature);
+				}
+				else {
+					error("called member doesn't take {} parameter(s)", signature);
+				}
 			}
 			it->second.call(it->first, &metadata, cursor);
 			break;
@@ -153,7 +159,12 @@ bool mint::call_overload(Cursor& cursor, const Symbol& operator_overload, int si
 			}
 			auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
 			if (it == function.data<Function>().mapping.end()) [[unlikely]] {
-				error("called member doesn't take {} parameter(s)", signature);
+				if (const auto* function_info = find_function_info(cursor.ast(), function.data<Function>())) {
+					error("member '{}' doesn't take {} parameter(s)", function_info->name, signature);
+				}
+				else {
+					error("called member doesn't take {} parameter(s)", signature);
+				}
 			}
 			it->second.call(it->first, &metadata, cursor);
 			break;
@@ -337,7 +348,12 @@ void mint::call_member_operator(Cursor& cursor, int signature) {
 		}
 		auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
 		if (it == function.data<Function>().mapping.end()) [[unlikely]] {
-			error("called member doesn't take {} parameter(s)", signature);
+			if (const auto* function_info = find_function_info(cursor.ast(), function.data<Function>())) {
+				error("member '{}' doesn't take {} parameter(s)", function_info->name, signature);
+			}
+			else {
+				error("called member doesn't take {} parameter(s)", signature);
+			}
 		}
 		it->second.call(it->first, metadata, cursor);
 		break;

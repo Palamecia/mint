@@ -488,20 +488,30 @@ void mint::exit_call(Cursor& cursor) {
 
 void mint::init_exception(Cursor& cursor, const Symbol& symbol) {
 
+	assert(cursor.get_exception());
+	assert(&cursor.stack().back().data() == &cursor.get_exception()->object.data());
+
 	const auto& value = cursor.stack().back();
 	SymbolTable& symbols = cursor.symbols();
 
-	if (!ensure_not_defined(symbol, symbols)) {
+	if (!ensure_not_defined(symbol, symbols)) [[unlikely]] {
 		error("symbol '{}' was already defined in this context", symbol.str());
 	}
 
+	cursor.get_exception()->caught = true;
 	symbols.emplace(symbol, value);
 	cursor.stack().pop_back();
 }
 
 void mint::reset_exception(Cursor& cursor, const Symbol& symbol) {
 	SymbolTable& symbols = cursor.symbols();
+	cursor.reset_exception();
 	symbols.erase(symbol);
+}
+
+void mint::reset_exception(Cursor& cursor) {
+	cursor.reset_exception();
+	cursor.stack().pop_back();
 }
 
 void mint::init_parameter(Cursor& cursor, const Symbol& symbol, mint::Reference::Flags flags, std::size_t index) {
@@ -679,7 +689,7 @@ std::tuple<Reference, Class*> mint::get_member(Cursor& cursor, const Reference& 
 		if (auto it = externals.symbols().find(member); it != externals.symbols().end()) {
 			return {Reference(Reference::const_address | Reference::const_value, it->second.data()), nullptr};
 		}
-		error("non class values doesn't have member '{}'", member.str());
+		error("'{}' values doesn't have member '{}'", type_name(reference), member.str());
 	}
 
 	return {};
@@ -711,7 +721,7 @@ std::tuple<Reference, Class*> mint::get_operator(Cursor& cursor, const Reference
 		}
 
 	default:
-		error("non class values doesn't have member '{}'", get_operator_symbol(op).str());
+		error("'{}' values doesn't have member '{}'", type_name(reference), get_operator_symbol(op).str());
 	}
 }
 

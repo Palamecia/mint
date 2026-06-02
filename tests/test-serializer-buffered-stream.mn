@@ -1,0 +1,19 @@
+load test.case
+load serializer.data-stream
+load serializer.buffered-stream
+
+@class TestBufferedStream : Test.Case {
+	const def testReadSome(self) {
+		var s = Serializer.BufferedStream(Serializer.DataStream.fromUtf8Bytes('test', 4))
+		self.expectEqual(Serializer.DataStream.fromUtf8Bytes('t', 1).getString(0), s.readSome(1).getString(0))
+		self.expectEqual(Serializer.DataStream.fromUtf8Bytes('es', 2).getString(0), s.readSome(2).getString(0))
+		self.expectEqual(Serializer.DataStream.fromUtf8Bytes('t', 1).getString(0), s.readSome(1).getString(0))
+		self.expectNotDefined(s.readSome(1))
+	}
+
+	const def testRead(self) {
+		var s = Serializer.BufferedStream(Serializer.DataStream.fromUtf8Bytes('test', 4))
+		self.expectEqual(Serializer.DataStream.fromUtf8Bytes('test', 4).getString(0), s.read().getString(0))
+		self.expectNotDefined(s.read())
+	}
+}

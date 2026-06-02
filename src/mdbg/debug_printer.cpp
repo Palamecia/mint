@@ -25,6 +25,7 @@
 
 #include "mint/ast/module.h"
 #include "mint/debug/debug_info.h"
+#include "mint/debug/debug_tools.h"
 #include "mint/memory/algorithm.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
@@ -219,8 +220,9 @@ std::string function_value(mint::Function& function) {
 	                                       [&ast = scheduler->ast()](auto& item) {
 		                                       const auto& module = item.second.handle().module;
 		                                       const auto* debug_info = ast.find_debug_info(module);
-		                                       return std::format("{}@{}(line {})", std::to_string(item.first),
-		                                           ast.get_module_name(module),
+		                                       const auto module_name = ast.get_module_name(module);
+		                                       return std::format("{}@{}({}:{})", std::to_string(item.first),
+		                                           module_name, mint::to_system_path(module_name).string(),
 		                                           debug_info->line_number(item.second.handle().offset));
 	                                       })
 	                                       | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());

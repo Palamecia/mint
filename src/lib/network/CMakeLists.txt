@@ -14,12 +14,14 @@ target_SOURCES(
 	mint-lib-module-network
 PRIVATE
 	ip.cpp
-	scheduler.cpp
-	scheduler.h
+	ip.h
+	local.cpp
+	poll.cpp
 	socket.cpp
 	socket.h
-	tcp_ip.cpp
-	udp_ip.cpp
+	stdio.cpp
+	tcp.cpp
+	udp.cpp
 )
 
 target_link_libraries(
@@ -28,11 +30,23 @@ PRIVATE
 	mint::mint
 )
 
-if (WIN32)
+if (UNIX)
+	target_link_libraries(
+		mint-lib-module-network
+	PUBLIC
+		liburing::io_uring
+	)
+elseif (WIN32)
     target_link_libraries(
 		mint-lib-module-network
 	PRIVATE
 		ws2_32
+		mswsock
+	)
+	target_compile_definitions(
+		mint-lib-module-network
+	PRIVATE
+		-DWIN32_LEAN_AND_MEAN
 	)
 endif()
 

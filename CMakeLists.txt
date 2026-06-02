@@ -5,6 +5,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/share/cmake)
 
 include(mint-flags)
 include(mint-install)
+include(FindOptionalDependencies)
 
 # Version configuration
 add_definitions("-DMINT_VERSION=${CMAKE_PROJECT_VERSION}")

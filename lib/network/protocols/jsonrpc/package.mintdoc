@@ -1,2 +1,0 @@
-@package Network.JsonRpc
-This package provides a base implementation of the JSON RPC protocol.

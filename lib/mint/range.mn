@@ -213,7 +213,7 @@ load mint.operator
         }
     }
 
-    /// Internal list of laready reached elements.
+    /// Internal list of already reached elements.
     # final items = []
 
     /// Internal index to the current element.
@@ -260,7 +260,7 @@ load mint.operator
 
 /**
  * Returns `true` if `predicate` returns `true` for all elements in `range`;
- * otherwie returns `false`.
+ * otherwise returns `false`.
  */
 @def allOf(range, predicate) {
     return findIfNot(range, predicate).isEmpty()
@@ -268,7 +268,7 @@ load mint.operator
 
 /**
  * Returns `true` if `predicate` returns `true` for at least one element in
- * `range`; otherwie returns `false`.
+ * `range`; otherwise returns `false`.
  */
 @def anyOf(range, predicate) {
     return not findIf(range, predicate).isEmpty()
@@ -276,7 +276,7 @@ load mint.operator
 
 /**
  * Returns `true` if `predicate` returns `true` for no elements in `range`;
- * otherwie returns `false`.
+ * otherwise returns `false`.
  */
 @def noneOf(range, predicate) {
     return findIf(range, predicate).isEmpty()
@@ -316,7 +316,7 @@ load mint.operator
 
 /**
  * Returns the number of elements in `range` that is equal to `value`. Both
- * `range` elemnts and `value` must implement the `==` operator.
+ * `range` elements and `value` must implement the `==` operator.
  */
 @def count(range, value) {
     var res = 0
@@ -432,7 +432,7 @@ load mint.operator
 }
 
 /**
- * Returns an iterator on the beginning of the last occurence of `other` in
+ * Returns an iterator on the beginning of the last occurrence of `other` in
  * `range`. The elements of `range` and `other` must implement the `==`
  * operator.
  */
@@ -457,7 +457,7 @@ load mint.operator
 }
 
 /**
- * Returns an iterator on the beginning of the last occurence of `other` in
+ * Returns an iterator on the beginning of the last occurrence of `other` in
  * `range`. The elements of `range` and `other` are compared using `predicate`.
  */
 @def findEnd(range, other, predicate) {
@@ -564,7 +564,7 @@ load mint.operator
 }
 
 /**
- * Returns an iterator on the beginning of the first occurence of `other` in
+ * Returns an iterator on the beginning of the first occurrence of `other` in
  * `range`. The elements of `range` and `other` must implement the `==`
  * operator.
  */
@@ -590,7 +590,7 @@ load mint.operator
 }
 
 /**
- * Returns an iterator on the beginning of the first occurence of `other` in
+ * Returns an iterator on the beginning of the first occurrence of `other` in
  * `range`. The elements of `range` and `other` are compared using `predicate`.
  */
 @def search(range, other, predicate) {
@@ -615,7 +615,7 @@ load mint.operator
 }
 
 /**
- * Returns an iterator on the beginning of the first occurence of `n` consecutive
+ * Returns an iterator on the beginning of the first occurrence of `n` consecutive
  * elements equals to `value` in `range`. The elements of `range` and `value`
  * must implement the `==` operator.
  */
@@ -644,7 +644,7 @@ load mint.operator
 }
 
 /**
- * Returns an iterator on the beginning of the first occurence of `n` consecutive
+ * Returns an iterator on the beginning of the first occurrence of `n` consecutive
  * elements equals to `value` in `range`. The elements of `range` and `value`
  * are compared using `predicate`.
  */
@@ -808,7 +808,7 @@ load mint.operator
 
     var it_range = reversed(range)
 
-    for var element in revesed(other) {
+    for var element in reversed(other) {
         it_range.next() := element
     }
 
@@ -838,7 +838,7 @@ load mint.operator
 }
 
 /**
- * Returns the result of the `+` operator applied resursively to each values in
+ * Returns the result of the `+` operator applied recursively to each values in
  * `range` where `predicate` returns `true` for the value with an initial value
  * of `init`.
  */
@@ -850,7 +850,7 @@ load mint.operator
 }
 
 /**
- * Returns the result of the `func` function applied resursively to each values
+ * Returns the result of the `func` function applied recursively to each values
  * in `range` where `predicate` returns `true` for the value with an initial
  * value of `init`.
  */
@@ -862,7 +862,7 @@ load mint.operator
 }
 
 /**
- * Returns the result of the `+` operator applied resursively to each values in
+ * Returns the result of the `+` operator applied recursively to each values in
  * `range` with an initial value of `init`.
  */
 @def accumulateIf(range, init, predicate) {
@@ -875,7 +875,7 @@ load mint.operator
 }
 
 /**
- * Returns the result of the `func` function applied resursively to each values
+ * Returns the result of the `func` function applied recursively to each values
  * in `range` with an initial value of `init`.
  */
 @def accumulateIf(range, init, predicate, func) {
@@ -923,7 +923,7 @@ load mint.operator
  * `from`th element and until the `to`th element. If `to` is not specified, the
  * object provided by the `range` parameter must provides a `size` method to get
  * the index of the last inserted value. If `step` is provided, elements are
- * skeeped to provides only elements with an index that is a multiple of `step`.
+ * skipped to provides only elements with an index that is a multiple of `step`.
  */
 @def slice(range, from, to = none, step = 1) {
 

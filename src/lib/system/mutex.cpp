@@ -37,7 +37,7 @@ namespace symbols {
 
 static const mint::Symbol system("System");
 static const mint::Symbol mutex("Mutex");
-static const mint::Symbol type("Type");
+static const mint::Symbol kind("Kind");
 
 static const mint::Symbol normal("Normal");
 static const mint::Symbol recursive("Recursive");
@@ -46,8 +46,9 @@ static const mint::Symbol recursive("Recursive");
 
 namespace {
 
-struct AbstractMutex {
-	enum Type : std::uint8_t {
+class AbstractMutex {
+public:
+	enum class Kind : std::uint8_t {
 		normal,
 		recursive
 	};
@@ -60,36 +61,64 @@ struct AbstractMutex {
 	AbstractMutex& operator=(const AbstractMutex&) = delete;
 	AbstractMutex& operator=(AbstractMutex&&) = delete;
 
-	[[nodiscard]] virtual Type type() const = 0;
+	[[nodiscard]] virtual Kind kind() const = 0;
+
+	virtual void lock() = 0;
+	virtual bool try_lock() noexcept = 0;
+	virtual void unlock() noexcept = 0;
 };
 
-struct Mutex : public AbstractMutex {
-	[[nodiscard]] Type type() const override {
-		return normal;
+class Mutex : public AbstractMutex {
+	std::mutex _handle;
+public:
+	[[nodiscard]] Kind kind() const override {
+		return Kind::normal;
 	}
 
-	std::mutex handle;
-};
-
-struct RecursiveMutex : public AbstractMutex {
-	[[nodiscard]] Type type() const override {
-		return recursive;
+	void lock() override {
+		_handle.lock();
 	}
 
-	std::recursive_mutex handle;
+	bool try_lock() noexcept override {
+		return _handle.try_lock();
+	}
+
+	void unlock() noexcept override {
+		_handle.unlock();
+	}
 };
 
-AbstractMutex::Type to_abstract_mutex_type(mint::Cursor& cursor, const mint::Reference& value) {
-	return static_cast<AbstractMutex::Type>(
-	    mint::to_integer<std::underlying_type_t<AbstractMutex::Type>>(cursor, value));
+class RecursiveMutex : public AbstractMutex {
+	std::recursive_mutex _handle;
+public:
+	[[nodiscard]] Kind kind() const override {
+		return Kind::recursive;
+	}
+
+	void lock() override {
+		_handle.lock();
+	}
+
+	bool try_lock() noexcept override {
+		return _handle.try_lock();
+	}
+
+	void unlock() noexcept override {
+		_handle.unlock();
+	}
+};
+
+AbstractMutex::Kind to_abstract_mutex_kind(mint::Cursor& cursor, const mint::Reference& value) {
+	return static_cast<AbstractMutex::Kind>(
+	    mint::to_integer<std::underlying_type_t<AbstractMutex::Kind>>(cursor, value));
 }
 
-mint::Reference mint_mutex_create(mint::Cursor& cursor, const mint::Reference& type) {
-	switch (to_abstract_mutex_type(cursor, type)) {
-	case AbstractMutex::normal:
-		return mint::create_c_object(cursor.ast(), new Mutex);
-	case AbstractMutex::recursive:
-		return mint::create_c_object(cursor.ast(), new RecursiveMutex);
+mint::Reference mint_mutex_create(mint::Cursor& cursor, const mint::Reference& kind) {
+	switch (to_abstract_mutex_kind(cursor, kind)) {
+	case AbstractMutex::Kind::normal:
+		return mint::create_c_object<AbstractMutex>(cursor.ast(), new Mutex);
+	case AbstractMutex::Kind::recursive:
+		return mint::create_c_object<AbstractMutex>(cursor.ast(), new RecursiveMutex);
 	}
 	return {};
 }
@@ -99,18 +128,18 @@ mint::Reference mint_mutex_delete(mint::Cursor& /*cursor*/, const mint::Referenc
 	return {};
 }
 
-mint::Reference mint_mutex_get_type(mint::FunctionHelper& helper, const mint::Reference& self) {
-	switch (self.data<mint::LibObject<AbstractMutex>>().ptr->type()) {
-	case AbstractMutex::normal:
+mint::Reference mint_mutex_get_kind(mint::FunctionHelper& helper, const mint::Reference& self) {
+	switch (self.data<mint::LibObject<AbstractMutex>>().ptr->kind()) {
+	case AbstractMutex::Kind::normal:
 		return helper.reference(symbols::system)
 		    .member(symbols::mutex)
-		    .member(symbols::type)
+		    .member(symbols::kind)
 		    .member(symbols::normal)
 		    .share();
-	case AbstractMutex::recursive:
+	case AbstractMutex::Kind::recursive:
 		return helper.reference(symbols::system)
 		    .member(symbols::mutex)
-		    .member(symbols::type)
+		    .member(symbols::kind)
 		    .member(symbols::recursive)
 		    .share();
 	}
@@ -118,48 +147,27 @@ mint::Reference mint_mutex_get_type(mint::FunctionHelper& helper, const mint::Re
 }
 
 mint::Reference mint_mutex_lock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
-
-	const auto _ = mint::ProcessorUnlocker();
-
-	switch (self.data<mint::LibObject<AbstractMutex>>().ptr->type()) {
-	case AbstractMutex::normal:
-		self.data<mint::LibObject<Mutex>>().ptr->handle.lock();
-		break;
-	case AbstractMutex::recursive:
-		self.data<mint::LibObject<RecursiveMutex>>().ptr->handle.lock();
-		break;
+	{
+		const auto _ = mint::ProcessorUnlocker();
+		self.data<mint::LibObject<AbstractMutex>>().ptr->lock();
 	}
-
 	return {};
 }
 
 mint::Reference mint_mutex_unlock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
-	switch (self.data<mint::LibObject<AbstractMutex>>().ptr->type()) {
-	case AbstractMutex::normal:
-		self.data<mint::LibObject<Mutex>>().ptr->handle.unlock();
-		break;
-	case AbstractMutex::recursive:
-		self.data<mint::LibObject<RecursiveMutex>>().ptr->handle.unlock();
-		break;
-	}
+	self.data<mint::LibObject<AbstractMutex>>().ptr->unlock();
 	return {};
 }
 
 mint::Reference mint_mutex_try_lock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
-	switch (self.data<mint::LibObject<AbstractMutex>>().ptr->type()) {
-	case AbstractMutex::normal:
-		return mint::create_boolean(self.data<mint::LibObject<Mutex>>().ptr->handle.try_lock());
-	case AbstractMutex::recursive:
-		return mint::create_boolean(self.data<mint::LibObject<RecursiveMutex>>().ptr->handle.try_lock());
-	}
-	return {};
+	return mint::create_boolean(self.data<mint::LibObject<AbstractMutex>>().ptr->try_lock());
 }
 
 }
 
 MINT_EXPORT_FUNCTION(mint_mutex_create, 1)
 MINT_EXPORT_FUNCTION(mint_mutex_delete, 1)
-MINT_EXPORT_FUNCTION(mint_mutex_get_type, 1)
+MINT_EXPORT_FUNCTION(mint_mutex_get_kind, 1)
 MINT_EXPORT_FUNCTION(mint_mutex_lock, 1)
 MINT_EXPORT_FUNCTION(mint_mutex_unlock, 1)
 MINT_EXPORT_FUNCTION(mint_mutex_try_lock, 1)

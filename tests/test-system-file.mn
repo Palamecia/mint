@@ -1,34 +1,41 @@
 load test.case
 load system.file
 load system.filesystem
+load serializer.text-stream
 
 @class FileTest : Test.Case {
-	const def testOpen(self) {
-		
-		let f = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
-		self.expectEqual('System.File', typeof f)
-		self.expectEqual(true, f.isOpen())
-		print(f, 'test')
-		f.close()
+	const def testOpenClose(self) {
 
-		f = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'))
-		self.expectEqual('System.File', typeof f)
+		let f = System.FileStream()
+		self.expectEqual(false, f.isOpen())
+
+		f.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
 		self.expectEqual(true, f.isOpen())
-		self.expectEqual('test', f.read())
+
+		f.close()
+		self.expectEqual(false, f.isOpen())
+
+		f.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
+		self.expectEqual(true, f.isOpen())
 	}
 
-	const def testClose(self) {
+	const def testReadWrite(self) {
+		
+		let writeFile = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
+		self.expectEqual('System.FileStream', typeof writeFile)
+		self.expectEqual(true, writeFile.isOpen())
 
-		let f = System.File(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'))
-		self.expectEqual(false, f.isOpen())
+		let writeStream = Serializer.TextStream(writeFile)
+		self.expectEqual('Serializer.TextStream', typeof writeStream)
+		print(writeStream, 'test')
+		writeFile.close()
 
-		f.open('w')
-		self.expectEqual(true, f.isOpen())
+		let readFile = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'))
+		self.expectEqual('System.FileStream', typeof readFile)
+		self.expectEqual(true, readFile.isOpen())
 
-		f.close()
-		self.expectEqual(false, f.isOpen())
-
-		f.open('w')
-		self.expectEqual(true, f.isOpen())
+		let readStream = Serializer.TextStream(readFile)
+		self.expectEqual('Serializer.TextStream', typeof readStream)
+		self.expectEqual('test', readStream.read())
 	}
 }

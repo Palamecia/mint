@@ -24,6 +24,7 @@
  * @module
  */
 
+load serializer.text-stream
 load system.filesystem
 load system.thread
 load system.file
@@ -56,7 +57,7 @@ load mint.type
             self._local = local
             self.source = source
             self._extra_sys_path = (extra_sys_path or [])
-            self._lock = System.Mutex(System.Mutex.Type.Recursive)
+            self._lock = System.Mutex(System.Mutex.Kind.Recursive)
             return self
         }
 
@@ -84,7 +85,7 @@ load mint.type
         /// @lock
         const def getSource(self) {
             if not defined self.source {
-                if let f = System.open(self.path, 'r') {
+                if let f = Serializer.TextStream(System.open(self.path, 'r')) {
                     return f.read()
                 }
             }
@@ -354,7 +355,7 @@ load mint.type
         }
 
         if not System.Dir(root).isSubPath(path) {
-            log.warning("Path %s not in %s", path, root)
+            logger.warning("Path %s not in %s", path, root)
             return []
         }
 

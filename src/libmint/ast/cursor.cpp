@@ -41,12 +41,10 @@
 #include "mint/system/error.h"
 #include "mint/system/pool_allocator.h"
 #include "thread_entry_point.h"
-#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <iterator>
 #include <memory>
-#include <ranges>
 #include <string>
 #include <utility>
 #include <vector>
@@ -56,6 +54,28 @@ using namespace mint;
 PoolAllocator<Cursor::StackFrame> Cursor::g_pool;
 
 namespace {
+
+thread_local std::unique_ptr<Cursor::Exception> g_exception;
+
+void setup_exception_context(Cursor& cursor, mint::Reference& object, std::unique_ptr<Cursor::Exception>&& cause) {
+
+	if (g_exception && !g_exception->caught) {
+		return;
+	}
+
+	auto* root_cursor = &cursor;
+	while (auto* parent = root_cursor->parent()) {
+		root_cursor = parent;
+	}
+
+	const auto depth = cause ? cause->depth + 1 : 0;
+	g_exception = std::make_unique<Cursor::Exception>(Cursor::Exception {
+	    .object = object,
+	    .stacktrace = root_cursor->dump(),
+	    .cause = std::move(cause),
+	    .depth = depth,
+	});
+}
 
 constexpr std::size_t default_stack_capacity = 0x4000;
 
@@ -444,7 +464,17 @@ std::string format_exception(const Reference& exception) {
 
 }
 
-void Cursor::raise(Reference&& exception) {
+std::unique_ptr<mint::Cursor::Exception> mint::Cursor::take_exception() {
+	return std::move(g_exception);
+}
+
+mint::Cursor::Exception* mint::Cursor::get_exception() const {
+	return g_exception.get();
+}
+
+void Cursor::raise(Reference&& exception, std::unique_ptr<Exception>&& cause) {
+
+	setup_exception_context(*this, exception, std::move(cause));
 
 	if (!_retrieve_points.empty()) {
 
@@ -477,17 +507,22 @@ void Cursor::raise(Reference&& exception) {
 	}
 }
 
+void mint::Cursor::reset_exception() {
+	g_exception.reset();
+}
+
 LineInfoList Cursor::dump() const {
 
-	LineInfoList dumped_infos;
-	dump_module(dumped_infos, _ast, _current_stack_frame->module, last_executed_offset(_current_stack_frame->iptr));
+	auto dumped_infos = LineInfoList();
 
-	for (const auto* stack_frame : std::views::reverse(_call_stack)) {
+	for (const auto* stack_frame : _call_stack) {
 		dump_module(dumped_infos, _ast, stack_frame->module, last_executed_offset(stack_frame->iptr));
 	}
 
+	dump_module(dumped_infos, _ast, _current_stack_frame->module, last_executed_offset(_current_stack_frame->iptr));
+
 	if (_child) {
-		std::ranges::copy(_child->dump(), std::back_inserter(dumped_infos));
+		dumped_infos.append_range(_child->dump());
 	}
 
 	return dumped_infos;

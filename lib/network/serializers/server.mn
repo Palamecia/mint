@@ -22,8 +22,8 @@
  * IN THE SOFTWARE.
  *
  * @module
- * This module provides the {Network.ServerSerializer} class which implement the
- * serializer interface to accept incomming connections.
+ * This module provides the {Network.ServerSerializer} helper used to queue
+ * incoming connections for server-side channel implementations.
  */
 
 load exception.network
@@ -31,12 +31,11 @@ load container.queue
 
 package Network {
 	/**
-	 * This class provides a serializer for incomming connections. It should be
-	 * used with instances of {Network.AsynchronousChannel} opened with
-	 * {Network.AsynchronousChannel.listen}.
+	 * This class provides a serializer for incoming connections. It should be used with instances of
+	 * {Network.EventChannel} opened with {Network.EventChannel.listen}.
 	 * 
-	 * On new connection, an end point is created and pushed to a queue. This end
-	 * point can be retrieved later by calling {Network.AsynchronousChannel.read}.
+	 * On new connection, an end point is created and pushed to a queue. This end point can be retrieved later by
+	 * calling {Network.EventChannel.read}.
 	 */
 	@class ServerSerializer {
 		/**
@@ -75,34 +74,18 @@ package Network {
 
 		/**
 		 * Attempts to read data from the end point. This method raises an
-		 * instance of {Exception.InvalidNetworkOperation}.
+		 * instance of {Exception.InvalidOperation}.
 		 */
 		const def read(self, endpoint) {
-			raise Exception.InvalidNetworkOperation('the socket can not be read', self)
+			raise Exception.InvalidOperation('the socket can not be read', self)
 		}
 
-		/**
-		 * Attempts to read data asynchronously from the end point. This method raises an
-		 * instance of {Exception.InvalidNetworkOperation}.
-		 */
-		const async def readAsync(self, endpoint) {
-			raise Exception.InvalidNetworkOperation('the socket can not be read', self)
-		}
-	
 		/**
 		 * Attempts to write data to the end point. This method raises an
-		 * instance of {Exception.InvalidNetworkOperation}.
+		 * instance of {Exception.InvalidOperation}.
 		 */
 		const def write(self, endpoint) {
-			raise Exception.InvalidNetworkOperation('the socket can not be write', self)
-		}
-
-		/**
-		 * Attempts to write data asynchronously to the end point. This method raises an
-		 * instance of {Exception.InvalidNetworkOperation}.
-		 */
-		const async def writeAsync(self, endpoint) {
-			raise Exception.InvalidNetworkOperation('the socket can not be write', self)
+			raise Exception.InvalidOperation('the socket can not be write', self)
 		}
 
 		/**
@@ -118,11 +101,83 @@ package Network {
 		}
 
 		/**
+		 * Returns `true` if the serializer's buffer is empty; otherwise
+		 * returns `false`.
+		 */
+		const def isEmpty(const self) {
+			return self.connectionQueue.isEmpty()
+		}
+
+		/// Internal pending end point queue.
+		- final connectionQueue = null
+	}
+	
+	/**
+	 * This class provides a serializer for incoming connections. It should be used with instances of
+	 * {Network.EventChannel} opened with {Network.EventChannel.listen}.
+	 * 
+	 * On new connection, an end point is created and pushed to a queue. This end point can be retrieved later by
+	 * calling {Network.EventChannel.read}.
+	 * 
+	 * Connections are accepted asynchronously.
+	 */
+	@class AsyncServerSerializer {
+		/**
+		 * Creates a new serializer.
+		 */
+		const def new(self) {
+			self.connectionQueue = Container.Queue()
+			return self
+		}
+
+		/**
+		 * Pushes the communication end point described by `endpoint` to the
+		 * serializer's queue.
+		 */
+		const def appendMessage(self, endpoint) {
+			if defined endpoint {
+				self.connectionQueue.push(endpoint)
+			}
+		}
+
+		/**
+		 * Returns the next pending end point in the serializer's queue or `none`
+		 * if the queue is empty. The end point is then removed from the queue.
+		 */
+		const def nextMessage(self) {
+			return self.connectionQueue.pop()
+		}
+
+		/**
+		 * Returns `true` if the serializer's queue contains at least one
+		 * pending end point; otherwise returns `false`.
+		 */
+		const def containsMessage(const self) {
+			return not self.connectionQueue.isEmpty()
+		}
+
+		/**
+		 * Attempts to read data asynchronously from the end point. This method raises an
+		 * instance of {Exception.InvalidOperation}.
+		 */
+		const async def read(self, endpoint) {
+			raise Exception.InvalidOperation('the socket can not be read', self)
+		}
+	
+		/**
+		 * Attempts to write data asynchronously to the end point. This method raises an
+		 * instance of {Exception.InvalidOperation}.
+		 */
+		const async def write(self, endpoint) {
+			raise Exception.InvalidOperation('the socket can not be write', self)
+		}
+
+		/**
 		 * Attempts to accept a connection asynchronously on the end point. Returns `true` if
 		 * a new connection was successfully accepted; otherwise returns `false`.
 		 */
-		const async def acceptAsync(self, endpoint) {
-			if var client = await endpoint.acceptAsync() {
+		const async def accept(self, endpoint) {
+			if var client = await endpoint.accept() {
 				self.connectionQueue.push(client)
 				return true
 			}

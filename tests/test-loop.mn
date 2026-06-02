@@ -316,7 +316,7 @@ load test.case
                     continue
                 }
 
-            } catch e {}
+            } catch error {}
         }
 
         self.expectEqual(3, nextCalls)
@@ -339,7 +339,7 @@ load test.case
                     raise "boom"
                 }
 
-            } catch e {
+            } catch error {
                 continue
             }
         }
@@ -364,7 +364,7 @@ load test.case
                     break
                 }
 
-            } catch e {}
+            } catch error {}
         }
 
         self.expectEqual(2, nextCalls)
@@ -399,7 +399,7 @@ load test.case
 
                     yield i
 
-                } catch e {
+                } catch error {
 
                     yield "error"
                     continue

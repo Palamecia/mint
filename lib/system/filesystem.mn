@@ -28,7 +28,7 @@
 package System {
 
     /**
-     * This enum represent a standrad path type that can be used to query a standard
+     * This enum represent a standard path type that can be used to query a standard
      * path to the file system.
      */
     @enum StandardPath {
@@ -86,7 +86,7 @@ package System {
         ~ const new
 
         /**
-         * Returns an array of each path that matches the givent `type`. The `type`
+         * Returns an array of each path that matches the given `type`. The `type`
          * parameter must be a value from {System.StandardPath}.
          */
         const def getStandardPaths(const self, %type) {
@@ -94,7 +94,7 @@ package System {
         }
 
         /**
-         * Returns the most significant path that matches the givent `type`. The
+         * Returns the most significant path that matches the given `type`. The
          * `type` parameter must be a value from {System.StandardPath}.
          */
         const def getStandardPath(const self, %type) {
@@ -102,7 +102,7 @@ package System {
         }
 
         /**
-         * Returns the most significant `path` with a root that matches the givent
+         * Returns the most significant `path` with a root that matches the given
          * `type`. The `type` parameter must be a value from {System.StandardPath}.
          */
         const def getStandardPath(const self, %type, path) {
@@ -111,7 +111,7 @@ package System {
 
         /**
          * Returns an array of each existing `path` under a root that matches the
-         * givent `type`. The `type` parameter must be a value from
+         * given `type`. The `type` parameter must be a value from
          * {System.StandardPath}.
          */
         const def findStandardPaths(const self, %type, path) {
@@ -120,7 +120,7 @@ package System {
 
         /**
          * Returns the most significant existing `path` under a root that matches
-         * the givent `type`. The `type` parameter must be a value from
+         * the given `type`. The `type` parameter must be a value from
          * {System.StandardPath}.
          */
         const def findStandardPath(const self, %type, path) {
@@ -128,7 +128,7 @@ package System {
         }
 
         /// Global library handle.
-        - @g_lib = lib('libmint-system')
+        - @const g_lib = lib('libmint-system')
     }
 
 	System.FileSystem.Separator = lib('libmint-system').call('mint_directory_native_separator')

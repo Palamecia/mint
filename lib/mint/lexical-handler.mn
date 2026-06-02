@@ -31,7 +31,7 @@ load serializer.string-stream
 
 /**
  * This class provides an interface to parse mint scripts using the {@see parse}
- * method. Each encountred token will be provided to a callback method like
+ * method. Each encountered token will be provided to a callback method like
  * {@see onToken}.
  */
 @class LexicalHandler {
@@ -406,7 +406,7 @@ load serializer.string-stream
 	}
 
 	/// Global library handle.
-	- @g_lib = lib('libmint-mint')
+	- @const g_lib = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null

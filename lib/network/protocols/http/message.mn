@@ -26,9 +26,11 @@
  * structure of the messages used by {Network.Http.Serializer}.
  */
 
-load serializer.string-stream
 load serializer.data-stream
+load serializer.text-stream
+load serializer.string-stream
 load codec.mime-types
+load codec.iconv
 load mint.string
 load mint.regex
 load mint.hash
@@ -106,6 +108,7 @@ package Network {
 			 * Creates a new empty message.
 			 */
 			const def new(self) {
+				self.body = Serializer.DataStream()
 				return self
 			}
 
@@ -129,9 +132,11 @@ package Network {
 				switch typeof identifier{
 				case 'number':
 					self.setStatus(identifier, complement)
+					self.body = Serializer.DataStream()
 					return self
 				case 'string':
 					self.setMethod(identifier, complement)
+					self.body = Serializer.DataStream()
 					return self
 				case 'Network.Http.Message':
 					return identifier
@@ -181,9 +186,9 @@ package Network {
 			}
 
 			/**
-			 * Sets the method of the message to `method` on the givent `target`.
+			 * Sets the method of the message to `method` on the given `target`.
 			 * 
-			 * The `method` paremeter should be one of `'GET'`, `'HEAD'`,
+			 * The `method` parameter should be one of `'GET'`, `'HEAD'`,
 			 * `'POST'`, `'PUT'`, `'DELETE'`, `'CONNECT'`, `'OPTIONS'`,
 			 * `'TRACE'` or `'PATCH'`.
 			 */
@@ -193,60 +198,79 @@ package Network {
 			}
 
 			/**
-			 * Returns the value of the attribute `name` of the header.
+			 * Returns the value of the field `name` of the header.
 			 */
-			const def getAttribute(const self, name) {
+			const def getHeader(const self, name) {
 				return self.headers.get(name)
 			}
 
 			/**
-			 * Sets the attribute `name` of the header to `value`.
+			 * Sets the field `name` of the header to `value`.
 			 */
-			const def setAttribute(self, name, value) {
+			const def setHeader(self, name, value) {
 				self.headers[name] = value
 			}
 
 			/**
-			 * Returns the body of the message as a string.
+			 * Returns the body of the message as an instance of {Serializer.DataStream}.
 			 */
 			const def getBody(const self) {
 				return self.body
 			}
 
 			/**
+			 * Returns the body of the message as an instance of string.
+			 */
+			const def getBodyText(const self) {
+				if let contentType = self.getHeader('Content-Type') {
+					if self.isTextual() {
+						let pos = contentType.indexOf('encoding=')
+						if defined pos {
+							let codec = Codec.Iconv(contentType.substring(pos + 9).trim())
+							let (status, result) = codec.decode(self.body, 0)
+							return status is Codec.Status.Success ? result : none
+						}
+						return self.body.getString(0)
+					}
+				}
+			}
+
+			/**
 			 * Sets the body of the message to `body`. The `Content-Length` header
-			 * will be automaticaly updated using the length of the body. If the
+			 * will be automatically updated using the length of the body. If the
 			 * `contentType` parameter is given, the value of the parameter will
 			 * be used to setup the `Content-Type` header; otherwise the value
 			 * will be guessed from the content of `body`.
 			 */
 			const def setBody(self, body, contentType = none) {
-				var buffer = Serializer.DataStream(body)
 				if typeof body === 'string' {
-					self.headers['Content-Length'] = body.utf8ByteCount()
+					self.body = Serializer.StringStream(body).read()
 				} else {
-					self.headers['Content-Length'] = buffer.size()
+					self.body = Serializer.DataStream(body)
 				}
+				self.headers['Content-Length'] = self.body.size()
 				if defined contentType {
 					self.headers['Content-Type'] = contentType
 				} else {
 					self.headers['Content-Type'] = Codec.MimeTypes.fromData(body)
 				}
-				self.body = buffer.getString(0)
 			}
 
 			/**
-			 * Returns the content of the message as a string.
+			 * Returns true if the message is textual; false otherwise.
+			 */
+			const def isTextual(const self) {
+				if let contentType = self.getHeader('Content-Type') {
+					return contentType.startsWith('text/') or contentType.startsWith('application/json')
+				}
+				return false
+			}
+
+			/**
+			 * Returns the content of the message as a string including headers and body, with CRLF line endings
+			 * converted to LF. Non-textual body content is represented as base64.
 			 */
 			const def toString(const self) {
-				return self.body
-			}
-
-			/**
-			 * Returns the content of the message as an instance of
-			 * {Serializer.DataStream}.
-			 */
-			const def encode(self) {
 
 				if not defined self.method {
 					if not defined self.code {
@@ -257,41 +281,119 @@ package Network {
 					}
 				}
 
-				var buffer = ''
+				let result = ''
 
 				if self.method { // Request mode
-					buffer << '%s %s %s\r\n' % (self.method, self.target, self.version)
+					result << '%s %s %s\n' % (self.method, self.target, self.version)
 				} else { // Response mode
-					buffer << '%s %d %s\r\n' % (self.version, self.code, self.message)
+					result << '%s %d %s\n' % (self.version, self.code, self.message)
 				}
 
 				if 'Content-Length' not in self.headers {
-					buffer << 'Content-Length: %d\r\n' % self.body.utf8ByteCount()
+					result << 'Content-Length: %d\n' % self.body.size()
 				}
 
-				for key, value in self.headers {
-					buffer << '%s: %s\r\n' % (key, value)
+				for let (key, value) in self.headers {
+					switch typeof value {
+					case 'none':
+						break
+					case 'array':
+						for let item in value {
+							result << '%s: %s\n' % (key, item)
+						}
+						break
+					default:
+						result << '%s: %s\n' % (key, value)
+						break
+					}
 				}
 
-				buffer << '\r\n' << self.body
-				return Serializer.DataStream.fromUtf8Bytes(buffer, buffer.utf8ByteCount())
+				result << '\n'
+
+				if self.isTextual() {
+					if let bodyText = self.getBodyText() {
+						result << bodyText
+					}
+				} else {
+					result << self.body.toBase64()
+				}
+
+				return result
 			}
 
 			/**
-			 * Creates an instance of {Network.Http.Message} from an instance of
-			 * {Serializer.DataStream} given by `stream`. The `length` parameter
-			 * is the number of bytes to be used to create the message.
+			 * Returns the content of the message as an instance of {Serializer.DataStream}.
 			 */
-			@const def decode(stream, length) {
+			const def encode(const self) {
+
+				if not defined self.method {
+					if not defined self.code {
+						self.code = 200
+					}
+					if not defined self.message and self.code in Network.Http.Status {
+						self.message = Network.Http.Status[self.code]
+					}
+				}
+
+				let buffer = Serializer.DataStream()
+				let stream = Serializer.TextStream(buffer)
+
+				if self.method { // Request mode
+					stream << '%s %s %s\r\n' % (self.method, self.target, self.version)
+				} else { // Response mode
+					stream << '%s %d %s\r\n' % (self.version, self.code, self.message)
+				}
+
+				if 'Content-Length' not in self.headers {
+					stream << 'Content-Length: %d\r\n' % self.body.size()
+				}
+
+				for let (key, value) in self.headers {
+					switch typeof value {
+					case 'none':
+						break
+					case 'array':
+						for let item in value {
+							stream << '%s: %s\r\n' % (key, item)
+						}
+						break
+					default:
+						stream << '%s: %s\r\n' % (key, value)
+						break
+					}
+				}
+
+				stream << '\r\n'
+				buffer << self.body
+				return buffer
+			}
+
+			/**
+			 * Creates an instance of {Network.Http.Message} from an instance of {Serializer.DataStream} given by
+			 * `data`. The `length` parameter is the number of bytes to be used to create the message.
+			 */
+			@const def decode(data, length) {
 				if length {
 
-					var self = Network.Http.Message()
-					var buffer = Serializer.StringStream(stream.getString(0, length))
-					var token = buffer.readWord()
+					let self = Network.Http.Message()
+					let stream = data.getSome(length)
+					let bodyStart =: for let i in 0...(length-4) {
+						if stream.getString(i, 4) === '\r\n\r\n' {
+							yield i + 4
+							break
+						}
+					}
+
+					if not defined bodyStart {
+						bodyStart = length
+					}
+
+					let buffer = Serializer.TextStream(stream.readSome(bodyStart))
+					let token = buffer.readWord()
 
 					if token.startsWith('HTTP/') {
 						self.version = token
-						self.code = number(buffer.readWord())
+						self.code = buffer.readWord().toNumber()
 						self.message = buffer.readLine().trim()
 					} else {
 						self.method = token
@@ -300,10 +402,20 @@ package Network {
 					}
 
 					while let header = RegexMatch(/(.+):\s*(.+)?\r?/.match(buffer.readLine())) {
-						self.headers[header.capturedText(1).trim()] = header.capturedText(2).trim()
+						let key = header.capturedText(1).trim()
+						let value = header.capturedText(2).trim()
+						if key in self.headers {
+							if typeof self.headers[key] === 'array' {
+								self.headers[key].push(value)
+							} else {
+								self.headers[key] = [self.headers[key], value]
+							}
+						} else {
+							self.headers[key] = value
+						}
 					}
 
-					self.body = buffer.read()
+					self.body = stream
 					return self
 				}
 			}
@@ -311,11 +423,11 @@ package Network {
 			/// Internal protocol version.
 			- final version = 'HTTP/1.0'
 			
-			/// Internal header data.
+			/// Internal header fields.
 			- final headers = {}
 			
 			/// Internal message body.
-			- final body = none
+			- final body = null
 
 			/// Internal method (request only).
 			- final method = none

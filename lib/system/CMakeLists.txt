@@ -5,13 +5,18 @@ add_custom_target(
 SOURCES
 	date.mn
 	directory.mn
+	event.mn
+	file-watcher.mn
 	file.mn
 	filesystem.mn
 	locale.mn
 	os.mn
+	pipe.mn
+	poller.mn
 	process.mn
 	terminal.mn
 	thread.mn
+	timer.mn
 	timezone.mn
 	uri.mn
 )

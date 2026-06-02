@@ -20,7 +20,7 @@ jobs:
       run: |
         $env:VCPKG_ROOT = ".\vcpkg"
         $env:PATH = "$env:VCPKG_ROOT;$env:PATH"
-        cmake --preset=vcpkg -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release
+        cmake --preset=vcpkg -G "Visual Studio 18 2026" -DCMAKE_BUILD_TYPE=Release
     - name: make
       run: |
         cmake --build build --target ALL_BUILD --config Release

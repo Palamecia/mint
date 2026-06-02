@@ -24,6 +24,7 @@
 #include "mint/system/data_stream.h"
 #include "mint/config.h"
 #include <cstddef>
+#include <cstdint>
 #include <cstdio>
 #include <functional>
 #include <string>
@@ -80,7 +81,7 @@ std::string DataStream::line_error() {
 	if (err_pos > 1) {
 		for (std::size_t i = 0; i < err_pos - 1; ++i) {
 
-			auto c = static_cast<byte_t>(_cached_line[i]);
+			auto c = static_cast<std::uint8_t>(_cached_line[i]);
 
 			if (c == '\t') {
 				line += '\t';

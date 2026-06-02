@@ -1,5 +1,4 @@
 @package Codec
 
-The `Codec` package provides classes to convert text from/to UTF-8. It allow to
-use files using a different encoding. A codec class is mainlly used by the
-{System.File.setCodec} method.
+The `Codec` package provides classes to convert text from/to UTF-8. It allow to use files using a different encoding.
+A codec class is mainly used by the {Serializer.TextStream.setCodec} method.

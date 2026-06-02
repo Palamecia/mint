@@ -28,6 +28,7 @@
 load test.suite
 load mint.type
 load system.terminal
+load exception.exception
 
 package Test {
 
@@ -95,17 +96,43 @@ package Test {
 				}
 				try {
 					self.${test}()
-				} catch e {
-					if defined e.show {
-						e.show()
-					} else {
-						print (System.stderr) {
-							System.IO.bold()
-							System.IO.red()
-							'exception (%s): %s' % (typeof e, e.toString())
+				} catch error {
+					print (System.stderr) {
+						for let cause in Exception.causes(error) {
+							System.IO.magenta()
+							'Caused by:\n'
+							System.IO.reset()
+							for let stackFrame in cause.stacktrace() {
+								'  '
+								System.IO.magenta()
+								stackFrame.toString()
+								System.IO.reset()
+								'\n    '
+								System.IO.magenta()
+								stackFrame.getSourceLine()
+								System.IO.reset()
+								'\n'
+							}
+							System.IO.magenta()
+							'%s\n\n' % cause.getObject().toString()
+							System.IO.reset()
+						}
+						for let stackFrame in Exception.stacktrace() {
+							'  '
+							System.IO.magenta()
+							stackFrame.toString()
+							System.IO.reset()
+							'\n    '
+							System.IO.magenta()
+							stackFrame.getSourceLine()
 							System.IO.reset()
 							'\n'
 						}
+						System.IO.bold()
+						System.IO.red()
+						'exception (%s): %s' % (typeof error, error.toString())
+						System.IO.reset()
+						'\n'
 					}
 					self.failuresCount++
 				}
@@ -171,7 +198,7 @@ package Test {
 			if not predicate(...args) {
 				print (System.IO) {
 					System.IO.magenta()
-					Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					'  ' + Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"\tPredicate is false for: %s\n" % Test.Case.printValue(args)
 					System.IO.reset()
 				}
@@ -187,7 +214,7 @@ package Test {
 			if expected != result {
 				print (System.IO) {
 					System.IO.magenta()
-					Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					'  ' + Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"\tValue of: %s\n" % Test.Case.printValue(result)
 					"\tExpected: %s\n" % Test.Case.printValue(expected)
 					defined message ? '\t' + message + '\n' : ''
@@ -205,7 +232,7 @@ package Test {
 			if expected == result {
 				print (System.IO) {
 					System.IO.magenta()
-					Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					'  ' + Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"\tExpected: %s != %s\n" % (Test.Case.printValue(expected), Test.Case.printValue(result))
 					defined message ? '\t' + message + '\n' : ''
 					System.IO.reset()
@@ -223,7 +250,7 @@ package Test {
 			if not (expected is result) {
 				print (System.IO) {
 					System.IO.magenta()
-					Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					'  ' + Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"\tAddress of: 0x%P\n" % result
 					"\tExpected:   0x%P\n" % expected
 					defined message ? '\t' + message + '\n' : ''
@@ -241,7 +268,7 @@ package Test {
 			if expected is result {
 				print (System.IO) {
 					System.IO.magenta()
-					Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					'  ' + Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"\tExpected: 0x%P != 0x%P\n" % (expected, result)
 					defined message ? '\t' + message + '\n' : ''
 					System.IO.reset()
@@ -258,7 +285,7 @@ package Test {
 			if not defined value {
 				print (System.IO) {
 					System.IO.magenta()
-					Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					'  ' + Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"\tExpected defined\n"
 					defined message ? '\t' + message + '\n' : ''
 					System.IO.reset()
@@ -275,7 +302,7 @@ package Test {
 			if defined value {
 				print (System.IO) {
 					System.IO.magenta()
-					Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
+					'  ' + Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
 					"\tExpected not defined: %s\n" % (Test.Case.printValue(value))
 					defined message ? '\t' + message + '\n' : ''
 					System.IO.reset()
@@ -318,7 +345,7 @@ package Test {
 		}
 		
 		/// Global library handle.
-		- @g_lib = lib('libmint-test')
+		- @const g_lib = lib('libmint-test')
 		
 		/// Internal list of found test methods.
 		- final found = []

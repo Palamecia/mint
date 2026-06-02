@@ -21,6 +21,9 @@
  * IN THE SOFTWARE.
  */
 
+#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/ast/symbol.h"
+#include "mint/config.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/function_tools.h"
@@ -28,150 +31,442 @@
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/processor.h"
-#include "scheduler.h"
+#include "mint/scheduler/scheduler.h"
+#include "mint/system/async_io.h"
+#include "mint/system/errno.h"
+#include <bit>
 #include <cerrno>
+#include <cstdio>
 #include <cstring>
+#include <functional>
 #include <memory>
+#include <system_error>
+#include <tuple>
+#include <unordered_map>
+#include <utility>
+#include <variant>
 #include "socket.h"
 
 #ifdef MINT_OS_WINDOWS
-#include <bit>
-#include <Windows.h>
 #include <WinSock2.h>
+#include <MSWSock.h>
+#include <afunix.h>
+#include <handleapi.h>
+#include <ws2def.h>
+#include <ws2ipdef.h>
+#include <minwindef.h>
+#include <winerror.h>
 #else
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+#include <sys/epoll.h>
+#endif
 #include <asm-generic/ioctls.h>
 #include <asm-generic/socket.h>
 #include <bits/types/struct_timeval.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <unistd.h>
 #endif
 
-#ifdef MINT_OS_WINDOWS
-#define SOCKOPT_CAST(__value) std::bit_cast<char*>(__value)
-#else
-#define SOCKOPT_CAST(__value) (__value)
+#ifdef MINT_ASYNC_BACKEND_IO_URING
+#include <liburing.h>
 #endif
 
-bool mint::get_socket_option(SOCKET socket, int option, int* value) {
-	return get_socket_option(socket, SOL_SOCKET, option, value);
+namespace {
+
+#ifdef MINT_OS_WINDOWS
+constexpr char* sockopt_cast(auto* value) {
+	return reinterpret_cast<char*>(value);
+}
+#else
+constexpr auto* sockopt_cast(auto* value) {
+	return value;
+}
+#endif
+
 }
 
-bool mint::set_socket_option(SOCKET socket, int option, int value) {
-	return set_socket_option(socket, SOL_SOCKET, option, value);
+#ifdef MINT_OS_WINDOWS
+mint_network::SocketManager::SocketManager() :
+    _wsa_data {} {
+	WSAStartup(MAKEWORD(2, 0), &_wsa_data);
+}
+#else
+mint_network::SocketManager::SocketManager() {}
+#endif
+
+mint_network::SocketManager::~SocketManager() {
+#ifdef MINT_OS_WINDOWS
+	WSACleanup();
+#endif
 }
 
-bool mint::get_socket_option(SOCKET socket, int option, sockopt_bool* value) {
-	return get_socket_option(socket, SOL_SOCKET, option, value);
+mint_network::SocketManager& mint_network::SocketManager::instance() {
+	static SocketManager g_instance;
+	return g_instance;
 }
 
-bool mint::set_socket_option(SOCKET socket, int option, sockopt_bool value) {
-	return set_socket_option(socket, SOL_SOCKET, option, value);
+SOCKET mint_network::SocketManager::open_socket(int domain, int type, int protocol) {
+#ifdef MINT_OS_WINDOWS
+	const auto socket = WSASocketW(domain, type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
+#else
+	const auto socket = ::socket(domain, type, protocol);
+#endif
+
+	if (socket != INVALID_SOCKET) {
+		_sockets.emplace(socket, SocketInfo {
+		                             .native = true,
+		                             .blocked = false,
+		                             .blocking = true,
+		                             .listening = false,
+		                         });
+	}
+
+	return socket;
 }
 
-bool mint::get_socket_option(SOCKET socket, int option, linger* value) {
-	return get_socket_option(socket, SOL_SOCKET, option, value);
+void mint_network::SocketManager::accept_socket(SOCKET socket) {
+	_sockets.emplace(socket, SocketInfo {
+	                             .native = true,
+	                             .blocked = false,
+	                             .blocking = true,
+	                             .listening = false,
+	                         });
 }
 
-bool mint::set_socket_option(SOCKET socket, int option, const linger* value) {
-	return set_socket_option(socket, SOL_SOCKET, option, value);
+void mint_network::SocketManager::close_socket(SOCKET socket) {
+	_sockets.erase(socket);
+#ifdef MINT_OS_WINDOWS
+	if (closesocket(socket) != 0) {
+		throw std::system_error(last_socket_error_code());
+	}
+#else
+	if (close(socket) != 0) {
+		throw std::system_error(last_socket_error_code());
+	}
+#endif
 }
 
-bool mint::get_socket_option(SOCKET socket, int option, timeval* value) {
-	return get_socket_option(socket, SOL_SOCKET, option, value);
+SOCKET mint_network::SocketManager::open_socket_from_handle(mint::handle_t handle) {
+	auto socket = std::bit_cast<SOCKET>(handle);
+	if (socket != INVALID_SOCKET) {
+		_sockets.emplace(socket, SocketInfo {
+		                             .native = false,
+		                             .blocked = false,
+		                             .blocking = true,
+		                             .listening = false,
+		                         });
+	}
+	return socket;
 }
 
-bool mint::set_socket_option(SOCKET socket, int option, const timeval* value) {
-	return set_socket_option(socket, SOL_SOCKET, option, value);
+void mint_network::SocketManager::accept_socket_from_handle(mint::handle_t handle) {
+	auto socket = std::bit_cast<SOCKET>(handle);
+	_sockets.emplace(socket, SocketInfo {
+	                             .native = false,
+	                             .blocked = false,
+	                             .blocking = true,
+	                             .listening = false,
+	                         });
 }
 
-bool mint::get_socket_option(SOCKET socket, int level, int option, int* value) {
-	socklen_t len = sizeof(int);
-	return getsockopt(socket, level, option, SOCKOPT_CAST(value), &len) == 0;
+void mint_network::SocketManager::close_socket_from_handle(mint::handle_t handle) {
+	_sockets.erase(std::bit_cast<SOCKET>(handle));
+#ifdef MINT_OS_WINDOWS
+	if (!CloseHandle(handle)) {
+		throw std::system_error(last_socket_error_code());
+	}
+#else
+	if (close(handle) != 0) {
+		throw std::system_error(last_socket_error_code());
+	}
+#endif
 }
 
-bool mint::set_socket_option(SOCKET socket, int level, int option, int value) {
-	return setsockopt(socket, level, option, reinterpret_cast<const char*>(&value), sizeof(value)) == 0;
+bool mint_network::SocketManager::is_native_socket(SOCKET socket) const {
+	if (const auto it = _sockets.find(socket); it != _sockets.end()) {
+		return it->second.native;
+	}
+	return false;
 }
 
-bool mint::get_socket_option(SOCKET socket, int level, int option, u_char* value) {
-	socklen_t len = sizeof(u_char);
-	return getsockopt(socket, level, option, SOCKOPT_CAST(value), &len) == 0;
+bool mint_network::SocketManager::is_socket_listening(SOCKET socket) const {
+	if (const auto it = _sockets.find(socket); it != _sockets.end()) {
+		return it->second.listening;
+	}
+	return false;
 }
 
-bool mint::set_socket_option(SOCKET socket, int level, int option, u_char value) {
-	return setsockopt(socket, level, option, reinterpret_cast<const char*>(&value), sizeof(value)) == 0;
+void mint_network::SocketManager::set_socket_listening(SOCKET socket, bool listening) {
+	if (const auto it = _sockets.find(socket); it != _sockets.end()) {
+		it->second.listening = listening;
+	}
 }
 
-bool mint::get_socket_option(SOCKET socket, int level, int option, sockopt_bool* value) {
-	socklen_t len = sizeof(sockopt_bool);
-	return getsockopt(socket, level, option, SOCKOPT_CAST(value), &len) == 0;
+bool mint_network::SocketManager::is_socket_blocking(SOCKET socket) const {
+	if (const auto it = _sockets.find(socket); it != _sockets.end()) {
+		return it->second.blocking;
+	}
+	return true;
 }
 
-bool mint::set_socket_option(SOCKET socket, int level, int option, sockopt_bool value) {
-	return setsockopt(socket, level, option, reinterpret_cast<const char*>(&value), sizeof(value)) == 0;
+void mint_network::SocketManager::set_socket_blocking(SOCKET socket, bool blocking) {
+	if (const auto it = _sockets.find(socket); it != _sockets.end()) {
+		it->second.blocking = blocking;
+	}
 }
 
-bool mint::get_socket_option(SOCKET socket, int level, int option, void* value, socklen_t len) {
-	return getsockopt(socket, level, option, SOCKOPT_CAST(value), &len) == 0;
+bool mint_network::SocketManager::is_socket_blocked(SOCKET socket) const {
+	if (const auto it = _sockets.find(socket); it != _sockets.end()) {
+		return it->second.blocked;
+	}
+	return false;
 }
 
-bool mint::set_socket_option(SOCKET socket, int level, int option, const void* value, socklen_t len) {
-	return setsockopt(socket, level, option, reinterpret_cast<const char*>(value), len) == 0;
+void mint_network::SocketManager::set_socket_blocked(SOCKET socket, bool blocked) {
+	if (const auto it = _sockets.find(socket); it != _sockets.end()) {
+		it->second.blocked = blocked;
+	}
+}
+
+mint::Reference mint_network::create_socket(mint::AbstractSyntaxTree& ast, SOCKET socket) {
+	return mint::create_handle(ast, std::bit_cast<mint::handle_t>(socket));
+}
+
+std::tuple<sockaddr*, socklen_t> mint_network::to_sockaddr(const mint::Reference& reference) {
+	switch (auto* address = reference.data<mint::LibObject<sockaddr>>().ptr; address->sa_family) {
+	case AF_INET:
+		return {address, static_cast<socklen_t>(sizeof(sockaddr_in))};
+	case AF_INET6:
+		return {address, static_cast<socklen_t>(sizeof(sockaddr_in6))};
+#ifdef AF_UNIX
+	case AF_UNIX:
+		return {address, static_cast<socklen_t>(sizeof(sockaddr_un))};
+#endif
+	default:
+		throw std::system_error(std::make_error_code(std::errc::address_family_not_supported));
+	}
+}
+
+void mint_network::get_socket_option(SOCKET socket, int level, int option, void* value, socklen_t len) {
+	if (getsockopt(socket, level, option, sockopt_cast(value), &len) != 0) {
+		throw std::system_error(last_socket_error_code());
+	}
+}
+
+void mint_network::set_socket_option(SOCKET socket, int level, int option, const void* value, socklen_t len) {
+	if (setsockopt(socket, level, option, reinterpret_cast<const char*>(value), len) != 0) {
+		throw std::system_error(last_socket_error_code());
+	}
+}
+
+void mint_network::set_socket_non_blocking(SOCKET socket, bool enabled) {
+#ifdef MINT_OS_WINDOWS
+	auto value = static_cast<u_long>(enabled);
+	if (ioctlsocket(socket, FIONBIO, &value) == SOCKET_ERROR) {
+		throw std::system_error(mint_network::last_socket_error_code());
+	}
+#else
+	auto value = static_cast<int>(enabled);
+	if (ioctl(socket, FIONBIO, &value) == -1) {
+		throw std::system_error(mint_network::last_socket_error_code());
+	}
+#endif
+}
+
+std::error_code mint_network::last_socket_error_code() {
+	return {errno_from_socket_last_error(), std::generic_category()};
+}
+
+int mint_network::errno_from_socket_last_error() {
+#ifdef MINT_OS_WINDOWS
+	static const std::unordered_map<int, int> g_errno_for = {
+	    {WSAEINTR, ECANCELED},
+	    {WSAEBADF, EBADF},
+	    {WSAEACCES, EACCES},
+	    {WSAEFAULT, EFAULT},
+	    {WSAEINVAL, EINVAL},
+	    {WSAEMFILE, EMFILE},
+	    {WSAEWOULDBLOCK, EWOULDBLOCK},
+	    {WSAEINPROGRESS, EINPROGRESS},
+	    {WSAEALREADY, EALREADY},
+	    {WSAENOTSOCK, ENOTSOCK},
+	    {WSAEDESTADDRREQ, EDESTADDRREQ},
+	    {WSAEMSGSIZE, EMSGSIZE},
+	    {WSAEPROTOTYPE, EPROTOTYPE},
+	    {WSAENOPROTOOPT, ENOPROTOOPT},
+	    {WSAEPROTONOSUPPORT, EPROTONOSUPPORT},
+#ifdef ESOCKTNOSUPPORT
+	    {WSAESOCKTNOSUPPORT, ESOCKTNOSUPPORT},
+#endif
+	    {WSAEOPNOTSUPP, EOPNOTSUPP},
+#ifdef EPFNOSUPPORT
+	    {WSAEPFNOSUPPORT, EPFNOSUPPORT},
+#endif
+	    {WSAEAFNOSUPPORT, EAFNOSUPPORT},
+	    {WSAEADDRINUSE, EADDRINUSE},
+	    {WSAEADDRNOTAVAIL, EADDRNOTAVAIL},
+	    {WSAENETDOWN, ENETDOWN},
+	    {WSAENETUNREACH, ENETUNREACH},
+	    {WSAENETRESET, ENETRESET},
+	    {WSAECONNABORTED, ECONNABORTED},
+	    {WSAECONNRESET, ECONNRESET},
+	    {WSAENOBUFS, ENOBUFS},
+	    {WSAEISCONN, EISCONN},
+	    {WSAENOTCONN, ENOTCONN},
+#ifdef ESHUTDOWN
+	    {WSAESHUTDOWN, ESHUTDOWN},
+#endif
+#ifdef ETOOMANYREFS
+	    {WSAETOOMANYREFS, ETOOMANYREFS},
+#endif
+	    {WSAETIMEDOUT, ETIMEDOUT},
+	    {WSAECONNREFUSED, ECONNREFUSED},
+	    {WSAELOOP, ELOOP},
+	    {WSAENAMETOOLONG, ENAMETOOLONG},
+#ifdef EHOSTDOWN
+	    {WSAEHOSTDOWN, EHOSTDOWN},
+#endif
+	    {WSAEHOSTUNREACH, EHOSTUNREACH},
+	    {WSAENOTEMPTY, ENOTEMPTY},
+#ifdef EPROCLIM
+	    {WSAEPROCLIM, EPROCLIM},
+#endif
+#ifdef EUSERS
+	    {WSAEUSERS, EUSERS},
+#endif
+#ifdef EDQUOT
+	    {WSAEDQUOT, EDQUOT},
+#endif
+#ifdef ESTALE
+	    {WSAESTALE, ESTALE},
+#endif
+#ifdef EREMOTE
+	    {WSAEREMOTE, EREMOTE},
+#endif
+	    /** @todo
+		{ WSASYSNOTREADY, },
+		{ WSAVERNOTSUPPORTED, },
+		{ WSANOTINITIALISED, },
+		{ WSAEDISCON, },
+		{ WSAENOMORE, },
+		{ WSAECANCELLED, },
+		{ WSAEINVALIDPROCTABLE, },
+		{ WSAEINVALIDPROVIDER, },
+		{ WSAEPROVIDERFAILEDINIT, },
+		{ WSASYSCALLFAILURE, },
+		{ WSASERVICE_NOT_FOUND, },
+		{ WSATYPE_NOT_FOUND, },
+		{ WSA_E_NO_MORE, },
+		{ WSA_E_CANCELLED, },
+		{ WSAEREFUSED, },
+		{ WSAHOST_NOT_FOUND, },
+		{ WSATRY_AGAIN, },
+		{ WSANO_RECOVERY, },
+		{ WSANO_DATA, },
+		{ WSA_QOS_RECEIVERS, },
+		{ WSA_QOS_SENDERS, },
+		{ WSA_QOS_NO_SENDERS, },
+		{ WSA_QOS_NO_RECEIVERS, },
+		{ WSA_QOS_REQUEST_CONFIRMED, },
+		{ WSA_QOS_ADMISSION_FAILURE, },
+		{ WSA_QOS_POLICY_FAILURE, },
+		{ WSA_QOS_BAD_STYLE, },
+		{ WSA_QOS_BAD_OBJECT, },
+		{ WSA_QOS_TRAFFIC_CTRL_ERROR, },
+		{ WSA_QOS_GENERIC_ERROR, },
+		{ WSA_QOS_ESERVICETYPE, },
+		{ WSA_QOS_EFLOWSPEC, },
+		{ WSA_QOS_EPROVSPECBUF, },
+		{ WSA_QOS_EFILTERSTYLE, },
+		{ WSA_QOS_EFILTERTYPE, },
+		{ WSA_QOS_EFILTERCOUNT, },
+		{ WSA_QOS_EOBJLENGTH, },
+		{ WSA_QOS_EFLOWCOUNT, },
+		{ WSA_QOS_EUNKOWNPSOBJ, },
+		{ WSA_QOS_EPOLICYOBJ, },
+		{ WSA_QOS_EFLOWDESC, },
+		{ WSA_QOS_EPSFLOWSPEC, },
+		{ WSA_QOS_EPSFILTERSPEC, },
+		{ WSA_QOS_ESDMODEOBJ, },
+		{ WSA_QOS_ESHAPERATEOBJ, },
+		{ WSA_QOS_RESERVED_PETYPE, },
+		{ WSA_SECURE_HOST_NOT_FOUND, },
+		{ WSA_IPSEC_NAME_POLICY_ERROR, }
+		*/
+	};
+
+	const auto it = g_errno_for.find(WSAGetLastError());
+	return (it != g_errno_for.end()) ? it->second : EINVAL;
+#else
+	return errno;
+#endif
 }
 
 namespace {
 
-mint::Reference mint_socket_is_non_blocking(mint::Cursor& cursor, const mint::Reference& socket) {
+std::tuple<sockaddr_storage, socklen_t> make_local_endpoint_for_connect(const sockaddr& remote) {
+	switch (remote.sa_family) {
+	case AF_INET:
+		{
+			auto storage = sockaddr_storage {
+			    .ss_family = AF_INET,
+			};
+			auto* addr = reinterpret_cast<sockaddr_in*>(&storage);
+			addr->sin_addr.s_addr = htonl(INADDR_ANY);
+			addr->sin_port = 0;
+			return {storage, sizeof(sockaddr_in)};
+		}
 
-	bool status = false;
-	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
+	case AF_INET6:
+		{
+			auto storage = sockaddr_storage {
+			    .ss_family = AF_INET6,
+			};
 
-#ifdef MINT_OS_WINDOWS
-	status = Scheduler::instance().is_socket_blocking(socket_fd);
-#else
-	int flags = 0;
+			auto* addr = reinterpret_cast<sockaddr_in6*>(&storage);
+			addr->sin6_family = AF_INET6;
+			addr->sin6_addr = in6addr_any;
+			addr->sin6_port = 0;
+			return {storage, sizeof(sockaddr_in6)};
+		}
 
-	if ((flags = fcntl(socket_fd, F_GETFL, 0)) != -1) {
-		status = flags & O_NONBLOCK;
+	default:
+		throw std::system_error(std::make_error_code(std::errc::address_family_not_supported));
 	}
-#endif
-
-	return mint::create_boolean(status);
 }
 
-mint::Reference mint_socket_set_non_blocking(mint::Cursor& cursor, const mint::Reference& socket,
-    mint::Reference& enabled) {
+mint::Reference mint_socket_is_non_blocking(mint::Cursor& /*cursor*/, const mint::Reference& socket) {
 
-	bool success = false;
-	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
+	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 
-#ifdef MINT_OS_WINDOWS
-	auto value = static_cast<u_long>(to_boolean(enabled));
-
-	if (ioctlsocket(socket_fd, FIONBIO, &value) != SOCKET_ERROR) {
-		success = true;
-	}
-	else {
-		return mint::create_number(errno_from_io_last_error());
-	}
-#else
-	int value = static_cast<int>(mint::to_boolean(enabled));
-
-	if (ioctl(socket_fd, FIONBIO, &value) != -1) {
-		success = true;
-	}
-	else {
-		return mint::create_number(errno);
+#ifndef MINT_OS_WINDOWS
+	if (const auto flags = fcntl(socket_fd, F_GETFL, 0); flags != -1) {
+		return mint::create_boolean(flags & O_NONBLOCK);
 	}
 #endif
 
-	if (success) {
-		Scheduler::instance().set_socket_blocking(socket_fd, value != 0);
+	return mint::create_boolean(!mint_network::SocketManager::instance().is_socket_blocking(socket_fd));
+}
+
+mint::Reference mint_socket_set_non_blocking(mint::Cursor& /*cursor*/, const mint::Reference& socket,
+    mint::Reference& enabled) {
+
+	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+	const auto value = to_boolean(enabled);
+
+	try {
+		mint_network::set_socket_non_blocking(socket_fd, value);
+	}
+	catch (const std::system_error& error) {
+		return mint::create_number(error.code().value());
 	}
 
+	mint_network::SocketManager::instance().set_socket_blocking(socket_fd, !value);
 	return {};
 }
 
@@ -275,16 +570,15 @@ mint::Reference mint_socket_get_option_number(mint::Cursor& cursor, const mint::
 
 	mint::Reference result = mint::create_iterator(cursor.ast());
 
-	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
-	const auto option_id = mint::to_integer<int>(cursor, option);
-	int option_value = 0;
-
-	if (mint::get_socket_option(socket_fd, option_id, &option_value)) {
+	try {
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto option_id = mint::to_integer<int>(cursor, option);
+		const auto option_value = mint_network::get_socket_option<int>(socket_fd, option_id);
 		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(option_value));
 	}
-	else {
+	catch (const std::system_error& error) {
 		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
 	}
 
 	return result;
@@ -293,12 +587,14 @@ mint::Reference mint_socket_get_option_number(mint::Cursor& cursor, const mint::
 mint::Reference mint_socket_set_option_number(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option, const mint::Reference& value) {
 
-	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
-	const auto option_id = mint::to_integer<int>(cursor, option);
-	const auto option_value = mint::to_integer<int>(cursor, value);
-
-	if (!mint::set_socket_option(socket_fd, option_id, option_value)) {
-		return mint::create_number(errno_from_io_last_error());
+	try {
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto option_id = mint::to_integer<int>(cursor, option);
+		const auto option_value = mint::to_integer<int>(cursor, value);
+		mint_network::set_socket_option(socket_fd, option_id, option_value);
+	}
+	catch (const std::system_error& error) {
+		return mint::create_number(error.code().value());
 	}
 
 	return {};
@@ -309,16 +605,16 @@ mint::Reference mint_socket_get_option_boolean(mint::Cursor& cursor, const mint:
 
 	mint::Reference result = mint::create_iterator(cursor.ast());
 
-	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
-	const auto option_id = mint::to_integer<int>(cursor, option);
-	mint::sockopt_bool option_value = mint::sockopt_false;
-
-	if (mint::get_socket_option(socket_fd, option_id, &option_value)) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_boolean(option_value != mint::sockopt_false));
+	try {
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto option_id = mint::to_integer<int>(cursor, option);
+		const auto option_value = mint_network::get_socket_option<mint_network::sockopt_bool>(socket_fd, option_id);
+		iterator_yield(cursor, result.data<mint::Iterator>(),
+		    mint::create_boolean(option_value != mint_network::sockopt_false));
 	}
-	else {
+	catch (const std::system_error& error) {
 		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
 	}
 
 	return result;
@@ -327,12 +623,14 @@ mint::Reference mint_socket_get_option_boolean(mint::Cursor& cursor, const mint:
 mint::Reference mint_socket_set_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option, const mint::Reference& value) {
 
-	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
-	const auto option_id = to_integer<int>(cursor, option);
-	const mint::sockopt_bool option_value = to_boolean(value) ? mint::sockopt_true : mint::sockopt_false;
-
-	if (!mint::set_socket_option(socket_fd, option_id, option_value)) {
-		return mint::create_number(errno_from_io_last_error());
+	try {
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto option_id = to_integer<int>(cursor, option);
+		const auto option_value = to_boolean(value) ? mint_network::sockopt_true : mint_network::sockopt_false;
+		mint_network::set_socket_option(socket_fd, option_id, option_value);
+	}
+	catch (const std::system_error& error) {
+		return mint::create_number(error.code().value());
 	}
 
 	return {};
@@ -343,17 +641,16 @@ mint::Reference mint_socket_get_option_linger(mint::Cursor& cursor, const mint::
 
 	mint::Reference result = mint::create_iterator(cursor.ast());
 
-	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
-	const auto option_id = mint::to_integer<int>(cursor, option);
-	auto option_value = std::make_unique<linger>();
-
-	if (mint::get_socket_option(socket_fd, option_id, option_value.get())) {
+	try {
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto option_id = mint::to_integer<int>(cursor, option);
+		auto option_value = mint_network::get_socket_option<std::unique_ptr<linger>>(socket_fd, option_id);
 		iterator_yield(cursor, result.data<mint::Iterator>(),
 		    mint::create_c_object(cursor.ast(), option_value.release()));
 	}
-	else {
+	catch (const std::system_error& error) {
 		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
 	}
 
 	return result;
@@ -362,12 +659,14 @@ mint::Reference mint_socket_get_option_linger(mint::Cursor& cursor, const mint::
 mint::Reference mint_socket_set_option_linger(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option, const mint::Reference& value) {
 
-	const auto socket_fd = to_integer<SOCKET>(cursor, socket);
-	const auto option_id = to_integer<int>(cursor, option);
-	const linger* option_value = value.data<mint::LibObject<linger>>().ptr;
-
-	if (!mint::set_socket_option(socket_fd, option_id, option_value)) {
-		return mint::create_number(errno_from_io_last_error());
+	try {
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto option_id = to_integer<int>(cursor, option);
+		const auto* option_value = value.data<mint::LibObject<linger>>().ptr;
+		mint_network::set_socket_option(socket_fd, option_id, *option_value);
+	}
+	catch (const std::system_error& error) {
+		return mint::create_number(error.code().value());
 	}
 
 	return {};
@@ -378,17 +677,16 @@ mint::Reference mint_socket_get_option_timeval(mint::Cursor& cursor, const mint:
 
 	mint::Reference result = mint::create_iterator(cursor.ast());
 
-	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
-	const auto option_id = mint::to_integer<int>(cursor, option);
-	auto option_value = std::make_unique<timeval>();
-
-	if (mint::get_socket_option(socket_fd, option_id, option_value.get())) {
+	try {
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto option_id = mint::to_integer<int>(cursor, option);
+		auto option_value = mint_network::get_socket_option<std::unique_ptr<timeval>>(socket_fd, option_id);
 		iterator_yield(cursor, result.data<mint::Iterator>(),
 		    mint::create_c_object(cursor.ast(), option_value.release()));
 	}
-	else {
+	catch (const std::system_error& error) {
 		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno_from_io_last_error()));
+		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
 	}
 
 	return result;
@@ -397,50 +695,297 @@ mint::Reference mint_socket_get_option_timeval(mint::Cursor& cursor, const mint:
 mint::Reference mint_socket_set_option_timeval(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option, const mint::Reference& value) {
 
-	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
-	const auto option_id = mint::to_integer<int>(cursor, option);
-	const timeval* option_value = value.data<mint::LibObject<timeval>>().ptr;
-
-	if (!mint::set_socket_option(socket_fd, option_id, option_value)) {
-		return mint::create_number(errno_from_io_last_error());
+	try {
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto option_id = mint::to_integer<int>(cursor, option);
+		const auto* option_value = value.data<mint::LibObject<timeval>>().ptr;
+		mint_network::set_socket_option(socket_fd, option_id, *option_value);
+	}
+	catch (const std::system_error& error) {
+		return mint::create_number(error.code().value());
 	}
 
 	return {};
+}
+
+mint::Reference mint_socket_bind(mint::Cursor& /*cursor*/, const mint::Reference& socket,
+    const mint::Reference& endpoint) {
+	try {
+
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto [address, address_length] = mint_network::to_sockaddr(endpoint);
+
+		if (::bind(socket_fd, address, address_length) != 0) {
+			return mint::create_number(mint_network::errno_from_socket_last_error());
+		}
+
+		return {};
+	}
+	catch (const std::system_error& error) {
+		return mint::create_number(error.code().value());
+	}
+}
+
+mint::Reference mint_socket_connect(mint::FunctionHelper& helper, const mint::Reference& socket,
+    mint::Reference& endpoint) {
+
+	auto io_status = helper.reference(mint_network::symbols::network)
+	                     .member(mint_network::symbols::socket)
+	                     .member(mint_network::symbols::io_status);
+
+	try {
+
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto [address, address_length] = mint_network::to_sockaddr(endpoint);
+
+		mint_network::SocketManager::instance().set_socket_listening(socket_fd, false);
+
+		mint::unlock_processor();
+		const auto connect_result = ::connect(socket_fd, address, address_length);
+		mint::lock_processor();
+
+		if (connect_result == 0) {
+			return mint::create_iterator_from(helper.cursor(),
+			    io_status.member(mint_network::symbols::io_success).share());
+		}
+		switch (const int error = mint_network::errno_from_socket_last_error()) {
+		case EINPROGRESS:
+		case EWOULDBLOCK:
+			mint_network::SocketManager::instance().set_socket_blocked(socket_fd, true);
+			return mint::create_iterator_from(helper.cursor(),
+			    io_status.member(mint_network::symbols::io_would_block).share());
+		default:
+			return mint::create_iterator_from(helper.cursor(),
+			    io_status.member(mint_network::symbols::io_error).share(), mint::create_number(error));
+		}
+	}
+	catch (const std::system_error& error) {
+		mint::create_iterator_from(helper.cursor(), io_status.member(mint_network::symbols::io_error).share(),
+		    mint::create_number(error.code().value()));
+	}
+	return {};
+}
+
+mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mint::Reference& self,
+    const mint::Reference& socket, mint::Reference& endpoint) {
+
+	class AsyncConnectOperation : public mint::MintAsyncOperation {
+		std::reference_wrapper<mint::Cursor> _cursor;
+		mint::Reference _io_status;
+		const sockaddr* _remote_address;
+		socklen_t _remote_address_length;
+	public:
+		AsyncConnectOperation(mint::FunctionHelper& helper, mint::Reference self, SOCKET socket_fd,
+		    const sockaddr* address, socklen_t address_length) :
+		    mint::MintAsyncOperation(std::move(self), std::bit_cast<mint::handle_t>(socket_fd)),
+		    _cursor(helper.cursor()),
+		    _io_status(helper.reference(mint_network::symbols::network)
+		            .member(mint_network::symbols::socket)
+		            .member(mint_network::symbols::io_status)
+		            .get()),
+		    _remote_address(address),
+		    _remote_address_length(address_length) {}
+
+		std::error_code start() override {
+
+			const auto socket_fd = reinterpret_cast<SOCKET>(get_handle());
+
+#ifdef MINT_ASYNC_BACKEND_IOCP
+			try {
+
+				LPFN_CONNECTEX ConnectEx = nullptr;
+				GUID guid = WSAID_CONNECTEX;
+				DWORD bytes = 0;
+
+				if (WSAIoctl(socket_fd, SIO_GET_EXTENSION_FUNCTION_POINTER, &guid, sizeof(guid), &ConnectEx,
+				        sizeof(ConnectEx), &bytes, nullptr, nullptr)
+				    == SOCKET_ERROR) {
+					return mint_network::last_socket_error_code();
+				}
+
+				auto [local_address, local_address_length] = make_local_endpoint_for_connect(*_remote_address);
+				if (::bind(socket_fd, reinterpret_cast<sockaddr*>(&local_address), local_address_length) != 0) {
+					return mint_network::last_socket_error_code();
+				}
+
+				if (!ConnectEx(socket_fd, _remote_address, _remote_address_length, nullptr, 0, nullptr, this)) {
+					switch (WSAGetLastError()) {
+					case WSA_IO_PENDING:
+						break;
+					default:
+						return mint_network::last_socket_error_code();
+					}
+				}
+			}
+			catch (const std::system_error& error) {
+				return error.code();
+			}
+#elifdef MINT_ASYNC_BACKEND_KQUEUE
+			filter = EVFILT_WRITE;
+			if (pending) {
+				int socket_error = 0;
+				socklen_t socket_error_length = sizeof(socket_error);
+				if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &socket_error, &socket_error_length) < 0) {
+					return mint::last_error_code();
+				}
+				if (socket_error != 0) {
+					return {socket_error, std::generic_category()};
+				}
+				result = 0;
+				return {};
+			}
+			if (connect(socket_fd, _remote_address, _remote_address_length) < 0) {
+				const auto error = errno;
+				if (error != EINPROGRESS && error != EALREADY && error != EWOULDBLOCK) {
+					return mint::last_error_code();
+				}
+				return {EAGAIN, std::generic_category()};
+			}
+#elifdef MINT_OS_LINUX
+			return std::visit(mint::Overloaded {
+#ifdef MINT_ASYNC_BACKEND_IO_URING
+			                      [&](mint::IoUringOperation& self) -> std::error_code {
+				                      io_uring_prep_connect(self.sqe, socket_fd, _remote_address,
+				                          _remote_address_length);
+				                      return {};
+			                      },
+#endif
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+			                      [&](mint::EPollOperation& self) -> std::error_code {
+				                      self.events = EPOLLOUT;
+				                      if (self.started) {
+					                      int socket_error = 0;
+					                      socklen_t socket_error_length = sizeof(socket_error);
+					                      if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &socket_error,
+					                              &socket_error_length)
+					                          < 0) {
+						                      return mint::last_error_code();
+					                      }
+					                      if (socket_error != 0) {
+						                      return {socket_error, std::generic_category()};
+					                      }
+					                      self.result = 0;
+					                      return {};
+				                      }
+				                      self.started = true;
+				                      const auto _ = mint_network::SocketBlockingModeGuard<false>(socket_fd);
+				                      if (connect(socket_fd, _remote_address, _remote_address_length) < 0) {
+					                      const auto error = errno;
+					                      if (error != EINPROGRESS && error != EALREADY && error != EWOULDBLOCK) {
+						                      return mint::last_error_code();
+					                      }
+					                      return {EAGAIN, std::generic_category()};
+				                      }
+				                      return {};
+			                      },
+#endif
+			                      [](std::monostate) -> std::error_code {
+				                      return std::make_error_code(std::errc::not_supported);
+			                      },
+			                  },
+			    *this);
+#else
+#error "This operation is not implemented for this platform"
+#endif
+			return {};
+		}
+
+		void complete(std::error_code error, std::size_t /*bytes_transferred*/) override {
+			if (error) {
+				done(mint::create_iterator_from(_cursor,
+				    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(), mint_network::symbols::io_error),
+				    mint::create_number(error.value())));
+			}
+			else {
+#ifdef MINT_ASYNC_BACKEND_IOCP
+				const auto socket_fd = reinterpret_cast<SOCKET>(get_handle());
+				try {
+					mint_network::set_socket_option(socket_fd, SO_UPDATE_CONNECT_CONTEXT, nullptr);
+					done(mint::create_iterator_from(_cursor,
+					    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
+					        mint_network::symbols::io_success)));
+				}
+				catch (const std::system_error& error) {
+					done(mint::create_iterator_from(_cursor,
+					    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
+					        mint_network::symbols::io_error),
+					    mint::create_number(error.code().value())));
+				}
+#elifdef MINT_OS_LINUX
+				done(mint::create_iterator_from(_cursor,
+				    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
+				        mint_network::symbols::io_success)));
+#else
+#error "This operation is not implemented for this platform"
+#endif
+			}
+		}
+	};
+
+	try {
+
+		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+		const auto [target, length] = mint_network::to_sockaddr(endpoint);
+
+		return mint::create_iterator_from(helper.cursor(), mint::create_number(0),
+		    mint::create_async_operation(helper.cursor().ast(),
+		        new AsyncConnectOperation(helper, std::move(self), socket_fd, target, length)));
+	}
+	catch (const std::system_error& error) {
+		return mint::create_iterator_from(helper.cursor(), mint::create_number(error.code().value()));
+	}
 }
 
 mint::Reference mint_socket_finalize_connection(mint::FunctionHelper& helper, const mint::Reference& socket) {
 
 	mint::Reference result = mint::create_iterator(helper.cursor().ast());
 
-	int error = EINVAL;
-	const auto socket_fd = mint::to_integer<SOCKET>(helper.cursor(), socket);
-	auto io_status =
-	    helper.reference(mint::symbols::network).member(mint::symbols::end_point).member(mint::symbols::io_status);
+	int socket_error = EINVAL;
+	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+	auto io_status = helper.reference(mint_network::symbols::network)
+	                     .member(mint_network::symbols::socket)
+	                     .member(mint_network::symbols::io_status);
 
-	if (!mint::get_socket_option(socket_fd, SO_ERROR, &error)) {
-		error = errno_from_io_last_error();
+	try {
+		socket_error = mint_network::get_socket_option<int>(socket_fd, SO_ERROR);
+	}
+	catch (const std::system_error& error) {
+		socket_error = error.code().value();
 	}
 
-	switch (error) {
+	switch (socket_error) {
 	case 0:
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
-		    io_status.member(mint::symbols::io_success).share());
+		    io_status.member(mint_network::symbols::io_success).share());
 		break;
 	case EALREADY:
 	case EINPROGRESS:
 	case EWOULDBLOCK:
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
-		    io_status.member(mint::symbols::io_would_block).share());
-		Scheduler::instance().set_socket_blocked(socket_fd, true);
+		    io_status.member(mint_network::symbols::io_would_block).share());
+		mint_network::SocketManager::instance().set_socket_blocked(socket_fd, true);
 		break;
 	default:
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
-		    io_status.member(mint::symbols::io_error).share());
-		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(error));
+		    io_status.member(mint_network::symbols::io_error).share());
+		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(socket_error));
 		break;
 	}
 
 	return result;
+}
+
+mint::Reference mint_socket_listen(mint::Cursor& cursor, const mint::Reference& socket, const mint::Reference& backlog) {
+
+	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+
+	mint_network::SocketManager::instance().set_socket_listening(socket_fd, true);
+
+	if (::listen(socket_fd, to_integer<int>(cursor, backlog)) != 0) {
+		return mint::create_number(mint_network::errno_from_socket_last_error());
+	}
+
+	return {};
 }
 
 mint::Reference mint_socket_shutdown(mint::FunctionHelper& helper, const mint::Reference& socket) {
@@ -452,9 +997,10 @@ mint::Reference mint_socket_shutdown(mint::FunctionHelper& helper, const mint::R
 #else
 	const int how = SHUT_RDWR;
 #endif
-	const auto socket_fd = mint::to_integer<SOCKET>(helper.cursor(), socket);
-	auto io_status =
-	    helper.reference(mint::symbols::network).member(mint::symbols::end_point).member(mint::symbols::io_status);
+	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
+	auto io_status = helper.reference(mint_network::symbols::network)
+	                     .member(mint_network::symbols::socket)
+	                     .member(mint_network::symbols::io_status);
 
 	mint::unlock_processor();
 	const auto shutdown_result = ::shutdown(socket_fd, how);
@@ -462,23 +1008,23 @@ mint::Reference mint_socket_shutdown(mint::FunctionHelper& helper, const mint::R
 
 	if (shutdown_result == 0) {
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
-		    io_status.member(mint::symbols::io_success).share());
+		    io_status.member(mint_network::symbols::io_success).share());
 	}
 	else {
-		switch (const int error = errno_from_io_last_error()) {
+		switch (const int error = mint_network::errno_from_socket_last_error()) {
 		case EINPROGRESS:
 		case EWOULDBLOCK:
 			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
-			    io_status.member(mint::symbols::io_would_block).share());
-			Scheduler::instance().set_socket_blocked(socket_fd, true);
+			    io_status.member(mint_network::symbols::io_would_block).share());
+			mint_network::SocketManager::instance().set_socket_blocked(socket_fd, true);
 			break;
 		case ENOTCONN:
 			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
-			    io_status.member(mint::symbols::io_closed).share());
+			    io_status.member(mint_network::symbols::io_closed).share());
 			break;
 		default:
 			iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
-			    io_status.member(mint::symbols::io_error).share());
+			    io_status.member(mint_network::symbols::io_error).share());
 			iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(error));
 			break;
 		}
@@ -487,24 +1033,28 @@ mint::Reference mint_socket_shutdown(mint::FunctionHelper& helper, const mint::R
 	return result;
 }
 
-mint::Reference mint_socket_close(mint::Cursor& cursor, const mint::Reference& socket) {
+mint::Reference mint_socket_close(mint::Cursor& /*cursor*/, const mint::Reference& socket) {
 
-	const auto socket_fd = mint::to_integer<SOCKET>(cursor, socket);
+	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 
-	if (const auto error = Scheduler::instance().close_socket(socket_fd)) {
-		return mint::create_number(error.get_errno());
+	try {
+		mint_network::SocketManager::instance().close_socket(socket_fd);
+	}
+	catch (const std::system_error& error) {
+		return mint::create_number(error.code().value());
 	}
 
 	return {};
 }
 
-mint::Reference mint_socket_get_error(mint::Cursor& cursor, const mint::Reference& socket) {
-
-	if (int error = 0; mint::get_socket_option(mint::to_integer<SOCKET>(cursor, socket), SO_ERROR, &error)) {
-		return mint::create_number(error);
+mint::Reference mint_socket_get_error(mint::Cursor& /*cursor*/, const mint::Reference& socket) {
+	try {
+		return mint::create_number(
+		    mint_network::get_socket_option<int>(std::bit_cast<SOCKET>(mint::to_handle(socket)), SO_ERROR));
 	}
-
-	return mint::create_number(errno_from_io_last_error());
+	catch (const std::system_error& error) {
+		return mint::create_number(error.code().value());
+	}
 }
 
 mint::Reference mint_socket_strerror(mint::Cursor& cursor, const mint::Reference& error) {
@@ -590,7 +1140,11 @@ MINT_EXPORT_FUNCTION(mint_socket_get_option_linger, 2);
 MINT_EXPORT_FUNCTION(mint_socket_set_option_linger, 3);
 MINT_EXPORT_FUNCTION(mint_socket_get_option_timeval, 2);
 MINT_EXPORT_FUNCTION(mint_socket_set_option_timeval, 3);
+MINT_EXPORT_FUNCTION(mint_socket_bind, 2);
+MINT_EXPORT_FUNCTION(mint_socket_connect, 2);
+MINT_EXPORT_FUNCTION(mint_socket_connect_async, 3);
 MINT_EXPORT_FUNCTION(mint_socket_finalize_connection, 1);
+MINT_EXPORT_FUNCTION(mint_socket_listen, 2);
 MINT_EXPORT_FUNCTION(mint_socket_shutdown, 1);
 MINT_EXPORT_FUNCTION(mint_socket_close, 1);
 MINT_EXPORT_FUNCTION(mint_socket_get_error, 1);

@@ -132,8 +132,8 @@ load test.case
         try {
             for let x in gen() {}
             self.fail()
-        } catch e {
-            self.expectEqual("boom", e)
+        } catch error {
+            self.expectEqual("boom", error)
         }
     }
 
@@ -148,8 +148,8 @@ load test.case
                 values.push(x)
             }
             self.fail()
-        } catch e {
-            self.expectEqual("boom", e)
+        } catch error {
+            self.expectEqual("boom", error)
         }
         self.expectEqual([1], values)
     }
@@ -158,7 +158,7 @@ load test.case
         def gen() {
             try {
                 raise "err"
-            } catch e {
+            } catch error {
                 yield "handled"
             }
         }
@@ -184,8 +184,8 @@ load test.case
                 values.push(x)
             }
             self.fail()
-        } catch e {
-            self.expectEqual("bad", e)
+        } catch error {
+            self.expectEqual("bad", error)
         }
         self.expectEqual([1], values)
     }
@@ -200,7 +200,7 @@ load test.case
             for let x in gen() {
                 values.push(x)
             }
-        } catch e {
+        } catch error {
             values.push("caught")
         }
         self.expectEqual([1, "caught"], values)
@@ -231,7 +231,7 @@ load test.case
             try {
                 yield 1
                 raise "boom"
-            } catch e {
+            } catch error {
                 yield 2
             }
         }
@@ -247,7 +247,7 @@ load test.case
             try {
                 yield 1
                 raise "err"
-            } catch e {
+            } catch error {
                 yield 2
                 yield 3
             }
@@ -304,9 +304,9 @@ load test.case
             try {
                 yield 1
                 raise "x"
-            } catch e {
+            } catch error {
                 flag = 42
-                raise e
+                raise
             }
         }
         try {
@@ -322,7 +322,7 @@ load test.case
             try {
                 yield x
                 raise "err"
-            } catch e {
+            } catch error {
                 yield x + 1
             }
         }
@@ -338,7 +338,7 @@ load test.case
             try {
                 yield 1
                 raise "boom"
-            } catch e {
+            } catch error {
                 yield 2
             }
         }
@@ -347,7 +347,7 @@ load test.case
             for let x in gen() {
                 result.push(x)
             }
-        } catch e {
+        } catch error {
             result.push("caller")
         }
         self.expectEqual([1,2], result)
@@ -363,7 +363,7 @@ load test.case
             for let x in gen() {
                 result.push(x)
             }
-        } catch e {
+        } catch error {
             result.push("caller")
         }
         self.expectEqual([1,"caller"], result)
@@ -374,9 +374,9 @@ load test.case
             try {
                 yield 1
                 raise "boom"
-            } catch e {
+            } catch error {
                 yield 2
-                raise e
+                raise
             }
         }
         let result = []
@@ -384,7 +384,7 @@ load test.case
             for let x in gen() {
                 result.push(x)
             }
-        } catch e {
+        } catch error {
             result.push("caller")
         }
         self.expectEqual([1,2,"caller"], result)
@@ -400,7 +400,7 @@ load test.case
             for let x in gen() {
                 try {
                     result.push(x)
-                } catch e {
+                } catch error {
                     result.push("inner")
                 }
             }
@@ -418,7 +418,7 @@ load test.case
         try {
             result.push(g.value())
             result.push(g.next())
-        } catch e {
+        } catch error {
             result.push("caught")
         }
         self.expectEqual([1,"caught"], result)
@@ -430,10 +430,10 @@ load test.case
                 yield 1
                 try {
                     raise "boom"
-                } catch e {
+                } catch error {
                     yield 2
                 }
-            } catch e {
+            } catch error {
                 yield 999
             }
         }
@@ -442,7 +442,7 @@ load test.case
             for let x in gen() {
                 result.push(x)
             }
-        } catch e {
+        } catch error {
             result.push("caller")
         }
         self.expectEqual([1,2], result)
@@ -453,7 +453,7 @@ load test.case
             try {
                 yield 1
                 raise "boom"
-            } catch e {
+            } catch error {
                 raise "rethrow"
             }
         }
@@ -462,8 +462,8 @@ load test.case
             for let x in gen() {
                 result.push(x)
             }
-        } catch e {
-            result.push(e)
+        } catch error {
+            result.push(error)
         }
         self.expectEqual([1,"rethrow"], result)
     }
@@ -479,7 +479,7 @@ load test.case
             for let x in gen() {
                 result.push(x)
             }
-        } catch e {
+        } catch error {
             result.push("caller")
         }
         self.expectEqual([1, none], result)
@@ -491,7 +491,7 @@ load test.case
                 yield 1
                 yield 2
                 raise "boom"
-            } catch e {
+            } catch error {
                 yield 3
             }
         }
@@ -500,7 +500,7 @@ load test.case
             for let x in gen() {
                 result.push(x)
             }
-        } catch e {
+        } catch error {
             result.push("caller")
         }
         self.expectEqual([1,2,3], result)
@@ -511,7 +511,7 @@ load test.case
             try {
                 yield 1
                 raise "boom"
-            } catch e {
+            } catch error {
                 yield 2
             }
         }
@@ -523,8 +523,8 @@ load test.case
                     raise "caller_error"
                 }
             }
-        } catch e {
-            result.push(e)
+        } catch error {
+            result.push(error)
         }
         self.expectEqual([1,2,"caller_error"], result)
     }

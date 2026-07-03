@@ -41,7 +41,7 @@ load mint.range
 load minter.workspace
 load minter.config
 
-enum LspTextDocumentSyncKind {
+@enum LspTextDocumentSyncKind {
 	None = 0
 	Full = 1
 	Incremental = 2
@@ -51,7 +51,7 @@ enum LspTextDocumentSyncKind {
  * This class provides an implementation of the language server protocol for the
  * mint language.
  */
-class MintLspServer {
+@class MintLspServer {
 	/**
 	 * Creates a new language server. The `stream` parameter must implement the
 	 * stream interface (read and write) and will be used to send end receive
@@ -693,7 +693,7 @@ class MintLspServer {
  * `port`. If the `checkParentProcess` is set to `true`, the server will automaticaly
  * be closed if its parent process is closed.
  */
-$def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = MintLspServer) {
+@$def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = MintLspServer) {
 
 	const shutdownServer = def (checkParentProcess, server) {
 		if checkParentProcess {
@@ -759,7 +759,7 @@ $def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = 
  * `checkParentProcess` is set to `true`, the server will automaticaly be closed if
  * its parent process is closed.
  */
-$def startWSLangServer(port, checkParentProcess, MintLspServerClass = MintLspServer) {
+@$def startWSLangServer(port, checkParentProcess, MintLspServerClass = MintLspServer) {
 	
 }
 
@@ -769,7 +769,7 @@ $def startWSLangServer(port, checkParentProcess, MintLspServerClass = MintLspSer
  * set to `true`, the server will automaticaly be closed if its parent process is
  * closed.
  */
-$def startIOLangServer(checkParentProcess, MintLspServerClass = MintLspServer) {
+@$def startIOLangServer(checkParentProcess, MintLspServerClass = MintLspServer) {
 	log.info('Starting %s IO language server', typeof MintLspServerClass)
 	class SystemPipeEndPoint : Network.EndPoint {
 		const def new(self, readFd, writeFd) {

@@ -39,13 +39,13 @@ namespace {
 
 class ResultHandler : public Module {
 public:
-	ResultHandler() {
+	ResultHandler(AbstractSyntaxTree& ast) :
+	    Module(ast) {
 		push_nodes({Node::Command::unload_reference, Node::Command::exit_module});
 	}
 
-	static ResultHandler& instance() {
-		static ResultHandler g_instance;
-		return g_instance;
+	static ResultHandler& instance(AbstractSyntaxTree& ast) {
+		return ast.unique_module<ResultHandler>();
 	}
 };
 
@@ -59,7 +59,7 @@ void ObjectPrinter::print(const Reference& reference) {
 
 	_cursor.get().stack().emplace_back(_object);
 	_cursor.get().stack().emplace_back(reference);
-	_cursor.get().call(ResultHandler::instance(), 0uz, _cursor.get().ast().global_data());
+	_cursor.get().call(ResultHandler::instance(_cursor.get().ast()), 0uz, _cursor.get().ast().global_data());
 
 	if (!call_overload(_cursor, builtin_symbols::write_method, 1)) [[unlikely]] {
 		_cursor.get().exit_module();

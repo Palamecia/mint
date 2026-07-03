@@ -38,7 +38,7 @@ package Network {
 	 * On new connection, an end point is created and pushed to a queue. This end
 	 * point can be retrieved later by calling {Network.AsynchronousChannel.read}.
 	 */
-	class ServerSerializer {
+	@class ServerSerializer {
 		/**
 		 * Creates a new serializer.
 		 */

@@ -32,7 +32,7 @@ package System {
     /**
      * This enum describe each supported operating system types.
      */
-    enum OSType {
+    @enum OSType {
         /// Linux family operating system type.
         Linux
         /// Windows family operating system type.
@@ -44,7 +44,7 @@ package System {
     /**
      * This class provides an interface to manage the operating system informations.
      */
-    class OperatingSystem {
+    @class OperatingSystem {
         /// Internal constructor.
         ~ const new
 

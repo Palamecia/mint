@@ -2,7 +2,7 @@ load test.case
 load network.scheduler
 load network.endpoints.tcp-ip
 
-class NetworkEndPointTest : Test.Case {
+@class NetworkEndPointTest : Test.Case {
     const def testOnTcpMessage(self) {
 
         let scheduler = Network.Scheduler()

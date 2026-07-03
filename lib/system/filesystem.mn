@@ -31,7 +31,7 @@ package System {
      * This enum represent a standrad path type that can be used to query a standard
      * path to the file system.
      */
-    enum StandardPath {
+    @enum StandardPath {
         /// The system root location like `'/'` or `'C:'`
         Root
         /// An home location like `'~'` or `'C:/Users/<user>'`
@@ -74,7 +74,7 @@ package System {
      * This class provides an interface to interact with the file system and
      * access standard locations.
      */
-    class FileSystem {
+    @class FileSystem {
         
 		/// Native path separator: "/" under Unix and "\" under Windows.
 		@const Separator

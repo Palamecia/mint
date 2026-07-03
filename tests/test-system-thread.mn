@@ -2,7 +2,7 @@ load test.case
 load system.thread
 load mint.coroutine
 
-class ThreadTest : Test.Case {
+@class ThreadTest : Test.Case {
 	const def testMutexType(self) {
 		self.expectIsSame(System.Mutex.Type.Normal, System.Mutex().getType())
 		self.expectIsSame(System.Mutex.Type.Normal, System.Mutex(System.Mutex.Type.Normal).getType())

@@ -36,7 +36,7 @@ package System {
 	/**
 	 * This class manage an Uniform Resource Locator.
 	 */
-	class Url {
+	@class Url {
 		/**
 		 * Returns the content of `str` with special characters escaped to be
 		 * inserted in an URL string.
@@ -336,7 +336,7 @@ package System {
 	/**
 	 * This class manage an Uniform Resource Name.
 	 */
-	class Urn {
+	@class Urn {
 
 	}
 }

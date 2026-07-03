@@ -1,7 +1,7 @@
 load test.case
 load container.linked-list
 
-class LinkedListTest : Test.Case {
+@class LinkedListTest : Test.Case {
 	const def testCreate(self) {
 		lst = Container.LinkedList([0, 7, 3, 5, 7])
 		self.expectEqual('Container.LinkedList', typeof lst)

@@ -35,7 +35,7 @@ package Serializer {
  * object which only provides `read` and `write`. Data from the underlying object
  * are stored in a buffer to get retrieved later.
  */
-class BufferedStream {
+@class BufferedStream {
 	/**
 	 * Creates a new stream for reading and writing data using `object`.
 	 */

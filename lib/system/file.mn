@@ -42,7 +42,7 @@ package System {
 	 * 
 	 * > This type is not copyable
 	 */
-	class File {
+	@class File {
 
 		/**
 		 * This enum is used by the {System.File.permission} function to report the
@@ -981,7 +981,7 @@ package System {
 	 * The file is then opened with the given `mode`. Returns the file on success;
 	 * otherwise returns `null`.
 	 */
-	const def open(path, mode = 'r') {
+	@def open(path, mode = 'r') {
 		var file = System.File(path)
 		try {
 			if file.open(mode) {

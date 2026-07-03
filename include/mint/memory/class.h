@@ -190,9 +190,9 @@ public:
 
 protected:
 	void create_builtin_member(Operator op, Reference&& value = {});
-	void create_builtin_member(Operator op, std::pair<int, Module::Handle&> member);
+	void create_builtin_member(Operator op, std::pair<int, FunctionHandle&> member);
 	void create_builtin_member(const Symbol& symbol, Reference&& value = {});
-	void create_builtin_member(const Symbol& symbol, std::pair<int, Module::Handle&> member);
+	void create_builtin_member(const Symbol& symbol, std::pair<int, FunctionHandle&> member);
 
 private:
 	Metatype _metatype;

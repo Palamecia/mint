@@ -23,7 +23,7 @@
 
 #include "highlighter.h"
 
-#include "mint/ast/class_register.h"
+#include "mint/ast/class_description.h"
 #include "mint/ast/symbol.h"
 #include "mint/compiler/lexical_handler.h"
 #include "mint/compiler/token.h"

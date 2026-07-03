@@ -1,7 +1,7 @@
 load test.case
 load mint.range
 
-class RangeTest : Test.Case {
+@class RangeTest : Test.Case {
 
 	const def testAccumulate(self) {
 		self.expectEqual(64, [2, 4, 8].accumulate(1, def (i, j) => i * j))

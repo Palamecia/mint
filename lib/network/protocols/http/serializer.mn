@@ -37,7 +37,7 @@ package Network {
 		 * This class provides a serializer for plain HTTP messages. The message
 		 * objects uses the {Network.Http.Message} class.
 		 */
-		class Serializer {
+		@class Serializer {
 			/**
 			 * Creates a new serializer.
 			 */

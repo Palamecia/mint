@@ -27,15 +27,11 @@
 #include "mint/ast/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
-#include "mint/memory/garbage_collector.h"
 #include "mint/memory/reference.h"
-#include "mint/memory/class.h"
 
 #include <functional>
 #include <initializer_list>
-#include <memory>
 #include <ranges>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 #include <string>
@@ -77,12 +73,12 @@ public:
 	static inline bool is_slot(const Reference& member);
 
 	ClassRegister(AbstractSyntaxTree& ast);
-	ClassRegister(ClassRegister&&) = delete;
 	ClassRegister(const ClassRegister&) = delete;
+	ClassRegister(ClassRegister&&) = default;
 	virtual ~ClassRegister() = default;
 
-	ClassRegister& operator=(ClassRegister&&) = delete;
 	ClassRegister& operator=(const ClassRegister&) = delete;
+	ClassRegister& operator=(ClassRegister&&) = default;
 
 	[[nodiscard]] const ClassRegister& get_root_register() const;
 	[[nodiscard]] ClassRegister& get_root_register();
@@ -127,48 +123,6 @@ private:
 	ClassRegister* _owner = nullptr;
 	std::vector<ClassDescriptionEntry> _defined_classes;
 	std::reference_wrapper<AbstractSyntaxTree> _ast;
-};
-
-class MINT_EXPORT ClassDescription : public ClassRegister {
-public:
-	ClassDescription(AbstractSyntaxTree& ast, const std::string& name);
-
-	[[nodiscard]] Symbol name() const;
-	[[nodiscard]] std::string full_name() const;
-
-	[[nodiscard]] Path get_path() const;
-	void add_base(const Path& base);
-
-	[[nodiscard]] const ClassDescription* get_owner_class() const;
-	[[nodiscard]] ClassDescription* get_owner_class();
-
-	[[nodiscard]] const Reference* find_member(const Symbol& name) const;
-	bool create_member(const Symbol& name, const Reference& value);
-	bool update_member(const Symbol& name, const Reference& value);
-
-	[[nodiscard]] const std::vector<std::reference_wrapper<Class>>& bases() const;
-	Class& generate();
-
-	void cleanup_memory() override;
-	void cleanup_metadata() override;
-
-	void mark() {
-		for (auto& member : _members) {
-			member.second.data().mark();
-		}
-	}
-
-private:
-	std::unique_ptr<Class::MemberInfo> create_member_info(const Class::MemberInfo& member);
-	Class::MemberInfo* update_member_info(const Symbol& symbol, Reference& value,
-	    std::unordered_map<Symbol, std::vector<std::reference_wrapper<const Reference>>>& member_overrides);
-
-	Symbol _name;
-	std::vector<Path> _bases;
-	std::unordered_map<Symbol, Reference> _members;
-
-	std::unique_ptr<Class> _metadata;
-	std::vector<std::reference_wrapper<Class>> _bases_metadata;
 };
 
 bool ClassRegister::is_slot(const Reference& member) {

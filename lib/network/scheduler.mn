@@ -35,7 +35,7 @@ package Network {
 	/**
 	 * This class manages synchronization between the network devices.
 	 */
-	class Scheduler {
+	@class Scheduler {
 		/**
 		 * This enum describe the events that can be watched on a specific channel.
 		 */
@@ -560,7 +560,7 @@ package Network {
 	/**
 	 * This class manages synchronization between the network devices in a thread.
 	 */
-	class SchedulerThread : Network.Scheduler {
+	@class SchedulerThread : Network.Scheduler {
 		/**
 		 * Creates a new scheduler for threaded network operations.
 		 */

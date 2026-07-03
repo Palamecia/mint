@@ -28,6 +28,6 @@
 /**
  * Execute `coroutine` without event loop and return the result.
  */
-def [g_lib = lib('libmint-mint')] spawn(coroutine) {
+@def [g_lib = lib('libmint-mint')] spawn(coroutine) {
     return g_lib.call('mint_coroutine_call', coroutine)
 }

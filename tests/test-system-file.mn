@@ -2,7 +2,7 @@ load test.case
 load system.file
 load system.filesystem
 
-class FileTest : Test.Case {
+@class FileTest : Test.Case {
 	const def testOpen(self) {
 		
 		let f = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')

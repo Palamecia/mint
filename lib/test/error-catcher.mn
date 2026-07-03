@@ -34,7 +34,7 @@ package Test {
 	 * This class provides the context of a runtime error catched by an instance
 	 * of {Test.ErrorCatcher}.
 	 */
-	class RuntimeError : Exception.Exception {
+	@class RuntimeError : Exception.Exception {
 		/**
 		 * Creates a new context. The `message` parameter provides the runtime
 		 * error message.
@@ -74,7 +74,7 @@ package Test {
 	 * }
 	 * ```
 	 */
-	class ErrorCatcher {
+	@class ErrorCatcher {
 		/**
 		 * Creates a new context.
 		 */

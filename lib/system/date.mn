@@ -36,7 +36,7 @@ package System {
 	/**
 	 * This class provides informations about a specific time point.
 	 */
-	class Date {
+	@class Date {
 		/**
 		 * Creates a new instance for the current date and time with the current
 		 * {System.TimeZone}.

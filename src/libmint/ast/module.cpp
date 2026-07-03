@@ -22,6 +22,7 @@
  */
 
 #include "mint/ast/module.h"
+#include "mint/ast/class_description.h"
 #include "mint/ast/class_register.h"
 #include "mint/ast/node.h"
 #include "mint/ast/symbol.h"
@@ -39,11 +40,13 @@
 
 using namespace mint;
 
-Module::Module() {
+Module::Module(AbstractSyntaxTree& ast) :
+    ClassRegister(ast) {
 	register_root();
 }
 
 Module::Module(Module&& other) noexcept :
+    ClassRegister(std::move(other)),
     _tree(std::move(other._tree)),
     _handles(std::move(other._handles)),
     _constants(std::move(other._constants)),
@@ -59,26 +62,26 @@ Module::~Module() {
 
 Module& Module::operator=(Module&& other) noexcept = default;
 
-Module::Handle* Module::find_handle(std::size_t offset) const {
+FunctionHandle* Module::find_handle(std::size_t offset) const {
 	auto handles = std::ranges::reverse_view(_handles);
-	auto it = std::ranges::find(handles, offset, &Handle::offset);
+	auto it = std::ranges::find(handles, offset, &FunctionHandle::offset);
 	if (it != handles.end()) {
 		return it->get();
 	}
 	return nullptr;
 }
 
-Module::Handle& Module::get_handle(PackageData& package, std::size_t offset) {
+FunctionHandle& Module::get_handle(PackageData& package, std::size_t offset) {
 	auto handles = std::ranges::reverse_view(_handles);
-	auto it = std::ranges::find(handles, offset, &Handle::offset);
+	auto it = std::ranges::find(handles, offset, &FunctionHandle::offset);
 	if (it != handles.end()) {
 		return **it;
 	}
 	return make_handle(package, offset);
 }
 
-Module::Handle& Module::make_handle(PackageData& package, std::size_t offset) {
-	return *_handles.emplace_back(std::make_unique<Handle>(Handle {
+FunctionHandle& Module::make_handle(PackageData& package, std::size_t offset) {
+	return *_handles.emplace_back(std::make_unique<FunctionHandle>(FunctionHandle {
 	    .module = *this,
 	    .offset = offset,
 	    .package = package,
@@ -87,8 +90,8 @@ Module::Handle& Module::make_handle(PackageData& package, std::size_t offset) {
 	}));
 }
 
-Module::Handle& Module::make_builtin_handle(PackageData& package, std::size_t offset) {
-	return *_handles.emplace_back(std::make_unique<Handle>(Handle {
+FunctionHandle& Module::make_builtin_handle(PackageData& package, std::size_t offset) {
+	return *_handles.emplace_back(std::make_unique<FunctionHandle>(FunctionHandle {
 	    .module = *this,
 	    .offset = offset,
 	    .package = package,
@@ -96,8 +99,8 @@ Module::Handle& Module::make_builtin_handle(PackageData& package, std::size_t of
 	}));
 }
 
-Module::Handle& Module::make_builtin_async_handle(PackageData& package, std::size_t offset) {
-	return *_handles.emplace_back(std::make_unique<Handle>(Handle {
+FunctionHandle& Module::make_builtin_async_handle(PackageData& package, std::size_t offset) {
+	return *_handles.emplace_back(std::make_unique<FunctionHandle>(FunctionHandle {
 	    .module = *this,
 	    .offset = offset,
 	    .package = package,
@@ -111,10 +114,6 @@ Reference* Module::make_constant(Data& data) {
 	    .get();
 }
 
-ClassDescription* mint::Module::make_class(AbstractSyntaxTree& ast, const std::string& name) {
-	return _classes.emplace_back(std::make_unique<ClassDescription>(ast, name)).get();
-}
-
 Symbol* Module::make_symbol(const std::string& name) {
 	auto it = _symbols.find(name);
 	if (it == _symbols.end()) {
@@ -123,11 +122,16 @@ Symbol* Module::make_symbol(const std::string& name) {
 	return it->second.get();
 }
 
+ClassDescription* mint::Module::make_class(AbstractSyntaxTree& ast, const std::string& name) {
+	return _classes.emplace_back(std::make_unique<ClassDescription>(ast, name)).get();
+}
+
 void Module::add_internal_register(std::unique_ptr<ClassRegister>&& class_register) {
 	_internal_registers.emplace_back(std::move(class_register));
 }
 
 void Module::cleanup_memory() {
+	ClassRegister::cleanup_memory();
 	for (const auto& class_register : _internal_registers) {
 		class_register->cleanup_memory();
 	}
@@ -135,6 +139,7 @@ void Module::cleanup_memory() {
 }
 
 void Module::cleanup_metadata() {
+	ClassRegister::cleanup_metadata();
 	for (const auto& class_register : _internal_registers) {
 		class_register->cleanup_metadata();
 	}

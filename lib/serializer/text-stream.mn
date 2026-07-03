@@ -34,7 +34,7 @@ package Serializer {
  * This class provides an interface to use any object as a stream for reading
  * and writing text.
  */
-class TextStream {
+@class TextStream {
 	/**
 	 * Creates a new stream on the `stream` object.
 	 * 

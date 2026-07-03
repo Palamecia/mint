@@ -1,6 +1,6 @@
 load test.case
 
-class OperatorRecorder {
+@class OperatorRecorder {
 	final record = []
 	const def +(self) {
 		self.record << '+(0)'

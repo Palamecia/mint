@@ -34,7 +34,7 @@ package System {
 	 * This enum provides the day of week values as returned by {System.TimeZone.weekDayFromSeconds}
 	 * or {System.TimeZone.weekDayFromMilliseconds}.
 	 */
-	enum WeekDay {
+	@enum WeekDay {
 		/// Weekday number for "Sunday".
 		Sunday
 		/// Weekday number for "Monday".
@@ -54,7 +54,7 @@ package System {
 	/**
 	 * This enum provides the month values as returned by {System.Date.getMonth}.
 	 */
-	enum Month {
+	@enum Month {
 		/// Month number for "January".
 		January = 1
 		/// Month number for "February".
@@ -85,7 +85,7 @@ package System {
 	 * This enum describes the different formats that can be used when converting
 	 * date and time informations to string.
 	 */
-	enum DateFormat {
+	@enum DateFormat {
 		/// Shorter format.
 		Short
 		/// Longer format.
@@ -96,7 +96,7 @@ package System {
 	 * This enum describes the different types that can be used when converting
 	 * date and time informations to string.
 	 */
-	enum DateType {
+	@enum DateType {
 		/// Date and time format.
 		DateAndTime
 		/// Date format.
@@ -110,7 +110,7 @@ package System {
 /**
  * This class provides informations about a specific locale.
  */
-class Locale {
+@class Locale {
 
 	/**
 	 * Creates a new object for the locale identified by `desc`. The `desc`

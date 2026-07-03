@@ -40,7 +40,7 @@ package System {
 	 * The {LockGuard} class can be used to ensure that the mutex is correctly
 	 * locked and unlocked by a section of code.
 	 */
-	class Mutex {
+	@class Mutex {
 		/**
 		 * This enum describe the behavior of the mutex.
 		 */
@@ -122,7 +122,7 @@ package System {
 	 * 
 	 * > This type is not copyable
 	 */
-	class Thread {
+	@class Thread {
 		/**
 		 * Creates a new thread that will execute the `func` function.
 		 */
@@ -250,7 +250,7 @@ package System {
 	/**
 	 * This class represents the state of an asynchronous operation.
 	 */
-	class Promise {
+	@class Promise {
 		/**
 		 * Creates a new promise for the result of the `func` function.
 		 */
@@ -421,7 +421,7 @@ package System {
 	 * })
 	 * ```
 	 */
-	class Future {
+	@class Future {
 		/**
 		 * Creates a new future that will execute the `func` function with the
 		 * given parameters asynchronously. If the execution of the function can
@@ -551,7 +551,7 @@ package System {
 	 * called function. The promise object is started by this function. If the
 	 * promise failed to start, `none` is returned instead.
 	 */
-	def spawn(%func, ...) {
+	@def spawn(%func, ...) {
 		var promise = System.Promise(func)
 		if promise.start(*va_args) {
 			return promise
@@ -564,7 +564,7 @@ package System {
 	 * function are forwarded to the called method. The promise object is started
 	 * by this function. If the promise failed to start, `none` is returned instead.
 	 */
-	def spawnMethod(self, %func, ...) {
+	@def spawnMethod(self, %func, ...) {
 		var promise = System.Promise(self, func)
 		if promise.start(*va_args) {
 			return promise
@@ -576,7 +576,7 @@ package System {
 	 * coroutine. The promise object is started by this function. If the promise
 	 * failed to start, `none` is returned instead.
 	 */
-	def spawnAsync(coroutine) {
+	@def spawnAsync(coroutine) {
 		var promise = System.Promise(coroutine)
 		if promise.spawn() {
 			return promise
@@ -587,14 +587,14 @@ package System {
 	 * Yields execution of the current thread to another runnable thread, if any.
 	 * Note that the operating system decides to which thread to switch.
 	 */
-	def [g_lib = lib('libmint-system')] wait() {
+	@def [g_lib = lib('libmint-system')] wait() {
 		return g_lib.call('mint_thread_wait')
 	}
 
 	/**
 	 * Forces the current thread to sleep for `time` milliseconds.
 	 */
-	def [g_lib = lib('libmint-system')] sleep(const time) {
+	@def [g_lib = lib('libmint-system')] sleep(const time) {
 		return g_lib.call('mint_thread_sleep', time)
 	}
 }

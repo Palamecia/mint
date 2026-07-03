@@ -1,7 +1,7 @@
 load test.case
 load exception.exception
 
-class ExceptionTest : Test.Case {
+@class ExceptionTest : Test.Case {
 	const def testCatch(self) {
 		try {
 			raise 'test'

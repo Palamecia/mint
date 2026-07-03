@@ -1,6 +1,6 @@
 load test.case
 
-class TestRaise : Test.Case {
+@class TestRaise : Test.Case {
 	const def testNullException(self) {
 		var i = null
 		while i is null or i < 5 {

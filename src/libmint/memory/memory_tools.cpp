@@ -22,7 +22,7 @@
  */
 
 #include "mint/memory/memory_tools.h"
-#include "mint/ast/class_register.h"
+#include "mint/ast/class_description.h"
 #include "mint/ast/printer.h"
 #include "mint/ast/symbol.h"
 #include "mint/memory/class.h"

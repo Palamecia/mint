@@ -28,7 +28,7 @@
 /**
  * Prints `object` to the standard output, with a newline.
  */
-def println(object) {
+@def println(object) {
     print {
         object
         '\n'
@@ -38,7 +38,7 @@ def println(object) {
 /**
  * Prints `object` to the `printer`, with a newline.
  */
-def println(printer, object) {
+@def println(printer, object) {
     print (printer) {
         object
         '\n'

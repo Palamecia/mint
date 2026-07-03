@@ -35,7 +35,7 @@ package Exception {
  * This class provides the context of an exception raised on attempt to perform
  * an invalide operation on a network device.
  */
-class InvalidNetworkOperation : Exception.Exception {
+@class InvalidNetworkOperation : Exception.Exception {
 	/**
 	 * Creates a new context. The `message` parameter provides a description of
 	 * the attempted operation. The `device` parameter is the object that raised
@@ -78,7 +78,7 @@ class InvalidNetworkOperation : Exception.Exception {
 /**
  * This class provides the context of an exception raised by a socket.
  */
-class SocketError : Exception.Exception {
+@class SocketError : Exception.Exception {
 	/**
 	 * Creates a new context. The `object` parameter is the object that raised
 	 * the error. It must provides a `getSocket` method. The error is retrived

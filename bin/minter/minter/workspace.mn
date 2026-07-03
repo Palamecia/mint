@@ -31,7 +31,7 @@ load system.uri
 load mint.lang
 load mint.type
 
-class MintLspWorkspace {
+@class MintLspWorkspace {
 
     @const PublishDiagnostics = 'textDocument/publishDiagnostics'
     @const Progress = '$/progress'

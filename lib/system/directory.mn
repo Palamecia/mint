@@ -41,7 +41,7 @@ package System {
 	 * as a directory separator, this class will translate your paths to conform
 	 * to the underlying operating system.
 	 */
-	class Directory {
+	@class Directory {
 
 		/**
 		 * Creates a new instance pointing to the directory specified by the

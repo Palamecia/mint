@@ -157,7 +157,7 @@ public:
 	[[nodiscard]] bool call_in_progress() const;
 	void call_generator_expression(std::size_t offset);
 	void call_async_generator_expression(std::size_t offset);
-	void call(const Module::Handle& handle, int signature, Class* metadata = nullptr);
+	void call(const FunctionHandle& handle, int signature, Class* metadata = nullptr);
 	void call(const Module& module, std::size_t pos, PackageData& package, Class* metadata = nullptr);
 	void exit_call();
 

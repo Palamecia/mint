@@ -24,7 +24,7 @@
 #ifndef MINT_COMPILER_BUILD_TOOLS_H
 #define MINT_COMPILER_BUILD_TOOLS_H
 
-#include "mint/ast/class_register.h"
+#include "mint/ast/class_description.h"
 #include "mint/ast/module.h"
 #include "mint/ast/node.h"
 #include "mint/ast/symbol.h"

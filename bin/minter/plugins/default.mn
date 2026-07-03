@@ -31,7 +31,7 @@ load serializer.json-stream
 load system.file
 load system.uri
 
-class DefaultPlugin : MintLspPlugin {
+@class DefaultPlugin : MintLspPlugin {
 
     const def onDocumentDidOpen(self, config, workspace, document) {
         let rootDir = System.Dir(config.getRootPath())

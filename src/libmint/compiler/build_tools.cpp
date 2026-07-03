@@ -586,7 +586,7 @@ bool BuildContext::save_parameters() {
 
 	const auto count = static_cast<int>(def->parameters.size());
 	const int signature = def->variadic ? ~(count - 1) : count;
-	Module::Handle& handle = _data.get().bytecode.make_handle(current_package(), def->begin_offset);
+	FunctionHandle& handle = _data.get().bytecode.make_handle(current_package(), def->begin_offset);
 
 	if (def->capture) {
 		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateful>(handle));
@@ -617,7 +617,7 @@ bool BuildContext::add_definition_signature() {
 	}
 
 	const auto signature = static_cast<int>(def->parameters.size());
-	Module::Handle& handle = _data.get().bytecode.make_handle(current_package(), def->begin_offset);
+	FunctionHandle& handle = _data.get().bytecode.make_handle(current_package(), def->begin_offset);
 
 	if (def->capture) {
 		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateful>(handle));
@@ -751,6 +751,9 @@ void BuildContext::resolve_class_description() {
 				def->global_data = std::make_unique<FunctionData>(_compiler.get().ast());
 			}
 			def->global_data->register_class_description(*desc, flags);
+		}
+		else {
+			_data.get().bytecode.register_class_description(*desc, flags);
 		}
 		push_node(Node::Command::declare_class);
 		push_node(desc);

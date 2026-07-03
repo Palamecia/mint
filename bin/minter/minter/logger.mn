@@ -28,7 +28,7 @@
 
 load mint.type
 
-class Logger {
+@class Logger {
     enum Level {
         Off = 0
         Fatal = 100
@@ -176,4 +176,4 @@ class Logger {
     - final handlers = []
 }
 
-$@ log = Logger()
+@$log = Logger()

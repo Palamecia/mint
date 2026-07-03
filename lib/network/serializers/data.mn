@@ -41,7 +41,7 @@ package Network {
 	 * channel = Network.AsynchronousChannel(endpoint, def { return Network.DataSerializer(1024) })
 	 * ```
 	 */
-	class DataSerializer {
+	@class DataSerializer {
 		/**
 		 * Creates a new serializer for messages of fixed length `length`.
 		 */

@@ -36,6 +36,7 @@
 
 #include "mint/memory/class.h"
 #include "mint/ast/abstract_syntax_tree.h"
+#include "mint/ast/class_description.h"
 #include "mint/ast/class_register.h"
 #include "mint/ast/module.h"
 #include "mint/ast/symbol.h"
@@ -313,7 +314,7 @@ void Class::create_builtin_member(Operator op, Reference&& value) {
 	}
 }
 
-void Class::create_builtin_member(Operator op, std::pair<int, Module::Handle&> member) {
+void Class::create_builtin_member(Operator op, std::pair<int, FunctionHandle&> member) {
 	const auto op_index = static_cast<std::size_t>(op);
 	assert(op_index < _operators.size());
 	if (auto* op_info = _operators[op_index]) {
@@ -348,7 +349,7 @@ void Class::create_builtin_member(const Symbol& symbol, Reference&& value) {
 	}
 }
 
-void Class::create_builtin_member(const Symbol& symbol, std::pair<int, Module::Handle&> member) {
+void Class::create_builtin_member(const Symbol& symbol, std::pair<int, FunctionHandle&> member) {
 	if (auto it = _members.find(symbol); it != _members.end()) {
 		it->second->value.data<Function>().mapping.insert(member);
 	}

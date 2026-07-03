@@ -153,7 +153,7 @@ class MINT_EXPORT Function : public Data {
 public:
 	class MINT_EXPORT Context {
 	public:
-		Context(Module::Handle& handle) :
+		Context(FunctionHandle& handle) :
 		    _handle(handle) {}
 
 		Context(Context&& other) = default;
@@ -163,11 +163,11 @@ public:
 		Context& operator=(Context&&) = default;
 		Context& operator=(const Context&) = default;
 
-		[[nodiscard]] const Module::Handle& handle() const {
+		[[nodiscard]] const FunctionHandle& handle() const {
 			return _handle;
 		}
 
-		[[nodiscard]] Module::Handle& handle() {
+		[[nodiscard]] FunctionHandle& handle() {
 			return _handle;
 		}
 
@@ -177,12 +177,12 @@ public:
 		[[nodiscard]] virtual std::unique_ptr<Context> clone() const = 0;
 
 	private:
-		std::reference_wrapper<Module::Handle> _handle;
+		std::reference_wrapper<FunctionHandle> _handle;
 	};
 
 	class MINT_EXPORT Stateless : public Context {
 	public:
-		Stateless(Module::Handle& handle) :
+		Stateless(FunctionHandle& handle) :
 		    Context(handle) {}
 
 		void call(int signature, Class* metadata, Cursor& cursor) override;
@@ -196,7 +196,7 @@ public:
 
 	class MINT_EXPORT Stateful : public Context {
 	public:
-		Stateful(Module::Handle& handle) :
+		Stateful(FunctionHandle& handle) :
 		    Context(handle) {}
 
 		void capture(const Symbol& symbol, const Reference& reference) {
@@ -244,11 +244,11 @@ public:
 
 		Signature& operator=(Signature&&) = default;
 
-		[[nodiscard]] const Module::Handle& handle() const {
+		[[nodiscard]] const FunctionHandle& handle() const {
 			return _context->handle();
 		}
 
-		[[nodiscard]] Module::Handle& handle() {
+		[[nodiscard]] FunctionHandle& handle() {
 			return _context->handle();
 		}
 
@@ -274,14 +274,14 @@ public:
 		Mapping() = default;
 		Mapping(int signature, Signature&& handle);
 		Mapping(const std::pair<int, Signature>& mapping);
-		Mapping(const std::pair<int, Module::Handle&>& mapping);
+		Mapping(const std::pair<int, FunctionHandle&>& mapping);
 
 		bool operator==(const Mapping& other) const;
 		bool operator!=(const Mapping& other) const;
 
 		std::pair<iterator, bool> emplace(int signature, Signature&& handle);
 		std::pair<iterator, bool> insert(const std::pair<int, Signature>& signature);
-		std::pair<iterator, bool> insert(const std::pair<int, Module::Handle&>& signature);
+		std::pair<iterator, bool> insert(const std::pair<int, FunctionHandle&>& signature);
 
 		[[nodiscard]] const_iterator lower_bound(int signature) const;
 		[[nodiscard]] const_iterator find(int signature) const;
@@ -304,7 +304,7 @@ public:
 	Function(Mapping mapping);
 	Function(int signature, Function::Signature&& handle);
 	Function(const std::pair<int, Function::Signature>& mapping);
-	Function(const std::pair<int, Module::Handle&>& mapping);
+	Function(const std::pair<int, FunctionHandle&>& mapping);
 
 	[[nodiscard]] Format format() const override {
 		return Format::function;

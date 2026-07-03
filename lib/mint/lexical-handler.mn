@@ -34,7 +34,7 @@ load serializer.string-stream
  * method. Each encountred token will be provided to a callback method like
  * {@see onToken}.
  */
-class LexicalHandler {
+@class LexicalHandler {
 	/**
 	 * This enum describes the token types used in the {@see onToken} method.
 	 */

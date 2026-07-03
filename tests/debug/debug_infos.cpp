@@ -9,14 +9,17 @@
 
 class TestModule : public mint::Module {
 public:
-	TestModule() = default;
+	TestModule(mint::AbstractSyntaxTree& ast) :
+	    Module(ast) {}
+
 	using Module::push_node;
 };
 
 TEST(debug_infos, new_line) {
 
+	auto ast = mint::AbstractSyntaxTree();
 	auto infos = mint::DebugInfo();
-	auto module = TestModule();
+	auto module = TestModule(ast);
 
 	infos.new_line(module, 1);
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
@@ -30,8 +33,9 @@ TEST(debug_infos, new_line) {
 
 TEST(debug_infos, line_number) {
 
+	auto ast = mint::AbstractSyntaxTree();
 	auto infos = mint::DebugInfo();
-	auto module = TestModule();
+	auto module = TestModule(ast);
 
 	infos.new_line(module, 1);
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
@@ -66,7 +70,9 @@ TEST(debug_infos, line_number) {
 TEST(debug_infos, new_line_from_source) {
 
 	auto ast = mint::AbstractSyntaxTree();
-	auto module = mint::ModuleInfo();
+	auto module = mint::ModuleInfo {
+	    .bytecode = mint::Module(ast),
+	};
 	auto compiler = mint::Compiler(ast);
 
 	auto stream = mint::BufferStream(R"""(/* comment */

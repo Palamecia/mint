@@ -34,7 +34,7 @@ package Network {
 	/**
 	 * This class provides a representation for a datagram.
 	 */
-	class Datagram {
+	@class Datagram {
 		/**
 		 * Creates a new datagram for the data given by the `data` parameter.
 		 * If this parameter is an instance of {Network.Datagram}, this object
@@ -94,7 +94,7 @@ package Network {
 	 * be used with instances of {Network.AsynchronousChannel} created with an
 	 * instance of {Network.UdpIp}.
 	 */
-	class DatagramSerializer {
+	@class DatagramSerializer {
 		/**
 		 * Creates a new serializer.
 		 */

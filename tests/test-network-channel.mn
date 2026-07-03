@@ -8,7 +8,7 @@ load network.serializers.datagram
 load network.protocols.http.client
 load network.protocols.http.server
 
-class NetworkChannelTest : Test.Case {
+@class NetworkChannelTest : Test.Case {
 	const def testSynchronousTcpMessage(self) {
 
         let scheduler = Network.SchedulerThread()

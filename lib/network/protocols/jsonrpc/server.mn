@@ -39,7 +39,7 @@ package Network {
 		 * RPC protocol. It can be used with the {Network.Scheduler} class where
 		 * a channel is expected.
 		 */
-		class Server {
+		@class Server {
 			/**
 			 * Creates a new server context for the given `endpoint`. The
 			 * `endpoint` parameter must implement the {Network.EndPoint}
@@ -422,7 +422,7 @@ package Network {
 		 * This class provides a base implementation to handle
 		 * {Network.JsonRpc.Server}'s clients requets.
 		 */
-		class RequestHandler {
+		@class RequestHandler {
 			/**
 			 * Returns the name of the method from the handler that must be called
 			 * for the JSON RPC method identified by `method`.

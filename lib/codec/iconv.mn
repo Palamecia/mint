@@ -47,7 +47,7 @@ package Codec {
  * }
  * ```
  */
-class Iconv {
+@class Iconv {
 	/**
 	 * State of a byte conversion. This type is used by the
 	 * {Codec.Iconv.decodeChar}, {Codec.Iconv.decode} and

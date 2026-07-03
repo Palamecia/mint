@@ -26,6 +26,6 @@
  * plugins for the minter language server.
  */
 
-class MintLspPlugin {
+@class MintLspPlugin {
 
 }

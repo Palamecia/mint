@@ -103,14 +103,11 @@ Classes can also contain other user-defined types as [[global|Variables#access-m
 
 ```mn
 class MyClass {
-    enum MyEnum {
-    }
+    enum MyEnum {}
 
-    class MyChildClass {
-    }
+    class MyChildClass {}
 
-    - class MyPrivateClass {
-    }
+    - class MyPrivateClass {}
 }
 ```
 
@@ -139,13 +136,22 @@ class MyClass {
 }
 ```
 
+> [!NOTE]
+> By default, methods are re-bindable. Which mean, the associated function can be changed on the instance using the `=` operator. To make methods non re-bindable, they should be declared `const`.
+>
+> ```mn
+> class MyClass {
+>     const def method(self) {}
+> }
+> ```
+
 ### Constructor and destructor
 
 Classes can have two special members: `new` and `delete`.
 
-The `new` member is called the constructor. When a new [[instance|User defined types#Instantiation]] of the class is created, this member is [[called|Arithmetic-operations#function-call]]. The returned value is then used as the new instance.
+The `new` member is called the constructor. When a new [[instance|User-defined-types#Instantiation]] of the class is created, this member is [[called|Arithmetic-operations#function-call]]. The returned value is then used as the new instance.
 
-The call parameter list of the constructor starts with the instance of the object being created. This instance is only initialized with the values associated with the class members. Additional parameters can follow and must then be passed when the class is [[instantiated|User defined types#Instantiation]].
+The call parameter list of the constructor starts with the instance of the object being created. This instance is only initialized with the values associated with the class members. Additional parameters can follow and must then be passed when the class is [[instantiated|User-defined-types#Instantiation]].
 
 ```mn
 class MyClass {
@@ -161,7 +167,7 @@ class MyClass {
 > [!NOTE]
 > If the constructor is not defined, the class instantiation gives an object only initialized with the values associated with the class members.
 
-Classes also provides a global `allocate` method that create an object instance only initialized with the values associated with the class members. The constructor is not called by this method. This is usefull to create named constructors where the default constructor is not suitable.
+Classes also provides a global `allocate` method that create an object instance only initialized with the values associated with the class members. The constructor is not called by this method. This is useful to create named constructors where the default constructor is not suitable.
 
 ```mn
 class Result {
@@ -264,9 +270,9 @@ class MyClass : MyBase, MyOtherBase {
 ```
 
 > [!NOTE]
-> A class can also extend an [[enumeration|User defined types#Enumerations]], but [[built-in types|Built-in-types]] cannot be extended.
+> A class can also extend an [[enumeration|User-defined-types#Enumerations]], but [[built-in types|Built-in-types]] cannot be extended.
 
-Each [[non-global|Variables#access-modifiers]] member of the extended classes will then be copied to the newly created class with their [[values|User defined types#Members value]] and [[modifiers|User defined types#Members visibility]], except for members already defined in the class.
+Each [[non-global|Variables#access-modifiers]] member of the extended classes will then be copied to the newly created class with their [[values|User-defined-types#Members-value]] and [[modifiers|User-defined-types#Members-visibility]], except for members already defined in the class.
 
 ```mn
 class MyBase {
@@ -385,9 +391,9 @@ class MyClass : MyBase, MyOtherBase {
 
 ## Instantiation
 
-A user-defined type instance is created with the [[call operator|Arithmetic-operations#function-call]] on the type. The operator gives an object containing a copy of each [[non-global|Variables#access-modifiers]] member of the type initialized by the [[constructor|User defined types#Constructor and destructor]] if any.
+A user-defined type instance is created with the [[call operator|Arithmetic-operations#function-call]] on the type. The operator gives an object containing a copy of each [[non-global|Variables#access-modifiers]] member of the type initialized by the [[constructor|User-defined-types#Constructor-and-destructor]] if any.
 
-The amount of parameters of the operator depends on the [[constructor|User defined types#Constructor and destructor]], but the first parameter must not be passed. If the type does not have a constructor, the operator takes no parameters.
+The amount of parameters of the operator depends on the [[constructor|User-defined-types#Constructor-and-destructor]], but the first parameter must not be passed. If the type does not have a constructor, the operator takes no parameters.
 
 ```mn
 class MyClass {
@@ -398,9 +404,9 @@ let myObject = MyClass(5)
 ```
 
 > [!NOTE]
-> The instantiation of an [[enumeration|User defined types#Enumerations]] is meaningless because those types can only have [[global|Variables#access-modifiers]] members.
+> The instantiation of an [[enumeration|User-defined-types#Enumerations]] is meaningless because those types can only have [[global|Variables#access-modifiers]] members.
 
-To access a member of the object, the `.` operator is used. If the member is a [[method|User defined types#Methods]] and the [[call operator|Arithmetic-operations#function-call]] is used on the member, the object will automatically be passed as the first parameter.
+To access a member of the object, the `.` operator is used. If the member is a [[method|User-defined-types#Methods]] and the [[call operator|Arithmetic-operations#function-call]] is used on the member, the object will automatically be passed as the first parameter.
 
 ```mn
 class MyClass {
@@ -413,7 +419,7 @@ myObject.member    // gives 5
 myObject.method(5) // call MyClass.method(myObject, 5)
 ```
 
-The `?.` operator can also be used to access a member of the object. With this operator, if the object is [[`none`|Built-in-types#none]], the object is returned; otherwise the behaviour is the same as with the `.` operator.
+The `?.` operator can also be used to access a member of the object. With this operator, if the object is [[`none`|Built-in-types#none]], the object is returned; otherwise the behavior is the same as with the `.` operator.
 
 ```mn
 let myObject = MyClass()
@@ -448,7 +454,7 @@ MyClass.member    // gives 5
 A user-defined type can also be stored in a [[variable|Variables]]. This allows for the use of types as parameters or to create type aliases. To store the type, the type name can be used without the [[call operator|Arithmetic-operations#function-call]].
 
 ```mn
-@TheClass = MyClass      // TheClass is an alias of MyClass
+@const TheClass = MyClass      // TheClass is an alias of MyClass
 createList(MyClass, 5)   // Call createList with MyClass as the first parameter
 ```
 
@@ -550,9 +556,9 @@ To export a local type to the global scope, the type definition can be prefixed 
 ```mn
 def func() {
 
-    @ enum Foo {}
+    @enum Foo {}
 
-    @ class Bar {}
+    @class Bar {}
 
     defined Foo  // gives true
     defined Bar  // gives true

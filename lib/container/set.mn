@@ -41,7 +41,7 @@ package Container {
  * sort values. The values inserted in the instances must provide the operator
  * used by the function.
  */
-class Set {
+@class Set {
 	/**
 	 * Creates a new instance of {Container.Set}. If `values` is given, the set
 	 * will be initialized with the given values. The `comparator` function can

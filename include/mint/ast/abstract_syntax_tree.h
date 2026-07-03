@@ -29,15 +29,18 @@
 #include "mint/config.h"
 #include "mint/debug/debug_info.h"
 #include "mint/memory/global_data.h"
-#include "module.h"
 
+#include <concepts>
 #include <cstddef>
 #include <deque>
 #include <filesystem>
 #include <functional>
 #include <map>
+#include <memory>
 #include <string>
 #include <type_traits>
+#include <typeindex>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include <mutex>
@@ -61,10 +64,10 @@ public:
 	using GlobalBuiltinMethod = std::add_pointer_t<void(Class&, Cursor&)>;
 	using BuiltinMethod = std::add_pointer_t<void(Cursor&)>;
 
-	std::pair<int, Module::Handle&> create_global_builtin_method(Class& type, int signature, GlobalBuiltinMethod method);
-	std::pair<int, Module::Handle&> create_builtin_method(const Class& type, const FunctionLiteral& method);
-	std::pair<int, Module::Handle&> create_builtin_method(const Class& type, int signature, BuiltinMethod method);
-	std::pair<int, Module::Handle&> create_builtin_async_method(const Class& type, int signature, BuiltinMethod method);
+	std::pair<int, FunctionHandle&> create_global_builtin_method(Class& type, int signature, GlobalBuiltinMethod method);
+	std::pair<int, FunctionHandle&> create_builtin_method(const Class& type, const FunctionLiteral& method);
+	std::pair<int, FunctionHandle&> create_builtin_method(const Class& type, int signature, BuiltinMethod method);
+	std::pair<int, FunctionHandle&> create_builtin_async_method(const Class& type, int signature, BuiltinMethod method);
 	void call_global_builtin_method(std::size_t method, Cursor& cursor);
 	inline void call_builtin_method(std::size_t method, Cursor& cursor);
 
@@ -74,6 +77,9 @@ public:
 	ModuleInfo& create_module_from_file_path(const std::filesystem::path& file_path, Module::State state);
 	ModuleInfo& load_module(const std::string& module_name);
 	const ModuleInfo& module_info(const std::string& module_name);
+
+	template<std::derived_from<Module> UniqueModule>
+	UniqueModule& unique_module();
 
 	[[nodiscard]] inline const Module* find_module(Module::Id module_id) const;
 	[[nodiscard]] inline const DebugInfo* find_debug_info(Module::Id module_id) const;
@@ -100,6 +106,7 @@ private:
 	std::map<std::filesystem::path, std::reference_wrapper<ModuleInfo>> _module_cache;
 
 	GlobalData _global_data {*this};
+	std::unordered_map<std::type_index, std::unique_ptr<Module>> _unique_modules;
 	std::vector<std::reference_wrapper<ModuleInfo>> _builtin_modules;
 	std::vector<GlobalBuiltinMethod> _global_builtin_methods;
 	std::vector<BuiltinMethod> _builtin_methods;
@@ -107,6 +114,17 @@ private:
 
 void AbstractSyntaxTree::call_builtin_method(std::size_t method, Cursor& cursor) {
 	_builtin_methods[method](cursor);
+}
+
+template<std::derived_from<Module> UniqueModule>
+inline UniqueModule& AbstractSyntaxTree::unique_module() {
+	const std::type_index type_index = std::type_index(typeid(UniqueModule));
+	auto it = _unique_modules.find(type_index);
+	if (it != _unique_modules.end()) {
+		return static_cast<UniqueModule&>(*it->second);
+	}
+	return static_cast<UniqueModule&>(
+	    *_unique_modules.emplace(type_index, std::make_unique<UniqueModule>(*this)).first->second);
 }
 
 const Module* AbstractSyntaxTree::find_module(Module::Id module_id) const {

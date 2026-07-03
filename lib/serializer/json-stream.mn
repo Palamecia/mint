@@ -36,7 +36,7 @@ package Serializer {
 /**
  * This class class provides a way to read and write JSON documents.
  */
-class JsonStream : Serializer.DocumentStream {
+@class JsonStream : Serializer.DocumentStream {
 	/**
 	 * Returns the content of `str` with special characters escaped to be
 	 * inserted in a JSON document.

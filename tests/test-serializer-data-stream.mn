@@ -1,7 +1,7 @@
 load test.case
 load serializer.data-stream
 
-class TestDataStream : Test.Case {
+@class TestDataStream : Test.Case {
 	const def testGet(self) {
 		
 		var s = Serializer.DataStream()

@@ -34,7 +34,7 @@ package System {
  * This class provides a stateless calculator for time zone conversions between
  * UTC and a specific time zone.
  */
-class TimeZone {
+@class TimeZone {
 	/**
 	 * Creates a new object for the time zone specified by `timezone`. The `timezone`
 	 * value can be any time zone identifier supported by the system, a IANA time zone

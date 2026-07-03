@@ -1,7 +1,7 @@
 load test.case
 load system.date
 
-class DateTest : Test.Case {
+@class DateTest : Test.Case {
 	const def testLeapYear(self) {
 		self.expectEqual(false, System.Date.isLeap(1970))
 		self.expectEqual(false, System.Date.isLeap(1971))

@@ -1,6 +1,6 @@
 load test.case
 
-class TestIf : Test.Case {
+@class TestIf : Test.Case {
     const def testIfElifInBooleanOperators(self) {
 
         let result = 0

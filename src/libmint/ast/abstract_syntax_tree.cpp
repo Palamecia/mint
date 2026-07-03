@@ -90,7 +90,7 @@ void AbstractSyntaxTree::cleanup_modules() {
 	_module_cache.clear();
 }
 
-std::pair<int, Module::Handle&> AbstractSyntaxTree::create_global_builtin_method(Class& type, int signature,
+std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_global_builtin_method(Class& type, int signature,
     GlobalBuiltinMethod method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
@@ -112,7 +112,7 @@ std::pair<int, Module::Handle&> AbstractSyntaxTree::create_global_builtin_method
 	return {signature, module.bytecode.make_builtin_handle(type.get_package(), offset)};
 }
 
-std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const Class& type,
+std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_builtin_method(const Class& type,
     const FunctionLiteral& method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
@@ -126,7 +126,7 @@ std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const 
 	return {method.signature, module.bytecode.get_handle(type.get_package(), offset)};
 }
 
-std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const Class& type, int signature,
+std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_builtin_method(const Class& type, int signature,
     BuiltinMethod method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
@@ -147,7 +147,7 @@ std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_method(const 
 	return {signature, module.bytecode.make_builtin_handle(type.get_package(), offset)};
 }
 
-std::pair<int, Module::Handle&> AbstractSyntaxTree::create_builtin_async_method(const Class& type, int signature,
+std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_builtin_async_method(const Class& type, int signature,
     BuiltinMethod method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
@@ -183,6 +183,7 @@ ModuleInfo& AbstractSyntaxTree::main() {
 
 ModuleInfo& AbstractSyntaxTree::create_module(Module::State state) {
 	return _modules.emplace_back(ModuleInfo {
+	    .bytecode = Module(*this),
 	    .id = _modules.size(),
 	    .state = state,
 	});
@@ -235,7 +236,9 @@ ModuleInfo& AbstractSyntaxTree::load_module(const std::string& module_name) {
 
 const ModuleInfo& AbstractSyntaxTree::module_info(const std::string& module_name) {
 
-	static const auto invalid_module_info = ModuleInfo();
+	static const auto invalid_module_info = ModuleInfo {
+	    .bytecode = Module(*this),
+	};
 
 	if (module_name == Module::main_name) {
 		return main();

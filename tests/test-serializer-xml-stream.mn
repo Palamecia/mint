@@ -1,7 +1,7 @@
 load test.case
 load serializer.xml-stream
 
-class TestXmlStream : Test.Case {
+@class TestXmlStream : Test.Case {
 	const def testMultiDocument(self) {
 		var s = Serializer.XmlStream('<document><test/></document><document><test/></document>')
 		self.expectEqual(Serializer.XmlStream.TokenType.StartDocument, s.read())

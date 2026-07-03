@@ -34,7 +34,7 @@ package Exception {
 /**
  * This class provides the context of an exception raised by the system.
  */
-class SystemError : Exception.Exception {
+@class SystemError : Exception.Exception {
 	/**
 	 * This enum provides the list of `errno` codes. The effetive value of the
 	 * error code can depend on the current system.

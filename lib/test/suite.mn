@@ -35,7 +35,7 @@ package Test {
 	/**
 	 * This singleton schedule tests implemented in classes derived from {Test.Case}.
 	 */
-	class Suite {
+	@class Suite {
 		/**
 		 * List attached tests on the standard output.
 		 */

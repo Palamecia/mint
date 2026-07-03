@@ -36,7 +36,7 @@ package Network {
 		 * RPC protocol. It can be used with the {Network.Scheduler} class where
 		 * a channel is expected.
 		 */
-		class Client {
+		@class Client {
 			/**
 			 * Creates a new client context for the given `endpoint` server. The
 			 * `endpoint` parameter must implement the {Network.EndPoint}

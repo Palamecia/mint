@@ -354,9 +354,7 @@ stmt_rule:
 				context.push_node(Node::Command::exit_call);
 			}
 		}
-		const auto flags = context.is_in_nested_function()
-							? Reference::const_address | context.retrieve_modifiers()
-							: Reference::global | Reference::const_address | context.retrieve_modifiers();
+		const auto flags = Reference::const_address | context.retrieve_modifiers();
 		context.resolve_jump_forward();
 		context.push_node(Node::Command::declare_function);
 		context.push_node($4.c_str());
@@ -386,9 +384,7 @@ stmt_rule:
 				context.push_node(Node::Command::exit_call);
 			}
 		}
-		const auto flags = context.is_in_nested_function()
-							? Reference::const_address
-							: Reference::global | Reference::const_address;
+		const auto flags = Reference::const_address;
 		context.resolve_jump_forward();
 		context.push_node(Node::Command::declare_function);
 		context.push_node($3.c_str());
@@ -460,20 +456,10 @@ package_block_rule:
 
 class_rule:
     type_modifier_rule class_token symbol_token {
-		if (context.is_in_function()) {
-			context.start_class_description($3, Reference::const_address | Reference::const_value | context.retrieve_modifiers());
-		}
-		else {
-			context.start_class_description($3, Reference::global | Reference::const_address | Reference::const_value | context.retrieve_modifiers());
-		}
+		context.start_class_description($3, Reference::const_address | Reference::const_value | context.retrieve_modifiers());
 	}
 	| class_token symbol_token {
-		if (context.is_in_function()) {
-			context.start_class_description($2, Reference::const_address | Reference::const_value);
-		}
-		else {
-			context.start_class_description($2, Reference::global | Reference::const_address | Reference::const_value);
-		}
+		context.start_class_description($2, Reference::const_address | Reference::const_value);
 	};
 
 parent_rule:
@@ -502,7 +488,9 @@ class_desc_rule:
 	};
 
 member_class_rule:
-	class_rule
+	class_token symbol_token {
+		context.start_class_description($2, Reference::global | Reference::const_address | Reference::const_value);
+	}
 	| member_type_modifier_rule class_token symbol_token {
 		context.start_class_description($3, Reference::global | Reference::const_address | Reference::const_value | context.retrieve_modifiers());
 	};
@@ -513,7 +501,9 @@ member_class_desc_rule:
 	};
 
 member_enum_rule:
-	enum_rule
+	enum_token symbol_token {
+		context.start_enum_description($2, Reference::global | Reference::const_address | Reference::const_value);
+	}
 	| member_type_modifier_rule enum_token symbol_token {
 		context.start_enum_description($3, Reference::global | Reference::const_address | Reference::const_value | context.retrieve_modifiers());
 	};
@@ -535,6 +525,9 @@ member_type_modifier_rule:
 	}
 	| tilde_token {
 		context.start_modifiers(Reference::package_visibility);
+	}
+	| at_token {
+		context.start_modifiers(Reference::global);
 	};
 
 desc_bloc_rule:
@@ -967,20 +960,10 @@ operator_desc_rule:
 
 enum_rule:
     type_modifier_rule enum_token symbol_token {
-		if (context.is_in_function()) {
-			context.start_enum_description($3, Reference::const_address | Reference::const_value | context.retrieve_modifiers());
-		}
-		else {
-			context.start_enum_description($3, Reference::global | Reference::const_address | Reference::const_value | context.retrieve_modifiers());
-		}
+		context.start_enum_description($3, Reference::const_address | Reference::const_value | context.retrieve_modifiers());
 	}
 	| enum_token symbol_token {
-		if (context.is_in_function()) {
-			context.start_enum_description($2, Reference::const_address | Reference::const_value);
-		}
-		else {
-			context.start_enum_description($2, Reference::global | Reference::const_address | Reference::const_value);
-		}
+		context.start_enum_description($2, Reference::const_address | Reference::const_value);
 	};
 
 enum_desc_rule:

@@ -47,7 +47,7 @@ class Config {
     verbose = 0
 }
 
-const def addArguments(parser, config) {
+def addArguments(parser, config) {
 
     parser.setDescription("Mint Language Server")
     parser.setVersion(__version__)
@@ -98,7 +98,7 @@ const def addArguments(parser, config) {
     })
 }
 
-const def configureLogger(verbose = 0, logFile = none) {
+def configureLogger(verbose = 0, logFile = none) {
 
     class StdErrorStream {
         def write(self, data) {
@@ -140,7 +140,7 @@ const def configureLogger(verbose = 0, logFile = none) {
     log.setLevel(level)
 }
 
-const def main(args) {
+def [...] main(args) {
 
     var parser = CommandLineParser()
     var config = Config()

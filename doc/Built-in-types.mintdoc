@@ -928,25 +928,28 @@ Returns the current element of the iterator.
 
 ## package
 
-This type create a unique group of [[variables|Variables]] and [[user defined types|User defined types]]. It has two main purposes:
+This type create a unique group of [[variables|Variables]] and [[user defined types|User-defined-types]]. It has two main purposes:
 
-* Create a unique group of symbols to prevent name conflicts
-* Create a group of features that can work together to resolve a same requirement
+* Create a unique group of symbols to prevent name conflicts.
+* Create a group of features that can work together to resolve a same requirement.
 
-It can be created with the `package` keyword. A package is identified by a name and store each [[user defined types|User defined types]] and [[global variables|Variables]]. The content of a package is defined between the `{` and `}` operators.
+> [!IMPORTANT]
+> The packages are the only way to share declarations across [[modules|Work-with-modules]].
+
+It can be created with the `package` keyword. A package is identified by a name and store each [[user defined types|User defined types]] and [[global variables|Variables]]. The content of a package is defined between the `{` and `}` operators. The declarations in this block are globally attached to the package using the `@` modifier. All other declaration become local to the [[module|Work-with-modules]].
 
 ```mn
 package Example {
-    const @value = 5
+    @const value = 5
 }
 ```
 
-A package instance work like a mix between a [[user defined type|User defined types]] and a [[global variable|Variables]]. It can therefore be stored in an other package.
+A package instance work like a mix between a [[user defined type|User-defined-types]] and a [[global variable|Variables]]. It can therefore be stored in an other package.
 
 ```mn
 package Example {
     package Values {
-        const @value = 5
+        @const value = 5
     }
 }
 ```
@@ -956,7 +959,7 @@ Packages are global and can therefore be used from anywhere in a script once dec
 ```mn
 package Example {
     package Values {
-        const @value = 5
+        @const value = 5
     }
 }
 
@@ -970,18 +973,33 @@ A package is expandable by reopening it.
 
 ```mn
 package Example {
-    const @value1 = 5
+    @const value1 = 5
 }
 
 package Example {
-    const @value2 = 10
+    @const value2 = 10
 }
 
 Example.Values.value1 // gives 5
 Example.Values.value2 // gives 10
 ```
 
-Packages are also useful to create [[user defined types|User defined types]] to access other types private data.
+Packages are also useful with [[user defined types|User-defined-types]] to access other types private data that use [[package visibility|User-defined-types#members-visibility]].
+
+```mn
+package Example {
+    @class PrivateData {
+        ~ final value = 42
+    }
+    @class DataUser {
+        const def getValue(self) {
+            return Example.PrivateData().value // gives 42
+        }
+    }
+}
+
+Example.PrivateData().value // error
+```
 
 ## function
 
@@ -1020,7 +1038,7 @@ limit[2] // gives a function equivalent to min
 ```
 
 > [!NOTE]
-> A [[variable|Variables]] name can be inserted after the `def` keyword to create a [[global variable|Variables#access-modifiers]] storing this function.
+> A [[variable|Variables]] name can be inserted after the `def` keyword to create a [[variable|Variables]] storing this function.
 
 ## coroutine
 

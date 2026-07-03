@@ -38,7 +38,7 @@ package Event {
 	 * 
 	 * > This type is not copyable
 	 */
-	class Timer {
+	@class Timer {
 		/**
 		 * This enum describe the clock precision.
 		 */
@@ -152,7 +152,7 @@ package Event {
 		- @g_lib = lib('libmint-event')
 
 		/// Internal handle.
-	final eventHandle = none
+		- final eventHandle = none
 
 		/// Internal timer duration.
 		- final duration = none

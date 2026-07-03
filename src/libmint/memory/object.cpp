@@ -205,7 +205,7 @@ Function::Function(int signature, Signature&& handle) :
 Function::Function(const std::pair<int, Signature>& mapping) :
     mapping(mapping) {}
 
-mint::Function::Function(const std::pair<int, Module::Handle&>& mapping) :
+mint::Function::Function(const std::pair<int, FunctionHandle&>& mapping) :
     mapping(mapping) {}
 
 void Function::Stateless::call(int signature, Class* metadata, Cursor& cursor) {
@@ -228,7 +228,7 @@ Function::Mapping::Mapping(int signature, Function::Signature&& handle) :
 Function::Mapping::Mapping(const std::pair<int, Signature>& mapping) :
     _signatures({mapping}) {}
 
-Function::Mapping::Mapping(const std::pair<int, Module::Handle&>& mapping) :
+Function::Mapping::Mapping(const std::pair<int, FunctionHandle&>& mapping) :
     _signatures({{mapping.first, std::make_unique<Stateless>(mapping.second)}}) {}
 
 bool Function::Mapping::operator==(const Mapping& other) const {
@@ -272,7 +272,7 @@ std::pair<Function::Mapping::iterator, bool> Function::Mapping::insert(const std
 }
 
 std::pair<Function::Mapping::iterator, bool> Function::Mapping::insert(
-    const std::pair<int, Module::Handle&>& signature) {
+    const std::pair<int, FunctionHandle&>& signature) {
 	return _signatures.insert({signature.first, Signature(std::make_unique<Stateless>(signature.second))});
 }
 

@@ -41,7 +41,7 @@
  * > [!NOTE]
  * > The lock can also be released by deleting the object.
  */
-class LockGuard {
+@class LockGuard {
 	/**
 	 * Creates a new lock on the `mutex`.
 	 */

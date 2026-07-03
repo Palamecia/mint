@@ -39,7 +39,7 @@ package Network {
 		 * This class provides a serializer for JSON-RPC messages. The message
 		 * objects uses the {Network.JsonRpc.Message} class.
 		 */
-		class Serializer {
+		@class Serializer {
 			/**
 			 * Creates a new serializer.
 			 */

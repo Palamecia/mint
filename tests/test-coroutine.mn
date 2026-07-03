@@ -2,7 +2,7 @@ load test.case
 load test.error-catcher
 load mint.coroutine
 
-class TestCoroutine : Test.Case {
+@class TestCoroutine : Test.Case {
     const def testSimpleWait(self) {
         async def f() {
             return 5

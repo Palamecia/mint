@@ -24,12 +24,13 @@
 #ifndef MINT_AST_MODULE_H
 #define MINT_AST_MODULE_H
 
+#include "mint/ast/class_register.h"
 #include "mint/ast/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
-#include "mint/memory/garbage_collector.h"
 #include "mint/ast/node.h"
 #include "mint/debug/debug_info.h"
+#include "mint/memory/garbage_collector.h"
 #include "mint/memory/reference.h"
 
 #include <concepts>
@@ -47,11 +48,12 @@ namespace mint {
 
 class AbstractSyntaxTree;
 class ClassDescription;
-class ClassRegister;
 class PackageData;
 class parser;
 
-class MINT_EXPORT Module : public MemoryRoot {
+struct FunctionHandle;
+
+class MINT_EXPORT Module : public ClassRegister, public MemoryRoot {
 	friend class AbstractSyntaxTree;
 	friend class MainBranch;
 	friend class BubBranch;
@@ -70,17 +72,7 @@ public:
 		ready
 	};
 
-	struct Handle {
-		Module& module;
-		std::size_t offset;
-		PackageData& package;
-		std::size_t fast_count;
-		bool symbols: 1 = false;
-		bool generator: 1 = false;
-		bool async: 1 = false;
-	};
-
-	Module();
+	Module(AbstractSyntaxTree& ast);
 	Module(Module&& other) noexcept;
 	Module(const Module& other) = delete;
 	~Module();
@@ -93,11 +85,11 @@ public:
 	[[nodiscard]] inline std::size_t end() const;
 	[[nodiscard]] inline std::size_t next_node_offset() const;
 
-	[[nodiscard]] Handle* find_handle(std::size_t offset) const;
-	Handle& get_handle(PackageData& package, std::size_t offset);
-	Handle& make_handle(PackageData& package, std::size_t offset);
-	Handle& make_builtin_handle(PackageData& package, std::size_t offset);
-	Handle& make_builtin_async_handle(PackageData& package, std::size_t offset);
+	[[nodiscard]] FunctionHandle* find_handle(std::size_t offset) const;
+	FunctionHandle& get_handle(PackageData& package, std::size_t offset);
+	FunctionHandle& make_handle(PackageData& package, std::size_t offset);
+	FunctionHandle& make_builtin_handle(PackageData& package, std::size_t offset);
+	FunctionHandle& make_builtin_async_handle(PackageData& package, std::size_t offset);
 
 	template<std::derived_from<Data> Type, typename... Args>
 	Reference* make_constant(Args&&... args);
@@ -107,8 +99,8 @@ public:
 
 	void add_internal_register(std::unique_ptr<ClassRegister>&& class_register);
 
-	void cleanup_memory();
-	void cleanup_metadata();
+	void cleanup_memory() override;
+	void cleanup_metadata() override;
 
 	void mark() override;
 
@@ -120,7 +112,7 @@ protected:
 
 private:
 	std::vector<Node> _tree;
-	std::vector<std::unique_ptr<Handle>> _handles;
+	std::vector<std::unique_ptr<FunctionHandle>> _handles;
 	std::vector<std::unique_ptr<Reference>> _constants;
 	std::vector<std::unique_ptr<ClassDescription>> _classes;
 	std::vector<std::unique_ptr<ClassRegister>> _internal_registers;
@@ -132,6 +124,16 @@ struct ModuleInfo {
 	DebugInfo debug_info;
 	Module::Id id = Module::invalid_id;
 	Module::State state = Module::State::not_compiled;
+};
+
+struct FunctionHandle {
+	Module& module;
+	std::size_t offset;
+	PackageData& package;
+	std::size_t fast_count;
+	bool symbols: 1 = false;
+	bool generator: 1 = false;
+	bool async: 1 = false;
 };
 
 const Node& Module::node_at(std::size_t idx) const {

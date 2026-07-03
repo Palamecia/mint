@@ -32,7 +32,7 @@ package Event {
 	 * device. The device object must implement the {@module serializer} interface
 	 * an provide a `wait` or `getHandle` method.
 	 */
-	class StreamSynchronizer {
+	@class StreamSynchronizer {
 		/**
 		 * Creates a new synchronizer for the object given by `stream`.
 		 */

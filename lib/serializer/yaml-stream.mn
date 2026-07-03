@@ -39,7 +39,7 @@ package Serializer {
 /**
  * This class class provides a way to read and write YAML documents.
  */
-class YamlStream : Serializer.DocumentStream {
+@class YamlStream : Serializer.DocumentStream {
 	/**
 	 * Reads the content of the stream and return it as an instance of
 	 * {Serializer.YamlDocument}. If the content of the stream is not a valid
@@ -1351,7 +1351,7 @@ class YamlStream : Serializer.DocumentStream {
  * a set of directives. A directive has a name and an optional sequence of
  * parameters.
  */
-class YamlDirective {
+@class YamlDirective {
 	/**
 	 * Creates a new directive with the given `name` name and `parameters`
 	 * parameters sequence.
@@ -1426,7 +1426,7 @@ class YamlDirective {
  * of the next document or the end of the stream. Each document is completely
  * independent from the rest.
  */
-class YamlDocument {
+@class YamlDocument {
 	/**
 	 * Appends `node` at the end of the document.
 	 */
@@ -1539,7 +1539,7 @@ class YamlDocument {
  * value of several key/value pairs and a mapping could even contain itself as
  * a key or a value.
  */
-class YamlMapping {
+@class YamlMapping {
 	/**
 	 * Creates a new empty mapping node.
 	 */
@@ -1678,7 +1678,7 @@ class YamlMapping {
  * an ordered series of zero or more nodes. In particular, a sequence may
  * contain the same node more than once. It could even contain itself.
  */
-class YamlSequence {
+@class YamlSequence {
 	/**
 	 * Creates a new empty sequence node.
 	 */
@@ -1853,7 +1853,7 @@ class YamlSequence {
  * opaque datum that can be presented as a series of zero or more Unicode
  * characters.
  */
-class YamlScalar {
+@class YamlScalar {
 	/**
 	 * Creates a new empty scalar node.
 	 */
@@ -2029,7 +2029,7 @@ class YamlScalar {
  * indicator. The alias refers to the most recent preceding node having the same
  * anchor.
  */
-class YamlAlias {
+@class YamlAlias {
 	/**
 	 * Creates a new alias node. The `document` parameter must be the instance
 	 * of {Serializer.YamlDocument} that contains the anchor. The `anchor`
@@ -2079,7 +2079,7 @@ class YamlAlias {
  * Default available tags are `null`, `bool`, `int`, `float`, `str`, `map`,
  * `seq`, `binary` and `timestamp`.
  */
-class YamlTag {
+@class YamlTag {
 	/**
 	 * This class provides the context of an invalid tag exception.
 	 */
@@ -2196,7 +2196,7 @@ Serializer.YamlTag.g_converters = {
 /**
  * This class represents a YAML *comment*.
  */
-class YamlComment {
+@class YamlComment {
 	/**
 	 * Creates a new comment for the content described by `content`.
 	 * 

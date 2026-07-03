@@ -39,7 +39,7 @@ package Container {
  * {@see pop}. The {@see top} function provides access to the head element
  * without removing it.
  */
-class Queue {
+@class Queue {
 	/**
 	 * Creates a new instance of {Container.Queue}. The created queue is empty.
 	 */

@@ -39,7 +39,7 @@ package Event {
 	 * The scheduled event objects must provide a `getHandle` method that return
 	 * an instance of handle created by the C++ function `mint::create_handle`.
 	 */
-	class Watcher {
+	@class Watcher {
 		/**
 		 * Creates a new watcher. The created watcher is empty.
 		 */

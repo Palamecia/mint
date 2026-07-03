@@ -42,7 +42,7 @@ package System {
 	 * This class provides an interface to interact with a terminal for command
 	 * line scripts.
 	 */
-	class Terminal {
+	@class Terminal {
 		/**
 		 * Creates a new terminal context instance.
 		 */

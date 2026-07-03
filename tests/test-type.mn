@@ -2,7 +2,7 @@ load test.case
 load test.error-catcher
 load mint.type
 
-class TypeTest : Test.Case {
+@class TypeTest : Test.Case {
     const def testDeclarePrivate(self) {
         const __my_type__ = type('__my_type__', {
             private('member'): none

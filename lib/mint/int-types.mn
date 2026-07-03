@@ -30,7 +30,7 @@ load mint.type
 /**
  * This class provides a signed integer representation encoded on 8 bits.
  */
-class int8 {
+@class int8 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
@@ -299,7 +299,7 @@ class int8 {
 /**
  * This class provides a signed integer representation encoded on 16 bits.
  */
-class int16 {
+@class int16 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
@@ -568,7 +568,7 @@ class int16 {
 /**
  * This class provides a signed integer representation encoded on 32 bits.
  */
-class int32 {
+@class int32 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
@@ -837,7 +837,7 @@ class int32 {
 /**
  * This class provides a signed integer representation encoded on 64 bits.
  */
-class int64 {
+@class int64 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
@@ -1106,7 +1106,7 @@ class int64 {
 /**
  * This class provides an unsigned integer representation encoded on 8 bits.
  */
-class uint8 {
+@class uint8 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
@@ -1368,7 +1368,7 @@ class uint8 {
 /**
  * This class provides an unsigned integer representation encoded on 16 bits.
  */
-class uint16 {
+@class uint16 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
@@ -1630,7 +1630,7 @@ class uint16 {
 /**
  * This class provides an unsigned integer representation encoded on 32 bits.
  */
-class uint32 {
+@class uint32 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */
@@ -1892,7 +1892,7 @@ class uint32 {
 /**
  * This class provides an unsigned integer representation encoded on 64 bits.
  */
-class uint64 {
+@class uint64 {
 	/**
 	 * Creates a new integer initialized to `value`.
 	 */

@@ -36,7 +36,7 @@ package Network {
 	 * This class provides a serializer for plain text messages. The message
 	 * end is detected by finding a byte with a value of `0`.
 	 */
-	class TextSerializer {
+	@class TextSerializer {
 		/**
 		 * Creates a new serializer.
 		 */

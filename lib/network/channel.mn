@@ -98,7 +98,7 @@ package Network {
 	 * - In server mode (with {Network.ServerSerializer}), `read()` and `readAsync()` represents an asynchronous
 	 *   accept operation and returns the accepted endpoint.
 	 */
-	class AsynchronousChannel {
+	@class AsynchronousChannel {
 		/**
 		 * Scheduler operation used to establish a connection asynchronously.
 		 *
@@ -1030,7 +1030,7 @@ package Network {
 	 * - In server mode (with {Network.ServerSerializer}), `read()` and `readAsync()` may represent an
 	 *   incoming connection and return the accepted endpoint.
 	 */
-	class SynchronousChannel {
+	@class SynchronousChannel {
 		/**
 		 * Creates a new channel to manage synchronous exchanges with the
 		 * device described by `endpoint`. The `endpoint` parameter must

@@ -1,7 +1,7 @@
 load test.case
 load mint.function
 
-class FunctionTest : Test.Case {
+@class FunctionTest : Test.Case {
 	class MyClass {
 		const def new(self, message) {
 			self.message = message

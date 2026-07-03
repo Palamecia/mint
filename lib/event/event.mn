@@ -35,7 +35,7 @@ package Event {
 	 * 
 	 * > This type is not copyable
 	 */
-	class Event {
+	@class Event {
 		/**
 		 * Creates a new event. The created event is not setted.
 		 * 

@@ -36,7 +36,7 @@ package Network {
 	 * This enum describes the options of an endpoint's socket. The effetive value
 	 * of the option code can depend on the current system.
 	 */
-	enum SocketOption {
+	@enum SocketOption {
 		/// Permit sending of broadcast datagrams (boolean).
 		BROADCAST
 		/// Enable debug tracing (boolean).
@@ -78,7 +78,7 @@ package Network {
 	 * how that socket should behave when data is queued to be sent and
 	 * {Network.EndPoint.close} is called on the socket.
 	 */
-	class SocketLinger {
+	@class SocketLinger {
 		/**
 		 * Creates a new linger object for the given `data`. The data parameter
 		 * can be an instance of {Network.SocketLinger}, in this case the object
@@ -170,7 +170,7 @@ package Network {
 	/**
 	 * This class is used to specify a time interval.
 	 */
-    class SocketTime {
+    @class SocketTime {
 		/**
 		 * Creates a new time interval object for the given `data`. The data
 		 * parameter can be an instance of {Network.SocketTime}, in this case
@@ -270,7 +270,7 @@ package Network {
 	 * the low-level synchronous methods while the asynchronous variants
 	 * are implemented using scheduler operations.
 	 */
-	class EndPoint {
+	@class EndPoint {
 		/**
 		 * This enum describes the different states in which an end point can be.
 		 */

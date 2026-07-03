@@ -2,7 +2,7 @@ load test.case
 load mint.type
 load mint.operator
 
-class TestCast : Test.Case {
+@class TestCast : Test.Case {
 	const def new(self) {
 		
 		library = lib('libmint-mint')

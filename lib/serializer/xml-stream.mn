@@ -37,7 +37,7 @@ package Serializer {
 /**
  * This class is the representation of an XML attribute.
  */
-class XmlAttribute {
+@class XmlAttribute {
 	/**
 	 * Creates a new empty attribute.
 	 */
@@ -160,7 +160,7 @@ class XmlAttribute {
 /**
  * This class is the representation of an element's XML attributes.
  */
-class XmlAttributes {
+@class XmlAttributes {
 	/**
 	 * Copies the attributes contained in `other` into `self` then returns
 	 * `self`.
@@ -414,7 +414,7 @@ class XmlAttributes {
 /**
  * This class class provides a way to read and write XML documents.
  */
-class XmlStream : Serializer.DocumentStream {
+@class XmlStream : Serializer.DocumentStream {
 	enum TokenType {
 		Invalid
 		ProcessingInstruction

@@ -43,7 +43,7 @@ mint::Reference mint_assembly_from_function(mint::Cursor& cursor, const mint::Re
 
 	for (auto& signature : object.data<mint::Function>().mapping) {
 
-		mint::Module::Handle& handle = signature.second.handle();
+		mint::FunctionHandle& handle = signature.second.handle();
 		auto dump_cursor = mint::Cursor(cursor.ast(), handle.module);
 		dump_cursor.jmp(handle.offset - 1);
 

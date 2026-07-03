@@ -38,7 +38,7 @@ package Event {
 	 * 
 	 * > This type is not copyable
 	 */
-	class File {
+	@class File {
 		/**
 		 * This enum describes the differents modifications that can be watched
 		 * on a file.

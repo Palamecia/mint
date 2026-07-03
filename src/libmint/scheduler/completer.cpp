@@ -24,6 +24,7 @@
 #include "completer.h"
 
 #include "mint/ast/symbol.h"
+#include "mint/ast/class_description.h"
 #include "mint/memory/data.h"
 #include "mint/memory/global_data.h"
 #include "mint/debug/debug_tools.h"

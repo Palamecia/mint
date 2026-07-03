@@ -46,7 +46,7 @@ package Test {
 	 * }
 	 * ```
 	 */
-	class Case {
+	@class Case {
 		/**
 		 * Initialize the set of test members to call and return the amount of tests found.
 		 */

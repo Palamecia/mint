@@ -38,7 +38,7 @@ load system.terminal
  * a simple description of the expected arguments. It can also generate an help
  * message from the description.
  */
-class CommandLineParser {
+@class CommandLineParser {
     /**
      * This enum describe the action to apply to a target variable to treat an
      * argument.

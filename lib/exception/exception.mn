@@ -33,12 +33,12 @@ package Exception {
 /**
  * This class provides a base to create exception contexts.
  */
-class Exception {}
+@class Exception {}
 
 /**
  * This class provides a default runtime exception implementation that contains an error message.
  */
-class RuntimeError : Exception.Exception {
+@class RuntimeError : Exception.Exception {
     /**
      * Creates a runtime error with the `message` error message.
      */

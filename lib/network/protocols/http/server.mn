@@ -39,7 +39,7 @@ package Network {
 		 * protocol. It can be used with the {Network.Scheduler} class where
 		 * a channel is expected.
 		 */
-		class Server {
+		@class Server {
 			/**
 			 * Creates a new server context for the given `endpoint`. The
 			 * `endpoint` parameter must implement the {Network.EndPoint}
@@ -443,7 +443,7 @@ package Network {
 		 * This class provides a base implementation to handle {Network.Http.Server}'s
 		 * clients requets.
 		 */
-		class RequestHandler {
+		@class RequestHandler {
 			/**
 			 * Creates a new handler for the given `endpoint` client. The
 			 * `endpoint` parameter must implement the {Network.EndPoint}

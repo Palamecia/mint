@@ -41,7 +41,7 @@ package Container {
  * middle of the list and iterators to items rather than indexes, use
  * {Container.LinkedList}.
  */
-class LinkedList {
+@class LinkedList {
 	/**
 	 * This class store the context of a node of a {Container.LinkedList}. It
 	 * can be retrieved with {Container.LinkedList.firstNode} or

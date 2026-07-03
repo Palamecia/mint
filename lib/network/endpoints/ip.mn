@@ -37,7 +37,7 @@ package Network {
 	 * This enum describes the options of an IP v4 endpoint's socket. The effetive
 	 * value of the option code can depend on the current system.
 	 */
-	enum IpV4SocketOption {
+	@enum IpV4SocketOption {
 		/// IP header included with data (boolean).
 		HDRINCL
 		/// IP header options (number).
@@ -73,7 +73,7 @@ package Network {
 	/**
 	 * This class provides multicast group information for IPv4 addresses.
 	 */
-	class IpV4MulticastGroup {
+	@class IpV4MulticastGroup {
 		/**
 		 * Creates a new multicast group object for the given `data`. The data
 		 * parameter can be an instance of {Network.IpV4MulticastGroup}, in this
@@ -164,7 +164,7 @@ package Network {
 	/**
 	 * This class provides multicast group information for IPv4 addresses.
 	 */
-	class IpV4MulticastSourceGroup {
+	@class IpV4MulticastSourceGroup {
 		/**
 		 * Creates a new multicast group object for the given `data`. The data
 		 * parameter can be an instance of {Network.IpV4MulticastSourceGroup},
@@ -275,7 +275,7 @@ package Network {
 	 * This enum describes the options of an IP v6 endpoint's socket. The effetive
 	 * value of the option code can depend on the current system.
 	 */
-	enum IpV6SocketOption {
+	@enum IpV6SocketOption {
 		/// Offset of checksum field for raw sockets (number).
 		CHECKSUM
 		/// Drop instead of fragment large packets (boolean).
@@ -321,7 +321,7 @@ package Network {
 	/**
 	 * This class provides multicast group information for IPv6 addresses.
 	 */
-	class IpV6MulticastGroup {
+	@class IpV6MulticastGroup {
 		/**
 		 * Creates a new multicast group object for the given `data`. The data
 		 * parameter can be an instance of {Network.IpV6MulticastGroup}, in this
@@ -413,7 +413,7 @@ package Network {
 	 * This enum describes the options of an IP endpoint's socket. The effetive
 	 * value of the option code can depend on the current system.
 	 */
-	enum IpSocketOption {
+	@enum IpSocketOption {
 		/// Join multicast group.
 		MCAST_JOIN_GROUP
 		/// Leave multicast group.
@@ -434,7 +434,7 @@ package Network {
 	 * layer 4 of the OSI model over the IP protocol. It also implement the
 	 * internal mechanisms of the interface.
 	 */
-	class IpEndPoint : Network.EndPoint {
+	@class IpEndPoint : Network.EndPoint {
 		/**
 		 * Returns `true` if the IP address described by the `address` parameter
 		 * follow the IP v4 format; otherwise returns `false`.

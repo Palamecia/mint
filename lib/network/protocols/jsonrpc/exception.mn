@@ -47,7 +47,7 @@ package Network {
 		 * This class provides the context of an exception raised by the
 		 * {Network.JsonRpc} protocol.
 		 */
-		class Exception : Exception.Exception {
+		@class Exception : Exception.Exception {
 			/**
 			 * Creates a new context. The `code` parameter provides the error
 			 * code of the exception as a number. If the `message` parameter is

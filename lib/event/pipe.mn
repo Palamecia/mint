@@ -36,7 +36,7 @@ package Event {
 	 * 
 	 * > This type is not copyable
 	 */
-	class Pipe {
+	@class Pipe {
 		/**
 		 * Creates a new pipe. The created pipe is empty.
 		 * 
@@ -147,7 +147,7 @@ package Event {
 	 * 
 	 * > This type is not copyable
 	 */
-	class SystemPipe {
+	@class SystemPipe {
 		/**
 		 * Creates a new pipe. The created pipe is empty.
 		 * 

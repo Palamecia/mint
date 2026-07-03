@@ -36,7 +36,7 @@ package Serializer {
  * This class class provides a way to read and write XML documents using a SAX
  * algorithm.
  */
-class XmlSaxStream : Serializer.XmlStream {
+@class XmlSaxStream : Serializer.XmlStream {
 	/**
 	 * Creates a new stream for reading and writing data using `stream`.
 	 */
@@ -128,7 +128,7 @@ class XmlSaxStream : Serializer.XmlStream {
 /**
  * This class provides an interface to handle {Serializer.XmlSaxStream} events.
  */
-class XmlSaxHandle {
+@class XmlSaxHandle {
 	/**
 	 * The reader calls this function when it starts parsing the document. The
 	 * reader calls this function just once.

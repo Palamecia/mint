@@ -1,7 +1,7 @@
 load test.case
 load mint.int-types
 
-class TestInt8 : Test.Case {
+@class TestInt8 : Test.Case {
 	const def testCreate(self) {
 		self.expectEqual(0, number(int8(0)))
 		self.expectEqual(127, number(int8(127)))

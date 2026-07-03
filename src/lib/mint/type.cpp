@@ -22,6 +22,7 @@
  */
 
 #include "mint/ast/symbol.h"
+#include "mint/ast/class_description.h"
 #include "mint/memory/data.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"

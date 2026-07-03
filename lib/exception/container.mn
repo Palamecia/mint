@@ -35,7 +35,7 @@ package Exception {
  * This class provides the context of an exception on access to an element out
  * of range. It provides the container and the index used.
  */
-class OutOfRange : Exception.Exception {
+@class OutOfRange : Exception.Exception {
 	/**
 	 * Creates a new context. The `index` parameter is the index used when the
 	 * exception was raised. The `container` parameter is the container that
@@ -79,7 +79,7 @@ class OutOfRange : Exception.Exception {
  * This class provides the context of an exception on access to an element with
  * an invalid key. It provides the container and the key used.
  */
-class InvalidKey : Exception.Exception {
+@class InvalidKey : Exception.Exception {
 	/**
 	 * Creates a new context. The `key` parameter is the key used when the
 	 * exception was raised. The `container` parameter is the container that
@@ -123,7 +123,7 @@ class InvalidKey : Exception.Exception {
  * This class provides the context of an exception on modification to an non
  * existing element. It provides the container used and the action performed.
  */
-class NoItem : Exception.Exception {
+@class NoItem : Exception.Exception {
 	/**
 	 * Creates a new context. The `method` parameter is the method used when the
 	 * exception was raised. The `container` parameter is the container that

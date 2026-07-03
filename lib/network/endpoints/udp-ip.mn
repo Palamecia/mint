@@ -35,7 +35,7 @@ package Network {
 	 * This class provides an end point implementation for communication with a
 	 * peer device using the UDP/IP protocol.
 	 */
-	class UdpIp : Network.IpEndPoint {
+	@class UdpIp : Network.IpEndPoint {
 		/**
 		 * Scheduler operation used to receive data asynchronously.
 		 *

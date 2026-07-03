@@ -36,7 +36,7 @@ package Serializer {
  * text document. It provides informations such as current line and column
  * number.
  */
-class DocumentStream {
+@class DocumentStream {
 	/**
 	 * This class provides the context of an invalid content exception.
 	 */

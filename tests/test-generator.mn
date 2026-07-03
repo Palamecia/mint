@@ -1,6 +1,6 @@
 load test.case
 
-class TestGenerator : Test.Case {
+@class TestGenerator : Test.Case {
     const def testIfGenerator(self) {
         self.expect(self.iteratorEqual, (), if false => 'ok')
         self.expect(self.iteratorEqual, ('ok', ), if true => 'ok')

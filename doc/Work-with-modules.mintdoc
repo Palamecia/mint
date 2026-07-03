@@ -1,6 +1,6 @@
 # Work with modules
 
-A script can be split into several files. Each file with the `.mn` extension is a module. Modules can be reused from other modules by using the `load` keyword followed by the [[module path|Work with modules#Module path]].
+A script can be split into several files. Each file with the `.mn` extension is a module. Modules can be reused from other modules by using the `load` keyword followed by the [[module path|Work-with-modules#module-path]].
 
 ```mn
 load system.file
@@ -17,7 +17,7 @@ The module path is the path to the file to be loaded. Directories are separated 
 The module path is always relative. The root path of a module is searched in the following order:
 
 * The current working directory
-* The [[main module|Work with modules#The main module]]'s directory path
+* The [[main module|Work-with-modules#the-main-module]]'s directory path
 * The standard library's directory path (depending on the installation)
 * A path provided by the `MINT_LIBRARY_PATH` environment variable
 
@@ -27,12 +27,28 @@ If the module cannot be found in any of those paths, the load fails.
 
 When a module is loaded, its contents are executed from the first instruction. The execution is performed with a new [[context|Function-definition#context]], and the current [[package|Built-in-types#package]] is reset. The module execution is completely independent of the loader module's context.
 
-When the module execution is finished, the [[context|Function-definition#context]] and current [[package|Built-in-types#package]] of the loader module are restored. Anything declared in the loaded module is then lost except for [[global variables|Variables#access-modifiers]], [[packages|Built-in-types#package]], and [[user defined types|User-defined-types]].
-
-Once a module is loaded, any global symbol declared by the module is accessible from anywhere. The module can then no longer be loaded. The load instruction on an already loaded module has no effect.
+When the module execution is finished, the [[context|Function-definition#context]] and current [[package|Built-in-types#package]] of the loader module are restored. Anything declared in the loaded module is then lost except for [[some declarations|Work-with-modules#export-declarations-from-modules]].
 
 > [!NOTE]
 > The execution of a loaded module is performed only once. Subsequent attempts to load the same module will have no effect.
+
+## Export declarations from modules
+
+Any declarations in a module remains local to it, except for [[packages|Built-in-types#package]]. Declarations should then be attached to one of them to be exported using the [[global modifier|Variables#access-modifiers]].
+
+```mn
+package MyModule {
+    @const ExportedConstant = 42
+
+    @def exportedFunction() {}
+
+    @enum ExportedEnum {}
+
+    @class ExportedClass {}
+}
+```
+
+The execution of each module begin in an unnamed root package. Therefore, the declaration of a new package is not required to export declarations. But as this packages is shared by each modules, the declaration of new symbols exported by it is discouraged as the names could collide with declarations from other modules and could make the code hard to reuse.
 
 ## The main module
 

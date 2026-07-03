@@ -1,6 +1,6 @@
 load test.case
 
-class TestLoop : Test.Case {
+@class TestLoop : Test.Case {
     const def testResetScopedIterator(self) {
         for let i in 0..1 {}
         self.expectNotDefined(i)

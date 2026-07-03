@@ -34,7 +34,7 @@ package Serializer {
 /**
  * This class provides an interface to use an instance of string as a stream.
  */
-class StringStream {
+@class StringStream {
 	/**
 	 * Creates a new stream on the `str` object. If the object is an instance
 	 * of string, it will be directly used to be updated on write operations;

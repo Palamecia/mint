@@ -27,8 +27,10 @@
 #include "mint/ast/class_register.h"
 #include "mint/ast/symbol.h"
 #include "mint/config.h"
+#include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/garbage_collector.h"
+#include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/symbol_table.h"
 

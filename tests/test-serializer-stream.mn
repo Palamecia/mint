@@ -3,7 +3,7 @@ load mint.type
 load serializer.buffered-stream
 load serializer.string-stream
 
-class TestStringStream : Test.Case {
+@class TestStringStream : Test.Case {
 	const def testReadChar(self) {
 		var s = Serializer.StringStream('test')
 		self.expectEqual('t', s.readChar())

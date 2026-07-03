@@ -37,7 +37,7 @@ load mint.type
  * }
  * ```
  */
-class RegexMatch {
+@class RegexMatch {
 	/**
 	 * Creates a new context for `match`. If `match` is an empty match, `none`
 	 * is returned.

@@ -61,6 +61,7 @@ PUBLIC
 	${MINT_INCLUDE_DIR}/mint/ast/abstract_syntax_tree_tools.h
 	${MINT_INCLUDE_DIR}/mint/ast/abstract_syntax_tree_walker.h
 	${MINT_INCLUDE_DIR}/mint/ast/abstract_syntax_tree.h
+	${MINT_INCLUDE_DIR}/mint/ast/class_description.h
 	${MINT_INCLUDE_DIR}/mint/ast/class_register.h
 	${MINT_INCLUDE_DIR}/mint/ast/cursor.h
 	${MINT_INCLUDE_DIR}/mint/ast/exception.h
@@ -74,6 +75,7 @@ PUBLIC
 PRIVATE
 	ast/abstract_syntax_tree.cpp
 	ast/abstract_syntax_tree_tools.cpp
+	ast/class_description.cpp
 	ast/class_register.cpp
 	ast/cursor.cpp
 	ast/file_printer.cpp

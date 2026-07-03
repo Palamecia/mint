@@ -22,7 +22,7 @@
  */
 
 #include "mint/debug/debug_tools.h"
-#include "mint/ast/class_register.h"
+#include "mint/ast/class_description.h"
 #include "mint/ast/module.h"
 #include "mint/ast/node.h"
 #include "mint/ast/symbol.h"

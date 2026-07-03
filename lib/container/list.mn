@@ -35,7 +35,7 @@ package Container {
  * This class creates a list which stores a liste of values and provides an
  * indexes based access and always stores its items sequentially in memory.
  */
-class List {
+@class List {
 	/**
 	 * Creates a new instance of {Container.List}. If `values` is given, the
 	 * list will be initialized with the given values.

@@ -101,7 +101,7 @@ package Network {
 		 * provides helpers for reading and writing messages informations and
 		 * for messages encoding de decoding.
 		 */
-		class Message {
+		@class Message {
 			/**
 			 * Creates a new empty message.
 			 */

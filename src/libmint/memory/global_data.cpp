@@ -23,6 +23,7 @@
 
 #include "mint/memory/global_data.h"
 #include "mint/ast/abstract_syntax_tree.h"
+#include "mint/ast/class_description.h"
 #include "mint/ast/class_register.h"
 #include "mint/ast/symbol.h"
 #include "mint/memory/data.h"
@@ -111,8 +112,8 @@ Class* PackageData::find_class(const Symbol& name) const {
 }
 
 ClassRegister* PackageData::locate(const Symbol& symbol) const {
-	if (auto* class_decription = find_class_description(symbol)) {
-		return class_decription;
+	if (auto* class_description = find_class_description(symbol)) {
+		return class_description;
 	}
 	if (auto* child_package = find_package(symbol)) {
 		return child_package;

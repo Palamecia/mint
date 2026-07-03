@@ -1,13 +1,13 @@
 load test.case
 load mint.enum
 
-enum TestEnum {
+@enum TestEnum {
 	first = 0
 	next = 1
 	last = 2
 }
 
-class EnumTest : Test.Case {
+@class EnumTest : Test.Case {
 	const def testFindEnumName(self) {
 		self.expectEqual('TestEnum.first', TestEnum.findEnumName(TestEnum.first))
 		self.expectEqual('TestEnum.next', TestEnum.findEnumName(TestEnum.next))

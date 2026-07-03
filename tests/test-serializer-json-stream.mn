@@ -1,7 +1,7 @@
 load test.case
 load serializer.json-stream
 
-class TestJsonStream : Test.Case {
+@class TestJsonStream : Test.Case {
 	const def testReadObject(self) {
 		var s = Serializer.JsonStream('{"a": 0, "b": 1, "c": 3}')
 		self.expectEqual({"a": 0, "b": 1, "c": 3}, s.read())

@@ -39,7 +39,7 @@ package Container {
  * {@see pop}. The {@see top} function provides access to the topmost element
  * without removing it.
  */
-class Stack {
+@class Stack {
 	/**
 	 * Creates a new instance of {Container.Stack}. The created stack is empty.
 	 */

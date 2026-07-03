@@ -35,7 +35,7 @@ package Serializer {
  * This class provides an interface for reading and writing raw data. It is mean
  * to be used by any code that perform low level operations.
  */
-class DataStream {
+@class DataStream {
 	/**
 	 * Creates a new empty stream.
 	 */

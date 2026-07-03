@@ -67,7 +67,7 @@ std::vector<Reference>* create_stack() {
 
 void dump_module(LineInfoList& dumped_infos, AbstractSyntaxTree& ast, const Module& module, std::size_t offset) {
 
-	if (&module != &ThreadEntryPoint::instance()) {
+	if (&module != &ThreadEntryPoint::instance(ast)) {
 
 		const Module::Id module_id = ast.get_module_id(module);
 		const std::string module_name = ast.get_module_name(module);
@@ -161,7 +161,7 @@ Cursor::Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent) :
 }
 
 Cursor::Cursor(AbstractSyntaxTree& ast, Cursor* parent) :
-    Cursor(ast, ThreadEntryPoint::instance(), parent) {}
+    Cursor(ast, ThreadEntryPoint::instance(ast), parent) {}
 
 Cursor::~Cursor() {
 
@@ -193,10 +193,10 @@ bool Cursor::is_thread() const {
 	}
 
 	if (_call_stack.empty()) {
-		return &_current_stack_frame->module == &ThreadEntryPoint::instance();
+		return &_current_stack_frame->module == &ThreadEntryPoint::instance(_ast);
 	}
 
-	return &_call_stack.front()->module == &ThreadEntryPoint::instance();
+	return &_call_stack.front()->module == &ThreadEntryPoint::instance(_ast);
 }
 
 void Cursor::jmp(std::size_t pos) {
@@ -204,7 +204,7 @@ void Cursor::jmp(std::size_t pos) {
 }
 
 bool Cursor::call_in_progress() const {
-	if (&_current_stack_frame->module != &ThreadEntryPoint::instance()) {
+	if (&_current_stack_frame->module != &ThreadEntryPoint::instance(_ast)) {
 		return !_call_stack.empty();
 	}
 	return false;
@@ -255,7 +255,7 @@ void Cursor::call_async_generator_expression(std::size_t offset) {
 	expression_stack_frame->coroutine->data<Coroutine>().await(*this, Reference(*expression_stack_frame->coroutine));
 }
 
-void Cursor::call(const Module::Handle& handle, int signature, Class* metadata) {
+void Cursor::call(const FunctionHandle& handle, int signature, Class* metadata) {
 
 	const auto stack_base = _stack->size() - static_cast<std::size_t>(signature >= 0 ? signature : (~signature) + 1);
 

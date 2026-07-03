@@ -42,7 +42,7 @@ package Container {
  * sort keys. The values used as key in the instances must provide the operator
  * used by the function.
  */
-class Map {
+@class Map {
 	/**
 	 * Creates a new instance of {Container.Map}. If `values` is given, the
 	 * dictionary will be initialized with the given values. The `comparator`

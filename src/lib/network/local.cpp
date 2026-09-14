@@ -82,8 +82,10 @@
 #endif
 #ifdef MINT_OS_LINUX
 #include <linux/sockios.h>
-#endif
 #include <asm-generic/socket.h>
+#else
+#include <sys/ioctl.h>
+#endif
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -763,8 +765,8 @@ public:
 					_scheduler.get().post_deferred_completion(*this);
 				});
 #elifdef MINT_ASYNC_BACKEND_KQUEUE
-				epoll.filter = EVFILT_WRITE;
-				if (epoll.pending) {
+				filter = EVFILT_WRITE;
+				if (pending) {
 					int socket_error = 0;
 					socklen_t socket_error_length = sizeof(socket_error);
 					if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &socket_error, &socket_error_length) < 0) {
@@ -775,7 +777,7 @@ public:
 					}
 					return {};
 				}
-				if (connect(socket_fd, _remote_address, _remote_address_length) < 0) {
+				if (::connect(socket_fd, _remote_address, _remote_address_length) < 0) {
 					const auto error = errno;
 					if (error != EINPROGRESS && error != EALREADY && error != EWOULDBLOCK) {
 						return mint::last_error_code();
@@ -870,7 +872,7 @@ public:
 						        mint_network::symbols::io_error),
 						    mint::create_null(), mint::create_number(_result.error().value())));
 					}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 					done(mint::create_iterator_from(_cursor,
 					    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 					        mint_network::symbols::io_success),
@@ -1162,12 +1164,21 @@ public:
 
 		socklen_t length = 0;
 #ifdef MINT_OS_UNIX
-		if (ioctl(_socket, SIOCINQ, &length) == -1) {
+		if (ioctl(_socket, FIONREAD, &length) == -1) {
 			throw std::system_error(mint::last_error_code());
 		}
 #else
-		length = BUFSIZ; // TODO: get better value
+		if (u_long value = 0; ioctlsocket(_socket, FIONREAD, &value) == 0) {
+			length = static_cast<socklen_t>(value);
+		}
+		else {
+			throw std::system_error(mint::last_error_code());
+		}
 #endif
+
+		if (length == 0) {
+			length = BUFSIZ;
+		}
 
 		auto local_buffer = std::make_unique<std::uint8_t[]>(length);
 		mint::unlock_processor();
@@ -1364,7 +1375,7 @@ public:
 #ifdef MINT_ASYNC_BACKEND_IOCP
 			SOCKET _client_fd = INVALID_SOCKET;
 			std::array<char, 2 * address_length> _accept_buffer {};
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 			sockaddr_storage _remote_address {};
 			socklen_t _remote_address_length = static_cast<socklen_t>(sizeof(_remote_address));
 #endif
@@ -1466,7 +1477,7 @@ public:
 					catch (const std::system_error& error) {
 						done(mint::create_iterator_from(_cursor, mint::create_number(error.code().value())));
 					}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 					const auto client_fd = static_cast<SOCKET>(bytes_transferred);
 					mint_network::SocketManager::instance().accept_socket(client_fd);
 					done(mint::create_iterator_from(_cursor, mint::create_number(0),

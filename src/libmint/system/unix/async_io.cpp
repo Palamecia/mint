@@ -37,10 +37,7 @@
 #include <unistd.h>
 #include <variant>
 
-#if defined(MINT_OS_MAC)
-#include <sys/event.h>
-#include <sys/types.h>
-#elif defined(MINT_OS_LINUX)
+#ifdef MINT_OS_LINUX
 #include <sys/epoll.h>
 // io_uring headers (optional - with fallback to epoll)
 #if HAS_IO_URING
@@ -48,8 +45,9 @@
 #include <linux/time_types.h>
 #else
 #endif
-#else
-#include <sys/epoll.h>
+#elifdef MINT_OS_UNIX
+#include <sys/event.h>
+#include <sys/types.h>
 #endif
 
 mint::AsyncOperation::AsyncOperation(handle_t handle) :
@@ -141,30 +139,30 @@ bool mint::AsyncRuntime::cancel(AsyncOperation& operation) {
 mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::milliseconds> timeout) {
 
 	if (_context < 0) [[unlikely]] {
-		return false;
+		return nullptr;
 	}
 
-	struct kevent events[16];
-	struct timespec timeout_ts = timeout
-	                                 .transform([](std::chrono::milliseconds ms) {
-		                                 const auto timeout_ms = ms.count();
-		                                 return timespec {
-		                                     .tv_sec = timeout_ms / 1000,
-		                                     .tv_nsec = (timeout_ms % 1000) * 1000000,
-		                                 };
-	                                 })
-	                                 .value_or(timespec {});
+	auto events = std::array<struct kevent, 16>();
+	const auto timeout_ts = timeout.transform([](std::chrono::milliseconds ms) {
+		const auto sec = std::chrono::floor<std::chrono::seconds>(ms);
+		const auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(ms - sec);
+		return timespec {
+		    .tv_sec = sec.count(),
+		    .tv_nsec = nsec.count(),
+		};
+	});
 
-	int nu_events = kevent(_context, nullptr, 0, events, 16, timeout ? &timeout_ts : nullptr);
-	if (nu_events < 0) {
-		return false; // Error
+	const auto count = kevent(_context, nullptr, 0, events.data(), events.size(),
+	    timeout_ts ? std::to_address(timeout_ts) : nullptr);
+	if (count < 0) {
+		return nullptr; // Error
 	}
 
 	const auto _ = std::scoped_lock(_mutex);
 
 	// Process completed events
-	for (int i = 0; i < nu_events; ++i) {
-		auto* operation = reinterpret_cast<AsyncOperation*>(events[i].udata);
+	for (auto& event : std::span(events.data(), static_cast<std::size_t>(count))) {
+		auto* operation = reinterpret_cast<AsyncOperation*>(event.udata);
 		if (const auto it = _operations.find(operation); it != _operations.end()) {
 			_operations.erase(it);
 			operation->pending = false;
@@ -173,9 +171,9 @@ mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::millis
 					operation->pending = true;
 
 					const struct kevent retry {
-					    .ident = static_cast<uintptr_t>(operation->get_handle()),
-					    .filter = static_cast<int16_t>(operation->filter),
-					    .flags = static_cast<uint16_t>(operation->flags | EV_ADD | EV_ENABLE | EV_ONESHOT),
+					    .ident = static_cast<std::uintptr_t>(operation->get_handle()),
+					    .filter = operation->filter,
+					    .flags = static_cast<std::uint16_t>(operation->flags | EV_ADD | EV_ENABLE | EV_ONESHOT),
 					    .fflags = 0,
 					    .data = 0,
 					    .udata = operation,

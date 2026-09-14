@@ -29,7 +29,7 @@
 #include <cstring>
 #include <errno.h>
 
-#ifdef MINT_OS_UNIX
+#ifdef MINT_OS_LINUX
 #include <asm-generic/errno-base.h>
 #include <asm-generic/errno.h>
 #endif
@@ -160,16 +160,32 @@ mint::Reference mint_errno_setup(mint::Cursor& /*cursor*/, const mint::Reference
 #else
 	BIND_ERRNO_DISABLE(errno_enum, EBADSLT);
 #endif
-	BIND_ERRNO_VALUE(errno_enum, EDEADLOCK);
+	BIND_ERRNO_VALUE(errno_enum, EDEADLK);
 #ifdef EBFONT
 	BIND_ERRNO_VALUE(errno_enum, EBFONT);
 #else
 	BIND_ERRNO_DISABLE(errno_enum, EBFONT);
 #endif
+#ifdef ENOSTR
 	BIND_ERRNO_VALUE(errno_enum, ENOSTR);
+#else
+	BIND_ERRNO_DISABLE(errno_enum, ENOSTR);
+#endif
+#ifdef ENODATA
 	BIND_ERRNO_VALUE(errno_enum, ENODATA);
+#else
+	BIND_ERRNO_DISABLE(errno_enum, ENODATA);
+#endif
+#ifdef ETIME
 	BIND_ERRNO_VALUE(errno_enum, ETIME);
+#else
+	BIND_ERRNO_DISABLE(errno_enum, ETIME);
+#endif
+#ifdef ENOSR
 	BIND_ERRNO_VALUE(errno_enum, ENOSR);
+#else
+	BIND_ERRNO_DISABLE(errno_enum, ENOSR);
+#endif
 #ifdef ENONET
 	BIND_ERRNO_VALUE(errno_enum, ENONET);
 #else

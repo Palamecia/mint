@@ -41,8 +41,10 @@
 #include <winnt.h>
 using socklen_t = int;
 #else
+#ifdef MINT_OS_LINUX
 #include <asm-generic/socket.h>
 #include <bits/types/struct_timeval.h>
+#endif
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>

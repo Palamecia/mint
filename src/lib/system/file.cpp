@@ -64,8 +64,12 @@
 #include <winerror.h>
 #include <winnt.h>
 #else
+#ifdef MINT_OS_LINUX
 #include <asm-generic/int-ll64.h>
 #include <bits/types.h>
+#else
+#include <unistd.h>
+#endif
 #endif
 
 #ifdef MINT_ASYNC_BACKEND_IO_URING
@@ -575,7 +579,7 @@ mint::Reference mint_file_open_async(mint::Cursor& cursor, const mint::Reference
 		if (handle != INVALID_HANDLE_VALUE) {
 			return create_iterator_from(cursor, mint::create_handle(cursor.ast(), handle), mint::create_none());
 		}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 		const auto fd = mint::open_file_descriptor(mint::to_string(path), mint::to_string(mode).data());
 		if (fd != -1) {
 			return create_iterator_from(cursor, mint::create_handle(cursor.ast(), fd), mint::create_none());
@@ -599,7 +603,7 @@ mint::Reference mint_file_close_async(mint::Cursor& /*cursor*/, mint::Reference&
 		}
 		d_ptr.move_data(mint::create_null());
 	}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 	if (auto fd = mint::to_handle(d_ptr); fd != mint::invalid_handle) {
 		if (close(fd) != 0) {
 			d_ptr.move_data(mint::create_null());
@@ -620,7 +624,7 @@ mint::Reference mint_file_tell_async(mint::Cursor& cursor, const mint::Reference
 		return mint::create_iterator_from(cursor, mint::create_number(mint::errno_from_last_error()));
 	}
 	return mint::create_iterator_from(cursor, mint::create_number(0), mint::create_signed_number(pos.QuadPart));
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 	const auto pos = lseek(mint::to_handle(d_ptr), 0, SEEK_CUR);
 	return mint::create_iterator_from(cursor, (pos == -1L) ? mint::create_number(errno) : mint::create_number(0),
 	    mint::create_number(pos));
@@ -639,7 +643,7 @@ mint::Reference mint_file_seek_async(mint::Cursor& cursor, const mint::Reference
 		return mint::create_number(mint::errno_from_last_error());
 	}
 	return mint::create_number(0);
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 	auto cursor_pos = mint::to_integer<long>(cursor, pos);
 	if (lseek(mint::to_handle(d_ptr), cursor_pos, (cursor_pos < 0) ? SEEK_END : SEEK_SET) < 0) {
 		return mint::create_number(errno);
@@ -657,7 +661,7 @@ mint::Reference mint_file_at_end_async(mint::Cursor& /*cursor*/, const mint::Ref
 	auto size = LARGE_INTEGER {};
 	GetFileSizeEx(mint::to_handle(d_ptr), &size);
 	return mint::create_boolean(pos.QuadPart >= size.QuadPart);
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 	const auto pos = lseek(mint::to_handle(d_ptr), 0, SEEK_CUR);
 	struct stat file_info = {};
 	fstat(mint::to_handle(d_ptr), &file_info);
@@ -679,7 +683,7 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 		std::array<char, BUFSIZ> _local_buffer {};
 #ifdef MINT_ASYNC_BACKEND_IOCP
 		LARGE_INTEGER _pos {};
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 		__off_t _pos {};
 #endif
 	public:
@@ -764,7 +768,7 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 					done(mint::create_number(0));
 				}
 			}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 			_pos += static_cast<__off_t>(bytes_transferred);
 			if (lseek(get_handle(), _pos, SEEK_SET) < 0) {
 				done(mint::create_number(mint::errno_from_last_error()));
@@ -797,7 +801,7 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 		std::size_t _buffer_length;
 #ifdef MINT_ASYNC_BACKEND_IOCP
 		LARGE_INTEGER _pos {};
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 		__off_t _pos {};
 #endif
 	public:
@@ -883,7 +887,7 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 					done(mint::create_number(0));
 				}
 			}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 #ifdef MINT_ASYNC_BACKEND_EPOLL
 			if (_error) {
 				done(mint::create_number(_error.value()));
@@ -920,7 +924,7 @@ mint::Reference mint_file_write_async(mint::Cursor& cursor, mint::Reference& sel
 		std::reference_wrapper<mint::Cursor> _cursor;
 		std::span<std::uint8_t> _buffer;
 	public:
-		AsyncWriteOperation(mint::Cursor& cursor, mint::Reference self, mint::AsyncRuntime& scheduler,
+		AsyncWriteOperation(mint::Cursor& cursor, mint::Reference self, [[maybe_unused]] mint::AsyncRuntime& scheduler,
 		    mint::handle_t handle, std::span<std::uint8_t> buffer) :
 		    mint::MintAsyncOperation(std::move(self), handle),
 #ifdef MINT_ASYNC_BACKEND_EPOLL

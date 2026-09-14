@@ -41,6 +41,8 @@ using uid_t = std::intptr_t;
 using gid_t = std::intptr_t;
 #elifdef MINT_OS_LINUX
 #include <linux/limits.h>
+#elifdef MINT_OS_UNIX
+#include <limits.h>
 #endif
 
 namespace mint {
@@ -66,10 +68,10 @@ public:
 	static constexpr Permissions write_other_flag = 0x0002; ///< The file is writable by anyone
 	static constexpr Permissions exec_other_flag = 0x0001;  ///< The file is executable by anyone
 
-#ifdef MINT_OS_UNIX
-	static constexpr const std::size_t path_length = PATH_MAX;
-#else
+#ifdef MINT_OS_WINDOWS
 	static constexpr const std::size_t path_length = _MAX_PATH;
+#else
+	static constexpr const std::size_t path_length = PATH_MAX;
 #endif
 
 	FileSystem(FileSystem&&) = delete;

@@ -28,6 +28,7 @@
 #include "mint/memory/cast_tools.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/reference.h"
+#include "mint/system/async_io.h"
 
 #include <algorithm>
 #include <cerrno>
@@ -36,6 +37,7 @@
 #include <cstdint>
 #include <array>
 #include <iterator>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -48,12 +50,16 @@
 #include <winbase.h>
 #include <winnt.h>
 #else
-#include <fcntl.h>
-#include <poll.h>
+#ifdef MINT_OS_LINUX
 #include <stdio_ext.h>
 #include <sys/file.h>
 #include <sys/inotify.h>
-#include <sys/poll.h>
+#include <sys/epoll.h>
+#else
+#include <sys/event.h>
+#endif
+#include <fcntl.h>
+#include <poll.h>
 #include <unistd.h>
 #endif
 
@@ -65,34 +71,10 @@ enum Changes : std::uint8_t {
 	attributes = 0x04
 };
 
-#ifdef MINT_OS_UNIX
-bool reset_event(int event_fd) {
-
-	std::size_t len = 0;
-	bool reseted = false;
-	auto read_buffer = std::array<std::uint8_t, BUFSIZ>();
-
-	while (const auto count = read(event_fd, read_buffer.data(), read_buffer.size())) {
-
-		if (count < 0) {
-			break;
-		}
-
-		for (std::uint8_t* ptr = read_buffer.data(); ptr < read_buffer.data() + count; ptr += len) {
-			const inotify_event* event = reinterpret_cast<inotify_event*>(ptr);
-			reseted = reseted || (event->mask != 0);
-			len = sizeof(inotify_event) + event->len;
-		}
-	}
-
-	return reseted;
-}
-#endif
-
 mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Reference& path, mint::Reference& flags) {
-
 #ifdef MINT_OS_WINDOWS
-	DWORD notify_filter = 0;
+
+	auto notify_filter = DWORD();
 
 	if (to_unsigned_integer(cursor, flags) & Changes::name) {
 		notify_filter |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
@@ -107,11 +89,26 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 	}
 
 	const auto path_str = std::filesystem::path(to_string(path)).generic_wstring();
-	if (HANDLE fe = FindFirstChangeNotificationW(path_str.c_str(), TRUE, notify_filter); fe != INVALID_HANDLE_VALUE) {
-		return mint::create_handle(cursor.ast(), fe);
+	auto event = std::make_unique<mint::poll_event_t>(
+	    FindFirstChangeNotificationW(path_str.c_str(), TRUE, notify_filter));
+	if (*event == INVALID_HANDLE_VALUE) {
+		return {};
 	}
-#else
-	uint32_t watch_flags = 0;
+
+	return mint::create_c_object(cursor.ast(), event.release());
+
+#elifdef MINT_OS_LINUX
+
+	auto event = std::make_unique<mint::poll_event_t>(mint::poll_event_t {
+	    .fd = inotify_init1(IN_NONBLOCK),
+	    .events = EPOLLIN,
+	});
+
+	if (event->fd == -1) {
+		return {};
+	}
+
+	auto watch_flags = std::uint32_t();
 
 	if (to_unsigned_integer(cursor, flags) & Changes::name) {
 		watch_flags |= IN_MOVE;
@@ -125,52 +122,130 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 		watch_flags |= IN_ATTRIB;
 	}
 
-	const auto path_str = to_string(path);
-	if (const auto fe = inotify_init1(IN_NONBLOCK); fe != -1) {
-		if (inotify_add_watch(fe, path_str.c_str(), watch_flags)) {
-			return mint::create_handle(cursor.ast(), fe);
-		}
+	if (!inotify_add_watch(event->fd, to_string(path).c_str(), watch_flags)) {
+		return {};
 	}
-#endif
-	return {};
-}
 
-mint::Reference mint_file_watcher_close(mint::Cursor& /*cursor*/, const mint::Reference& handle) {
-#ifdef MINT_OS_WINDOWS
-	CloseHandle(to_handle(handle));
+	return mint::create_c_object(cursor.ast(), event.release());
+
+#elifdef MINT_OS_UNIX
+
+	auto event = std::make_unique<mint::poll_event_t>(mint::poll_event_t {
+#ifdef MINT_OS_MACOS
+	    .fd = open(to_string(path).c_str(), O_RDONLY | O_EVTONLY | O_NONBLOCK),
 #else
-	close(to_handle(handle));
+	    .fd = open(to_string(path).c_str(), O_RDONLY | O_NONBLOCK),
 #endif
+	    .filter = EVFILT_VNODE,
+	});
+
+	if (event->fd == -1) {
+		return {};
+	}
+
+	if (to_unsigned_integer(cursor, flags) & Changes::name) {
+		event->fflags |= NOTE_RENAME;
+	}
+	if (to_unsigned_integer(cursor, flags) & Changes::data) {
+		event->fflags |= NOTE_WRITE | NOTE_DELETE;
+	}
+	if (to_unsigned_integer(cursor, flags) & Changes::attributes) {
+		event->fflags |= NOTE_ATTRIB;
+	}
+
+	return mint::create_c_object(cursor.ast(), event.release());
+#endif
+}
+
+mint::Reference mint_file_watcher_close(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
+	mint::poll_event_t* event = d_ptr.data<mint::LibObject<mint::poll_event_t>>().ptr;
+#ifdef MINT_OS_WINDOWS
+	CloseHandle(*event);
+#else
+	close(event->fd);
+#endif
+	delete event;
 	return {};
 }
 
-mint::Reference mint_file_watcher_wait(mint::Cursor& cursor, const mint::Reference& handle,
+mint::Reference mint_file_watcher_get_handle(mint::Cursor& cursor, const mint::Reference& d_ptr) {
+	mint::poll_event_t* event = d_ptr.data<mint::LibObject<mint::poll_event_t>>().ptr;
+#ifdef MINT_OS_WINDOWS
+	return mint::create_handle(cursor.ast(), *event);
+#else
+	return mint::create_handle(cursor.ast(), event->fd);
+#endif
+}
+
+mint::Reference mint_file_watcher_wait(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& timeout) {
+
+	mint::poll_event_t* event = d_ptr.data<mint::LibObject<mint::poll_event_t>>().ptr;
+
 #ifdef MINT_OS_WINDOWS
 
-	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
-	                          ? INFINITE
-	                          : mint::to_integer<DWORD>(cursor, timeout);
+	const DWORD timeout_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
+	                             ? INFINITE
+	                             : mint::to_integer<DWORD>(cursor, timeout);
 
-	if (WaitForSingleObject(to_handle(handle), time_ms) == WAIT_OBJECT_0) {
-		ResetEvent(to_handle(handle));
+	if (WaitForSingleObject(to_handle(d_ptr), timeout_ms) == WAIT_OBJECT_0) {
+		ResetEvent(to_handle(d_ptr));
 		return mint::create_boolean(true);
 	}
 
 	return mint::create_boolean(false);
-#else
-	pollfd fds {
-	    .fd = to_handle(handle),
-	    .events = POLLIN,
-	};
 
-	const int time_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
+#elifdef MINT_OS_LINUX
 
-	if (const auto ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
-		return mint::create_boolean(reset_event(fds.fd));
+	const int timeout_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
+
+	int context = epoll_create1(EPOLL_CLOEXEC);
+	if (context == -1) {
+		return mint::create_boolean(false);
 	}
 
-	return mint::create_boolean(false);
+	auto changelist = epoll_event {
+	    .events = event->events,
+	};
+
+	const auto ret = epoll_wait(context, &changelist, 1, timeout_ms);
+
+	::close(context);
+	return mint::create_boolean(ret > 0);
+
+#elifdef MINT_OS_UNIX
+
+	const auto timeout_ts = is_instance_of(timeout, mint::Data::Format::none)
+	                            ? std::nullopt
+	                            : std::optional<std::chrono::milliseconds>(to_integer<int>(cursor, timeout))
+	                                  .transform([](std::chrono::milliseconds ms) {
+		                                  const auto sec = std::chrono::floor<std::chrono::seconds>(ms);
+		                                  const auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(
+		                                      ms - sec);
+		                                  return timespec {
+		                                      .tv_sec = sec.count(),
+		                                      .tv_nsec = nsec.count(),
+		                                  };
+	                                  });
+
+	int context = kqueue();
+	if (context == -1) {
+		return mint::create_boolean(false);
+	}
+
+	struct kevent changelist {
+	    .ident = static_cast<std::uintptr_t>(event->fd),
+	    .filter = event->filter,
+	    .flags = event->flags,
+	    .fflags = event->fflags,
+	};
+
+	struct kevent eventlist {};
+	const auto ret = kevent(context, &changelist, 1, &eventlist, 1, timeout_ts ? std::to_address(timeout_ts) : nullptr);
+
+	::close(context);
+	return mint::create_boolean(ret > 0);
+
 #endif
 }
 
@@ -178,4 +253,5 @@ mint::Reference mint_file_watcher_wait(mint::Cursor& cursor, const mint::Referen
 
 MINT_EXPORT_FUNCTION(mint_file_watcher_create, 2)
 MINT_EXPORT_FUNCTION(mint_file_watcher_close, 1)
+MINT_EXPORT_FUNCTION(mint_file_watcher_get_handle, 1)
 MINT_EXPORT_FUNCTION(mint_file_watcher_wait, 2)

@@ -36,10 +36,8 @@
 #include <unordered_set>
 #include <variant>
 
-#if defined(MINT_OS_WINDOWS)
+#ifdef MINT_OS_WINDOWS
 #include <Windows.h>
-#elifdef MINT_OS_MAC
-#include <sys/event.h>
 #elifdef MINT_OS_LINUX
 #include <sys/epoll.h>
 #if HAS_IO_URING
@@ -49,6 +47,8 @@
 #elif HAS_IO_URING
 #include <liburing.h>
 #include <liburing/io_uring.h>
+#elifdef MINT_OS_UNIX
+#include <sys/event.h>
 #endif
 
 namespace mint {
@@ -56,21 +56,13 @@ namespace mint {
 #ifdef MINT_OS_WINDOWS
 #define MINT_ASYNC_BACKEND_IOCP
 using handle_t = HANDLE;
+using poll_event_t = HANDLE;
 using async_operation_t = OVERLAPPED;
 inline const handle_t invalid_handle = INVALID_HANDLE_VALUE;
-#else
+#elifdef MINT_OS_UNIX
 using handle_t = int;
 inline const handle_t invalid_handle = -1;
-#if defined(MINT_OS_MAC) || defined(MINT_OS_FREE_BSD)
-#define MINT_ASYNC_BACKEND_KQUEUE
-
-using async_operation_t = struct KqueueOperation {
-	std::uint16_t filter = 0;
-	std::uint16_t flags = 0;
-	std::intptr_t result = 0;
-	bool pending = false;
-};
-#elif defined(MINT_OS_LINUX)
+#ifdef MINT_OS_LINUX
 #if HAS_IO_URING
 #define MINT_ASYNC_BACKEND_IO_URING
 
@@ -97,6 +89,10 @@ struct EPollOperation {
 	bool pending = false;
 };
 
+using poll_event_t = struct EPollEvent {
+	int fd = -1;
+	std::uint32_t events = 0;
+};
 using async_operation_t = std::variant<
 #ifdef MINT_ASYNC_BACKEND_IO_URING
     IoUringOperation,
@@ -106,8 +102,24 @@ using async_operation_t = std::variant<
 #endif
     std::monostate>;
 #else
-#error "AsyncOperation is not implemented for this platform"
+#define MINT_ASYNC_BACKEND_KQUEUE
+
+using poll_event_t = struct KqueueEvent {
+	std::int32_t fd = -1;
+	std::int16_t filter = 0;
+	std::uint16_t flags = 0;
+	std::uint32_t fflags = 0;
+};
+
+using async_operation_t = struct KqueueOperation {
+	std::int16_t filter = 0;
+	std::uint16_t flags = 0;
+	std::intptr_t result = 0;
+	bool pending = false;
+};
 #endif
+#else
+#error "AsyncOperation is not implemented for this platform"
 #endif
 
 class MINT_EXPORT AsyncOperation : public async_operation_t {

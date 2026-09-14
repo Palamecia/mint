@@ -24,6 +24,7 @@
 #ifndef MINT_SYSTEM_ASSERT_H
 #define MINT_SYSTEM_ASSERT_H
 
+#include "mint/config.h"
 #include <cassert>
 #include <utility>
 
@@ -33,12 +34,18 @@ MINT_EXPORT void __assert_x_fail(const char* __file, unsigned int __line, const 
 
 #define assert_x(expr, where, what) \
 	(static_cast<bool>(expr) ? void(0) : __assert_x_fail(__FILE__, __LINE__, where, what))
-#else
+#elifdef MINT_OS_LINUX
 extern void __assert_x_fail(const char* __assertion, const char* __file, unsigned int __line, const char* __function,
     const char* __where, const char* __what) __THROW __attribute__((__noreturn__));
 
 #define assert_x(expr, where, what) \
 	(static_cast<bool>(expr) ? void(0) : __assert_x_fail(#expr, __FILE__, __LINE__, __ASSERT_FUNCTION, where, what))
+#else
+extern void __assert_x_fail(const char* __assertion, const char* __file, int __line, const char* __function,
+    const char* __where, const char* __what) __attribute__((__noreturn__));
+
+#define assert_x(expr, where, what) \
+	(static_cast<bool>(expr) ? void(0) : __assert_x_fail(#expr, __FILE__, __LINE__, __PRETTY_FUNCTION__, where, what))
 #endif
 #else
 #define assert_x(expr, where, what)

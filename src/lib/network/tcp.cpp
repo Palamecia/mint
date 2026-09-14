@@ -55,8 +55,10 @@
 #else
 #ifdef MINT_OS_LINUX
 #include <linux/sockios.h>
-#endif
 #include <asm-generic/socket.h>
+#else
+#include <sys/ioctl.h>
+#endif
 #include <memory>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
@@ -265,13 +267,23 @@ mint::Reference mint_tcp_socket_recv(mint::FunctionHelper& helper, const mint::R
 
 	socklen_t length = 0;
 #ifdef MINT_OS_UNIX
-	if (ioctl(socket_fd, SIOCINQ, &length) == -1) {
+	if (ioctl(socket_fd, FIONREAD, &length) == -1) {
 		return mint::create_iterator_from(helper.cursor(), io_status.member(mint_network::symbols::io_error).share(),
 		    mint::create_number(errno));
 	}
 #else
-	length = BUFSIZ; // TODO: get better value
+	if (u_long value = 0; ioctlsocket(socket_fd, FIONREAD, &value) == 0) {
+		length = static_cast<socklen_t>(value);
+	}
+	else {
+		return mint::create_iterator_from(helper.cursor(), io_status.member(mint_network::symbols::io_error).share(),
+		    mint::create_number(errno));
+	}
 #endif
+
+	if (length == 0) {
+		length = BUFSIZ;
+	}
 
 	auto local_buffer = std::make_unique<std::uint8_t[]>(length);
 	mint::unlock_processor();
@@ -351,9 +363,8 @@ mint::Reference mint_tcp_socket_recv_async(mint::FunctionHelper& helper, const m
 			}
 #elifdef MINT_ASYNC_BACKEND_KQUEUE
 			filter = EVFILT_READ;
-			result = recv(socket_fd, reinterpret_cast<char*>(_local_buffer.data()),
-			    static_cast<int>(_local_buffer.size()), 0);
-			if (epoll.result < 0) {
+			result = recv(socket_fd, _local_buffer.data(), _local_buffer.size(), MSG_DONTWAIT);
+			if (result < 0) {
 				return mint::last_error_code();
 			}
 #elifdef MINT_OS_LINUX

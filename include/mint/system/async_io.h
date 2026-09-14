@@ -36,10 +36,8 @@
 #include <unordered_set>
 #include <variant>
 
-#if defined(MINT_OS_WINDOWS)
+#ifdef MINT_OS_WINDOWS
 #include <Windows.h>
-#elifdef MINT_OS_MAC
-#include <sys/event.h>
 #elifdef MINT_OS_LINUX
 #include <sys/epoll.h>
 #if HAS_IO_URING
@@ -49,6 +47,8 @@
 #elif HAS_IO_URING
 #include <liburing.h>
 #include <liburing/io_uring.h>
+#elifdef MINT_OS_UNIX
+#include <sys/event.h>
 #endif
 
 namespace mint {

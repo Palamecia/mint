@@ -48,12 +48,14 @@
 #include <winbase.h>
 #include <winnt.h>
 #else
-#include <fcntl.h>
-#include <poll.h>
+#ifdef MINT_OS_LINUX
 #include <stdio_ext.h>
 #include <sys/file.h>
 #include <sys/inotify.h>
 #include <sys/poll.h>
+#endif
+#include <fcntl.h>
+#include <poll.h>
 #include <unistd.h>
 #endif
 

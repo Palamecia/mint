@@ -64,8 +64,10 @@
 #include <winerror.h>
 #include <winnt.h>
 #else
+#ifdef MINT_OS_LINUX
 #include <asm-generic/int-ll64.h>
 #include <bits/types.h>
+#endif
 #endif
 
 #ifdef MINT_ASYNC_BACKEND_IO_URING

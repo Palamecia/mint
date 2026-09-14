@@ -238,7 +238,7 @@ mint::Reference mint_ip_socket_accept_async(mint::Cursor& cursor, const mint::Re
 #ifdef MINT_ASYNC_BACKEND_IOCP
 		SOCKET _client_fd = INVALID_SOCKET;
 		std::array<char, 2 * address_length> _accept_buffer {};
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 		sockaddr_storage _remote_address {};
 		socklen_t _remote_address_length = static_cast<socklen_t>(sizeof(_remote_address));
 #endif
@@ -340,7 +340,7 @@ mint::Reference mint_ip_socket_accept_async(mint::Cursor& cursor, const mint::Re
 				catch (const std::system_error& error) {
 					done(mint::create_iterator_from(_cursor, mint::create_number(error.code().value())));
 				}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 				const auto client_fd = static_cast<SOCKET>(bytes_transferred);
 				const auto [address, port] = mint_network::get_ip_socket_info(
 				    *reinterpret_cast<sockaddr*>(&_remote_address));
@@ -1183,8 +1183,10 @@ mint::Reference mint_ipv6_socket_mreq_create(mint::Cursor& cursor, const mint::R
 	}
 #ifdef MINT_OS_WINDOWS
 	group->ipv6mr_interface = to_integer<ULONG>(cursor, ipv6mr_interface);
-#else
+#elifdef MINT_OS_LINUX
 	group->ipv6mr_ifindex = to_integer<int>(cursor, ipv6mr_interface);
+#else
+	group->ipv6mr_interface = to_integer<unsigned int>(cursor, ipv6mr_interface);
 #endif
 	return create_c_object(cursor.ast(), group.release());
 }
@@ -1210,10 +1212,10 @@ mint::Reference mint_ipv6_socket_mreq_set_multiaddr(mint::Cursor& /*cursor*/, co
 }
 
 mint::Reference mint_ipv6_socket_mreq_get_interface(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-#ifdef MINT_OS_WINDOWS
-	return mint::create_number(d_ptr.data<mint::LibObject<ipv6_mreq>>().ptr->ipv6mr_interface);
-#else
+#ifdef MINT_OS_LINUX
 	return mint::create_number(d_ptr.data<mint::LibObject<ipv6_mreq>>().ptr->ipv6mr_ifindex);
+#else
+	return mint::create_number(d_ptr.data<mint::LibObject<ipv6_mreq>>().ptr->ipv6mr_interface);
 #endif
 }
 
@@ -1221,8 +1223,10 @@ mint::Reference mint_ipv6_socket_mreq_set_interface(mint::Cursor& cursor, const 
     mint::Reference& index) {
 #ifdef MINT_OS_WINDOWS
 	d_ptr.data<mint::LibObject<ipv6_mreq>>().ptr->ipv6mr_interface = to_integer<ULONG>(cursor, index);
-#else
+#elifdef MINT_OS_LINUX
 	d_ptr.data<mint::LibObject<ipv6_mreq>>().ptr->ipv6mr_ifindex = to_integer<int>(cursor, index);
+#else
+	d_ptr.data<mint::LibObject<ipv6_mreq>>().ptr->ipv6mr_interface = to_integer<unsigned int>(cursor, index);
 #endif
 	return {};
 }

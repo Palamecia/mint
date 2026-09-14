@@ -37,10 +37,7 @@
 #include <unistd.h>
 #include <variant>
 
-#if defined(MINT_OS_MAC)
-#include <sys/event.h>
-#include <sys/types.h>
-#elif defined(MINT_OS_LINUX)
+#ifdef MINT_OS_LINUX
 #include <sys/epoll.h>
 // io_uring headers (optional - with fallback to epoll)
 #if HAS_IO_URING
@@ -48,8 +45,9 @@
 #include <linux/time_types.h>
 #else
 #endif
-#else
-#include <sys/epoll.h>
+#elifdef MINT_OS_UNIX
+#include <sys/event.h>
+#include <sys/types.h>
 #endif
 
 mint::AsyncOperation::AsyncOperation(handle_t handle) :
@@ -141,10 +139,10 @@ bool mint::AsyncRuntime::cancel(AsyncOperation& operation) {
 mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::milliseconds> timeout) {
 
 	if (_context < 0) [[unlikely]] {
-		return false;
+		return nullptr;
 	}
 
-	struct kevent events[16];
+	auto events = std::array<struct kevent, 16>();
 	struct timespec timeout_ts = timeout
 	                                 .transform([](std::chrono::milliseconds ms) {
 		                                 const auto timeout_ms = ms.count();
@@ -155,9 +153,9 @@ mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::millis
 	                                 })
 	                                 .value_or(timespec {});
 
-	int nu_events = kevent(_context, nullptr, 0, events, 16, timeout ? &timeout_ts : nullptr);
+	int nu_events = kevent(_context, nullptr, 0, events.data(), events.size(), timeout ? &timeout_ts : nullptr);
 	if (nu_events < 0) {
-		return false; // Error
+		return nullptr; // Error
 	}
 
 	const auto _ = std::scoped_lock(_mutex);

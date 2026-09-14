@@ -29,9 +29,13 @@
 #include <cstring>
 #include <errno.h>
 
-#ifdef MINT_OS_UNIX
+#ifdef MINT_OS_LINUX
 #include <asm-generic/errno-base.h>
 #include <asm-generic/errno.h>
+#elifdef MINT_OS_UNIX
+#ifndef EDEADLOCK
+#define EDEADLOCK EDEADLK
+#endif
 #endif
 
 namespace {

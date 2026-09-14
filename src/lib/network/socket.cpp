@@ -59,10 +59,10 @@
 #else
 #ifdef MINT_ASYNC_BACKEND_EPOLL
 #include <sys/epoll.h>
-#endif
 #include <asm-generic/ioctls.h>
 #include <asm-generic/socket.h>
 #include <bits/types/struct_timeval.h>
+#endif
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
@@ -911,7 +911,7 @@ mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mi
 					        mint_network::symbols::io_error),
 					    mint::create_number(error.code().value())));
 				}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 				done(mint::create_iterator_from(_cursor,
 				    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 				        mint_network::symbols::io_success)));

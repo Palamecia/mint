@@ -43,8 +43,10 @@
 #include <minwindef.h>
 #include <sysinfoapi.h>
 #else
+#ifdef MINT_OS_LINUX
 #include <bits/chrono.h>
 #include <bits/types/struct_timeval.h>
+#endif
 #include <ctime>
 #include <sys/time.h>
 #include <sys/types.h>

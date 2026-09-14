@@ -154,8 +154,6 @@ package Exception {
 		EBADRQC = 56
 		/// Invalid slot
 		EBADSLT = 57
-		/// Resource deadlock would occur
-		EDEADLOCK = 35
 		/// Bad font file format
 		EBFONT = 59
 		/// Device not a stream

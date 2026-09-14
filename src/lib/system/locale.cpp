@@ -39,7 +39,9 @@
 #ifdef MINT_OS_WINDOWS
 #include "win32/winlocale.h"
 #else
+#ifdef MINT_OS_LINUX
 #include <bits/types/locale_t.h>
+#endif
 #include <langinfo.h>
 #include <locale.h>
 #include <nl_types.h>

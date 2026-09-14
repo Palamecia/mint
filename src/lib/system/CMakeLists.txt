@@ -2,6 +2,10 @@ project(mint-system)
 
 find_package(ICU REQUIRED COMPONENTS uc i18n data)
 
+if (APPLE)
+	find_package(date REQUIRED)
+endif()
+
 add_library(mint-lib-module-system MODULE)
 
 set_target_properties(
@@ -35,11 +39,17 @@ PRIVATE
 	timezone.cpp
 )
 
-if (UNIX)
+if (LINUX)
 	target_link_libraries(
 		mint-lib-module-system
 	PUBLIC
 		liburing::io_uring
+	)
+elseif(APPLE)
+	target_link_libraries(
+		mint-lib-module-system
+	PRIVATE
+		date::date-tz
 	)
 elseif (WIN32)
 	target_sources(

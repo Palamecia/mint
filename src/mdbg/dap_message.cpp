@@ -112,7 +112,7 @@ std::string DapRequestMessage::get_command() const {
 }
 
 JsonObject DapRequestMessage::get_arguments() const {
-	return _arguments.value_or({});
+	return _arguments.value_or(JsonObject {});
 }
 
 bool DapRequestMessage::has_arguments() const {

@@ -29,7 +29,6 @@
 #include <cassert>
 #include <compare>
 #include <cstddef>
-#include <cstdint>
 #include <ranges>
 #include <span>
 #include <string>
@@ -64,7 +63,7 @@ const constexpr std::array offsets_from_utf8 = {
 };
 // clang-format on
 
-constexpr const auto utf8_replacement_char = std::to_array<std::uint8_t>({0xEF, 0xBF, 0xBD, 0x00});
+constexpr const auto utf8_replacement_char = std::to_array<char8_t>({0xEF, 0xBF, 0xBD, 0x00});
 
 constexpr const UChar32 utf32_max_legal = 0x0010FFFF;
 constexpr const UChar32 utf32_sur_high_start = 0xD800;
@@ -531,11 +530,11 @@ int mk_wcwidth(UChar32 ucs) {
 }
 
 UChar32 utf8_to_utf32(std::string_view code_point) {
-	const auto* source = reinterpret_cast<const std::uint8_t*>(code_point.data());
+	const auto* source = reinterpret_cast<const char8_t*>(code_point.data());
 	if (!utf8_begin_code_point(*source)) {
 		return utf32_replacement_char;
 	}
-	const std::uint8_t extra_bytes_to_read = trailing_bytes_for_utf8[*source];
+	const char8_t extra_bytes_to_read = trailing_bytes_for_utf8[*source];
 	if (extra_bytes_to_read > code_point.size()) {
 		return utf32_replacement_char;
 	}
@@ -601,7 +600,7 @@ std::string utf8_from_utf32(UChar32 code_point) {
 	}
 
 	std::string ch(code_point_length, ' ');
-	auto* target = reinterpret_cast<std::uint8_t*>(ch.data());
+	auto* target = reinterpret_cast<char8_t*>(ch.data());
 	target += code_point_length;
 
 	static constexpr const UChar32 byte_mask = 0xBF;
@@ -632,11 +631,11 @@ std::string utf8_from_utf32(UChar32 code_point) {
 
 }
 
-bool mint::utf8_begin_code_point(std::uint8_t b) {
+bool mint::utf8_begin_code_point(char8_t b) {
 	return !((b & 0x80) && !(b & 0x40));
 }
 
-std::string_view::size_type mint::utf8_code_point_length(std::uint8_t b) {
+std::string_view::size_type mint::utf8_code_point_length(char8_t b) {
 	if ((b & 0x80) && (b & 0x40)) {
 		if (b & 0x20) {
 			if (b & 0x10) {
@@ -672,7 +671,7 @@ std::string_view::size_type mint::utf8_byte_index_to_code_point_index(std::strin
 	}
 
 	for (const_utf8view_iterator i = str.begin(); i != str.end(); ++i) {
-		const auto len = utf8_code_point_length(static_cast<std::uint8_t>((*i).front()));
+		const auto len = utf8_code_point_length(static_cast<char8_t>((*i).front()));
 		if (byte_index < len) {
 			return std::string_view::npos;
 		}
@@ -692,7 +691,7 @@ std::string_view::size_type mint::utf8_previous_code_point_byte_index(std::strin
 		do {
 			byte_index--;
 		}
-		while (!utf8_begin_code_point(static_cast<std::uint8_t>(str[byte_index])));
+		while (!utf8_begin_code_point(static_cast<char8_t>(str[byte_index])));
 		return byte_index;
 	}
 	return std::string_view::npos;
@@ -700,7 +699,7 @@ std::string_view::size_type mint::utf8_previous_code_point_byte_index(std::strin
 
 std::string_view::size_type mint::utf8_next_code_point_byte_index(std::string_view str,
     std::string_view::size_type byte_index) {
-	return byte_index + utf8_code_point_length(static_cast<std::uint8_t>(str[byte_index]));
+	return byte_index + utf8_code_point_length(static_cast<char8_t>(str[byte_index]));
 }
 
 std::string_view::size_type mint::utf8_code_point_index_to_byte_index(std::string_view str,
@@ -713,7 +712,7 @@ std::string_view::size_type mint::utf8_code_point_index_to_byte_index(std::strin
 	}
 
 	for (const_utf8view_iterator i = str.begin(); i != str.end(); ++i) {
-		byte_index += utf8_code_point_length(static_cast<std::uint8_t>((*i).front()));
+		byte_index += utf8_code_point_length(static_cast<char8_t>((*i).front()));
 		if (--code_point_index == 0) {
 			return byte_index;
 		}
@@ -736,7 +735,7 @@ std::string_view::size_type mint::utf8_substring_byte_count(std::string_view str
 
 // column width of a utf8 single character sequence.
 std::string_view::size_type mint::utf8_grapheme_code_point_count(std::string_view str) {
-	auto b = static_cast<std::uint8_t>(str[0]);
+	auto b = static_cast<char8_t>(str[0]);
 	if (b < ' ') {
 		return 0;
 	}

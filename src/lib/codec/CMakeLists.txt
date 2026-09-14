@@ -36,6 +36,13 @@ if (UNIX)
 	PRIVATE
 		magic
 	)
+	if (APPLE)
+		target_link_libraries(
+			mint-lib-module-codec
+		PRIVATE
+			Iconv::Iconv
+		)
+	endif()
 else()
 	target_link_libraries(
 		mint-lib-module-codec

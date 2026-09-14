@@ -63,18 +63,12 @@ package System {
 		 * `none` is returned.
 		 */
 		const def new(self, path, flags = System.FileWatcher.Change.Data) {
-			self.eventHandle = System.FileWatcher.g_lib.call('mint_file_watcher_create', path, flags)
-			if defined self.fileHandle and defined self.eventHandle {
+			self.path = path
+			if self.d_ptr = System.FileWatcher.g_lib.call('mint_file_watcher_create', path, flags) {
+				self.d_ptr.delete = def [g_lib = System.FileWatcher.g_lib](self) {
+					g_lib.call('mint_file_watcher_delete', self)
+				}
 				return self
-			}
-		}
-
-		/**
-		 * Cleans up the file instance.
-		 */
-		const def delete(self) {
-			if defined self.eventHandle {
-				System.FileWatcher.g_lib.call('mint_file_watcher_close', self.eventHandle)
 			}
 		}
 
@@ -87,7 +81,7 @@ package System {
 		 * Returns a {System.File} instance associated with this file watcher. The returned file is opened with the same mode as the file watcher.
 		 */
 		const def toFile(self) {
-			return System.File(self.fileHandle)
+			return System.File(self.path)
 		}
 
 		/**
@@ -100,27 +94,37 @@ package System {
 		 * After a call to this method, the event is reset.
 		 */
 		const def wait(self, timeout = none) {
-			return System.FileWatcher.g_lib.call('mint_file_watcher_wait', self.eventHandle, timeout)
+			return System.FileWatcher.g_lib.call('mint_file_watcher_wait', self.d_ptr, timeout)
 		}
 
 		/**
-		 * Returns the handle used by {System.FileWatcher}.
+		 * Returns the event's handle as an instance of `mint::handle_t`.
 		 */
 		const def getHandle(const self) {
-			return self.eventHandle
+			return System.FileWatcher.g_lib.call('mint_file_watcher_get_handle', self.d_ptr)
+		}
+
+		/**
+		 * Returns the event's poll event as an instance of `mint::poll_event_t`.
+		 */
+		const def getPollEvent(const self) {
+			return System.FileWatcher.g_lib.call('mint_file_watcher_get_poll_event', self.d_ptr)
 		}
 
 		/**
 		 * Reset the internal event state
 		 */
 		const def reset(self) {
-			System.FileWatcher.g_lib.call('mint_file_watcher_wait', self.eventHandle, 0)
+			System.FileWatcher.g_lib.call('mint_file_watcher_wait', self.d_ptr, 0)
 		}
 
 		/// Global library handle.
 		- @const g_lib = lib('libmint-system')
 
-		/// Internal handle.
-		- final eventHandle = none
+		/// Internal file path
+		- final path = null
+
+		/// Object data.
+		- final d_ptr = null
 	}
 }

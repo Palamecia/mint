@@ -118,7 +118,7 @@ enum StdStreamFileNo : std::uint8_t {
 	stderr_file_no = 2
 };
 
-enum TtyEvent : std::uint32_t {
+enum TtyEvent : char32_t {
 	event_none = 0,
 	event_key_ctrl_a = 1,
 	event_key_ctrl_b = 2,
@@ -194,7 +194,7 @@ struct Completion {
 
 struct Tty {
 	std::queue<TtyEvent> event_buffer;
-	std::queue<std::uint8_t> byte_buffer;
+	std::queue<char8_t> byte_buffer;
 };
 
 struct TerminalInfo {
@@ -251,15 +251,15 @@ public:
 protected:
 	static TtyEvent wait_for_event(std::optional<std::chrono::milliseconds> timeout = std::nullopt);
 	static TtyEvent event_from_esc(std::optional<std::chrono::milliseconds> timeout);
-	static TtyEvent event_from_osc(std::uint8_t peek, std::optional<std::chrono::milliseconds> timeout);
-	static TtyEvent event_from_csi(std::uint8_t c1, std::uint8_t peek, std::uint32_t mods0,
+	static TtyEvent event_from_osc(char8_t peek, std::optional<std::chrono::milliseconds> timeout);
+	static TtyEvent event_from_csi(char8_t c1, char8_t peek, char32_t mods0,
 	    std::optional<std::chrono::milliseconds> timeout);
-	static std::uint8_t read_byte(std::optional<std::chrono::milliseconds> timeout);
+	static char8_t read_byte(std::optional<std::chrono::milliseconds> timeout);
 
 	std::pair<std::string_view::size_type, bool> find_matching_brace(std::size_t brace_pos);
-	void edit_insert_auto_brace(std::uint8_t c);
+	void edit_insert_auto_brace(char8_t c);
 	void edit_remove_auto_brace(std::size_t pos);
-	void edit_auto_indent(std::uint8_t pre, std::uint8_t post);
+	void edit_auto_indent(char8_t pre, char8_t post);
 
 	bool edit_pos_is_inside_multi_line();
 	bool edit_pos_is_inside_braces();
@@ -288,7 +288,7 @@ protected:
 	void edit_swap_char();
 	void edit_swap_line_up();
 	void edit_swap_line_down();
-	void edit_insert_char(std::uint8_t c);
+	void edit_insert_char(char8_t c);
 	void edit_insert_indent();
 	void edit_clear_screen();
 
@@ -317,7 +317,7 @@ private:
 	std::size_t _completions_idx = 0;
 	std::vector<Completion> _completions;
 	std::function<std::string(std::size_t)> _prompt;
-	std::basic_string<std::uint8_t> _auto_braces;
+	std::u8string _auto_braces;
 	HighlighterFunction _highlight;
 	BraceMatcherFunction _braces_match;
 	CompletionGeneratorFunction _generate_completions;

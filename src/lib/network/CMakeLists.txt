@@ -30,7 +30,7 @@ PRIVATE
 	mint::mint
 )
 
-if (UNIX)
+if (LINUX)
 	target_link_libraries(
 		mint-lib-module-network
 	PUBLIC

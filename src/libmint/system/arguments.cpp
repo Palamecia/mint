@@ -22,6 +22,8 @@
  */
 
 #include "mint/system/arguments.h"
+#include <array>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -31,13 +33,19 @@
 #include <shellapi.h>
 #include <stringapiset.h>
 #include <winnls.h>
-#include <span>
 #elifdef MINT_OS_LINUX
 #include "mint/system/filesystem.h"
 #include <gsl/pointers>
 #include <cstdio>
 #include <cstdlib>
 #include <stdio.h>
+#elifdef MINT_OS_MAC
+#include <mach-o/dyld.h>
+#include <crt_externs.h>
+#elifdef MINT_OS_FREE_BSD
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <unistd.h>
 #endif
 
 std::vector<std::string> mint::arguments() {
@@ -58,6 +66,7 @@ std::vector<std::string> mint::arguments() {
 	}
 
 	return args;
+
 #elifdef MINT_OS_LINUX
 
 	auto args = std::vector<std::string>();
@@ -76,5 +85,34 @@ std::vector<std::string> mint::arguments() {
 	}
 
 	return args;
+
+#elifdef MINT_OS_FREE_BSD
+
+	auto mib = std::to_array<int>({CTL_KERN, KERN_PROC, KERN_PROC_ARGS, getpid()});
+	auto args = std::vector<std::string>();
+
+	if (std::size_t size = 0; sysctl(mib.data(), mib.size(), nullptr, &size, nullptr, 0) == 0 && size > 0) {
+		if (auto buffer = std::vector<char>(size);
+		    sysctl(mib.data(), mib.size(), buffer.data(), &size, nullptr, 0) == 0) {
+			for (std::size_t i = 0; i < size; ++i) {
+				if (auto arg = std::string(&buffer[i]); !arg.empty()) {
+					i += arg.size();
+					args.push_back(std::move(arg));
+				}
+			}
+		}
+	}
+
+	return args;
+
+#elifdef MINT_OS_MAC
+
+	int argc = *_NSGetArgc();
+	char** argv = *_NSGetArgv();
+
+	return std::vector<std::string>(std::from_range, std::span(argv, argc));
+
+#else
+#error "Platform not supported"
 #endif
 }

@@ -316,12 +316,17 @@ PRIVATE
 if (UNIX)
 	target_link_libraries(
 		mint-libmint
-	PUBLIC
-		liburing::io_uring
 	PRIVATE
 		dl
 		pthread
 	)
+	if (LINUX)
+		target_link_libraries(
+			mint-libmint
+		PUBLIC
+			liburing::io_uring
+		)
+	endif()
 elseif (WIN32)
 	target_link_libraries(
 		mint-libmint

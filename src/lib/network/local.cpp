@@ -69,7 +69,6 @@
 #include <minwindef.h>
 #include <namedpipeapi.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <winbase.h>
 #include <winerror.h>
 #include <winnt.h>
@@ -82,13 +81,12 @@
 #endif
 #ifdef MINT_OS_LINUX
 #include <linux/sockios.h>
-#endif
 #include <asm-generic/socket.h>
+#endif
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <variant>
 #define UNIX_PATH_MAX sizeof(sockaddr_un::sun_path)
 #endif
 
@@ -698,6 +696,8 @@ public:
 #ifdef MINT_ASYNC_BACKEND_IOCP
 			std::future<void> _future;
 			std::expected<IOStatus, std::error_code> _result;
+#elif defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
+			bool _started = false;
 #endif
 		public:
 			AsyncConnectOperation(mint::FunctionHelper& helper, mint::Reference self, mint::AsyncRuntime& scheduler,
@@ -763,8 +763,8 @@ public:
 					_scheduler.get().post_deferred_completion(*this);
 				});
 #elifdef MINT_ASYNC_BACKEND_KQUEUE
-				epoll.filter = EVFILT_WRITE;
-				if (epoll.pending) {
+				filter = EVFILT_WRITE;
+				if (_started) {
 					int socket_error = 0;
 					socklen_t socket_error_length = sizeof(socket_error);
 					if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &socket_error, &socket_error_length) < 0) {
@@ -775,7 +775,9 @@ public:
 					}
 					return {};
 				}
-				if (connect(socket_fd, _remote_address, _remote_address_length) < 0) {
+				_started = true;
+				const auto _ = mint_network::SocketBlockingModeGuard<false>(socket_fd);
+				if (::connect(socket_fd, _remote_address, _remote_address_length) < 0) {
 					const auto error = errno;
 					if (error != EINPROGRESS && error != EALREADY && error != EWOULDBLOCK) {
 						return mint::last_error_code();
@@ -794,7 +796,7 @@ public:
 #ifdef MINT_ASYNC_BACKEND_EPOLL
 				                      [&](mint::EPollOperation& self) -> std::error_code {
 					                      self.events = EPOLLOUT;
-					                      if (self.started) {
+					                      if (_started) {
 						                      int socket_error = 0;
 						                      socklen_t socket_error_length = sizeof(socket_error);
 						                      if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &socket_error,
@@ -807,7 +809,7 @@ public:
 						                      }
 						                      return {};
 					                      }
-					                      self.started = true;
+					                      _started = true;
 					                      const auto _ = mint_network::SocketBlockingModeGuard<false>(socket_fd);
 					                      if (::connect(socket_fd, _remote_address, _remote_address_length) < 0) {
 						                      const auto error = errno;
@@ -870,7 +872,7 @@ public:
 						        mint_network::symbols::io_error),
 						    mint::create_null(), mint::create_number(_result.error().value())));
 					}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 					done(mint::create_iterator_from(_cursor,
 					    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 					        mint_network::symbols::io_success),
@@ -1162,12 +1164,21 @@ public:
 
 		socklen_t length = 0;
 #ifdef MINT_OS_UNIX
-		if (ioctl(_socket, SIOCINQ, &length) == -1) {
+		if (ioctl(_socket, FIONREAD, &length) == -1) {
 			throw std::system_error(mint::last_error_code());
 		}
 #else
-		length = BUFSIZ; // TODO: get better value
+		if (u_long value = 0; ioctlsocket(_socket, FIONREAD, &value) == 0) {
+			length = static_cast<socklen_t>(value);
+		}
+		else {
+			throw std::system_error(mint::last_error_code());
+		}
 #endif
+
+		if (length == 0) {
+			length = BUFSIZ;
+		}
 
 		auto local_buffer = std::make_unique<std::uint8_t[]>(length);
 		mint::unlock_processor();
@@ -1364,7 +1375,7 @@ public:
 #ifdef MINT_ASYNC_BACKEND_IOCP
 			SOCKET _client_fd = INVALID_SOCKET;
 			std::array<char, 2 * address_length> _accept_buffer {};
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 			sockaddr_storage _remote_address {};
 			socklen_t _remote_address_length = static_cast<socklen_t>(sizeof(_remote_address));
 #endif
@@ -1396,6 +1407,7 @@ public:
 						}
 					}
 #elifdef MINT_ASYNC_BACKEND_KQUEUE
+					const auto _ = mint_network::SocketBlockingModeGuard<false>(socket_fd);
 					filter = EVFILT_READ;
 					result = ::accept(socket_fd, reinterpret_cast<sockaddr*>(&_remote_address), &_remote_address_length);
 					if (result < 0) {
@@ -1466,7 +1478,7 @@ public:
 					catch (const std::system_error& error) {
 						done(mint::create_iterator_from(_cursor, mint::create_number(error.code().value())));
 					}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 					const auto client_fd = static_cast<SOCKET>(bytes_transferred);
 					mint_network::SocketManager::instance().accept_socket(client_fd);
 					done(mint::create_iterator_from(_cursor, mint::create_number(0),
@@ -1561,20 +1573,8 @@ mint::Reference mint_local_endpoint_create(mint::Cursor& cursor, const mint::Ref
 	auto d_ptr = std::make_unique<sockaddr_un>(sockaddr_un {
 	    .sun_family = AF_UNIX,
 	});
-#ifdef MINT_OS_WINDOWS
-	auto temp_path = std::array<wchar_t, _MAX_PATH + 1>();
-	auto temp_path_length = static_cast<std::size_t>(
-	    GetTempPath2W(static_cast<DWORD>(temp_path.size()), temp_path.data()));
-	const auto path_str = (std::filesystem::path(std::wstring_view(temp_path.data(), temp_path_length))
-	                       / std::format("{}.sock", mint::to_string(name)))
+	const auto path_str = (std::filesystem::temp_directory_path() / std::format("{}.sock", mint::to_string(name)))
 	                          .string();
-#else
-	auto* temp_path = std::getenv("TMPDIR");
-	if (temp_path == nullptr) {
-		temp_path = "/tmp";
-	}
-	const auto path_str = (std::filesystem::path(temp_path) / std::format("{}.sock", mint::to_string(name))).string();
-#endif
 	if (path_str.size() < UNIX_PATH_MAX) {
 		std::ranges::copy(path_str, d_ptr->sun_path);
 		return mint::create_c_object<sockaddr>(cursor.ast(), reinterpret_cast<sockaddr*>(d_ptr.release()));

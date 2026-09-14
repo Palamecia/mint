@@ -45,7 +45,8 @@ static const mint::Symbol system("System");
 static const mint::Symbol os_type("OSType");
 static const mint::Symbol linux("Linux");
 static const mint::Symbol windows("Windows");
-static const mint::Symbol mac_os("MacOs");
+static const mint::Symbol free_bsd("FreeBSD");
+static const mint::Symbol mac_os("MacOS");
 
 }
 
@@ -76,14 +77,16 @@ mint::Reference mint_os_get_type(mint::FunctionHelper& helper) {
 
 	const mint::ReferenceHelper os_type = helper.reference(symbols::system).member(symbols::os_type);
 
-#ifdef MINT_OS_UNIX
-	return os_type.member(symbols::linux).share();
-#elifdef MINT_OS_WINDOWS
+#ifdef MINT_OS_WINDOWS
 	return os_type.member(symbols::windows).share();
+#elifdef MINT_OS_LINUX
+	return os_type.member(symbols::linux).share();
+#elifdef MINT_OS_FREE_BSD
+	return os_type.member(symbols::free_bsd).share();
 #elifdef MINT_OS_MAC
 	return os_type.member(symbols::mac_os).share();
 #else
-	assert_x(false, __func__, "unsupported operating system");
+#error "unsupported operating system"
 #endif
 }
 

@@ -1,0 +1,26 @@
+load test.case
+load system.event
+load system.poller
+
+@class EventTest : Test.Case {
+    const def testTriggerAndNotification(self) {
+
+        let poller = System.Poller()
+        let event = System.Event()
+        let triggerCount = 0
+
+        self.expectEqual(true, poller.watch(event, def [...] {
+            ++triggerCount
+        }))
+
+        self.expectEqual(false, poller.poll(0))
+        self.expectEqual(0, triggerCount)
+
+        event.set()
+
+        self.expectEqual(true, poller.poll(0))
+        self.expectEqual(1, triggerCount)
+
+        self.expectEqual(false, poller.poll(0))
+    }
+}

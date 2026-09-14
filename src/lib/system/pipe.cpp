@@ -51,17 +51,21 @@
 #include <synchapi.h>
 #include <winbase.h>
 #include <winnt.h>
+#elifdef MINT_OS_UNIX
+#ifdef MINT_OS_LINUX
+#include <sys/epoll.h>
 #else
-#include <sys/poll.h>
-#include <sys/file.h>
+#include <sys/event.h>
+#endif
+#include <fcntl.h>
 #include <unistd.h>
-#include <poll.h>
 #endif
 
 namespace {
 
 mint::Reference mint_pipe_create(mint::Cursor& cursor) {
 #ifdef MINT_OS_WINDOWS
+
 	auto pipe = std::to_array<HANDLE>({INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE});
 	SECURITY_ATTRIBUTES pipe_attributes {
 	    .nLength = sizeof(SECURITY_ATTRIBUTES),
@@ -70,20 +74,40 @@ mint::Reference mint_pipe_create(mint::Cursor& cursor) {
 	};
 
 	if (CreatePipe(std::next(pipe.data(), 0), std::next(pipe.data(), 1), &pipe_attributes, 0) != 0) {
-		if ((pipe[0] != INVALID_HANDLE_VALUE) && (pipe[1] != INVALID_HANDLE_VALUE)) {
-			return mint::create_iterator_from(cursor, mint::create_handle(cursor.ast(), pipe[0]),
-			    mint::create_handle(cursor.ast(), pipe[1]));
+		if ((pipe.at(0) != INVALID_HANDLE_VALUE) && (pipe.at(1) != INVALID_HANDLE_VALUE)) {
+			if (DWORD mode = PIPE_NOWAIT; SetNamedPipeHandleState(pipe.at(0), &mode, nullptr, nullptr)) {
+				return mint::create_iterator_from(cursor, mint::create_handle(cursor.ast(), pipe.at(0)),
+				    mint::create_handle(cursor.ast(), pipe.at(1)));
+			}
+			CloseHandle(pipe.at(0));
+			CloseHandle(pipe.at(1));
 		}
 	}
-#else
+
+#elifdef MINT_OS_MAC
+
+	auto fd = std::to_array<int>({-1, -1});
+
+	if (pipe(fd.data()) == 0) {
+		if ((fd.at(0) != -1) && (fd.at(1) != -1)) {
+			fcntl(fd.at(0), F_SETFL, fcntl(fd.at(0), F_GETFL) | O_NONBLOCK);
+			fcntl(fd.at(1), F_SETFL, fcntl(fd.at(1), F_GETFL) | O_NONBLOCK);
+			return mint::create_iterator_from(cursor, mint::create_handle(cursor.ast(), fd.at(0)),
+			    mint::create_handle(cursor.ast(), fd.at(1)));
+		}
+	}
+
+#elifdef MINT_OS_UNIX
+
 	auto fd = std::to_array<int>({-1, -1});
 
 	if (pipe2(fd.data(), O_NONBLOCK) == 0) {
-		if ((fd[0] != -1) && (fd[1] != -1)) {
-			return mint::create_iterator_from(cursor, mint::create_handle(cursor.ast(), fd[0]),
-			    mint::create_handle(cursor.ast(), fd[1]));
+		if ((fd.at(0) != -1) && (fd.at(1) != -1)) {
+			return mint::create_iterator_from(cursor, mint::create_handle(cursor.ast(), fd.at(0)),
+			    mint::create_handle(cursor.ast(), fd.at(1)));
 		}
 	}
+
 #endif
 	return {};
 }
@@ -172,25 +196,66 @@ mint::Reference mint_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference&
 
 mint::Reference mint_pipe_wait(mint::Cursor& cursor, const mint::Reference& handle, const mint::Reference& timeout) {
 #ifdef MINT_OS_WINDOWS
-	const auto h = to_handle(handle);
+
 	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
 	                          ? INFINITE
 	                          : mint::to_integer<DWORD>(cursor, timeout);
 
-	return mint::create_boolean(WaitForSingleObjectEx(h, time_ms, true) == WAIT_OBJECT_0);
-#else
-	pollfd fds {
-	    .fd = to_handle(handle),
-	    .events = POLLIN,
-	};
+	return mint::create_boolean(WaitForSingleObjectEx(mint::to_handle(handle), time_ms, true) == WAIT_OBJECT_0);
 
-	const int time_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
+#elifdef MINT_OS_LINUX
 
-	if (int ret = poll(&fds, 1, time_ms); (ret > 0) && (fds.revents & POLLIN)) {
-		return mint::create_boolean(true);
+	const int timeout_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
+
+	const int context = epoll_create1(EPOLL_CLOEXEC);
+	if (context == -1) {
+		return mint::create_boolean(false);
 	}
 
-	return mint::create_boolean(false);
+	auto changelist = epoll_event {
+	    .events = EPOLLIN,
+	    .data =
+	        {
+	            .fd = mint::to_handle(handle),
+	        },
+	};
+
+	const auto ret = epoll_wait(context, &changelist, 1, timeout_ms);
+
+	::close(context);
+	return mint::create_boolean(ret > 0);
+
+#elifdef MINT_OS_UNIX
+
+	const auto timeout_ts = is_instance_of(timeout, mint::Data::Format::none)
+	                            ? std::nullopt
+	                            : std::optional<std::chrono::milliseconds>(to_integer<int>(cursor, timeout))
+	                                  .transform([](std::chrono::milliseconds ms) {
+		                                  const auto sec = std::chrono::floor<std::chrono::seconds>(ms);
+		                                  const auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(
+		                                      ms - sec);
+		                                  return timespec {
+		                                      .tv_sec = sec.count(),
+		                                      .tv_nsec = nsec.count(),
+		                                  };
+	                                  });
+
+	const int context = kqueue();
+	if (context == -1) {
+		return mint::create_boolean(false);
+	}
+
+	struct kevent changelist {
+	    .ident = static_cast<std::uintptr_t>(mint::to_handle(handle)),
+	    .filter = EVFILT_READ,
+	};
+
+	struct kevent eventlist {};
+	const auto ret = kevent(context, &changelist, 1, &eventlist, 1, timeout_ts ? std::to_address(timeout_ts) : nullptr);
+
+	::close(context);
+	return mint::create_boolean(ret > 0);
+
 #endif
 }
 

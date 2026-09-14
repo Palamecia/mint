@@ -59,10 +59,10 @@
 #else
 #ifdef MINT_ASYNC_BACKEND_EPOLL
 #include <sys/epoll.h>
-#endif
 #include <asm-generic/ioctls.h>
 #include <asm-generic/socket.h>
 #include <bits/types/struct_timeval.h>
+#endif
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
@@ -774,6 +774,9 @@ mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mi
 		mint::Reference _io_status;
 		const sockaddr* _remote_address;
 		socklen_t _remote_address_length;
+#if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
+		bool _started = false;
+#endif
 	public:
 		AsyncConnectOperation(mint::FunctionHelper& helper, mint::Reference self, SOCKET socket_fd,
 		    const sockaddr* address, socklen_t address_length) :
@@ -822,7 +825,7 @@ mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mi
 			}
 #elifdef MINT_ASYNC_BACKEND_KQUEUE
 			filter = EVFILT_WRITE;
-			if (pending) {
+			if (_started) {
 				int socket_error = 0;
 				socklen_t socket_error_length = sizeof(socket_error);
 				if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &socket_error, &socket_error_length) < 0) {
@@ -834,6 +837,8 @@ mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mi
 				result = 0;
 				return {};
 			}
+			_started = true;
+			const auto _ = mint_network::SocketBlockingModeGuard<false>(socket_fd);
 			if (connect(socket_fd, _remote_address, _remote_address_length) < 0) {
 				const auto error = errno;
 				if (error != EINPROGRESS && error != EALREADY && error != EWOULDBLOCK) {
@@ -853,7 +858,7 @@ mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mi
 #ifdef MINT_ASYNC_BACKEND_EPOLL
 			                      [&](mint::EPollOperation& self) -> std::error_code {
 				                      self.events = EPOLLOUT;
-				                      if (self.started) {
+				                      if (_started) {
 					                      int socket_error = 0;
 					                      socklen_t socket_error_length = sizeof(socket_error);
 					                      if (getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &socket_error,
@@ -867,7 +872,7 @@ mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mi
 					                      self.result = 0;
 					                      return {};
 				                      }
-				                      self.started = true;
+				                      _started = true;
 				                      const auto _ = mint_network::SocketBlockingModeGuard<false>(socket_fd);
 				                      if (connect(socket_fd, _remote_address, _remote_address_length) < 0) {
 					                      const auto error = errno;
@@ -911,7 +916,7 @@ mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mi
 					        mint_network::symbols::io_error),
 					    mint::create_number(error.code().value())));
 				}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 				done(mint::create_iterator_from(_cursor,
 				    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 				        mint_network::symbols::io_success)));
@@ -1097,8 +1102,8 @@ mint::Reference mint_socket_linger_set_linger(mint::Cursor& cursor, const mint::
 mint::Reference mint_socket_timeval_create(mint::Cursor& cursor, const mint::Reference& sec,
     const mint::Reference& usec) {
 	return mint::create_c_object(cursor.ast(), new timeval {
-	                                               .tv_sec = to_integer<long>(cursor, sec),
-	                                               .tv_usec = to_integer<long>(cursor, usec),
+	                                               .tv_sec = to_integer<decltype(timeval::tv_sec)>(cursor, sec),
+	                                               .tv_usec = to_integer<decltype(timeval::tv_usec)>(cursor, usec),
 	                                           });
 }
 
@@ -1113,7 +1118,7 @@ mint::Reference mint_socket_timeval_get_sec(mint::Cursor& /*cursor*/, const mint
 
 mint::Reference mint_socket_timeval_set_sec(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& sec) {
-	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_sec = to_integer<long>(cursor, sec);
+	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_sec = to_integer<decltype(timeval::tv_sec)>(cursor, sec);
 	return {};
 }
 
@@ -1123,7 +1128,7 @@ mint::Reference mint_socket_timeval_get_usec(mint::Cursor& /*cursor*/, const min
 
 mint::Reference mint_socket_timeval_set_usec(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& usec) {
-	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_usec = to_integer<long>(cursor, usec);
+	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_usec = to_integer<decltype(timeval::tv_usec)>(cursor, usec);
 	return {};
 }
 

@@ -59,9 +59,11 @@
 #else
 #ifdef MINT_OS_LINUX
 #include <linux/sockios.h>
+#include <asm-generic/socket.h>
+#else
+#include <sys/ioctl.h>
 #endif
 #include <arpa/inet.h>
-#include <asm-generic/socket.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -123,10 +125,10 @@ mint::Reference mint_udp_socket_sendto(mint::FunctionHelper& helper, const mint:
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto [address, address_length] = mint_network::to_sockaddr(endpoint);
 
-#ifdef MINT_OS_WINDOWS
-		const auto flags = 0;
-#else
+#ifdef MINT_OS_LINUX
 		const auto flags = MSG_CONFIRM;
+#else
+		const auto flags = 0;
 #endif
 
 		mint::unlock_processor();
@@ -233,7 +235,8 @@ mint::Reference mint_udp_socket_sendto_async(mint::FunctionHelper& helper, const
 			}
 #elifdef MINT_ASYNC_BACKEND_KQUEUE
 			filter = EVFILT_WRITE;
-			result = sendmsg(socket_fd, &_msg, 0);
+			result = ::sendto(socket_fd, _buf->data(), _buf->size(), MSG_DONTWAIT, _remote_address,
+			    _remote_address_length);
 			if (result < 0) {
 				return mint::last_error_code();
 			}
@@ -326,15 +329,25 @@ mint::Reference mint_udp_socket_recvfrom(mint::FunctionHelper& helper, const min
 
 	socklen_t length = 0;
 #ifdef MINT_OS_UNIX
-	if (ioctl(socket_fd, SIOCINQ, &length) == -1) {
+	if (ioctl(socket_fd, FIONREAD, &length) == -1) {
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
 		    io_status.member(mint_network::symbols::io_error).share());
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(errno));
 		return result;
 	}
 #else
-	length = BUFSIZ; /// @todo get better value
+	if (u_long value = 0; ioctlsocket(socket_fd, FIONREAD, &value) == 0) {
+		length = static_cast<socklen_t>(value);
+	}
+	else {
+		return mint::create_iterator_from(helper.cursor(), io_status.member(mint_network::symbols::io_error).share(),
+		    mint::create_number(errno));
+	}
 #endif
+
+	if (length == 0) {
+		length = max_udp_payload;
+	}
 
 	const auto flags = 0; // MSG_WAITALL;
 	auto local_buffer = std::make_unique<std::uint8_t[]>(length);
@@ -449,7 +462,8 @@ mint::Reference mint_udp_socket_recvfrom_async(mint::FunctionHelper& helper, con
 			}
 #elifdef MINT_ASYNC_BACKEND_KQUEUE
 			filter = EVFILT_READ;
-			result = recvmsg(socket_fd, &_msg, 0);
+			result = ::recvfrom(socket_fd, _local_buffer.data(), _local_buffer.size(), MSG_DONTWAIT,
+			    reinterpret_cast<sockaddr*>(&_source_address), &_source_address_length);
 			if (result < 0) {
 				return mint::last_error_code();
 			}
@@ -537,10 +551,10 @@ mint::Reference mint_udp_socket_send(mint::FunctionHelper& helper, const mint::R
 	                     .member(mint_network::symbols::socket)
 	                     .member(mint_network::symbols::io_status);
 
-#ifdef MINT_OS_WINDOWS
-	const auto flags = 0;
-#else
+#ifdef MINT_OS_LINUX
 	const auto flags = MSG_CONFIRM;
+#else
+	const auto flags = 0;
 #endif
 
 	mint::unlock_processor();
@@ -630,8 +644,7 @@ mint::Reference mint_udp_socket_send_async(mint::FunctionHelper& helper, const m
 			}
 #elifdef MINT_ASYNC_BACKEND_KQUEUE
 			filter = EVFILT_WRITE;
-			result = send(socket_fd, reinterpret_cast<const char*>(_buffer.data()), static_cast<int>(_buffer.size()),
-			    MSG_CONFIRM);
+			result = send(socket_fd, reinterpret_cast<const char*>(_buffer.data()), static_cast<int>(_buffer.size()), 0);
 			if (result < 0) {
 				return mint::last_error_code();
 			}
@@ -702,15 +715,25 @@ mint::Reference mint_udp_socket_recv(mint::FunctionHelper& helper, const mint::R
 
 	socklen_t length = 0;
 #ifdef MINT_OS_UNIX
-	if (ioctl(socket_fd, SIOCINQ, &length) == -1) {
+	if (ioctl(socket_fd, FIONREAD, &length) == -1) {
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(),
 		    io_status.member(mint_network::symbols::io_error).share());
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(errno));
 		return result;
 	}
 #else
-	length = BUFSIZ; /// @todo get better value
+	if (u_long value = 0; ioctlsocket(socket_fd, FIONREAD, &value) == 0) {
+		length = static_cast<socklen_t>(value);
+	}
+	else {
+		return mint::create_iterator_from(helper.cursor(), io_status.member(mint_network::symbols::io_error).share(),
+		    mint::create_number(errno));
+	}
 #endif
+
+	if (length == 0) {
+		length = max_udp_payload;
+	}
 
 	const auto flags = MSG_WAITALL;
 	auto local_buffer = std::make_unique<std::uint8_t[]>(length);

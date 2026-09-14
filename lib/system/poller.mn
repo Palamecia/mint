@@ -25,6 +25,8 @@
  * This module provides the {System.Poller} class which allows to wait for multiple events at the same time.
  */
 
+load exception.system
+
 package System {
     /**
 	 * This class provides mechanisms to wait for multiple events.
@@ -36,41 +38,76 @@ package System {
 	 */
 	@class Poller {
 		/**
-		 * Adds an `event` to the watcher. The `event` object must provides a `getHandle` method.
+		 * Creates a new poller object.
 		 */
-		const def watch(self, event) {
-			if event in self.events {
-				return true
+		const def new(self) {
+			self.d_ptr = System.Poller.g_lib.call('mint_poll_new')
+			if defined self.d_ptr {
+				self.d_ptr.delete = def [g_lib = System.Poller.g_lib] (self) {
+					g_lib.call('mint_poll_delete', self)
+				}
+				return self
 			}
-			self.events[channel] = System.Poller.PollDescriptor(event)
-			return true
 		}
 
 		/**
-		 * Removes the `event` from the watcher. Returns `true` if `event` is watched by the watcher; otherwise returns
-         * `false`.
+		 * Adds an `object` to the watcher. The `object` object must provides a `getPollEvent` or `getHandle` method.
+		 * When the event associated to `object` is triggered, `callback` will ba called by {@see poll}. Returns `true`
+		 * if `object` is successfully watched; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
 		 */
-		const def unwatch(self, event) {
-            if event in self.events {
-				self.events.remove(event)
+		const def watch(self, object, callback) {
+			if let desc = self.events.get(object) {
+				desc.callback = callback
+				return true
+			}
+			if let desc = System.Poller.PollDescriptor(object) {
+				if let errno = System.Poller.g_lib.call('mint_poll_watch', self.d_ptr, desc) {
+					raise Exception.SystemError(errno, self)
+				}
+				desc.callback = callback
+				self.events[object] = desc
+				return true
+			}
+			return false
+		}
+
+		/**
+		 * Removes the `object` from the watcher. Returns `true` if `event` is watched by the watcher; otherwise returns
+         * `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
+		 */
+		const def unwatch(self, object) {
+            if let desc = self.events.get(object) {
+				if let errno = System.Poller.g_lib.call('mint_poll_unwatch', self.d_ptr, desc) {
+					raise Exception.SystemError(errno, self)
+				}
+				self.events.remove(object)
 				return true
 			}
 			return false
 		}
 
         /**
-        * Waits until at least one of the watched events is set. If `timeout` is given, the wait stop after `timeout`
-        * milliseconds if no event is set.
-        * 
-        * Returns an `iterator` on each set events. If no event is set, the iterator has no element.
-        * 
-        * After a call to this method, the events must be manually reset. It may provide a `reset` method that can be
-        * called to ignore the event.
+         * Waits until at least one of the watched events is set. If `timeout` is given, the wait stop after `timeout`
+         * milliseconds if no event is set. The callback of each set event is called.
+		 * 
+		 * Returns `true` if at least one event is set; otherwise returns `false`.
+		 * 
+		 * An instance of {Exception.SystemError} is raised on error.
         */
         const def poll(self, timeout = none) {
-            let fdSet = [for let (event, fd) in self.events => fd]
-            System.Poller.g_lib.call('mint_poll', fdSet, timeout)
-            yield for let fd in fdSet => if fd.activated => fd.event
+			let triggered = ()
+            if let errno = System.Poller.g_lib.call('mint_poll', self.d_ptr, triggered, timeout) {
+				raise Exception.SystemError(errno, self)
+			}
+			let haveSetEvents = not triggered.isEmpty()
+            for let event in triggered {
+				(event.callback)()
+			}
+			return haveSetEvents
         }
     
 		/**
@@ -79,8 +116,24 @@ package System {
 		 */
 		const def run(self, timeout = 500) {
 			while not self.events.isEmpty() {
-				for let event in self.poll(timeout) {
-					// TODO: handle event
+				self.poll(timeout)
+			}
+		}
+
+		/**
+		 * Returns the event handle from the given `object`. The `object` must provide a `getHandle` method. If the `object`
+		 * provides a `getPollEvent` method, it is called to get the event handle.
+		 */
+		~ @const def eventFromObject(object) {
+			if defined object.getPollEvent {
+				return object.getPollEvent()
+			}
+			if defined object.getHandle {
+				if let d_ptr = System.Poller.g_lib.call('mint_poll_event_from_handle', object.getHandle()) {
+					d_ptr.delete = def [g_lib = System.Poller.g_lib](self) {
+						g_lib.call('mint_poll_event_delete', self)
+					}
+					return d_ptr
 				}
 			}
 		}
@@ -88,24 +141,28 @@ package System {
 		/// Internal poll context structure.
         - class PollDescriptor {
             /// Creates a new context for the given `event` object.
-            const def new(self, event) {
-                self.event = event
-                self.handle = event.getHandle()
-                return self
+            const def new(self, object) {
+                if self.event = System.Poller.eventFromObject(object) {
+					self.object = object
+					return self
+				}
             }
 
             /// Event object.
-            event = none
+            object = null
 
             /// Event handle.
-            handle = none
+            event = null
 
-            /// Activation state.
-            activated = false
+			/// Callback to call when the event is triggered.
+			callback = none
         }
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-event')
+		- @const g_lib = lib('libmint-system')
+
+		/// Object data.
+		- final d_ptr = null
 
 		/// Internal set of watched event objects.
 		- final events = {}

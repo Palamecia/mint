@@ -1,0 +1,46 @@
+load test.case
+load system.timer
+load system.poller
+
+@class TimerTest : Test.Case {
+    const def testOneShotBehavior(self) {
+        
+        let poller = System.Poller()
+        let timer = System.Timer()
+        let tickCount = 0
+
+        self.expectEqual(true, poller.watch(timer, def [...] {
+            ++tickCount
+        }))
+
+        timer.start(100)
+
+        self.expectEqual(false, poller.poll(0))
+        self.expectEqual(tickCount, 0)
+
+        self.expectEqual(true, poller.poll(110))
+        self.expectEqual(tickCount, 1)
+
+        self.expectEqual(false, poller.poll(110))
+        self.expectEqual(tickCount, 1)
+    }
+
+    const def testPeriodicBehavior(self) {
+        
+        let poller = System.Poller()
+        let timer = System.Timer()
+        let tickCount = 0
+
+        self.expectEqual(true, poller.watch(timer, def [...] {
+            ++tickCount
+        }))
+
+        timer.start(50, 50)
+
+        self.expectEqual(true, poller.poll(60))
+        self.expectEqual(tickCount, 1)
+
+        self.expectEqual(true, poller.poll(60))
+        self.expectEqual(tickCount, 2)
+    }
+}

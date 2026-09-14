@@ -30,31 +30,23 @@ load mint.type
 
 package System {
 	/**
-	 * This class provides a basic event implementation that can only be setted
-	 * or reseted.
+	 * This class provides a basic event implementation that can only be set or reset.
 	 * 
 	 * > This type is not copyable
 	 */
 	@class Event {
 		/**
-		 * Creates a new event. The created event is not setted.
+		 * Creates a new event. The created event is not set.
 		 * 
 		 * If no event can be created, `none` is returned.
 		 */
 		const def new(self) {
-		    self.eventHandle = System.Event.g_lib.call('mint_event_create')
-		    if defined self.eventHandle {
+		    if self.d_ptr = System.Event.g_lib.call('mint_event_create') {
+				self.d_ptr.delete = def [g_lib = System.Event.g_lib](self) {
+					g_lib.call('mint_event_delete', self)
+				}
 		    	return self
 		    }
-		}
-
-		/**
-		 * Cleans up the event instance.
-		 */
-		const def delete(self) {
-			if defined self.eventHandle {
-				System.Event.g_lib.call('mint_event_close', self.eventHandle)
-			}
 		}
 
 		/**
@@ -66,21 +58,21 @@ package System {
 		 * Returns `true` if the event is set; otherwise returns `false`.
 		 */
 		const def isSet(const self) {
-			return System.Event.g_lib.call('mint_event_is_set', self.eventHandle)
+			return System.Event.g_lib.call('mint_event_is_set', self.d_ptr)
 		}
 
 		/**
 		 * Sets the event.
 		 */
 		const def set(self) {
-			return System.Event.g_lib.call('mint_event_set', self.eventHandle)
+			return System.Event.g_lib.call('mint_event_set', self.d_ptr)
 		}
 
 		/**
 		 * Resets the event.
 		 */
 		const def clear(self) {
-			System.Event.g_lib.call('mint_event_clear', self.eventHandle)
+			System.Event.g_lib.call('mint_event_clear', self.d_ptr)
 		}
 
 		/**
@@ -90,17 +82,24 @@ package System {
 		 * Returns `true` if the event is set; otherwise returns `false` if the
 		 * wait timed out.
 		 * 
-		 * After a call to this method, the event is reseted.
+		 * After a call to this method, the event is reset.
 		 */
 		const def wait(self, timeout = none) {
-			return System.Event.g_lib.call('mint_event_wait', self.eventHandle, timeout)
+			return System.Event.g_lib.call('mint_event_wait', self.d_ptr, timeout)
 		}
 
 		/**
 		 * Returns the handle used by {System.Event}.
 		 */
 		const def getHandle(const self) {
-			return self.eventHandle
+			return System.Event.g_lib.call('mint_event_get_handle', self.d_ptr)
+		}
+
+		/**
+		 * Returns the event's poll event as an instance of `mint::poll_event_t`.
+		 */
+		const def getPollEvent(const self) {
+			return self.d_ptr
 		}
 
 		/**
@@ -113,7 +112,7 @@ package System {
 		/// Global library handle.
 		- @const g_lib = lib('libmint-system')
 
-		/// Internal handle.
-		- final eventHandle = none
+		/// Object data.
+		- final d_ptr = null
 	}
 }

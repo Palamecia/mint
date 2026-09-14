@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: install dependencies
+    - name: Install dependencies
       run: |
         brew update
         brew install bison autoconf automake autoconf-archive libmagic
@@ -20,24 +20,31 @@ jobs:
         ./bootstrap-vcpkg.sh
         popd
 
-    - name: configure
+    - name: Configure
       run: |
         export VCPKG_ROOT=$PWD/vcpkg
         export PATH=$VCPKG_ROOT:$PATH
+        export CPATH="$(brew --prefix)/include"
+        export LIBRARY_PATH="$(brew --prefix)/lib"
 
         cmake --preset=vcpkg \
               -DBISON_EXECUTABLE="$(brew --prefix bison)/bin/bison" \
+              -DMINT_COPY_MODULE_SOURCES_TO_BUILD_DIR=ON \
               -DCMAKE_BUILD_TYPE=Release
 
-    - name: build
+    - name: Build
       run: |
-        cmake --build build --target all
-        cmake --build build --target install
+        export CPATH="$(brew --prefix)/include"
+        export LIBRARY_PATH="$(brew --prefix)/lib"
 
-    - name: run tests
+        cmake --build build
+
+    - name: Run tests
       working-directory: ./build
       run: ctest
 
-    - name: run library tests
+    - name: Run library tests
       working-directory: ./tests
-      run: /usr/local/bin/mint ./test.mn
+      env:
+        MINT_LIBRARY_PATH: ${{ github.workspace }}/build/out/lib/mint
+      run: ${{ github.workspace }}/build/out/bin/mint ./test.mn

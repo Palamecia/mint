@@ -59,10 +59,10 @@
 #else
 #ifdef MINT_ASYNC_BACKEND_EPOLL
 #include <sys/epoll.h>
-#endif
 #include <asm-generic/ioctls.h>
 #include <asm-generic/socket.h>
 #include <bits/types/struct_timeval.h>
+#endif
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
@@ -911,7 +911,7 @@ mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mi
 					        mint_network::symbols::io_error),
 					    mint::create_number(error.code().value())));
 				}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 				done(mint::create_iterator_from(_cursor,
 				    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 				        mint_network::symbols::io_success)));
@@ -1097,8 +1097,8 @@ mint::Reference mint_socket_linger_set_linger(mint::Cursor& cursor, const mint::
 mint::Reference mint_socket_timeval_create(mint::Cursor& cursor, const mint::Reference& sec,
     const mint::Reference& usec) {
 	return mint::create_c_object(cursor.ast(), new timeval {
-	                                               .tv_sec = to_integer<long>(cursor, sec),
-	                                               .tv_usec = to_integer<long>(cursor, usec),
+	                                               .tv_sec = to_integer<decltype(timeval::tv_sec)>(cursor, sec),
+	                                               .tv_usec = to_integer<decltype(timeval::tv_usec)>(cursor, usec),
 	                                           });
 }
 
@@ -1113,7 +1113,7 @@ mint::Reference mint_socket_timeval_get_sec(mint::Cursor& /*cursor*/, const mint
 
 mint::Reference mint_socket_timeval_set_sec(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& sec) {
-	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_sec = to_integer<long>(cursor, sec);
+	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_sec = to_integer<decltype(timeval::tv_sec)>(cursor, sec);
 	return {};
 }
 
@@ -1123,7 +1123,7 @@ mint::Reference mint_socket_timeval_get_usec(mint::Cursor& /*cursor*/, const min
 
 mint::Reference mint_socket_timeval_set_usec(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& usec) {
-	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_usec = to_integer<long>(cursor, usec);
+	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_usec = to_integer<decltype(timeval::tv_usec)>(cursor, usec);
 	return {};
 }
 

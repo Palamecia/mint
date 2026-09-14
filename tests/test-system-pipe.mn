@@ -1,0 +1,19 @@
+load test.case
+load system.pipe
+load system.poller
+
+@class PipeTest : Test.Case {
+    const def testDataCommunication(self) {
+
+        let poller = System.Poller()
+        let pipe = System.Pipe()
+
+        self.expectEqual(true, poller.watch(pipe, def {}))
+
+        pipe.write("hello")
+        self.expectEqual(true, poller.poll(0))
+
+        let data = pipe.read()
+        self.expectEqual(false, poller.poll(0))
+    }
+}

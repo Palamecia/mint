@@ -25,6 +25,7 @@
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/data.h"
+#include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/function_tools.h"
@@ -72,6 +73,7 @@
 #include <format>
 #include <ranges>
 #include <signal.h>
+#include <spawn.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -187,9 +189,9 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
     const mint::Reference& arguments, mint::Reference& working_directory, const mint::Reference& environment,
     const mint::Reference& pipes) {
 
-	mint::Reference result = mint::create_iterator(cursor.ast());
-
 #ifdef MINT_OS_WINDOWS
+
+	mint::Reference result = mint::create_iterator(cursor.ast());
 
 	std::wstringstream command;
 	wchar_t* process_working_directory = nullptr;
@@ -271,75 +273,96 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 		iterator_yield(cursor, result.data<mint::Iterator>(),
 		    mint::create_number(mint::errno_from_error_code(mint::last_error_code())));
 	}
-#else
-	const auto pid = fork();
-
-	if (pid == 0) {
-
-		std::vector<char*> args;
-
-		std::string process_str = to_string(process);
-		args.push_back(strdup(process_str.data()));
-
-		for (auto& argv : to_array(arguments)) {
-			std::string argv_str = to_string(array_get_item(argv));
-			args.push_back(strdup(argv_str.data()));
-		}
-
-		args.push_back(nullptr);
-
-		if (working_directory.data().format() != mint::Data::Format::none) {
-			std::string working_directory_str = to_string(working_directory);
-			chdir(working_directory_str.data());
-		}
-
-		if (pipes.data().format() != mint::Data::Format::none) {
-
-			const auto stdin_pipe = array_get_item(pipes.data<mint::Array>(), STDIN_FILENO);
-			const auto stdout_pipe = array_get_item(pipes.data<mint::Array>(), STDOUT_FILENO);
-			const auto stderr_pipe = array_get_item(pipes.data<mint::Array>(), STDERR_FILENO);
-
-			dup2(static_cast<int>(to_handle(array_get_item(stdin_pipe.data<mint::Array>(), 0))), STDIN_FILENO);
-			dup2(static_cast<int>(to_handle(array_get_item(stdout_pipe.data<mint::Array>(), 1))), STDOUT_FILENO);
-			dup2(static_cast<int>(to_handle(array_get_item(stderr_pipe.data<mint::Array>(), 1))), STDERR_FILENO);
-		}
-		else {
-			auto limit = rlimit();
-			getrlimit(RLIMIT_NOFILE, &limit);
-			for (int fd = 3; std::cmp_less(fd, limit.rlim_cur); ++fd) {
-				close(fd);
-			}
-		}
-
-		if (environment.data().format() != mint::Data::Format::none) {
-
-			auto envp = std::vector<char*>(std::from_range,
-			    std::views::transform(environment.data<mint::Hash>().values, [](auto& var) -> char* {
-				    return strdup(
-				        std::format("{}={}", to_string(hash_get_key(var)), to_string(hash_get_value(var))).data());
-			    }));
-
-			envp.push_back(nullptr);
-
-			execve(args.front(), args.data(), envp.data());
-		}
-		else {
-			execve(args.front(), args.data(), environ);
-		}
-
-		exit(EXIT_FAILURE);
-	}
-
-	if (pid != -1) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_handle(cursor.ast(), pid));
-	}
-	else {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(errno));
-	}
-#endif
 
 	return result;
+
+#elifdef MINT_OS_UNIX
+
+	auto args = std::vector<gsl::owner<char*> >();
+	args.push_back(strdup(to_string(process).data()));
+	for (auto& argv : to_array(arguments)) {
+		args.push_back(strdup(to_string(array_get_item(argv)).data()));
+	}
+	args.push_back(nullptr);
+
+	auto cleanup_args = [&args]() {
+		for (gsl::owner<char*> arg : args) {
+			free(arg);
+		}
+	};
+
+	auto actions = posix_spawn_file_actions_t();
+	posix_spawn_file_actions_init(&actions);
+
+	auto attr = posix_spawnattr_t();
+	posix_spawnattr_init(&attr);
+
+	auto cleanup_spawn_structures = [&actions, &attr]() {
+		posix_spawn_file_actions_destroy(&actions);
+		posix_spawnattr_destroy(&attr);
+	};
+
+	if (!mint::is_instance_of(pipes, mint::Data::Format::none)) {
+
+		const auto stdin_pipe = array_get_item(pipes.data<mint::Array>(), STDIN_FILENO);
+		const auto stdout_pipe = array_get_item(pipes.data<mint::Array>(), STDOUT_FILENO);
+		const auto stderr_pipe = array_get_item(pipes.data<mint::Array>(), STDERR_FILENO);
+
+		const int stdin_fd = static_cast<int>(to_handle(array_get_item(stdin_pipe.data<mint::Array>(), 0)));
+		const int stdout_fd = static_cast<int>(to_handle(array_get_item(stdout_pipe.data<mint::Array>(), 1)));
+		const int stderr_fd = static_cast<int>(to_handle(array_get_item(stderr_pipe.data<mint::Array>(), 1)));
+
+		posix_spawn_file_actions_adddup2(&actions, stdin_fd, STDIN_FILENO);
+		posix_spawn_file_actions_adddup2(&actions, stdout_fd, STDOUT_FILENO);
+		posix_spawn_file_actions_adddup2(&actions, stderr_fd, STDERR_FILENO);
+	}
+	else {
+#ifdef POSIX_SPAWN_CLOEXEC_DEFAULT
+		posix_spawnattr_setflags(&attr, POSIX_SPAWN_CLOEXEC_DEFAULT);
+#else
+		posix_spawn_file_actions_addclosefrom_np(&actions, 3);
+#endif
+	}
+
+	if (working_directory.data().format() != mint::Data::Format::none) {
+		if (posix_spawn_file_actions_addchdir_np(&actions, to_string(working_directory).c_str()) != 0) {
+			cleanup_spawn_structures();
+			cleanup_args();
+			return mint::create_iterator_from(cursor, mint::create_number(errno));
+		}
+	}
+
+	auto envp = std::vector<gsl::owner<char*> >();
+	char* const* envp_ptr = nullptr;
+
+	if (!mint::is_instance_of(environment, mint::Data::Format::none)) {
+		envp = std::vector<gsl::owner<char*> >(std::from_range,
+		    std::views::transform(environment.data<mint::Hash>().values, [](auto& var) -> gsl::owner<char*> {
+			    return strdup(std::format("{}={}", to_string(hash_get_key(var)), to_string(hash_get_value(var))).data());
+		    }));
+		envp.push_back(nullptr);
+		envp_ptr = envp.data();
+	}
+	else {
+		envp_ptr = nullptr;
+	}
+
+	auto pid = pid_t();
+	const auto status = posix_spawn(&pid, args.front(), &actions, &attr, args.data(), envp_ptr);
+
+	cleanup_spawn_structures();
+	cleanup_args();
+
+	for (gsl::owner<char*> env : envp) {
+		free(env);
+	}
+
+	if (status != 0) {
+		return mint::create_iterator_from(cursor, mint::create_number(errno));
+	}
+
+	return mint::create_iterator_from(cursor, mint::create_none(), mint::create_handle(cursor.ast(), pid));
+#endif
 }
 
 mint::Reference mint_process_getcmdline(mint::Cursor& cursor, const mint::Reference& handle) {

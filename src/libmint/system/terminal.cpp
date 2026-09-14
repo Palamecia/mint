@@ -32,8 +32,8 @@
 #include <cctype>
 #include <chrono>
 #include <cstddef>
-#include <cstdint>
 #include <ctype.h>
+#include <cuchar>
 #include <functional>
 #include <optional>
 #include <print>
@@ -152,7 +152,7 @@ void Terminal::set_prompt(std::function<std::string(std::size_t)> prompt) {
 }
 
 void Terminal::set_auto_braces(const std::string& auto_braces) {
-	_auto_braces = reinterpret_cast<const std::uint8_t*>(auto_braces.data());
+	_auto_braces = reinterpret_cast<const char8_t*>(auto_braces.data());
 }
 
 void Terminal::set_highlighter(HighlighterFunction highlight) {
@@ -376,8 +376,8 @@ TtyEvent Terminal::wait_for_event(std::optional<std::chrono::milliseconds> timeo
 
 TtyEvent Terminal::event_from_esc(std::optional<std::chrono::milliseconds> timeout) {
 
-	std::uint32_t mods = 0;
-	std::uint8_t peek = 0;
+	char32_t mods = 0;
+	char8_t peek = 0;
 
 	// lone ESC?
 	if (!(peek = read_byte(timeout))) {
@@ -408,7 +408,7 @@ TtyEvent Terminal::event_from_esc(std::optional<std::chrono::milliseconds> timeo
 
 	// SS3?
 	if (peek == 'O' || peek == 'o' || peek == '?' /*vt52*/) {
-		const std::uint8_t c1 = peek;
+		const char8_t c1 = peek;
 		if (!(peek = read_byte(timeout.transform([](std::chrono::milliseconds value) {
 			    return value / 10;
 		    })))) {
@@ -440,7 +440,7 @@ TtyEvent Terminal::event_from_esc(std::optional<std::chrono::milliseconds> timeo
 	return static_cast<TtyEvent>(peek | event_key_mod_alt); // ESC <anychar>
 }
 
-TtyEvent Terminal::event_from_osc(std::uint8_t peek, std::optional<std::chrono::milliseconds> timeout) {
+TtyEvent Terminal::event_from_osc(char8_t peek, std::optional<std::chrono::milliseconds> timeout) {
 
 	// keep reading until termination: OSC is terminated by BELL, or ESC \ (ST)  (and STX)
 	for (;;) {
@@ -454,7 +454,7 @@ TtyEvent Terminal::event_from_osc(std::uint8_t peek, std::optional<std::chrono::
 			if (!(peek = read_byte(timeout))) {
 				break;
 			}
-			const std::uint8_t c1 = peek;
+			const char8_t c1 = peek;
 			if (c1 == '\\') {
 				break;
 			}
@@ -471,7 +471,7 @@ TtyEvent Terminal::event_from_osc(std::uint8_t peek, std::optional<std::chrono::
 // Decode escape sequences
 //-------------------------------------------------------------
 
-static TtyEvent esc_decode_vt(std::uint32_t vt_code) {
+static TtyEvent esc_decode_vt(char32_t vt_code) {
 	switch (vt_code) {
 	case 1:
 		return event_key_home;
@@ -520,7 +520,7 @@ static TtyEvent esc_decode_vt(std::uint32_t vt_code) {
 	return event_none;
 }
 
-static TtyEvent esc_decode_xterm(std::uint8_t xcode) {
+static TtyEvent esc_decode_xterm(char8_t xcode) {
 	// ESC [
 	switch (xcode) {
 	case 'A':
@@ -574,7 +574,7 @@ static TtyEvent esc_decode_xterm(std::uint8_t xcode) {
 	return event_none;
 }
 
-static TtyEvent esc_decode_ss3(std::uint8_t ss3_code) {
+static TtyEvent esc_decode_ss3(char8_t ss3_code) {
 	// ESC O
 	switch (ss3_code) {
 	case 'A':
@@ -663,21 +663,21 @@ static TtyEvent esc_decode_ss3(std::uint8_t ss3_code) {
 	return event_none;
 }
 
-TtyEvent Terminal::event_from_csi(std::uint8_t c1, std::uint8_t peek, std::uint32_t mods0,
+TtyEvent Terminal::event_from_csi(char8_t c1, char8_t peek, char32_t mods0,
     std::optional<std::chrono::milliseconds> timeout) {
 
 	// CSI starts with 0x9b (c1=='[') | ESC [ (c1=='[') | ESC [Oo?] (c1 == 'O')  /* = SS3 */
 
 	// check for extra starter '[' (Linux sends ESC [ [ 15 ~  for F5 for example)
 	if (c1 == '[' && strchr("[Oo", static_cast<char>(peek)) != nullptr) {
-		std::uint8_t cx = peek;
+		char8_t cx = peek;
 		if (!(peek = read_byte(timeout))) {
 			c1 = cx;
 		}
 	}
 
 	// "special" characters ('?' is used for private sequences)
-	std::uint8_t special = 0;
+	char8_t special = 0;
 	if (strchr(":<=>?", static_cast<char>(peek)) != nullptr) {
 		special = peek;
 		if (!(peek = read_byte(timeout))) {
@@ -686,12 +686,12 @@ TtyEvent Terminal::event_from_csi(std::uint8_t c1, std::uint8_t peek, std::uint3
 		}
 	}
 
-	static auto read_csi_num = [read_byte = &Terminal::read_byte](std::uint8_t* ppeek,
-	                               std::optional<std::chrono::milliseconds> timeout) -> std::uint32_t {
-		std::uint32_t i = 0;
+	static auto read_csi_num = [read_byte = &Terminal::read_byte](char8_t* ppeek,
+	                               std::optional<std::chrono::milliseconds> timeout) -> char32_t {
+		char32_t i = 0;
 		std::size_t count = 0;
 		while (isdigit(*ppeek) && count < 16) {
-			std::uint8_t digit = *ppeek - '0';
+			char8_t digit = *ppeek - '0';
 			if ((*ppeek = read_byte(timeout.transform([](std::chrono::milliseconds value) {
 				    return value / 10;
 			    })))) {
@@ -706,7 +706,7 @@ TtyEvent Terminal::event_from_csi(std::uint8_t c1, std::uint8_t peek, std::uint3
 	};
 
 	// up to 2 parameters that default to 1
-	std::uint32_t num1 = read_csi_num(&peek, timeout), num2 = 1;
+	char32_t num1 = read_csi_num(&peek, timeout), num2 = 1;
 	if (peek == ';') {
 		if (!(peek = read_byte(timeout))) {
 			return event_none;
@@ -715,8 +715,8 @@ TtyEvent Terminal::event_from_csi(std::uint8_t c1, std::uint8_t peek, std::uint3
 	}
 
 	// the final character (we do not allow 'intermediate characters')
-	std::uint8_t final = peek;
-	std::uint32_t modifiers = mods0;
+	char8_t final = peek;
+	char32_t modifiers = mods0;
 
 	// Adjust special cases into standard ones.
 	if ((final == '@' || final == '9') && c1 == '[' && num1 == 1) {
@@ -797,7 +797,7 @@ TtyEvent Terminal::event_from_csi(std::uint8_t c1, std::uint8_t peek, std::uint3
 	return (event != event_none ? static_cast<TtyEvent>(event | modifiers) : event_none);
 }
 
-std::uint8_t Terminal::read_byte(std::optional<std::chrono::milliseconds> timeout) {
+char8_t Terminal::read_byte(std::optional<std::chrono::milliseconds> timeout) {
 
 	// any events in the input queue?
 	if (g_tty.byte_buffer.empty()) {
@@ -806,7 +806,7 @@ std::uint8_t Terminal::read_byte(std::optional<std::chrono::milliseconds> timeou
 
 	// in our pushback buffer?
 	if (!g_tty.byte_buffer.empty()) {
-		const std::uint8_t byte = g_tty.byte_buffer.front();
+		const char8_t byte = g_tty.byte_buffer.front();
 		g_tty.byte_buffer.pop();
 		return byte;
 	}
@@ -828,7 +828,7 @@ static bool skip_esc(std::string_view str, std::size_t* esclen) {
 		bool final_csi = (str[1] == '['); // CSI terminates with 0x40-0x7F; otherwise ST (bell or ESC \)
 		std::size_t n = 2;
 		while (str.size() > n) {
-			std::uint8_t c = str[n++];
+			char8_t c = str[n++];
 			if ((final_csi && c >= 0x40 && c <= 0x7F) // terminating byte: @A–Z[\]^_`a–z{|}~
 			    || (!final_csi && c == '\x07')        // bell
 			    || (c == '\x02')) {                   // STX terminates as well
@@ -868,7 +868,7 @@ static std::size_t grapheme_column_width(std::string_view str) {
 	if (str.empty()) {
 		return 0;
 	}
-	if (static_cast<std::uint8_t>(str.front()) < ' ') {
+	if (static_cast<char8_t>(str.front()) < ' ') {
 		return 0; // also for CSI escape sequences
 	}
 	std::size_t w = utf8_grapheme_code_point_count(str);
@@ -985,7 +985,7 @@ std::pair<std::string_view::size_type, bool> Terminal::find_matching_brace(std::
 	if (!_auto_braces.empty()) {
 		bool balanced = true;
 		auto pos = std::string_view::npos;
-		const std::uint8_t brace = _input[brace_pos];
+		const char8_t brace = _input[brace_pos];
 		for (std::size_t b = 0; b < _auto_braces.size(); b += 2) {
 			const std::size_t open = _auto_braces[b];
 			const std::size_t close = _auto_braces[b + 1];
@@ -1051,13 +1051,13 @@ std::pair<std::string_view::size_type, bool> Terminal::find_matching_brace(std::
 	return {std::string_view::npos, true};
 }
 
-void Terminal::edit_insert_auto_brace(std::uint8_t c) {
+void Terminal::edit_insert_auto_brace(char8_t c) {
 	if (_auto_braces.empty()) {
 		return;
 	}
-	for (const std::uint8_t* b = _auto_braces.data(); *b != 0; b += 2) {
+	for (const char8_t* b = _auto_braces.data(); *b != 0; b += 2) {
 		if (*b == c) {
-			const std::uint8_t close = b[1];
+			const char8_t close = b[1];
 			if (*b == close && _pos < _input.size() && _input[_pos] == c) {
 				_input.erase(_pos, 1);
 			}
@@ -1096,7 +1096,7 @@ static std::size_t indent_size(const std::string_view str, std::string_view::siz
 	return count;
 }
 
-void Terminal::edit_auto_indent(std::uint8_t pre, std::uint8_t post) {
+void Terminal::edit_auto_indent(char8_t pre, char8_t post) {
 	assert(_pos > 0 && _input[_pos - 1] == '\n');
 	if (_pos > 1) {
 		if (_input[_pos - 2] == pre && _input[_pos] == post) {
@@ -1181,7 +1181,7 @@ void Terminal::edit_cursor_line_end() {
 	}
 }
 
-static bool is_word_delimiter(std::uint8_t b) {
+static bool is_word_delimiter(char8_t b) {
 	static const std::string g_word_delimiter = "()\"'-,:;<>~!@#$%^&*|+=[]{}~?│";
 	return g_word_delimiter.find(b) != std::string::npos || std::isspace(b);
 }
@@ -1391,7 +1391,7 @@ void Terminal::edit_swap_line_down() {
 	}
 }
 
-void Terminal::edit_insert_char(std::uint8_t c) {
+void Terminal::edit_insert_char(char8_t c) {
 	_input.insert(_pos++, 1, c);
 	edit_insert_auto_brace(c);
 	if (c == '\n' && _auto_braces.size() > 1) {
@@ -1626,7 +1626,7 @@ std::optional<std::string> Terminal::edit() {
 		// Completion Operations
 		if (!_completions.empty()) {
 			Completion completion = _completions[_completions_idx];
-			switch (static_cast<std::uint32_t>(event)) {
+			switch (static_cast<char32_t>(event)) {
 			// Operations that may return
 			case event_key_enter:
 				_input.replace(completion.offset, _pos - completion.offset, completion.token);
@@ -1663,7 +1663,7 @@ std::optional<std::string> Terminal::edit() {
 		}
 
 		// Editing Operations
-		switch (static_cast<std::uint32_t>(event)) {
+		switch (static_cast<char32_t>(event)) {
 		// Operations that may return
 		case event_key_enter:
 			if (edit_pos_is_inside_multi_line() || edit_pos_is_inside_braces()) {
@@ -1853,10 +1853,10 @@ std::optional<std::string> Terminal::edit() {
 			break;
 		default:
 			if (isascii(event)) {
-				edit_insert_char(static_cast<std::uint8_t>(event));
+				edit_insert_char(static_cast<char8_t>(event));
 			}
 			else if (const std::size_t len = utf8_code_point_length(event)) {
-				edit_insert_char(static_cast<std::uint8_t>(event));
+				edit_insert_char(static_cast<char8_t>(event));
 				for (std::size_t i = 1; i < len; ++i) {
 					edit_insert_char(read_byte(0ms));
 				}

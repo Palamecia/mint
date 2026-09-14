@@ -55,19 +55,12 @@ package System {
 		 * If no timer can be created, `none` is returned.
 		 */
 	    const def new(self, clockType = System.Timer.ClockType.Monotonic) {
-		    self.eventHandle = System.Timer.g_lib.call('mint_timer_create', clockType)
-		    if defined self.eventHandle {
+		    if self.d_ptr = System.Timer.g_lib.call('mint_timer_create', clockType) {
+				self.d_ptr.delete = def [g_lib = System.Timer.g_lib](self) {
+					g_lib.call('mint_timer_delete', self)
+				}
 		    	return self
 		    }
-		}
-
-		/**
-		 * Cleans up the timer instance.
-		 */
-		const def delete(self) {
-			if defined self.eventHandle {
-				System.Timer.g_lib.call('mint_timer_close', self.eventHandle)
-			}
 		}
 
 		/**
@@ -76,48 +69,80 @@ package System {
 		- const clone
 
 		/**
-		 * Starts or restarts the timer with a timeout of duration `duration`
-		 * milliseconds.
+		 * Starts or restarts a timer that will timeout after a delay of `delay` milliseconds.
 		 */
-		const def start(self, duration) {
-			System.Timer.g_lib.call('mint_timer_start', self.eventHandle, self.duration = duration)
+		const def start(self, delay) {
+			System.Timer.g_lib.call('mint_timer_start', self.d_ptr, self.delay = delay)
 		}
 
 		/**
-		 * Restarts the timer with the same timeout duration than the previous
+		 * Starts or restarts a timer that will timeout after a delay of `delay` milliseconds then every `period`
+		 * milliseconds.
+		 */
+		const def start(self, delay, period) {
+			System.Timer.g_lib.call('mint_timer_start_periodic', self.d_ptr, self.delay = delay, self.period = period)
+		}
+
+		/**
+		 * Restarts the timer with the same timeout delay than the previous
 		 * call to {@see start}. The timeout event is reset.
 		 * 
-		 * Returns `true` if a previous timeout duration can be found; otherwise
+		 * Returns `true` if a previous timeout delay can be found; otherwise
 		 * `false` is returned and the timer is not started.
 		 */
 		const def restart(self) {
-			if defined self.duration {
-				System.Timer.g_lib.call('mint_timer_reset', self.eventHandle)
-				System.Timer.g_lib.call('mint_timer_start', self.eventHandle, self.duration)
+			if defined self.delay {
+				System.Timer.g_lib.call('mint_timer_reset', self.d_ptr)
+				if defined self.period {
+					System.Timer.g_lib.call('mint_timer_start_periodic', self.d_ptr, self.delay, self.period)
+				} else {
+					System.Timer.g_lib.call('mint_timer_start', self.d_ptr, self.delay)
+				}
 				return true
 			}
 			return false
 		}
 
 		/**
-		 * Stops the timer.
+		 * Returns the timer delay in milliseconds as a number.
 		 */
-		const def stop(self) {
-			System.Timer.g_lib.call('mint_timer_stop', self.eventHandle)
+		const def getDelay(const self) {
+			return self.delay
 		}
 
 		/**
-		 * Resets the timeout event.
+		 * Returns the timer period in milliseconds as a number.
 		 */
-		const def clear(self) {
-			System.Timer.g_lib.call('mint_timer_clear', self.eventHandle)
+		const def getPeriod(const self) {
+			return self.period
 		}
 
 		/**
 		 * Returns `true` if the timer is running; otherwise returns `false`.
 		 */
 		const def isRunning(const self) {
-			return System.Timer.g_lib.call('mint_timer_is_running', self.eventHandle)
+			return System.Timer.g_lib.call('mint_timer_is_running', self.d_ptr)
+		}
+
+		/**
+		 * Returns `true` if the timer is periodic; otherwise returns `false`.
+		 */
+		const def isPeriodic(const self) {
+			return defined self.period
+		}
+
+		/**
+		 * Stops the timer.
+		 */
+		const def stop(self) {
+			System.Timer.g_lib.call('mint_timer_stop', self.d_ptr)
+		}
+
+		/**
+		 * Resets the timeout event.
+		 */
+		const def clear(self) {
+			System.Timer.g_lib.call('mint_timer_clear', self.d_ptr)
 		}
 
 		/**
@@ -131,14 +156,21 @@ package System {
 		 * After a call to this method, the event is reset.
 		 */
 		const def wait(self, timeout = none) {
-			return System.Timer.g_lib.call('mint_timer_wait', self.eventHandle, timeout)
+			return System.Timer.g_lib.call('mint_timer_wait', self.d_ptr, timeout)
 		}
 
 		/**
 		 * Returns the handle used by {System.Poller}.
 		 */
 		const def getHandle(const self) {
-			return self.eventHandle
+			return System.Timer.g_lib.call('mint_timer_get_handle', self.d_ptr)
+		}
+
+		/**
+		 * Returns the event's poll event as an instance of `mint::poll_event_t`.
+		 */
+		const def getPollEvent(const self) {
+			return System.Timer.g_lib.call('mint_timer_get_poll_event', self.d_ptr)
 		}
 
 		/**
@@ -151,10 +183,13 @@ package System {
 		/// Global library handle.
 		- @const g_lib = lib('libmint-system')
 
-		/// Internal handle.
-		- final eventHandle = none
+		/// Object data.
+		- final d_ptr = null
 
-		/// Internal timer duration.
-		- final duration = none
+		/// Internal timer delay.
+		- final delay = none
+
+		/// Internal timer period.
+		- final period = none
 	}
 }

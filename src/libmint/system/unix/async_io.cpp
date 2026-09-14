@@ -23,6 +23,7 @@
 
 #include "mint/system/async_io.h"
 #include "mint/config.h"
+#include "mint/system/errno.h"
 
 #include <array>
 #include <cerrno>
@@ -37,10 +38,7 @@
 #include <unistd.h>
 #include <variant>
 
-#if defined(MINT_OS_MAC)
-#include <sys/event.h>
-#include <sys/types.h>
-#elif defined(MINT_OS_LINUX)
+#ifdef MINT_OS_LINUX
 #include <sys/epoll.h>
 // io_uring headers (optional - with fallback to epoll)
 #if HAS_IO_URING
@@ -48,8 +46,9 @@
 #include <linux/time_types.h>
 #else
 #endif
-#else
-#include <sys/epoll.h>
+#elifdef MINT_OS_UNIX
+#include <sys/event.h>
+#include <sys/types.h>
 #endif
 
 mint::AsyncOperation::AsyncOperation(handle_t handle) :
@@ -60,27 +59,26 @@ mint::AsyncOperation::AsyncOperation(handle_t handle) :
 
 mint::AsyncRuntime::AsyncRuntime() :
     _context(kqueue()) {
-	if (_context == -1) {
+	if (_context.fd == -1) {
 		// Initialization failed
-		_context = -1;
+		_context.fd = -1;
 	}
 }
 
 mint::AsyncRuntime::~AsyncRuntime() {
-	if (_context >= 0) {
-		close(_context);
+	if (_context.fd >= 0) {
+		close(_context.fd);
 	}
 }
 
 bool mint::AsyncRuntime::submit(AsyncOperation& operation) {
 
-	if (_context < 0) [[unlikely]] {
+	if (_context.fd < 0) [[unlikely]] {
 		return false;
 	}
 
 	if (const auto error = operation.start()) {
-		if (error != std::make_error_code(std::errc::resource_unavailable_try_again) && error.value() != EAGAIN
-		    && error.value() != EWOULDBLOCK) {
+		if (error != std::errc::resource_unavailable_try_again && error != std::errc::operation_would_block) {
 			operation.complete(error, 0);
 			return false;
 		}
@@ -88,21 +86,23 @@ bool mint::AsyncRuntime::submit(AsyncOperation& operation) {
 	}
 
 	if (!operation.pending) {
-		operation.complete({}, static_cast<std::size_t>(operation.result));
-		return false;
+		const auto _ = std::scoped_lock(_mutex);
+		_context.ready_operations.push_back(&operation);
+		_operations.emplace(&operation);
+		return true;
 	}
 
 	const struct kevent event {
 	    .ident = static_cast<uintptr_t>(operation.get_handle()),
-	    .filter = static_cast<int16_t>(operation.filter),
+	    .filter = operation.filter,
 	    .flags = static_cast<uint16_t>(operation.flags | EV_ADD | EV_ENABLE | EV_ONESHOT),
 	    .fflags = 0,
 	    .data = 0,
 	    .udata = &operation,
 	};
 
-	if (kevent(_context, &event, 1, nullptr, 0, nullptr) < 0) {
-		operation.complete(std::error_code(errno, std::system_category()), 0);
+	if (kevent(_context.fd, &event, 1, nullptr, 0, nullptr) < 0) {
+		operation.complete(mint::last_error_code(), 0);
 		return false;
 	}
 
@@ -113,7 +113,7 @@ bool mint::AsyncRuntime::submit(AsyncOperation& operation) {
 
 bool mint::AsyncRuntime::cancel(AsyncOperation& operation) {
 
-	if (_context < 0) [[unlikely]] {
+	if (_context.fd < 0) [[unlikely]] {
 		return false;
 	}
 
@@ -123,14 +123,14 @@ bool mint::AsyncRuntime::cancel(AsyncOperation& operation) {
 	if (it != _operations.end()) {
 		const struct kevent event {
 		    .ident = static_cast<uintptr_t>(operation.get_handle()),
-		    .filter = static_cast<int16_t>(operation.filter),
+		    .filter = operation.filter,
 		    .flags = EV_DELETE,
 		    .fflags = 0,
 		    .data = 0,
 		    .udata = nullptr,
 		};
 
-		kevent(_context, &event, 1, nullptr, 0, nullptr);
+		kevent(_context.fd, &event, 1, nullptr, 0, nullptr);
 		_operations.erase(it);
 		return true;
 	}
@@ -138,59 +138,110 @@ bool mint::AsyncRuntime::cancel(AsyncOperation& operation) {
 	return false;
 }
 
-mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::milliseconds> timeout) {
+std::error_code mint::AsyncRuntime::post_deferred_completion(AsyncOperation& operation) {
 
-	if (_context < 0) [[unlikely]] {
-		return false;
+	{
+		const auto _ = std::scoped_lock(_mutex);
+		_context.ready_operations.push_back(&operation);
 	}
 
-	struct kevent events[16];
-	struct timespec timeout_ts = timeout
-	                                 .transform([](std::chrono::milliseconds ms) {
-		                                 const auto timeout_ms = ms.count();
-		                                 return timespec {
-		                                     .tv_sec = timeout_ms / 1000,
-		                                     .tv_nsec = (timeout_ms % 1000) * 1000000,
-		                                 };
-	                                 })
-	                                 .value_or(timespec {});
+	struct kevent kev {
+	    .ident = 1,
+	    .filter = EVFILT_USER,
+	    .flags = 0,
+	    .fflags = NOTE_TRIGGER,
+	    .data = 0,
+	    .udata = nullptr,
+	};
 
-	int nu_events = kevent(_context, nullptr, 0, events, 16, timeout ? &timeout_ts : nullptr);
-	if (nu_events < 0) {
-		return false; // Error
+	if (kevent(_context.fd, &kev, 1, nullptr, 0, nullptr) < 0) {
+		return std::make_error_code(std::errc::io_error);
+	}
+
+	return {};
+}
+
+mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::milliseconds> timeout) {
+
+	if (_context.fd < 0) [[unlikely]] {
+		return nullptr;
+	}
+
+	if (_context.event_index == _context.event_count) {
+
+		const auto timeout_ts = _context.ready_operations.empty() //
+		                            ? timeout.transform([](std::chrono::milliseconds ms) {
+			                              const auto sec = std::chrono::floor<std::chrono::seconds>(ms);
+			                              const auto nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(
+			                                  ms - sec);
+			                              return timespec {
+			                                  .tv_sec = sec.count(),
+			                                  .tv_nsec = nsec.count(),
+			                              };
+		                              })
+		                            : std::optional<timespec>({
+		                                  .tv_sec = 0,
+		                                  .tv_nsec = 0,
+		                              });
+
+		const auto kevent_result = kevent(_context.fd, nullptr, 0, _context.events.data(),
+		    static_cast<int>(_context.events.size()), timeout_ts ? std::to_address(timeout_ts) : nullptr);
+
+		if (kevent_result < 0) {
+			return nullptr;
+		}
+
+		_context.event_count = static_cast<std::size_t>(kevent_result);
+		_context.event_index = 0;
 	}
 
 	const auto _ = std::scoped_lock(_mutex);
 
-	// Process completed events
-	for (int i = 0; i < nu_events; ++i) {
-		auto* operation = reinterpret_cast<AsyncOperation*>(events[i].udata);
+	while (_context.event_index < _context.event_count) {
+		auto& event = _context.events.at(_context.event_index++);
+
+		if (event.filter == EVFILT_USER) {
+			continue;
+		}
+
+		auto* operation = static_cast<AsyncOperation*>(event.udata);
 		if (const auto it = _operations.find(operation); it != _operations.end()) {
 			_operations.erase(it);
 			operation->pending = false;
+
 			if (const auto error = operation->start()) {
-				if (error.value() == EAGAIN || error.value() == EWOULDBLOCK) {
+				if (error != std::errc::resource_unavailable_try_again && error != std::errc::operation_would_block) {
 					operation->pending = true;
 
 					const struct kevent retry {
-					    .ident = static_cast<uintptr_t>(operation->get_handle()),
-					    .filter = static_cast<int16_t>(operation->filter),
-					    .flags = static_cast<uint16_t>(operation->flags | EV_ADD | EV_ENABLE | EV_ONESHOT),
+					    .ident = static_cast<std::uintptr_t>(operation->get_handle()),
+					    .filter = operation->filter,
+					    .flags = static_cast<std::uint16_t>(operation->flags | EV_ADD | EV_ENABLE | EV_ONESHOT),
 					    .fflags = 0,
 					    .data = 0,
 					    .udata = operation,
 					};
 
-					kevent(_context, &retry, 1, nullptr, 0, nullptr);
+					kevent(_context.fd, &retry, 1, nullptr, 0, nullptr);
 					_operations.emplace(operation);
+					continue;
 				}
-				else {
-					operation->complete(error, 0);
-				}
+				operation->complete(error, 0);
+				return operation;
 			}
-			else {
-				operation->complete({}, static_cast<std::size_t>(operation->result));
-			}
+
+			operation->complete({}, static_cast<std::size_t>(operation->result));
+			return operation;
+		}
+	}
+
+	if (!_context.ready_operations.empty()) {
+		auto* operation = _context.ready_operations.front();
+		_context.ready_operations.pop_front();
+		if (const auto it = _operations.find(operation); it != _operations.end()) {
+			_operations.erase(it);
+			operation->complete({}, static_cast<std::size_t>(operation->result));
+			return operation;
 		}
 	}
 
@@ -273,7 +324,8 @@ bool mint::AsyncRuntime::submit(AsyncOperation& operation) {
 	                            [this, &operation](EPollContext& context) -> bool {
 		                            auto& op = operation.emplace<EPollOperation>();
 		                            if (const auto error = operation.start()) {
-			                            if (error.value() != EAGAIN && error.value() != EWOULDBLOCK) {
+			                            if (error != std::errc::resource_unavailable_try_again
+			                                && error != std::errc::operation_would_block) {
 				                            operation.complete(error, 0);
 				                            return false;
 			                            }
@@ -459,7 +511,8 @@ mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::millis
 			        if (const auto it = _operations.find(operation); it != _operations.end()) {
 				        epoll_ctl(context.fd, EPOLL_CTL_DEL, operation->get_handle(), nullptr);
 				        if (const auto error = operation->start()) {
-					        if (error.value() == EAGAIN || error.value() == EWOULDBLOCK) {
+					        if (error != std::errc::resource_unavailable_try_again
+					            && error != std::errc::operation_would_block) {
 						        op->pending = true;
 						        auto retry_event = epoll_event {
 						            .events = op->events | EPOLLERR | EPOLLHUP,

@@ -64,8 +64,12 @@
 #include <winerror.h>
 #include <winnt.h>
 #else
+#ifdef MINT_OS_LINUX
 #include <asm-generic/int-ll64.h>
 #include <bits/types.h>
+#else
+#include <unistd.h>
+#endif
 #endif
 
 #ifdef MINT_ASYNC_BACKEND_IO_URING
@@ -575,7 +579,7 @@ mint::Reference mint_file_open_async(mint::Cursor& cursor, const mint::Reference
 		if (handle != INVALID_HANDLE_VALUE) {
 			return create_iterator_from(cursor, mint::create_handle(cursor.ast(), handle), mint::create_none());
 		}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 		const auto fd = mint::open_file_descriptor(mint::to_string(path), mint::to_string(mode).data());
 		if (fd != -1) {
 			return create_iterator_from(cursor, mint::create_handle(cursor.ast(), fd), mint::create_none());
@@ -599,7 +603,7 @@ mint::Reference mint_file_close_async(mint::Cursor& /*cursor*/, mint::Reference&
 		}
 		d_ptr.move_data(mint::create_null());
 	}
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 	if (auto fd = mint::to_handle(d_ptr); fd != mint::invalid_handle) {
 		if (close(fd) != 0) {
 			d_ptr.move_data(mint::create_null());
@@ -620,7 +624,7 @@ mint::Reference mint_file_tell_async(mint::Cursor& cursor, const mint::Reference
 		return mint::create_iterator_from(cursor, mint::create_number(mint::errno_from_last_error()));
 	}
 	return mint::create_iterator_from(cursor, mint::create_number(0), mint::create_signed_number(pos.QuadPart));
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 	const auto pos = lseek(mint::to_handle(d_ptr), 0, SEEK_CUR);
 	return mint::create_iterator_from(cursor, (pos == -1L) ? mint::create_number(errno) : mint::create_number(0),
 	    mint::create_number(pos));
@@ -639,7 +643,7 @@ mint::Reference mint_file_seek_async(mint::Cursor& cursor, const mint::Reference
 		return mint::create_number(mint::errno_from_last_error());
 	}
 	return mint::create_number(0);
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 	auto cursor_pos = mint::to_integer<long>(cursor, pos);
 	if (lseek(mint::to_handle(d_ptr), cursor_pos, (cursor_pos < 0) ? SEEK_END : SEEK_SET) < 0) {
 		return mint::create_number(errno);
@@ -657,7 +661,7 @@ mint::Reference mint_file_at_end_async(mint::Cursor& /*cursor*/, const mint::Ref
 	auto size = LARGE_INTEGER {};
 	GetFileSizeEx(mint::to_handle(d_ptr), &size);
 	return mint::create_boolean(pos.QuadPart >= size.QuadPart);
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 	const auto pos = lseek(mint::to_handle(d_ptr), 0, SEEK_CUR);
 	struct stat file_info = {};
 	fstat(mint::to_handle(d_ptr), &file_info);
@@ -670,7 +674,7 @@ mint::Reference mint_file_at_end_async(mint::Cursor& /*cursor*/, const mint::Ref
 mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
     const mint::Reference& d_ptr, const mint::Reference& buffer) {
 	class AsyncReadOperation : public mint::MintAsyncOperation {
-#ifdef MINT_ASYNC_BACKEND_EPOLL
+#if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
 		std::reference_wrapper<mint::AsyncRuntime> _scheduler;
 		std::future<void> _future;
 		std::error_code _error;
@@ -679,14 +683,14 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 		std::array<char, BUFSIZ> _local_buffer {};
 #ifdef MINT_ASYNC_BACKEND_IOCP
 		LARGE_INTEGER _pos {};
-#elifdef MINT_OS_LINUX
-		__off_t _pos {};
+#elifdef MINT_OS_UNIX
+		off_t _pos {};
 #endif
 	public:
-		AsyncReadOperation(mint::Reference self, mint::AsyncRuntime& scheduler, mint::handle_t handle,
+		AsyncReadOperation(mint::Reference self, [[maybe_unused]] mint::AsyncRuntime& scheduler, mint::handle_t handle,
 		    std::vector<std::uint8_t>* buf) :
 		    mint::MintAsyncOperation(std::move(self), handle),
-#ifdef MINT_ASYNC_BACKEND_EPOLL
+#if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
 		    _scheduler(scheduler),
 #endif
 		    _buf(buf) {
@@ -711,6 +715,15 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 					return mint::last_error_code();
 				}
 			}
+#elifdef MINT_ASYNC_BACKEND_KQUEUE
+			_pos = lseek(get_handle(), 0, SEEK_CUR);
+			_future = std::async([&]() {
+				result = pread(get_handle(), _local_buffer.data(), _local_buffer.size(), static_cast<off_t>(_pos));
+				if (result == -1) {
+					_error = mint::last_error_code();
+				}
+				_scheduler.get().post_deferred_completion(*this);
+			});
 #elifdef MINT_OS_LINUX
 			return std::visit(mint::Overloaded {
 #ifdef MINT_ASYNC_BACKEND_IO_URING
@@ -723,6 +736,7 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 #endif
 #ifdef MINT_ASYNC_BACKEND_EPOLL
 			                      [&](mint::EPollOperation& self) -> std::error_code {
+				                      _pos = lseek(get_handle(), 0, SEEK_CUR);
 				                      _future = std::async([&]() {
 					                      const auto result = pread64(get_handle(), _local_buffer.data(),
 					                          _local_buffer.size(), static_cast<__off64_t>(_pos));
@@ -764,8 +778,13 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 					done(mint::create_number(0));
 				}
 			}
-#elifdef MINT_OS_LINUX
-			_pos += static_cast<__off_t>(bytes_transferred);
+#elifdef MINT_OS_UNIX
+#if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
+			if (_error) {
+				done(mint::create_number(_error.value()));
+			}
+#endif
+			_pos += static_cast<off_t>(bytes_transferred);
 			if (lseek(get_handle(), _pos, SEEK_SET) < 0) {
 				done(mint::create_number(mint::errno_from_last_error()));
 			}
@@ -787,7 +806,7 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
     const mint::Reference& d_ptr, const mint::Reference& buffer, const mint::Reference& count) {
 	class AsyncReadSomeOperation : public mint::MintAsyncOperation {
-#ifdef MINT_ASYNC_BACKEND_EPOLL
+#if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
 		std::reference_wrapper<mint::AsyncRuntime> _scheduler;
 		std::future<void> _future;
 		std::error_code _error;
@@ -797,14 +816,14 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 		std::size_t _buffer_length;
 #ifdef MINT_ASYNC_BACKEND_IOCP
 		LARGE_INTEGER _pos {};
-#elifdef MINT_OS_LINUX
-		__off_t _pos {};
+#elifdef MINT_OS_UNIX
+		off_t _pos {};
 #endif
 	public:
-		AsyncReadSomeOperation(mint::Reference self, mint::AsyncRuntime& scheduler, mint::handle_t handle,
-		    std::vector<std::uint8_t>* buf, std::size_t count) :
+		AsyncReadSomeOperation(mint::Reference self, [[maybe_unused]] mint::AsyncRuntime& scheduler,
+		    mint::handle_t handle, std::vector<std::uint8_t>* buf, std::size_t count) :
 		    mint::MintAsyncOperation(std::move(self), handle),
-#ifdef MINT_ASYNC_BACKEND_EPOLL
+#if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
 		    _scheduler(scheduler),
 #endif
 		    _buf(buf),
@@ -830,6 +849,16 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 					return mint::last_error_code();
 				}
 			}
+#elifdef MINT_ASYNC_BACKEND_KQUEUE
+			_pos = lseek(get_handle(), 0, SEEK_CUR);
+			_future = std::async([&]() {
+				result = pread(get_handle(), _local_buffer.get(), _buffer_length, static_cast<off_t>(_pos));
+				if (result == -1) {
+					_error = mint::last_error_code();
+				}
+				_scheduler.get().post_deferred_completion(*this);
+			});
+			return {};
 #elifdef MINT_OS_LINUX
 			return std::visit(mint::Overloaded {
 #ifdef MINT_ASYNC_BACKEND_IO_URING
@@ -842,6 +871,7 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 #endif
 #ifdef MINT_ASYNC_BACKEND_EPOLL
 			                      [&](mint::EPollOperation& self) -> std::error_code {
+				                      _pos = lseek(get_handle(), 0, SEEK_CUR);
 				                      _future = std::async([&]() {
 					                      const auto result = pread64(get_handle(), _local_buffer.get(), _buffer_length,
 					                          static_cast<__off64_t>(_pos));
@@ -883,13 +913,13 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 					done(mint::create_number(0));
 				}
 			}
-#elifdef MINT_OS_LINUX
-#ifdef MINT_ASYNC_BACKEND_EPOLL
+#elifdef MINT_OS_UNIX
+#if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
 			if (_error) {
 				done(mint::create_number(_error.value()));
 			}
 #endif
-			_pos += static_cast<__off_t>(bytes_transferred);
+			_pos += static_cast<off_t>(bytes_transferred);
 			if (lseek(get_handle(), _pos, SEEK_SET) < 0) {
 				done(mint::create_number(mint::errno_from_last_error()));
 			}
@@ -912,7 +942,7 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 mint::Reference mint_file_write_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
     const mint::Reference& d_ptr, const mint::Reference& buffer) {
 	class AsyncWriteOperation : public mint::MintAsyncOperation {
-#ifdef MINT_ASYNC_BACKEND_EPOLL
+#if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
 		std::reference_wrapper<mint::AsyncRuntime> _scheduler;
 		std::future<void> _future;
 		std::error_code _error;
@@ -920,10 +950,10 @@ mint::Reference mint_file_write_async(mint::Cursor& cursor, mint::Reference& sel
 		std::reference_wrapper<mint::Cursor> _cursor;
 		std::span<std::uint8_t> _buffer;
 	public:
-		AsyncWriteOperation(mint::Cursor& cursor, mint::Reference self, mint::AsyncRuntime& scheduler,
+		AsyncWriteOperation(mint::Cursor& cursor, mint::Reference self, [[maybe_unused]] mint::AsyncRuntime& scheduler,
 		    mint::handle_t handle, std::span<std::uint8_t> buffer) :
 		    mint::MintAsyncOperation(std::move(self), handle),
-#ifdef MINT_ASYNC_BACKEND_EPOLL
+#if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
 		    _scheduler(scheduler),
 #endif
 		    _cursor(cursor),
@@ -941,6 +971,14 @@ mint::Reference mint_file_write_async(mint::Cursor& cursor, mint::Reference& sel
 					return mint::last_error_code();
 				}
 			}
+#elifdef MINT_ASYNC_BACKEND_KQUEUE
+			_future = std::async([&]() {
+				result = write(get_handle(), _buffer.data(), _buffer.size());
+				if (result == -1) {
+					_error = mint::last_error_code();
+				}
+				_scheduler.get().post_deferred_completion(*this);
+			});
 #elifdef MINT_OS_LINUX
 			return std::visit(mint::Overloaded {
 #ifdef MINT_ASYNC_BACKEND_IO_URING
@@ -981,6 +1019,11 @@ mint::Reference mint_file_write_async(mint::Cursor& cursor, mint::Reference& sel
 			if (error) {
 				done(mint::create_iterator_from(_cursor, mint::create_number(error.value())));
 			}
+#if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
+			if (_error) {
+				done(mint::create_number(_error.value()));
+			}
+#endif
 			else {
 				done(mint::create_iterator_from(_cursor, mint::create_number(0),
 				    mint::create_unsigned_number(bytes_transferred)));
@@ -1013,7 +1056,7 @@ mint::Reference mint_file_flush_async(mint::Cursor& cursor, mint::Reference& sel
 				}
 				_scheduler.get().post_deferred_completion(*this);
 			});
-#elifdef MINT_OS_LINUX
+#elifdef MINT_OS_UNIX
 			_future = std::async([this]() {
 				if (fsync(get_handle()) == -1) {
 					_error = mint::last_error_code();
@@ -1031,11 +1074,9 @@ mint::Reference mint_file_flush_async(mint::Cursor& cursor, mint::Reference& sel
 			if (error) {
 				done(mint::create_number(error.value()));
 			}
-#if defined(MINT_ASYNC_BACKEND_IOCP) || defined(MINT_ASYNC_BACKEND_IO_URING)
 			else if (_error) {
 				done(mint::create_number(_error.value()));
 			}
-#endif
 			else {
 				done(mint::create_none());
 			}

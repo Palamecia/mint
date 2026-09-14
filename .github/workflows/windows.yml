@@ -9,25 +9,46 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-    - name: install dependencies
+
+    - name: Install dependencies
       run: |
         choco install -y winflexbison3
         git clone https://github.com/microsoft/vcpkg.git
         pushd vcpkg
         .\bootstrap-vcpkg.bat
         popd
-    - name: configure
+
+    - name: Configure
       run: |
-        $env:VCPKG_ROOT = ".\vcpkg"
-        $env:PATH = "$env:VCPKG_ROOT;$env:PATH"
-        cmake --preset=vcpkg -G "Visual Studio 18 2026" -DCMAKE_BUILD_TYPE=Release
-    - name: make
+        $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+        & "$vsPath\Common7\Tools\Launch-VsDevShell.ps1" -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+
+        $env:VCPKG_ROOT = "${{ github.workspace }}\vcpkg"
+        $env:PATH = "C:\ProgramData\chocolatey\lib\winflexbison3\tools;$env:VCPKG_ROOT;$env:PATH"
+
+        cmake --preset=vcpkg `
+              -DMINT_COPY_MODULE_SOURCES_TO_BUILD_DIR=ON `
+              -DCMAKE_C_COMPILER="cl.exe" `
+              -DCMAKE_CXX_COMPILER="cl.exe" `
+              -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
       run: |
-        cmake --build build --target ALL_BUILD --config Release
-        cmake --build build --target INSTALL --config Release
-    - name: run tests
-      run: ctest
+        $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
+        & "$vsPath\Common7\Tools\Launch-VsDevShell.ps1" -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+
+        cmake --build build
+
+    - name: Run tests
       working-directory: ./build
-    - name: run library tests
-      run: C:\mint\bin\mint .\test.mn
+      run: ctest
+
+    - name: Run library tests
       working-directory: ./tests
+      env:
+        MINT_LIBRARY_PATH: ${{ github.workspace }}\build\out\lib\mint
+      run: |
+        $vcpkgInstalled = "${{ github.workspace }}\build\vcpkg_installed\x64-windows"
+        $env:PATH = "$vcpkgInstalled\bin;$env:PATH"
+
+        ${{ github.workspace }}\build\out\bin\mint .\test.mn

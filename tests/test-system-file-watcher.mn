@@ -1,0 +1,24 @@
+load test.case
+load system.file-watcher
+load system.poller
+load system.file
+load system.filesystem
+
+@class FileWatcherTest : Test.Case {
+    const def testDataCommunication(self) {
+
+        let poller = System.Poller()
+        let path = System.FS.getStandardPath(System.StandardPath.Temporary, 'test.txt')
+
+        System.File(path).open('w')
+
+        let watcher = System.FileWatcher(path)
+        self.expectEqual(true, poller.watch(watcher, def {}))
+
+        watcher.toFile().open('w').write("hello")
+        self.expectEqual(true, poller.poll(0))
+
+        let data = watcher.toFile().open('r').read()
+        self.expectEqual(false, poller.poll(0))
+    }
+}

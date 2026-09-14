@@ -37,8 +37,10 @@ package System {
         Linux
         /// Windows family operating system type.
         Windows
+        /// FreeBSD family operating system type.
+        FreeBSD
         /// Mac OS family operating system type.
-        MacOs
+        MacOS
     }
 
     /**

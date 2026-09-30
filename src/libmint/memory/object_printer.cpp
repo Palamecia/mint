@@ -22,11 +22,11 @@
  */
 
 #include "mint/memory/object_printer.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/module.h"
-#include "mint/ast/node.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/operator_tools.h"
@@ -39,13 +39,13 @@ namespace {
 
 class ResultHandler : public Module {
 public:
-	ResultHandler(AbstractSyntaxTree& ast) :
-	    Module(ast) {
+	explicit ResultHandler(Program& program) :
+	    Module(program) {
 		push_nodes({Node::Command::unload_reference, Node::Command::exit_module});
 	}
 
-	static ResultHandler& instance(AbstractSyntaxTree& ast) {
-		return ast.unique_module<ResultHandler>();
+	static ResultHandler& instance(Program& program) {
+		return program.unique_module<ResultHandler>();
 	}
 };
 
@@ -59,7 +59,7 @@ void ObjectPrinter::print(const Reference& reference) {
 
 	_cursor.get().stack().emplace_back(_object);
 	_cursor.get().stack().emplace_back(reference);
-	_cursor.get().call(ResultHandler::instance(_cursor.get().ast()), 0uz, _cursor.get().ast().global_data());
+	_cursor.get().call(ResultHandler::instance(_cursor.get().program()), 0uz, _cursor.get().program().global_data());
 
 	if (!call_overload(_cursor, builtin_symbols::write_method, 1)) [[unlikely]] {
 		_cursor.get().exit_module();

@@ -24,19 +24,19 @@
 #ifndef MINT_SCHEDULER_OUTPUT_H
 #define MINT_SCHEDULER_OUTPUT_H
 
-#include "mint/ast/class_register.h"
-#include "mint/ast/printer.h"
+#include "mint/program/class_register.h"
+#include "mint/program/printer.h"
 #include "mint/config.h"
 #include <functional>
 
 namespace mint {
 
 class MINT_EXPORT Output : public Printer {
-	std::reference_wrapper<AbstractSyntaxTree> _ast;
+	std::reference_wrapper<Program> _program;
 public:
+	explicit Output(Program& program);
 	Output(const Output&) = delete;
 	Output(Output&&) = delete;
-	Output(AbstractSyntaxTree& ast);
 	~Output();
 
 	Output& operator=(const Output&) = delete;

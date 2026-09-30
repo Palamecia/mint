@@ -21,31 +21,24 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_SAVED_STATE_H
-#define MINT_AST_SAVED_STATE_H
+#include "mint/program/node.h"
+#include "mint/program/class_register.h"
+#include "mint/program/symbol.h"
+#include "mint/memory/reference.h"
 
-#include "mint/ast/cursor.h"
-#include "mint/config.h"
+using namespace mint;
 
-#include <functional>
-#include <stack>
+Node::Node(Command command) :
+    command(command) {}
 
-namespace mint {
+Node::Node(int parameter) :
+    parameter(parameter) {}
 
-struct MINT_EXPORT SavedState {
-	SavedState(Cursor& cursor, Cursor::StackFrame* stack_frame);
-	SavedState(const SavedState& other) = delete;
-	SavedState(SavedState&& other) = delete;
-	~SavedState();
+Node::Node(const Symbol* symbol) :
+    symbol(symbol) {}
 
-	SavedState& operator=(const SavedState& other) = delete;
-	SavedState& operator=(SavedState&& other) = delete;
+Node::Node(const Reference* constant) :
+    constant(constant) {}
 
-	std::reference_wrapper<Cursor> cursor;
-	Cursor::StackFrame* stack_frame;
-	std::stack<Cursor::RetrievePoint> retrieve_points;
-};
-
-}
-
-#endif // MINT_AST_SAVED_STATE_H
+Node::Node(ClassDescription* class_description) :
+    class_description(class_description) {}

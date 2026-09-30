@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
 #include "mint/memory/memory_tools.h"
@@ -120,7 +120,7 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	    .clock_type = to_clock_type(cursor, clock_type),
 	});
 	if (timer->event.handle != INVALID_HANDLE_VALUE) {
-		return mint::create_c_object(cursor.ast(), timer.release());
+		return mint::create_c_object(cursor.program(), timer.release());
 	}
 
 #elifdef MINT_OS_LINUX
@@ -146,7 +146,7 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	        },
 	});
 	if (timer->event.fd != -1) {
-		return mint::create_c_object(cursor.ast(), timer.release());
+		return mint::create_c_object(cursor.program(), timer.release());
 	}
 
 #elifdef MINT_OS_FREE_BSD
@@ -172,7 +172,7 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	        },
 	});
 	if (timer->event.fd != -1) {
-		return mint::create_c_object(cursor.ast(), timer.release());
+		return mint::create_c_object(cursor.program(), timer.release());
 	}
 
 #elifdef MINT_OS_MAC
@@ -224,7 +224,7 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 			timer_ptr->running = false;
 		}
 	});
-	return mint::create_c_object(cursor.ast(), timer.release());
+	return mint::create_c_object(cursor.program(), timer.release());
 
 #endif
 	return {};
@@ -254,14 +254,14 @@ mint::Reference mint_timer_delete(mint::Cursor& /*cursor*/, const mint::Referenc
 
 mint::Reference mint_timer_get_handle(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
-	return mint::create_handle(cursor.ast(), d_ptr.data<mint::LibObject<TimerData>>().ptr->event.handle);
+	return mint::create_handle(cursor.program(), d_ptr.data<mint::LibObject<TimerData>>().ptr->event.handle);
 #elifdef MINT_OS_UNIX
-	return mint::create_handle(cursor.ast(), d_ptr.data<mint::LibObject<TimerData>>().ptr->event.fd);
+	return mint::create_handle(cursor.program(), d_ptr.data<mint::LibObject<TimerData>>().ptr->event.fd);
 #endif
 }
 
 mint::Reference mint_timer_get_poll_event(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	return mint::create_c_object(cursor.ast(), &d_ptr.data<mint::LibObject<TimerData>>().ptr->event);
+	return mint::create_c_object(cursor.program(), &d_ptr.data<mint::LibObject<TimerData>>().ptr->event);
 }
 
 mint::Reference mint_timer_start(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& delay) {

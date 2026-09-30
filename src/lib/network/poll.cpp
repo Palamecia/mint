@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/cast_tools.h"
@@ -213,15 +213,15 @@ bool poll(std::vector<PollFd>& fdset, int timeout) {
 
 mint::Reference mint_pollfd_new(mint::Cursor& cursor, const mint::Reference& socket) {
 	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
-	return mint::create_c_object(cursor.ast(),
+	return mint::create_c_object(cursor.program(),
 	    new PollFd {
 	        .fd = socket_fd,
 	        .events = 0,
 	        .revents = 0,
 #ifdef MINT_OS_WINDOWS
 	        .handle = mint_network::SocketManager::instance().is_native_socket(socket_fd)
-	                      ? WSACreateEvent()
-	                      : CreateEvent(nullptr, TRUE, FALSE, nullptr),
+			              ? WSACreateEvent()
+			              : CreateEvent(nullptr, TRUE, FALSE, nullptr),
 #endif
 	    });
 }

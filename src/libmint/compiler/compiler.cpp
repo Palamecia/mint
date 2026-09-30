@@ -37,6 +37,7 @@
 #include <cctype>
 #include <cstddef>
 #include <exception>
+#include <iterator>
 #include <regex>
 #include <stdexcept>
 #include <string>
@@ -51,15 +52,13 @@ double token_to_number(const std::string& token) {
 
 std::string token_to_string(const std::string& token) {
 
-	std::string str;
+	auto str = std::string();
 	bool shift = false;
 
-	for (std::size_t i = 1; i < token.size() - 1; ++i) {
-
-		const char cptr = token[i];
+	for (auto it = std::next(token.begin()); it != std::prev(token.end()); ++it) {
 
 		if (shift) {
-			switch (cptr) {
+			switch (*it) {
 			case '0':
 				str += '\0';
 				break;
@@ -88,10 +87,10 @@ std::string token_to_string(const std::string& token) {
 				str += '\x1B';
 				break;
 			case 'x':
-				if (isdigit(token[++i])) {
+				if (isdigit(*++it)) {
 					int code = 0;
-					while (isdigit(token[i])) {
-						code = (code * hexadecimal_base) + (token[i++] - '0');
+					while (isdigit(*it)) {
+						code = (code * hexadecimal_base) + (*it++ - '0');
 					}
 					str += static_cast<char>(code);
 				}
@@ -109,17 +108,17 @@ std::string token_to_string(const std::string& token) {
 				str += '\\';
 				break;
 			default:
-				if (cptr) {
-					if (isdigit(cptr)) {
+				if (*it) {
+					if (isdigit(*it)) {
 						int code = 0;
-						while (isdigit(token[i])) {
-							code = (code * decimal_base) + (token[i++] - '0');
+						while (isdigit(*it)) {
+							code = (code * decimal_base) + (*it++ - '0');
 						}
 						str += static_cast<char>(code);
 					}
 					else {
 						str += '\\';
-						str += cptr;
+						str += *it;
 					}
 				}
 				else {
@@ -129,11 +128,11 @@ std::string token_to_string(const std::string& token) {
 
 			shift = false;
 		}
-		else if (cptr == '\\') {
+		else if (*it == '\\') {
 			shift = true;
 		}
 		else {
-			str += cptr;
+			str += *it;
 		}
 	}
 
@@ -144,12 +143,12 @@ std::regex token_to_regex(const std::string& token) {
 
 	std::string str;
 	std::regex::flag_type flag = std::regex::ECMAScript;
-	auto pos = token.find_last_of('/');
+	const auto pos = token.find_last_of('/');
 	const auto indicators = token.substr(pos + 1, token.size());
 
 	str = token.substr(1, pos - 1);
 
-	for (auto indicator : indicators) {
+	for (const auto indicator : indicators) {
 		switch (indicator) {
 		case 'c':
 			flag |= std::regex::collate;
@@ -192,8 +191,8 @@ Compiler::DataHint data_hint_from_token(const std::string& token) {
 
 }
 
-Compiler::Compiler(AbstractSyntaxTree& ast) :
-    _ast(ast) {}
+Compiler::Compiler(Program& program) :
+    _program(program) {}
 
 bool Compiler::is_printing() const {
 	return _printing;
@@ -221,7 +220,7 @@ Data* Compiler::make_data(const std::string& token, DataHint hint) {
 		}
 	case DataHint::data_string_hint:
 		try {
-			auto* string = GarbageCollector::instance().alloc<String>(_ast, token_to_string(token));
+			auto* string = GarbageCollector::instance().alloc<String>(_program, token_to_string(token));
 			string->construct();
 			return string;
 		}
@@ -230,7 +229,7 @@ Data* Compiler::make_data(const std::string& token, DataHint hint) {
 		}
 	case DataHint::data_regex_hint:
 		try {
-			auto* regex = GarbageCollector::instance().alloc<Regex>(_ast);
+			auto* regex = GarbageCollector::instance().alloc<Regex>(_program);
 			regex->expr = token_to_regex(token);
 			regex->pattern = token;
 			regex->construct();
@@ -254,7 +253,7 @@ Data* Compiler::make_data(const std::string& token, DataHint hint) {
 
 Data& Compiler::make_library(const std::string& token) {
 	try {
-		auto* library = GarbageCollector::instance().alloc<Library>(_ast);
+		auto* library = GarbageCollector::instance().alloc<Library>(_program);
 		library->plugin = Plugin::load(token_to_string(token));
 		library->construct();
 		return *library;
@@ -277,13 +276,13 @@ Data& Compiler::make_boolean(bool value) {
 }
 
 Data& Compiler::make_array() {
-	auto* array = GarbageCollector::instance().alloc<Array>(_ast);
+	auto* array = GarbageCollector::instance().alloc<Array>(_program);
 	array->construct();
 	return *array;
 }
 
 Data& Compiler::make_hash() {
-	auto* hash = GarbageCollector::instance().alloc<Hash>(_ast);
+	auto* hash = GarbageCollector::instance().alloc<Hash>(_program);
 	hash->construct();
 	return *hash;
 }
@@ -292,6 +291,6 @@ Data& Compiler::make_none() {
 	return *GarbageCollector::instance().alloc<None>();
 }
 
-AbstractSyntaxTree& Compiler::ast() {
-	return _ast;
+Program& Compiler::program() {
+	return _program;
 }

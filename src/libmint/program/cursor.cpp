@@ -21,12 +21,12 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/exception.h"
-#include "mint/ast/module.h"
-#include "mint/ast/printer.h"
-#include "mint/ast/saved_state.h"
+#include "mint/program/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/exception.h"
+#include "mint/program/module.h"
+#include "mint/program/printer.h"
+#include "mint/program/saved_state.h"
 #include "mint/debug/debug_info.h"
 #include "mint/debug/line_info.h"
 #include "mint/memory/cast_tools.h"
@@ -57,14 +57,15 @@ namespace {
 
 thread_local std::unique_ptr<Cursor::Exception> g_exception;
 
-void setup_exception_context(Cursor& cursor, mint::Reference& object, std::unique_ptr<Cursor::Exception>&& cause) {
+void setup_exception_context(const Cursor& cursor, const mint::Reference& object,
+    std::unique_ptr<Cursor::Exception>&& cause) {
 
 	if (g_exception && !g_exception->caught) {
 		return;
 	}
 
-	auto* root_cursor = &cursor;
-	while (auto* parent = root_cursor->parent()) {
+	const auto* root_cursor = &cursor;
+	while (const auto* parent = root_cursor->parent()) {
 		root_cursor = parent;
 	}
 
@@ -80,19 +81,19 @@ void setup_exception_context(Cursor& cursor, mint::Reference& object, std::uniqu
 constexpr std::size_t default_stack_capacity = 0x4000;
 
 std::vector<Reference>* create_stack() {
-	auto* stack = new std::vector<Reference>();
+	auto stack = std::make_unique<std::vector<Reference>>();
 	stack->reserve(default_stack_capacity);
-	return stack;
+	return stack.release();
 }
 
-void dump_module(LineInfoList& dumped_infos, AbstractSyntaxTree& ast, const Module& module, std::size_t offset) {
+void dump_module(LineInfoList& dumped_infos, Program& program, const Module& module, std::size_t offset) {
 
-	if (&module != &ThreadEntryPoint::instance(ast)) {
+	if (&module != &ThreadEntryPoint::instance(program)) {
 
-		const Module::Id module_id = ast.get_module_id(module);
-		const std::string module_name = ast.get_module_name(module);
+		const Module::Id module_id = program.get_module_id(module);
+		const std::string module_name = program.get_module_name(module);
 
-		if (const auto* debug_info = ast.find_debug_info(module_id)) {
+		if (const auto* debug_info = program.find_debug_info(module_id)) {
 			dumped_infos.emplace_back(module_id, module_name, debug_info->line_number(offset));
 		}
 		else {
@@ -161,10 +162,10 @@ void Cursor::WaitingCallStack::mark() {
 	}
 }
 
-Cursor::Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent) :
+Cursor::Cursor(Program& program, const Module& module, Cursor* parent) :
     _stack(parent ? parent->_stack : create_stack()),
     _current_stack_frame(g_pool.allocate()),
-    _ast(ast),
+    _program(program),
     _parent(parent),
     _child(nullptr) {
 
@@ -177,11 +178,11 @@ Cursor::Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent) :
 	}
 
 	std::construct_at(_current_stack_frame, module);
-	_current_stack_frame->symbols = std::make_shared<SymbolTable>(_ast.get().global_data());
+	_current_stack_frame->symbols = std::make_shared<SymbolTable>(_program.get().global_data());
 }
 
-Cursor::Cursor(AbstractSyntaxTree& ast, Cursor* parent) :
-    Cursor(ast, ThreadEntryPoint::instance(ast), parent) {}
+Cursor::Cursor(Program& program, Cursor* parent) :
+    Cursor(program, ThreadEntryPoint::instance(program), parent) {}
 
 Cursor::~Cursor() {
 
@@ -203,7 +204,7 @@ Cursor::~Cursor() {
 }
 
 std::unique_ptr<Cursor> Cursor::make_thread() {
-	return std::make_unique<Cursor>(_ast, this);
+	return std::make_unique<Cursor>(_program, this);
 }
 
 bool Cursor::is_thread() const {
@@ -213,10 +214,10 @@ bool Cursor::is_thread() const {
 	}
 
 	if (_call_stack.empty()) {
-		return &_current_stack_frame->module == &ThreadEntryPoint::instance(_ast);
+		return &_current_stack_frame->module == &ThreadEntryPoint::instance(_program);
 	}
 
-	return &_call_stack.front()->module == &ThreadEntryPoint::instance(_ast);
+	return &_call_stack.front()->module == &ThreadEntryPoint::instance(_program);
 }
 
 void Cursor::jmp(std::size_t pos) {
@@ -224,7 +225,7 @@ void Cursor::jmp(std::size_t pos) {
 }
 
 bool Cursor::call_in_progress() const {
-	if (&_current_stack_frame->module != &ThreadEntryPoint::instance(_ast)) {
+	if (&_current_stack_frame->module != &ThreadEntryPoint::instance(_program)) {
 		return !_call_stack.empty();
 	}
 	return false;
@@ -243,7 +244,7 @@ void Cursor::call_generator_expression(std::size_t offset) {
 	const auto stack_base = _stack->size();
 
 	expression_stack_frame->generator = std::make_unique<Reference>(Reference::default_flags,
-	    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
+	    std::in_place_type<Iterator>, from_generator, _program, stack_base + 1);
 	_stack->emplace_back(*expression_stack_frame->generator);
 	expression_stack_frame->generator->data<Iterator>().construct();
 
@@ -267,8 +268,8 @@ void Cursor::call_async_generator_expression(std::size_t offset) {
 	    std::in_place_type<Coroutine>, std::make_unique<SavedState>(*this, expression_stack_frame), stack_base);
 
 	expression_stack_frame->generator = std::make_unique<Reference>(Reference::default_flags,
-	    std::in_place_type<Iterator>, from_async_generator, _ast, expression_stack_frame->coroutine->data<Coroutine>(),
-	    stack_base + 1);
+	    std::in_place_type<Iterator>, from_async_generator, _program,
+	    expression_stack_frame->coroutine->data<Coroutine>(), stack_base + 1);
 	_stack->emplace_back(*expression_stack_frame->generator);
 	expression_stack_frame->generator->data<Iterator>().construct();
 
@@ -284,7 +285,7 @@ void Cursor::call(const FunctionHandle& handle, int signature, Class* metadata) 
 	call_stack_frame->iptr = handle.offset;
 
 	if (handle.symbols) {
-		call_stack_frame->symbols = std::make_shared<SymbolTable>(_ast.get().global_data(), metadata);
+		call_stack_frame->symbols = std::make_shared<SymbolTable>(_program.get().global_data(), metadata);
 		call_stack_frame->symbols->reserve_fast(handle.fast_count);
 		call_stack_frame->symbols->open_package(handle.package);
 	}
@@ -296,7 +297,7 @@ void Cursor::call(const FunctionHandle& handle, int signature, Class* metadata) 
 
 		if (handle.generator) {
 			call_stack_frame->generator = std::make_unique<Reference>(Reference::default_flags,
-			    std::in_place_type<Iterator>, from_async_generator, _ast,
+			    std::in_place_type<Iterator>, from_async_generator, _program,
 			    call_stack_frame->coroutine->data<Coroutine>(), stack_base + 1);
 			_stack->emplace(std::next(_stack->begin(), static_cast<std::ptrdiff_t>(stack_base)),
 			    *call_stack_frame->generator);
@@ -309,7 +310,7 @@ void Cursor::call(const FunctionHandle& handle, int signature, Class* metadata) 
 
 		if (handle.generator) {
 			call_stack_frame->generator = std::make_unique<Reference>(Reference::default_flags,
-			    std::in_place_type<Iterator>, from_generator, _ast, stack_base + 1);
+			    std::in_place_type<Iterator>, from_generator, _program, stack_base + 1);
 			_stack->emplace(std::next(_stack->begin(), static_cast<std::ptrdiff_t>(stack_base)),
 			    *call_stack_frame->generator);
 			call_stack_frame->generator->data<Iterator>().construct();
@@ -326,7 +327,7 @@ void Cursor::call(const Module& module, std::size_t pos, PackageData& package, C
 
 	_current_stack_frame = g_pool.allocate();
 	std::construct_at(_current_stack_frame, module);
-	_current_stack_frame->symbols = std::make_shared<SymbolTable>(_ast.get().global_data(), metadata);
+	_current_stack_frame->symbols = std::make_shared<SymbolTable>(_program.get().global_data(), metadata);
 	_current_stack_frame->symbols->open_package(package);
 	_current_stack_frame->iptr = pos;
 }
@@ -421,10 +422,10 @@ Printer* Cursor::printer() {
 }
 
 void Cursor::load_module(const std::string& module_name) {
-	auto& module = _ast.get().load_module(module_name);
+	const auto& module = _program.get().load_module(module_name);
 	if (module.state == Module::State::not_loaded) {
-		call(module.bytecode, 0, _ast.get().global_data());
-		_ast.get().set_module_state(module.id, Module::State::ready);
+		call(module.bytecode, 0, _program.get().global_data());
+		_program.get().set_module_state(module.id, Module::State::ready);
 	}
 }
 
@@ -516,10 +517,10 @@ LineInfoList Cursor::dump() const {
 	auto dumped_infos = LineInfoList();
 
 	for (const auto* stack_frame : _call_stack) {
-		dump_module(dumped_infos, _ast, stack_frame->module, last_executed_offset(stack_frame->iptr));
+		dump_module(dumped_infos, _program, stack_frame->module, last_executed_offset(stack_frame->iptr));
 	}
 
-	dump_module(dumped_infos, _ast, _current_stack_frame->module, last_executed_offset(_current_stack_frame->iptr));
+	dump_module(dumped_infos, _program, _current_stack_frame->module, last_executed_offset(_current_stack_frame->iptr));
 
 	if (_child) {
 		dumped_infos.append_range(_child->dump());
@@ -573,7 +574,7 @@ void Cursor::mark() {
 	// Only mark the stack of root cursors, as child cursors share the same stack and marking it multiple times would be
 	// redundant.
 	if (_parent == nullptr) {
-		for (auto& reference : *_stack) {
+		for (const auto& reference : *_stack) {
 			reference.data().mark();
 		}
 	}

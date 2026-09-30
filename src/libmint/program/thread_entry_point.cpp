@@ -21,24 +21,18 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/node.h"
-#include "mint/ast/class_register.h"
-#include "mint/ast/symbol.h"
-#include "mint/memory/reference.h"
+#include "thread_entry_point.h"
+#include "mint/program/program.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
 
 using namespace mint;
 
-Node::Node(Command command) :
-    command(command) {}
+ThreadEntryPoint::ThreadEntryPoint(Program& program) :
+    Module(program) {
+	push_node(Node::Command::exit_thread);
+}
 
-Node::Node(int parameter) :
-    parameter(parameter) {}
-
-Node::Node(const Symbol* symbol) :
-    symbol(symbol) {}
-
-Node::Node(const Reference* constant) :
-    constant(constant) {}
-
-Node::Node(ClassDescription* class_description) :
-    class_description(class_description) {}
+ThreadEntryPoint& ThreadEntryPoint::instance(Program& program) {
+	return program.unique_module<ThreadEntryPoint>();
+}

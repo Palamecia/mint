@@ -22,7 +22,7 @@
  */
 
 #include "mint/debug/debug_interface.h"
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include "mint/debug/cursor_debugger.h"
 #include "mint/debug/line_info.h"
 #include "mint/debug/thread_context.h"

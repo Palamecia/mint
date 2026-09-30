@@ -24,8 +24,8 @@
 #ifndef MINT_NETWORK_SOCKET_H
 #define MINT_NETWORK_SOCKET_H
 
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/program.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/reference.h"
 #include "mint/system/async_io.h"
@@ -60,19 +60,19 @@ namespace mint_network {
 
 namespace symbols {
 
-static const mint::Symbol network("Network");
-static const mint::Symbol socket("Socket");
-static const mint::Symbol io_status("IOStatus");
-static const mint::Symbol io_success("IOSuccess");
-static const mint::Symbol io_would_block("IOWouldBlock");
-static const mint::Symbol io_closed("IOClosed");
-static const mint::Symbol io_error("IOError");
+const auto network = mint::Symbol("Network");
+const auto socket = mint::Symbol("Socket");
+const auto io_status = mint::Symbol("IOStatus");
+const auto io_success = mint::Symbol("IOSuccess");
+const auto io_would_block = mint::Symbol("IOWouldBlock");
+const auto io_closed = mint::Symbol("IOClosed");
+const auto io_error = mint::Symbol("IOError");
 
 }
 
 enum sockopt_bool : int { // NOLINT
 	sockopt_false = 0,
-	sockopt_true = 1
+	sockopt_true = 1,
 };
 
 class SocketManager {
@@ -122,7 +122,7 @@ private:
 #endif
 };
 
-mint::Reference create_socket(mint::AbstractSyntaxTree& ast, SOCKET socket);
+mint::Reference create_socket(mint::Program& program, SOCKET socket);
 
 std::tuple<sockaddr*, socklen_t> to_sockaddr(const mint::Reference& reference);
 
@@ -197,7 +197,7 @@ class SocketBlockingModeGuard {
 	SOCKET _socket;
 	bool _was_blocking;
 public:
-	SocketBlockingModeGuard(SOCKET socket_fd) :
+	explicit SocketBlockingModeGuard(SOCKET socket_fd) :
 	    _socket(socket_fd),
 	    _was_blocking(mint_network::SocketManager::instance().is_socket_blocking(_socket)) {
 		set_socket_non_blocking(_socket, !enabled);

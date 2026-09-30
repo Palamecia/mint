@@ -24,8 +24,8 @@
 #ifndef MINT_MEMORY_GLOBAL_DATA_H
 #define MINT_MEMORY_GLOBAL_DATA_H
 
-#include "mint/ast/class_register.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_register.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
@@ -45,9 +45,11 @@
 
 namespace mint {
 
+class Program;
+
 class MINT_EXPORT FunctionData : public ClassRegister {
 public:
-	FunctionData(AbstractSyntaxTree& ast);
+	explicit FunctionData(Program& program);
 
 	[[nodiscard]] const FunctionData* get_function_data() const override;
 	[[nodiscard]] FunctionData* get_function_data() override;
@@ -55,9 +57,9 @@ public:
 
 class MINT_EXPORT PackageData : public ClassRegister, public MemoryRoot {
 public:
+	PackageData(Program& program, const std::string& name);
 	PackageData(const PackageData&) = delete;
 	PackageData(PackageData&&) = delete;
-	PackageData(AbstractSyntaxTree& ast, const std::string& name);
 	~PackageData() override;
 
 	PackageData& operator=(const PackageData&) = delete;
@@ -107,9 +109,9 @@ private:
 };
 
 class MINT_EXPORT GlobalData : public PackageData {
-	friend class AbstractSyntaxTree;
+	friend class Program;
 public:
-	GlobalData(AbstractSyntaxTree& ast);
+	explicit GlobalData(Program& program);
 
 	template<class BuiltinClass>
 	BuiltinClass& builtin(Class::Metatype type);
@@ -137,7 +139,7 @@ BuiltinClass& GlobalData::builtin(Class::Metatype type) {
 	if (auto* instance = static_cast<BuiltinClass*>(_builtin[builtin_index].get())) {
 		return *instance;
 	}
-	return *static_cast<BuiltinClass*>((_builtin[builtin_index] = std::make_unique<BuiltinClass>(ast())).get());
+	return *static_cast<BuiltinClass*>((_builtin[builtin_index] = std::make_unique<BuiltinClass>(program())).get());
 }
 
 Reference& GlobalData::none_ref() {

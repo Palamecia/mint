@@ -27,8 +27,8 @@
 #include "debug_printer.h"
 #include "expression_evaluator.h"
 #include "highlighter.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/module.h"
+#include "mint/program/cursor.h"
+#include "mint/program/module.h"
 #include "mint/debug/debug_info.h"
 #include "mint/debug/debug_interface.h"
 #include "mint/debug/debug_tools.h"
@@ -135,10 +135,10 @@ void InteractiveDebugger::on_breakpoint_deleted(Debugger& /*debugger*/, const mi
 
 void InteractiveDebugger::on_module_loaded(Debugger& /*debugger*/, mint::CursorDebugger& cursor,
     const mint::Module& module) {
-	const auto& ast = cursor.cursor().ast();
-	const auto module_id = ast.get_module_id(module);
+	const auto& program = cursor.cursor().program();
+	const auto module_id = program.get_module_id(module);
 	if (module_id != mint::Module::invalid_id) {
-		const std::string& module_name = ast.get_module_name(module);
+		const std::string& module_name = program.get_module_name(module);
 		print_debug_trace("Loaded module {}", module_name);
 	}
 }
@@ -207,13 +207,14 @@ void InteractiveDebugger::init_thread(CommandRunner::Command& command) {
 	    [](Debugger& debugger, mint::CursorDebugger& cursor,
 	        const std::span<CommandRunner::Parameter::value_t>& /*parameters*/) {
 		    for (const mint::ThreadList threads = debugger.get_threads(); const mint::CursorDebugger& thread : threads) {
-			    print_debug_trace("{}: {}", thread.get_thread_id(), thread.line_info().to_string(cursor.cursor().ast()));
+			    print_debug_trace("{}: {}", thread.get_thread_id(),
+			        thread.line_info().to_string(cursor.cursor().program()));
 		    }
 	    });
 	command.add({{{"cur", "current"}}}, "Prints the current thread informations.",
 	    [](Debugger& /*debugger*/, mint::CursorDebugger& cursor,
 	        const std::span<CommandRunner::Parameter::value_t>& /*parameters*/) {
-		    print_debug_trace("{}: {}", cursor.get_thread_id(), cursor.line_info().to_string(cursor.cursor().ast()));
+		    print_debug_trace("{}: {}", cursor.get_thread_id(), cursor.line_info().to_string(cursor.cursor().program()));
 	    });
 }
 
@@ -228,15 +229,15 @@ void InteractiveDebugger::init_backtrace(CommandRunner::Command& command) {
 			const std::string module_name = line.module_name();
 			const std::size_t line_number = line.line_number();
 
-			print_debug_trace("{}", line.to_string(thread.cursor().ast()));
+			print_debug_trace("{}", line.to_string(thread.cursor().program()));
 			if (with_context_lines) {
 				if (count < 0) {
 					print_highlighted((std::cmp_less_equal(line_number, abs(count))) ? 1 : line_number + count,
-					    line_number + abs(count), line_number, debugger.ast().global_data(),
+					    line_number + abs(count), line_number, debugger.program().global_data(),
 					    mint::get_module_stream(module_name));
 				}
 				else {
-					print_highlighted(line_number, line_number + count, line_number, debugger.ast().global_data(),
+					print_highlighted(line_number, line_number + count, line_number, debugger.program().global_data(),
 					    mint::get_module_stream(module_name));
 				}
 			}
@@ -265,7 +266,7 @@ void InteractiveDebugger::init_backtrace(CommandRunner::Command& command) {
 	    [](Debugger& /*debugger*/, mint::CursorDebugger& cursor,
 	        const std::span<CommandRunner::Parameter::value_t>& /*parameters*/) {
 		    for (const mint::LineInfo& line : std::views::reverse(cursor.cursor().dump())) {
-			    print_debug_trace("{}", line.to_string(cursor.cursor().ast()));
+			    print_debug_trace("{}", line.to_string(cursor.cursor().program()));
 		    }
 	    });
 }
@@ -280,7 +281,7 @@ void InteractiveDebugger::init_breakpoint(CommandRunner::Command& command) {
 	        const std::span<CommandRunner::Parameter::value_t>& parameters) {
 		    const auto module_name = get_parameter<std::string>(parameters[0]);
 		    const auto line_number = get_parameter<std::size_t>(parameters[1]);
-		    const auto& module = debugger.ast().module_info(module_name);
+		    const auto& module = debugger.program().module_info(module_name);
 		    if (module.state != mint::Module::State::not_compiled) {
 			    debugger.create_breakpoint(
 			        mint::LineInfo(module.id, module_name, module.debug_info.to_executable_line_number(line_number)));
@@ -295,7 +296,7 @@ void InteractiveDebugger::init_breakpoint(CommandRunner::Command& command) {
 	        const std::span<CommandRunner::Parameter::value_t>& parameters) {
 		    const auto module = get_parameter<std::string>(parameters[0]);
 		    const auto line = get_parameter<std::size_t>(parameters[1]);
-		    debugger.remove_breakpoint(mint::LineInfo(debugger.ast(), module, line));
+		    debugger.remove_breakpoint(mint::LineInfo(debugger.program(), module, line));
 	    });
 	command.add({{{"del", "delete"}}, {Parameter::breakpoint_id, "id"}}, "Deletes the break point with the given *id*.",
 	    [](Debugger& debugger, mint::CursorDebugger& /*cursor*/,
@@ -308,7 +309,7 @@ void InteractiveDebugger::init_breakpoint(CommandRunner::Command& command) {
 	        const std::span<CommandRunner::Parameter::value_t>& /*parameters*/) {
 		    for (const mint::BreakpointList breakpoints = debugger.get_breakpoints();
 		        const mint::Breakpoint& breakpoint : breakpoints) {
-			    print_debug_trace("{}: {}", breakpoint.id, breakpoint.info.to_string(cursor.cursor().ast()));
+			    print_debug_trace("{}: {}", breakpoint.id, breakpoint.info.to_string(cursor.cursor().program()));
 		    }
 	    });
 }
@@ -320,11 +321,11 @@ void InteractiveDebugger::init_print(CommandRunner::Command& command) {
 	auto print_sources = [](Debugger& debugger, const std::string& module_name, std::size_t line_number, int count = 0) {
 		if (count < 0) {
 			print_highlighted((std::cmp_less_equal(line_number, abs(count))) ? 1 : line_number + count,
-			    line_number + abs(count), line_number, debugger.ast().global_data(),
+			    line_number + abs(count), line_number, debugger.program().global_data(),
 			    mint::get_module_stream(module_name));
 		}
 		else {
-			print_highlighted(line_number, line_number + count, line_number, debugger.ast().global_data(),
+			print_highlighted(line_number, line_number + count, line_number, debugger.program().global_data(),
 			    mint::get_module_stream(module_name));
 		}
 	};
@@ -435,7 +436,7 @@ void InteractiveDebugger::init_list(CommandRunner::Command& command) {
 	command.add({}, "Lists the variables of the current context.",
 	    [](Debugger& /*debugger*/, mint::CursorDebugger& cursor,
 	        const std::span<CommandRunner::Parameter::value_t>& /*parameters*/) {
-		    for (auto& symbol : cursor.cursor().symbols()) {
+		    for (const auto& symbol : cursor.cursor().symbols()) {
 			    std::string symbol_str = symbol.first.str();
 			    std::string type = type_name(symbol.second);
 			    std::string value = reference_value(symbol.second);
@@ -487,7 +488,7 @@ void InteractiveDebugger::init_eval(CommandRunner::Command& command) {
 	auto evaluate_script = [](Debugger& debugger, mint::CursorDebugger& cursor, const std::string& script) {
 		try {
 
-			auto evaluator = ExpressionEvaluator(debugger.ast());
+			auto evaluator = ExpressionEvaluator(debugger.program());
 			auto stream = std::stringstream(script);
 
 			evaluator.setup_locals(cursor.cursor().symbols());

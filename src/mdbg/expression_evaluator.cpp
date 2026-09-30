@@ -23,8 +23,8 @@
 
 #include "expression_evaluator.h"
 
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/program.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
@@ -86,9 +86,9 @@ void find_not_expression_operator(mint::Cursor& cursor) {
 
 }
 
-ExpressionEvaluator::ExpressionEvaluator(mint::AbstractSyntaxTree& ast) :
-    _compiler(ast),
-    _cursor(std::make_unique<mint::Cursor>(ast)) {}
+ExpressionEvaluator::ExpressionEvaluator(mint::Program& program) :
+    _compiler(program),
+    _cursor(std::make_unique<mint::Cursor>(program)) {}
 
 ExpressionEvaluator::~ExpressionEvaluator() {
 	_cursor->stack().clear();
@@ -172,7 +172,7 @@ bool ExpressionEvaluator::on_token(mint::Token type, const std::string& token, s
 			break;
 		case State::read_member:
 			reduce_member(*_cursor,
-			    get_member_ignore_visibility(_cursor->ast(), _cursor->stack().back(), mint::Symbol(token)));
+			    get_member_ignore_visibility(_cursor->program(), _cursor->stack().back(), mint::Symbol(token)));
 			set_state(State::read_operator);
 			break;
 		default:
@@ -636,7 +636,7 @@ void ExpressionEvaluator::on_unary_operator(std::size_t level, void (*operation)
 void ExpressionEvaluator::on_binary_operator(std::size_t level, void (*operation)(mint::Cursor&)) {
 
 	EvaluatorState& state = _state.back();
-	auto push_priority = [&state, level, operation] {
+	const auto push_priority = [&state, level, operation] {
 		state.priority.push_back({
 		    .level = level,
 		    .unary_operations = {},
@@ -731,7 +731,7 @@ void ExpressionEvaluator::close_state(mint::Token close_token) {
 
 	case FrameKind::group_or_iterator:
 		if (state.saw_separator || _cursor->stack().size() == stack_base) {
-			auto iterator = mint::create_iterator(_cursor->ast());
+			auto iterator = mint::create_iterator(_cursor->program());
 			auto& data = iterator.data<mint::Iterator>();
 			for (auto it = std::next(_cursor->stack().begin(), static_cast<std::ptrdiff_t>(stack_base));
 			    it != _cursor->stack().end(); ++it) {
@@ -747,7 +747,7 @@ void ExpressionEvaluator::close_state(mint::Token close_token) {
 
 	case FrameKind::array_literal:
 		{
-			auto array = mint::create_array(_cursor->ast());
+			auto array = mint::create_array(_cursor->program());
 			auto& data = array.data<mint::Array>();
 			for (auto it = std::next(_cursor->stack().begin(), static_cast<std::ptrdiff_t>(stack_base));
 			    it != _cursor->stack().end(); ++it) {
@@ -769,11 +769,11 @@ void ExpressionEvaluator::close_state(mint::Token close_token) {
 			parse_error("hash item is missing ':'");
 		}
 		{
-			auto hash = mint::create_hash(_cursor->ast());
+			auto hash = mint::create_hash(_cursor->program());
 			auto& data = hash.data<mint::Hash>();
 			for (std::size_t index = 0; index < state.hash_pairs; ++index) {
-				auto& key = _cursor->stack()[stack_base + (index * 2)];
-				auto& value = _cursor->stack()[stack_base + (index * 2) + 1];
+				const auto& key = _cursor->stack()[stack_base + (index * 2)];
+				const auto& value = _cursor->stack()[stack_base + (index * 2) + 1];
 				mint::hash_insert(data, mint::hash_key(key), value);
 			}
 			_cursor->stack().resize(stack_base);

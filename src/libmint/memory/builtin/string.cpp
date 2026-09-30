@@ -22,7 +22,6 @@
  */
 
 #include "mint/memory/builtin/string.h"
-#include "mint/config.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/algorithm.h"
@@ -30,8 +29,9 @@
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/function_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/function_literal.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
@@ -52,7 +52,6 @@
 #include <optional>
 #include <ranges>
 #include <regex>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -340,7 +339,7 @@ std::pair<std::optional<Reference>, std::string_view> parse_format_field(Cursor&
 	return {iterator_next(cursor, args), field.substr(offset + 1)};
 }
 
-char string_value_prefered_format(const Reference& value) {
+char string_value_preferred_format(const Reference& value) {
 	switch (value.data().format()) {
 	case Data::Format::number:
 		return is_integer(value) ? 'd' : 'g';
@@ -388,7 +387,7 @@ std::string string_format_argument(Cursor& cursor, std::string_view spec, const 
 			while (std::isdigit(static_cast<unsigned char>(*cptr))) {
 				field_width = (field_width * decimal_base) + (*cptr - '0');
 				if (++cptr == spec.end()) {
-					dest += string_format_value(cursor, string_value_prefered_format(arg), arg, field_width, precision,
+					dest += string_format_value(cursor, string_value_preferred_format(arg), arg, field_width, precision,
 					    flags);
 					return dest;
 				}
@@ -423,7 +422,7 @@ std::string string_format_argument(Cursor& cursor, std::string_view spec, const 
 				while (std::isdigit(static_cast<unsigned char>(*cptr))) {
 					precision = (precision * decimal_base) + (*cptr - '0');
 					if (++cptr == spec.end()) {
-						dest += string_format_value(cursor, string_value_prefered_format(arg), arg, field_width,
+						dest += string_format_value(cursor, string_value_preferred_format(arg), arg, field_width,
 						    precision, flags);
 						return dest;
 					}
@@ -448,7 +447,7 @@ std::string string_format_argument(Cursor& cursor, std::string_view spec, const 
 		}
 
 		if (cptr == spec.end()) {
-			dest += string_format_value(cursor, string_value_prefered_format(arg), arg, field_width, precision, flags);
+			dest += string_format_value(cursor, string_value_preferred_format(arg), arg, field_width, precision, flags);
 			return dest;
 		}
 
@@ -507,23 +506,23 @@ std::string string_format_brace(Cursor& cursor, std::string_view format, Iterato
 
 }
 
-StringClass& StringClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<StringClass>(Class::Metatype::string);
+StringClass& StringClass::instance(Program& program) {
+	return program.global_data().builtin<StringClass>(Class::Metatype::string);
 }
 
-String::String(AbstractSyntaxTree& ast) :
-    Object(StringClass::instance(ast)) {}
+String::String(Program& program) :
+    Object(StringClass::instance(program)) {}
 
-String::String(AbstractSyntaxTree& ast, const char* value) :
-    Object(StringClass::instance(ast)),
+String::String(Program& program, const char* value) :
+    Object(StringClass::instance(program)),
     str(value) {}
 
-String::String(AbstractSyntaxTree& ast, std::string value) :
-    Object(StringClass::instance(ast)),
+String::String(Program& program, std::string value) :
+    Object(StringClass::instance(program)),
     str(std::move(value)) {}
 
-String::String(AbstractSyntaxTree& ast, std::string_view value) :
-    Object(StringClass::instance(ast)),
+String::String(Program& program, std::string_view value) :
+    Object(StringClass::instance(program)),
     str(value) {}
 
 String::String(String&& other) noexcept :
@@ -544,10 +543,10 @@ String& String::operator=(const String& other) {
 	return *this;
 }
 
-StringClass::StringClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "string", Class::Metatype::string) {
+StringClass::StringClass(Program& program) :
+    Class(program.global_data(), "string", Class::Metatype::string) {
 
-	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& rvalue = load_from_stack(cursor, base);
@@ -558,7 +557,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(regex_match_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(regex_match_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& rvalue = load_from_stack(cursor, base);
@@ -570,7 +569,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(create_boolean(result));
 	}));
 
-	create_builtin_member(regex_unmatch_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(regex_unmatch_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& rvalue = load_from_stack(cursor, base);
@@ -582,19 +581,19 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(create_boolean(result));
 	}));
 
-	create_builtin_member(add_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(add_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& rvalue = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		Reference result = create_string(cursor.ast(), self.data<String>().str + to_string(rvalue));
+		Reference result = create_string(cursor.program(), self.data<String>().str + to_string(rvalue));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
 		cursor.stack().emplace_back(std::move(result));
 	}));
 
-	create_builtin_member(mul_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(mul_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& rvalue = load_from_stack(cursor, base);
@@ -607,44 +606,44 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
-		cursor.stack().emplace_back(create_string(cursor.ast(), result));
+		cursor.stack().emplace_back(create_string(cursor.program(), result));
 	}));
 
-	create_builtin_member(mod_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(mod_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		auto values = move_from_stack(cursor, base);
-		auto self = move_from_stack(cursor, base - 1);
+		const auto self = move_from_stack(cursor, base - 1);
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
 
 		if (is_instance_of(values, Class::Metatype::iterator)) {
-			cursor.stack().emplace_back(create_string(cursor.ast(),
+			cursor.stack().emplace_back(create_string(cursor.program(),
 			    string_format_percent(cursor, self.data<String>().str, values.data<Iterator>())));
 		}
 		else {
-			auto it = create_iterator(cursor.ast());
+			const auto it = create_iterator(cursor.program());
 			iterator_yield(cursor, it.data<Iterator>(), std::move(values));
-			cursor.stack().emplace_back(create_string(cursor.ast(),
+			cursor.stack().emplace_back(create_string(cursor.program(),
 			    string_format_percent(cursor, self.data<String>().str, it.data<Iterator>())));
 		}
 	}));
 
-	create_builtin_member("format", ast.create_builtin_method(*this, variadic(1), [](Cursor& cursor) {
+	create_builtin_member("format", program.create_builtin_method(*this, variadic(1), [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
-		auto values = move_from_stack(cursor, base);
-		auto self = move_from_stack(cursor, base - 1);
+		const auto values = move_from_stack(cursor, base);
+		const auto self = move_from_stack(cursor, base - 1);
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
 
-		cursor.stack().emplace_back(
-		    create_string(cursor.ast(), string_format_brace(cursor, self.data<String>().str, values.data<Iterator>())));
+		cursor.stack().emplace_back(create_string(cursor.program(),
+		    string_format_brace(cursor, self.data<String>().str, values.data<Iterator>())));
 	}));
 
-	create_builtin_member(shift_left_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(shift_left_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& other = load_from_stack(cursor, base);
@@ -652,7 +651,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		if (self.flags() & Reference::const_value) {
 			cursor.stack().pop_back();
-			cursor.stack().back() = create_string(cursor.ast(), self.data<String>().str + to_string(other));
+			cursor.stack().back() = create_string(cursor.program(), self.data<String>().str + to_string(other));
 		}
 		else {
 			self.data<String>().str.append(to_string(other));
@@ -660,7 +659,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member(eq_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(eq_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& rvalue = load_from_stack(cursor, base);
@@ -672,7 +671,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(ne_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(ne_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& rvalue = load_from_stack(cursor, base);
@@ -684,7 +683,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(lt_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(lt_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& rvalue = load_from_stack(cursor, base);
@@ -696,7 +695,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(gt_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(gt_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& rvalue = load_from_stack(cursor, base);
@@ -708,7 +707,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(le_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(le_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& rvalue = load_from_stack(cursor, base);
@@ -720,7 +719,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(ge_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(ge_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& rvalue = load_from_stack(cursor, base);
@@ -732,7 +731,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(not_operator, ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member(not_operator, program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
 		Reference result = create_boolean(self.data<String>().str.empty());
 
@@ -740,12 +739,12 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(subscript_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(subscript_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& index = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		Reference result = create_string(cursor.ast());
+		Reference result = create_string(cursor.program());
 
 		if (!is_iterator(index)) {
 			std::string& string_ref = self.data<String>().str;
@@ -785,7 +784,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(subscript_move_operator, ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
+	create_builtin_member(subscript_move_operator, program.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		auto& value = load_from_stack(cursor, base);
@@ -795,8 +794,8 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		if (!is_iterator(index)) {
 			std::string& string_ref = self.data<String>().str;
 			auto offset = string_index(string_ref, to_signed_integer(cursor, index));
-			auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
-			auto utf8_length = utf8_code_point_length(static_cast<std::uint8_t>(string_ref[utf8_index]));
+			const auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
+			const auto utf8_length = utf8_code_point_length(static_cast<std::uint8_t>(string_ref[utf8_index]));
 			string_ref.replace(utf8_index, utf8_length, to_string(value));
 
 			cursor.stack().pop_back();
@@ -865,7 +864,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("insert", ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
+	create_builtin_member("insert", program.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& value = load_from_stack(cursor, base);
 		const auto& index = load_from_stack(cursor, base - 1);
@@ -873,46 +872,46 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 		std::string& string_ref = self.data<String>().str;
 		auto offset = string_index(string_ref, to_signed_integer(cursor, index));
-		auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
+		const auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
 		string_ref.insert(utf8_index, to_string(value));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(in_operator, ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member(in_operator, program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		cursor.stack().back() = create_iterator_over(cursor, cursor.stack().back());
 	}));
 
-	create_builtin_member(in_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(in_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const Reference& value = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
-		Reference result = create_boolean(self.data<String>().str.find(to_string(value)) != std::string::npos);
+		Reference result = create_boolean(self.data<String>().str.contains(to_string(value)));
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member("each", ast.create_builtin_method(*this, R"""(
+	create_builtin_member("each", program.create_builtin_method(*this, R"""(
 		def (const self, const func) {
 			for item in self {
 				func(item)
 			}
 		})"""));
 
-	create_builtin_member("isEmpty", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("isEmpty", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
 		cursor.stack().back() = create_boolean(self.data<String>().str.empty());
 	}));
 
-	create_builtin_member("size", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("size", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
 		cursor.stack().back() = create_unsigned_number(utf8_code_point_count(self.data<String>().str));
 	}));
 
-	create_builtin_member("clear", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("clear", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
 		if (self.flags() & Reference::const_value) [[unlikely]] {
 			error("invalid modification of constant value");
@@ -921,7 +920,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().back() = create_none();
 	}));
 
-	create_builtin_member("substring", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("substring", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& from = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
@@ -929,10 +928,10 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const std::string substring = self.data<String>().str.substr(
 		    utf8_code_point_index_to_byte_index(self.data<String>().str, to_signed_integer(cursor, from)));
 		cursor.stack().pop_back();
-		cursor.stack().back() = create_string(cursor.ast(), substring);
+		cursor.stack().back() = create_string(cursor.program(), substring);
 	}));
 
-	create_builtin_member("substring", ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
+	create_builtin_member("substring", program.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& length = load_from_stack(cursor, base);
 		const auto& from = load_from_stack(cursor, base - 1);
@@ -947,10 +946,10 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		const std::string substring = self.data<String>().str.substr(utf8_start, utf8_length);
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
-		cursor.stack().back() = create_string(cursor.ast(), substring);
+		cursor.stack().back() = create_string(cursor.program(), substring);
 	}));
 
-	create_builtin_member("replace", ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
+	create_builtin_member("replace", program.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& value = load_from_stack(cursor, base);
 		const auto& pattern = load_from_stack(cursor, base - 1);
@@ -976,7 +975,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 			cursor.stack().pop_back();
 			cursor.stack().pop_back();
-			cursor.stack().back() = create_string(cursor.ast(), str);
+			cursor.stack().back() = create_string(cursor.program(), str);
 		}
 		else {
 
@@ -996,7 +995,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("replace", ast.create_builtin_method(*this, 4, [](Cursor& cursor) {
+	create_builtin_member("replace", program.create_builtin_method(*this, 4, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& value = load_from_stack(cursor, base);
 		const auto& length = load_from_stack(cursor, base - 1);
@@ -1007,21 +1006,21 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 
 			std::string string_copy = self.data<String>().str;
 			auto offset = string_index(string_copy, to_signed_integer(cursor, from));
-			auto utf8_index = utf8_code_point_index_to_byte_index(string_copy, offset);
-			auto utf8_length = utf8_substring_byte_count(string_copy, offset, to_signed_integer(cursor, length));
+			const auto utf8_index = utf8_code_point_index_to_byte_index(string_copy, offset);
+			const auto utf8_length = utf8_substring_byte_count(string_copy, offset, to_signed_integer(cursor, length));
 			string_copy.replace(utf8_index, utf8_length, to_string(value));
 
 			cursor.stack().pop_back();
 			cursor.stack().pop_back();
 			cursor.stack().pop_back();
-			cursor.stack().back() = create_string(cursor.ast(), string_copy);
+			cursor.stack().back() = create_string(cursor.program(), string_copy);
 		}
 		else {
 
 			std::string& string_ref = self.data<String>().str;
 			auto offset = string_index(string_ref, to_signed_integer(cursor, from));
-			auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
-			auto utf8_length = utf8_substring_byte_count(string_ref, offset, to_signed_integer(cursor, length));
+			const auto utf8_index = utf8_code_point_index_to_byte_index(string_ref, offset);
+			const auto utf8_length = utf8_substring_byte_count(string_ref, offset, to_signed_integer(cursor, length));
 			string_ref.replace(utf8_index, utf8_length, to_string(value));
 
 			cursor.stack().pop_back();
@@ -1030,7 +1029,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("contains", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("contains", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
@@ -1040,7 +1039,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 			result = regex_search(self.data<String>().str, to_regex(other));
 		}
 		else {
-			result = self.data<String>().str.find(to_string(other)) != std::string::npos;
+			result = self.data<String>().str.contains(to_string(other));
 		}
 
 		cursor.stack().pop_back();
@@ -1048,7 +1047,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(create_boolean(result));
 	}));
 
-	create_builtin_member("indexOf", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("indexOf", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
@@ -1074,23 +1073,24 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member("indexOf", ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
+	create_builtin_member("indexOf", program.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& from = load_from_stack(cursor, base);
 		const auto& other = load_from_stack(cursor, base - 1);
 		const auto& self = load_from_stack(cursor, base - 2);
 
 		auto pos = std::string::npos;
-		auto start = utf8_code_point_index_to_byte_index(self.data<String>().str,
+		const auto start = utf8_code_point_index_to_byte_index(self.data<String>().str,
 		    static_cast<std::size_t>(to_number(cursor, from)));
 		if (start != std::string::npos) {
 			if (is_instance_of(other, Class::Metatype::regex)) {
 				const auto expr = to_regex(other);
-				auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(), expr);
-				auto end = std::sregex_iterator();
-				for (auto i = begin; i != end; ++i) {
-					if (start <= std::size_t(0) + static_cast<decltype(pos)>(i->position())) {
-						pos = static_cast<decltype(pos)>(i->position());
+				const auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(),
+				    expr);
+				const auto end = std::sregex_iterator();
+				for (auto it = begin; it != end; ++it) {
+					if (std::cmp_less_equal(start, it->position())) {
+						pos = static_cast<decltype(pos)>(it->position());
 						break;
 					}
 				}
@@ -1111,7 +1111,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member("lastIndexOf", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("lastIndexOf", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
@@ -1119,8 +1119,9 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		auto pos = std::string::npos;
 		if (is_instance_of(other, Class::Metatype::regex)) {
 			const auto expr = to_regex(other);
-			auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(), expr);
-			auto end = std::sregex_iterator();
+			const auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(),
+			    expr);
+			const auto end = std::sregex_iterator();
 			for (auto i = begin; i != end; ++i) {
 				pos = static_cast<decltype(pos)>(i->position());
 			}
@@ -1139,23 +1140,24 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member("lastIndexOf", ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
+	create_builtin_member("lastIndexOf", program.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& from = load_from_stack(cursor, base);
 		const auto& other = load_from_stack(cursor, base - 1);
 		const auto& self = load_from_stack(cursor, base - 2);
 
 		auto pos = std::string::npos;
-		auto start = utf8_code_point_index_to_byte_index(self.data<String>().str,
+		const auto start = utf8_code_point_index_to_byte_index(self.data<String>().str,
 		    static_cast<std::size_t>(to_number(cursor, from)));
 		if (start != std::string::npos) {
 			if (is_instance_of(other, Class::Metatype::regex)) {
 				const auto expr = to_regex(other);
-				auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(), expr);
-				auto end = std::sregex_iterator();
-				for (auto i = begin; i != end; ++i) {
-					if (start >= std::size_t(0) + static_cast<decltype(pos)>(i->position())) {
-						pos = static_cast<decltype(pos)>(i->position());
+				const auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(),
+				    expr);
+				const auto end = std::sregex_iterator();
+				for (auto it = begin; it != end; ++it) {
+					if (std::cmp_greater_equal(start, it->position())) {
+						pos = static_cast<decltype(pos)>(it->position());
 					}
 				}
 			}
@@ -1175,7 +1177,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member("startsWith", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("startsWith", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
@@ -1199,7 +1201,7 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(create_boolean(result));
 	}));
 
-	create_builtin_member("endsWith", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("endsWith", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
@@ -1208,11 +1210,11 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		if (is_instance_of(other, Class::Metatype::regex)) {
 			result = false;
 			const auto expr = to_regex(other);
-			auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(), expr);
-			auto end = std::sregex_iterator();
+			const auto begin = std::sregex_iterator(self.data<String>().str.begin(), self.data<String>().str.end(),
+			    expr);
+			const auto end = std::sregex_iterator();
 			for (auto i = begin; i != end; ++i) {
-				if (std::size_t(0) + static_cast<std::size_t>(i->position() + i->length())
-				    == self.data<String>().str.size()) {
+				if (static_cast<std::size_t>(i->position() + i->length()) == self.data<String>().str.size()) {
 					result = true;
 					break;
 				}
@@ -1227,29 +1229,29 @@ StringClass::StringClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(create_boolean(result));
 	}));
 
-	create_builtin_member("split", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("split", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const Reference& sep = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
-		Reference result = create_array(cursor.ast());
+		Reference result = create_array(cursor.program());
 
 		const auto sep_str = to_string(sep);
 		const auto self_str = self.data<String>().str;
 
 		if (sep_str.empty()) {
 			for (const_utf8iterator i = self_str.begin(); i != self_str.end(); ++i) {
-				array_append(result.data<Array>(), create_string(cursor.ast(), *i));
+				array_append(result.data<Array>(), create_string(cursor.program(), *i));
 			}
 		}
 		else {
 			std::size_t from = 0;
 			std::size_t pos = self_str.find(sep_str);
 			while (pos != std::string::npos) {
-				array_append(result.data<Array>(), create_string(cursor.ast(), self_str.substr(from, pos - from)));
+				array_append(result.data<Array>(), create_string(cursor.program(), self_str.substr(from, pos - from)));
 				pos = self_str.find(sep_str, from = pos + sep_str.size());
 			}
 			if (!self_str.empty()) {
-				array_append(result.data<Array>(), create_string(cursor.ast(), self_str.substr(from)));
+				array_append(result.data<Array>(), create_string(cursor.program(), self_str.substr(from)));
 			}
 		}
 

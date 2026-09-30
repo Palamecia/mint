@@ -22,9 +22,9 @@
  */
 
 #include "mint/memory/operator_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
+#include "mint/program/symbol.h"
 #include "mint/debug/debug_tools.h"
 #include "mint/memory/algorithm.h"
 #include "mint/memory/builtin/array.h"
@@ -96,14 +96,12 @@ bool mint::call_overload(Cursor& cursor, Class::Operator operator_overload, int 
 				// add self to function arguments
 				signature += 1;
 			}
-			auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
+			const auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
 			if (it == function.data<Function>().mapping.end()) [[unlikely]] {
-				if (const auto* function_info = find_function_info(cursor.ast(), function.data<Function>())) {
+				if (const auto* function_info = find_function_info(cursor.program(), function.data<Function>())) {
 					error("member '{}' doesn't take {} parameter(s)", function_info->name, signature);
 				}
-				else {
-					error("called member doesn't take {} parameter(s)", signature);
-				}
+				error("called member doesn't take {} parameter(s)", signature);
 			}
 			it->second.call(it->first, &metadata, cursor);
 			break;
@@ -157,14 +155,12 @@ bool mint::call_overload(Cursor& cursor, const Symbol& operator_overload, int si
 				// add self to function arguments
 				signature += 1;
 			}
-			auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
+			const auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
 			if (it == function.data<Function>().mapping.end()) [[unlikely]] {
-				if (const auto* function_info = find_function_info(cursor.ast(), function.data<Function>())) {
+				if (const auto* function_info = find_function_info(cursor.program(), function.data<Function>())) {
 					error("member '{}' doesn't take {} parameter(s)", function_info->name, signature);
 				}
-				else {
-					error("called member doesn't take {} parameter(s)", signature);
-				}
+				error("called member doesn't take {} parameter(s)", signature);
 			}
 			it->second.call(it->first, &metadata, cursor);
 			break;
@@ -294,7 +290,7 @@ void mint::call_operator(Cursor& cursor, int signature) {
 			// add self to function arguments
 			signature += 1;
 		}
-		auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
+		const auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
 		if (it == function.data<Function>().mapping.end()) [[unlikely]] {
 			error("called function doesn't take {} parameter(s)", signature);
 		}
@@ -346,14 +342,12 @@ void mint::call_member_operator(Cursor& cursor, int signature) {
 			// add self to function arguments
 			signature += 1;
 		}
-		auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
+		const auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
 		if (it == function.data<Function>().mapping.end()) [[unlikely]] {
-			if (const auto* function_info = find_function_info(cursor.ast(), function.data<Function>())) {
+			if (const auto* function_info = find_function_info(cursor.program(), function.data<Function>())) {
 				error("member '{}' doesn't take {} parameter(s)", function_info->name, signature);
 			}
-			else {
-				error("called member doesn't take {} parameter(s)", signature);
-			}
+			error("called member doesn't take {} parameter(s)", signature);
 		}
 		it->second.call(it->first, metadata, cursor);
 		break;
@@ -670,7 +664,7 @@ void mint::eq_operator(Cursor& cursor) {
 	const auto base = get_stack_base(cursor);
 
 	const auto& rhs = load_from_stack(cursor, base);
-	auto& lhs = load_from_stack(cursor, base - 1);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
 	switch (lhs.data().format()) {
 	case Data::Format::none:
@@ -756,7 +750,7 @@ void mint::ne_operator(Cursor& cursor) {
 	const auto base = get_stack_base(cursor);
 
 	const auto& rhs = load_from_stack(cursor, base);
-	auto& lhs = load_from_stack(cursor, base - 1);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
 	switch (lhs.data().format()) {
 	case Data::Format::none:
@@ -1577,7 +1571,7 @@ void mint::inclusive_range_operator(Cursor& cursor) {
 		break;
 	case Data::Format::number:
 		{
-			auto result = create_iterator(from_inclusive_range, cursor.ast(), lhs.data<Number>().value,
+			auto result = create_iterator(from_inclusive_range, cursor.program(), lhs.data<Number>().value,
 			    to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
@@ -1613,7 +1607,7 @@ void mint::exclusive_range_operator(Cursor& cursor) {
 		break;
 	case Data::Format::number:
 		{
-			auto result = create_iterator(from_exclusive_range, cursor.ast(), lhs.data<Number>().value,
+			auto result = create_iterator(from_exclusive_range, cursor.program(), lhs.data<Number>().value,
 			    to_number(cursor, rhs));
 			cursor.stack().pop_back();
 			cursor.stack().back() = std::move(result);
@@ -1635,13 +1629,13 @@ void mint::exclusive_range_operator(Cursor& cursor) {
 }
 
 void mint::typeof_operator(Cursor& cursor) {
-	cursor.stack().back() = create_string(cursor.ast(), type_name(std::forward<Reference>(cursor.stack().back())));
+	cursor.stack().back() = create_string(cursor.program(), type_name(std::forward<Reference>(cursor.stack().back())));
 }
 
 void mint::membersof_operator(Cursor& cursor) {
 
-	auto& arg = cursor.stack().back();
-	Reference result = create_array(cursor.ast());
+	const auto& arg = cursor.stack().back();
+	Reference result = create_array(cursor.program());
 
 	switch (arg.data().format()) {
 	case Data::Format::object:
@@ -1670,7 +1664,7 @@ void mint::membersof_operator(Cursor& cursor) {
 				default:
 					break;
 				}
-				array_append(array, create_string(cursor.ast(), symbol.str()));
+				array_append(array, create_string(cursor.program(), symbol.str()));
 			}
 		}
 		break;
@@ -1681,7 +1675,7 @@ void mint::membersof_operator(Cursor& cursor) {
 			auto& array = result.data<Array>();
 			array.values.reserve(package.data.symbols().size());
 			for (const auto& [symbol, _] : package.data.symbols()) {
-				array_append(array, create_string(cursor.ast(), symbol.str()));
+				array_append(array, create_string(cursor.program(), symbol.str()));
 			}
 		}
 		break;
@@ -1733,7 +1727,7 @@ void mint::subscript_operator(Cursor& cursor) {
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '[]'(1)");
 	case Data::Format::function:
-		auto signature = lhs.data<Function>().mapping.find(to_integer<int>(cursor, rhs));
+		const auto signature = lhs.data<Function>().mapping.find(to_integer<int>(cursor, rhs));
 		if (signature != lhs.data<Function>().mapping.end()) {
 			auto result = create_function(*signature);
 			cursor.stack().pop_back();
@@ -1752,7 +1746,7 @@ void mint::subscript_move_operator(Cursor& cursor) {
 	const auto base = get_stack_base(cursor);
 
 	const auto& rhs = load_from_stack(cursor, base);
-	const auto& kvalue = load_from_stack(cursor, base - 1);
+	const auto& key = load_from_stack(cursor, base - 1);
 	const auto& lhs = load_from_stack(cursor, base - 2);
 
 	if (lhs.flags() & Reference::const_value) [[unlikely]] {
@@ -1766,11 +1760,11 @@ void mint::subscript_move_operator(Cursor& cursor) {
 		cursor.raise(Reference(lhs));
 		break;
 	case Data::Format::number:
-		lhs.data<Number>().value -= (to_number(to_unsigned_integer(lhs.data<Number>().value
-		                                                           / pow(decimal_base, to_number(cursor, kvalue)))
+		lhs.data<Number>().value -= (to_number(to_unsigned_integer(
+		                                           lhs.data<Number>().value / pow(decimal_base, to_number(cursor, key)))
 		                                       % decimal_base)
-		                             * pow(decimal_base, to_number(cursor, kvalue)));
-		lhs.data<Number>().value += to_number(cursor, rhs) * pow(decimal_base, to_number(cursor, kvalue));
+		                             * pow(decimal_base, to_number(cursor, key)));
+		lhs.data<Number>().value += to_number(cursor, rhs) * pow(decimal_base, to_number(cursor, key));
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
 		break;
@@ -1849,7 +1843,7 @@ void mint::strict_eq_operator(Cursor& cursor) {
 	const auto base = get_stack_base(cursor);
 
 	const auto& rhs = load_from_stack(cursor, base);
-	auto& lhs = load_from_stack(cursor, base - 1);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
 	if (lhs.data().format() == rhs.data().format()) {
 		switch (lhs.data().format()) {
@@ -1902,7 +1896,7 @@ void mint::strict_ne_operator(Cursor& cursor) {
 	const auto base = get_stack_base(cursor);
 
 	const auto& rhs = load_from_stack(cursor, base);
-	auto& lhs = load_from_stack(cursor, base - 1);
+	const auto& lhs = load_from_stack(cursor, base - 1);
 
 	if (lhs.data().format() == rhs.data().format()) {
 		switch (lhs.data().format()) {
@@ -1952,13 +1946,13 @@ void mint::strict_ne_operator(Cursor& cursor) {
 
 void mint::find_defined_symbol(Cursor& cursor, const Symbol& symbol) {
 
-	if (auto it = cursor.symbols().find(symbol); it != cursor.symbols().end()) {
+	if (const auto it = cursor.symbols().find(symbol); it != cursor.symbols().end()) {
 		cursor.stack().emplace_back(it->second);
 		return;
 	}
 
-	GlobalData& global_data = cursor.ast().global_data();
-	if (auto it = global_data.symbols().find(symbol); it != global_data.symbols().end()) {
+	GlobalData& global_data = cursor.program().global_data();
+	if (const auto it = global_data.symbols().find(symbol); it != global_data.symbols().end()) {
 		cursor.stack().emplace_back(it->second);
 		return;
 	}
@@ -1977,7 +1971,7 @@ void mint::find_defined_member(Cursor& cursor, const Symbol& symbol) {
 		case Data::Format::package:
 			{
 				auto& package = arg.data<Package>();
-				if (auto it = package.data.symbols().find(symbol); it != package.data.symbols().end()) {
+				if (const auto it = package.data.symbols().find(symbol); it != package.data.symbols().end()) {
 					cursor.stack().emplace_back(it->second);
 					return;
 				}
@@ -1994,7 +1988,7 @@ void mint::find_defined_member(Cursor& cursor, const Symbol& symbol) {
 					return;
 				}
 
-				if (auto* info = object.metadata.find_global(symbol)) {
+				if (const auto* info = object.metadata.find_global(symbol)) {
 					cursor.stack().emplace_back(info->value);
 					return;
 				}
@@ -2020,7 +2014,7 @@ void mint::find_operator(Cursor& cursor) {
 	const auto base = get_stack_base(cursor);
 
 	const auto& range = load_from_stack(cursor, base);
-	auto& arg = load_from_stack(cursor, base - 1);
+	const auto& arg = load_from_stack(cursor, base - 1);
 
 	switch (range.data().format()) {
 	case Data::Format::object:
@@ -2051,7 +2045,7 @@ void mint::find_next(Cursor& cursor) {
 	const auto base = get_stack_base(cursor);
 
 	const auto& range = load_from_stack(cursor, base);
-	auto& arg = load_from_stack(cursor, base - 1);
+	const auto& arg = load_from_stack(cursor, base - 1);
 
 	if (range.data().format() == Data::Format::boolean) {
 		cursor.stack().emplace_back(range);
@@ -2146,7 +2140,7 @@ void mint::range_iterator_check(Cursor& cursor, std::size_t pos) {
 
 	if (std::optional<Reference> item = iterator_get(range.data<Iterator>())) {
 
-		auto target_context = target.data<Iterator>().ctx;
+		const auto target_context = target.data<Iterator>().ctx;
 		auto it = target_context.begin();
 		const auto end = target_context.end();
 

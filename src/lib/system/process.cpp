@@ -113,7 +113,7 @@ constexpr inline DWORD internal_kill_code = 0xDEAD;
 
 mint::Reference mint_process_list(mint::Cursor& cursor) {
 
-	mint::Reference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.program());
 
 #ifdef MINT_OS_WINDOWS
 	PROCESSENTRY32 pe = {sizeof(PROCESSENTRY32)};
@@ -157,9 +157,9 @@ mint::Reference mint_process_get_handle(mint::Cursor& cursor, const mint::Refere
 		handle = OpenProcess(STANDARD_RIGHTS_REQUIRED, TRUE, proc_id);
 	}
 
-	return mint::create_handle(cursor.ast(), handle);
+	return mint::create_handle(cursor.program(), handle);
 #else
-	return mint::create_handle(cursor.ast(), to_integer<pid_t>(cursor, pid));
+	return mint::create_handle(cursor.program(), to_integer<pid_t>(cursor, pid));
 #endif
 }
 
@@ -186,15 +186,15 @@ mint::Reference mint_process_close_handle(mint::Cursor& /*cursor*/, const mint::
 }
 
 mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& process,
-    const mint::Reference& arguments, mint::Reference& working_directory, const mint::Reference& environment,
+    const mint::Reference& arguments, const mint::Reference& working_directory, const mint::Reference& environment,
     const mint::Reference& pipes) {
 
 #ifdef MINT_OS_WINDOWS
 
-	mint::Reference result = mint::create_iterator(cursor.ast());
+	mint::Reference result = mint::create_iterator(cursor.program());
 
 	std::wstringstream command;
-	wchar_t* process_working_directory = nullptr;
+	const wchar_t* process_working_directory = nullptr;
 	wchar_t** process_environment = nullptr;
 	DWORD creation_flags = (GetConsoleWindow() ? 0 : CREATE_NO_WINDOW);
 	STARTUPINFOW startup_info;
@@ -203,7 +203,7 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 	ZeroMemory(&startup_info, sizeof(startup_info));
 	startup_info.cb = sizeof(startup_info);
 
-	auto escape = [](std::wstring&& arg) -> std::wstring&& {
+	const auto escape = [](std::wstring&& arg) -> std::wstring&& {
 		if (arg.empty()) {
 			arg = L"\"\"";
 		}
@@ -215,7 +215,7 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 
 	command << escape(mint::FileSystem::normalized(to_string(process)).generic_wstring());
 
-	for (auto& argv : to_array(arguments)) {
+	for (const auto& argv : to_array(arguments)) {
 		command << L" " << escape(utf8_to_windows(to_string(array_get_item(argv))));
 	}
 
@@ -228,7 +228,7 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 		process_environment = new wchar_t*[environment.data<mint::Hash>().values.size() + 1];
 		creation_flags |= CREATE_UNICODE_ENVIRONMENT;
 		std::size_t var_pos = 0;
-		for (auto& var : environment.data<mint::Hash>().values) {
+		for (const auto& var : environment.data<mint::Hash>().values) {
 			const auto name = utf8_to_windows(to_string(hash_get_key(var)));
 			const auto value = utf8_to_windows(to_string(hash_get_value(var)));
 			auto* buffer = new wchar_t[name.size() + value.size() + 2];
@@ -240,7 +240,7 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 
 	if (pipes.data().format() != mint::Data::Format::none) {
 
-		auto get_pipe_handle = [](const mint::Reference& pipes, intmax_t pipe, intmax_t handle) {
+		const auto get_pipe_handle = [](const mint::Reference& pipes, intmax_t pipe, intmax_t handle) {
 			return to_handle(
 			    array_get_item(array_get_item(pipes.data<mint::Array>(), pipe).data<mint::Array>(), handle));
 		};
@@ -266,7 +266,8 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 	if (CreateProcessW(nullptr, const_cast<wchar_t*>(command_line.data()), nullptr, nullptr, false, creation_flags,
 	        process_environment, process_working_directory, &startup_info, &process_info)) {
 		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_handle(cursor.ast(), process_info.hProcess));
+		iterator_yield(cursor, result.data<mint::Iterator>(),
+		    mint::create_handle(cursor.program(), process_info.hProcess));
 		CloseHandle(process_info.hThread);
 	}
 	else {
@@ -361,17 +362,17 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 		return mint::create_iterator_from(cursor, mint::create_number(errno));
 	}
 
-	return mint::create_iterator_from(cursor, mint::create_none(), mint::create_handle(cursor.ast(), pid));
+	return mint::create_iterator_from(cursor, mint::create_none(), mint::create_handle(cursor.program(), pid));
 #endif
 }
 
 mint::Reference mint_process_getcmdline(mint::Cursor& cursor, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
-	mint::Reference results = mint::create_iterator(cursor.ast());
+	mint::Reference results = mint::create_iterator(cursor.program());
 
 	if (LPWSTR cmd_line = mint_system::GetNtProcessCommandLine(to_handle(handle))) {
 
-		mint::Reference args = mint::create_array(cursor.ast());
+		mint::Reference args = mint::create_array(cursor.program());
 
 		int argc = 0;
 		wchar_t** argv = CommandLineToArgvW(cmd_line, &argc);
@@ -379,10 +380,11 @@ mint::Reference mint_process_getcmdline(mint::Cursor& cursor, const mint::Refere
 		for (int argn = 0; argn < argc; ++argn) {
 			if (results.data<mint::Iterator>().ctx.empty()) {
 				iterator_yield(cursor, results.data<mint::Iterator>(),
-				    mint::create_string(cursor.ast(), windows_to_utf8(argv[argn])));
+				    mint::create_string(cursor.program(), windows_to_utf8(argv[argn])));
 			}
 			else {
-				array_append(args.data<mint::Array>(), mint::create_string(cursor.ast(), windows_to_utf8(argv[argn])));
+				array_append(args.data<mint::Array>(),
+				    mint::create_string(cursor.program(), windows_to_utf8(argv[argn])));
 			}
 		}
 
@@ -393,8 +395,8 @@ mint::Reference mint_process_getcmdline(mint::Cursor& cursor, const mint::Refere
 #else
 	const auto pid = static_cast<pid_t>(to_handle(handle));
 
-	mint::Reference results = create_iterator(cursor.ast());
-	mint::Reference args = create_array(cursor.ast());
+	mint::Reference results = create_iterator(cursor.program());
+	mint::Reference args = create_array(cursor.program());
 
 	auto cmdline_path = std::format("/proc/{}/cmdline", pid);
 	gsl::owner<FILE*> cmdline = mint::open_file(cmdline_path, "r");
@@ -405,11 +407,11 @@ mint::Reference mint_process_getcmdline(mint::Cursor& cursor, const mint::Refere
 	while (getdelim(&buffer, &buffer_length, 0, cmdline) != -1) {
 		if (results.data<mint::Iterator>().ctx.empty()) {
 			iterator_yield(cursor, results.data<mint::Iterator>(),
-			    create_string(cursor.ast(), std::string(buffer, buffer_length)));
+			    create_string(cursor.program(), std::string(buffer, buffer_length)));
 		}
 		else {
 			array_append(args.data<mint::Array>(),
-			    mint::create_string(cursor.ast(), std::string(buffer, buffer_length)));
+			    mint::create_string(cursor.program(), std::string(buffer, buffer_length)));
 		}
 	}
 
@@ -424,10 +426,11 @@ mint::Reference mint_process_getcmdline(mint::Cursor& cursor, const mint::Refere
 mint::Reference mint_process_getcwd(mint::Cursor& cursor, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
 	const auto length = mint_system::GetNtProcessCurrentDirectory(to_handle(handle), nullptr, 0);
-	auto current_directory_path = std::make_unique<WCHAR[]>(length);
+	const auto current_directory_path = std::make_unique<WCHAR[]>(length);
 
 	if (mint_system::GetNtProcessCurrentDirectory(to_handle(handle), current_directory_path.get(), length)) {
-		return mint::create_string(cursor.ast(), std::filesystem::path(current_directory_path.get()).generic_string());
+		return mint::create_string(cursor.program(),
+		    std::filesystem::path(current_directory_path.get()).generic_string());
 	}
 #else
 	const auto pid = static_cast<pid_t>(to_handle(handle));
@@ -437,7 +440,7 @@ mint::Reference mint_process_getcwd(mint::Cursor& cursor, const mint::Reference&
 	const auto count = readlink(exe_path.data(), proc_path.data(), proc_path.size());
 
 	if (count > 0) {
-		return mint::create_string(cursor.ast(), std::string(proc_path.data(), static_cast<std::size_t>(count)));
+		return mint::create_string(cursor.program(), std::string(proc_path.data(), static_cast<std::size_t>(count)));
 	}
 #endif
 	return {};
@@ -445,14 +448,14 @@ mint::Reference mint_process_getcwd(mint::Cursor& cursor, const mint::Reference&
 
 mint::Reference mint_process_getenv(mint::Cursor& cursor, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
-	mint::Reference results = mint::create_hash(cursor.ast());
+	mint::Reference results = mint::create_hash(cursor.program());
 
 	if (LPWCH environment = mint_system::GetNtProcessEnvironmentStrings(to_handle(handle))) {
 		for (LPCWSTR buffer = environment; *buffer; buffer += lstrlenW(buffer) + 1) {
 			LPCWSTR cptr = wcschr(buffer, L'=');
 			mint::hash_insert(results.data<mint::Hash>(),
-			    mint::create_string(cursor.ast(), windows_to_utf8(std::wstring(buffer, cptr))),
-			    mint::create_string(cursor.ast(), windows_to_utf8(std::wstring(cptr + 1))));
+			    mint::create_string(cursor.program(), windows_to_utf8(std::wstring(buffer, cptr))),
+			    mint::create_string(cursor.program(), windows_to_utf8(std::wstring(cptr + 1))));
 		}
 		FreeEnvironmentStringsW(environment);
 	}
@@ -461,7 +464,7 @@ mint::Reference mint_process_getenv(mint::Cursor& cursor, const mint::Reference&
 #else
 	const auto pid = static_cast<pid_t>(to_handle(handle));
 
-	mint::Reference results = mint::create_hash(cursor.ast());
+	mint::Reference results = mint::create_hash(cursor.program());
 
 	const auto environ_path = std::format("/proc/{}/environ", pid);
 	gsl::owner<FILE*> environ = mint::open_file(environ_path, "r");
@@ -471,8 +474,8 @@ mint::Reference mint_process_getenv(mint::Cursor& cursor, const mint::Reference&
 
 	while (getdelim(&buffer, &buffer_length, 0, environ) != -1) {
 		char* cptr = strchr(buffer, '=');
-		hash_insert(results.data<mint::Hash>(), mint::create_string(cursor.ast(), std::string(buffer, cptr)),
-		    mint::create_string(cursor.ast(), cptr + 1));
+		hash_insert(results.data<mint::Hash>(), mint::create_string(cursor.program(), std::string(buffer, cptr)),
+		    mint::create_string(cursor.program(), cptr + 1));
 	}
 
 	std::fclose(environ);

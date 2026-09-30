@@ -24,7 +24,7 @@
 #ifndef MDBG_DEBUGGER_BACKEND_H
 #define MDBG_DEBUGGER_BACKEND_H
 
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include "mint/debug/debug_interface.h"
 #include "mint/debug/cursor_debugger.h"
 #include "mint/scheduler/scheduler.h"

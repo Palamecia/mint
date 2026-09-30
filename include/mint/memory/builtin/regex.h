@@ -33,19 +33,19 @@
 
 namespace mint {
 
-class AbstractSyntaxTree;
 class GarbageCollector;
+class Program;
 
 class MINT_EXPORT RegexClass : public Class {
 public:
-	RegexClass(AbstractSyntaxTree& ast);
-	static RegexClass& instance(AbstractSyntaxTree& ast);
+	explicit RegexClass(Program& program);
+	static RegexClass& instance(Program& program);
 };
 
 class MINT_EXPORT Regex : public Object {
 	friend class GarbageCollector;
 public:
-	explicit Regex(AbstractSyntaxTree& ast);
+	explicit Regex(Program& program);
 	Regex(Regex&& other) noexcept;
 	Regex(const Regex& other);
 	~Regex() override = default;

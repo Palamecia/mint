@@ -22,9 +22,9 @@
  */
 
 #include "mint/memory/memory_tools.h"
-#include "mint/ast/class_description.h"
-#include "mint/ast/printer.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_description.h"
+#include "mint/program/printer.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/object.h"
@@ -37,9 +37,9 @@
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/symbol_table.h"
 #include "mint/system/error.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/file_printer.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/file_printer.h"
+#include "mint/program/cursor.h"
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -50,6 +50,7 @@
 #include <optional>
 #include <ranges>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 
@@ -59,8 +60,7 @@ namespace {
 
 bool ensure_not_defined(const Symbol& symbol, SymbolTable& symbols) {
 
-	auto it = symbols.find(symbol);
-	if (it != symbols.end()) {
+	if (const auto it = symbols.find(symbol); it != symbols.end()) {
 		if (it->second.data().format() != Data::Format::none) [[unlikely]] {
 			return false;
 		}
@@ -136,7 +136,7 @@ Cursor::Call& setup_member_call(Cursor& cursor, Reference& reference) {
 	return call;
 }
 
-const Reference& get_accessible_member(Cursor& cursor, const Symbol& member, const Class::MemberInfo& info,
+const Reference& get_accessible_member(const Cursor& cursor, const Symbol& member, const Class::MemberInfo& info,
     Object& object) {
 	const auto& result = Class::MemberInfo::get(info, object);
 	switch (result.flags() & Reference::visibility_mask) {
@@ -162,11 +162,11 @@ const Reference& get_accessible_member(Cursor& cursor, const Symbol& member, con
 }
 
 const Reference& get_accessible_class_member(Cursor& cursor, const Symbol& member, const Class::MemberInfo& info,
-    Class& metadata) {
+    const Class& metadata) {
 	if (cursor.is_in_builtin() || cursor.symbols().get_metadata() == nullptr) [[unlikely]] {
 		error("could not access member '{}' of class '{}' without object", member.str(), metadata.full_name());
 	}
-	if (auto* context_metadata = cursor.symbols().get_metadata();
+	if (const auto* context_metadata = cursor.symbols().get_metadata();
 	    context_metadata && !metadata.is_direct_base_or_same(*context_metadata)) [[unlikely]] {
 		error("class '{}' is not a direct base of '{}'", metadata.full_name(),
 		    cursor.symbols().get_metadata()->full_name());
@@ -178,8 +178,8 @@ const Reference& get_accessible_class_member(Cursor& cursor, const Symbol& membe
 	return info.value;
 }
 
-const Reference& get_accessible_global_member(Cursor& cursor, const Symbol& member, const Class::MemberInfo& info,
-    Class& metadata) {
+const Reference& get_accessible_global_member(const Cursor& cursor, const Symbol& member, const Class::MemberInfo& info,
+    const Class& metadata) {
 	if (info.value.data().format() == Data::Format::none) {
 		return info.value;
 	}
@@ -223,7 +223,7 @@ const Reference& get_accessible_global_member(Cursor& cursor, const Symbol& memb
 	return info.value;
 }
 
-const Reference& get_accessible_member(Cursor& cursor, Class::Operator op, const Class::MemberInfo& info,
+const Reference& get_accessible_member(const Cursor& cursor, Class::Operator op, const Class::MemberInfo& info,
     Object& object) {
 	const auto& result = Class::MemberInfo::get(info, object);
 	switch (result.flags() & Reference::visibility_mask) {
@@ -252,12 +252,12 @@ const Reference& get_accessible_member(Cursor& cursor, Class::Operator op, const
 }
 
 const Reference& get_accessible_class_member(Cursor& cursor, Class::Operator op, const Class::MemberInfo& info,
-    Class& metadata) {
+    const Class& metadata) {
 	if (cursor.is_in_builtin() || cursor.symbols().get_metadata() == nullptr) [[unlikely]] {
 		error("could not access member '{}' of class '{}' without object", get_operator_symbol(op).str(),
 		    metadata.full_name());
 	}
-	if (auto* context_metadata = cursor.symbols().get_metadata();
+	if (const auto* context_metadata = cursor.symbols().get_metadata();
 	    context_metadata && !metadata.is_direct_base_or_same(*context_metadata)) [[unlikely]] {
 		error("class '{}' is not a direct base of '{}'", metadata.full_name(),
 		    cursor.symbols().get_metadata()->full_name());
@@ -293,7 +293,7 @@ std::string mint::type_name(const Reference& reference) {
 	return {};
 }
 
-bool mint::is_instance_of(const Reference& reference, const std::string& type_name) {
+bool mint::is_instance_of(const Reference& reference, std::string_view type_name) {
 	switch (reference.data().format()) {
 	case Data::Format::object:
 		if (reference.data<Object>().metadata.metatype() == Class::Metatype::object) {
@@ -333,7 +333,7 @@ std::unique_ptr<Printer> mint::create_printer(Cursor& cursor) {
 
 void mint::load_extra_arguments(Cursor& cursor) {
 
-	auto args = create_iterator_over(cursor, cursor.stack().back());
+	const auto args = create_iterator_over(cursor, cursor.stack().back());
 
 	cursor.stack().pop_back();
 	args.data<Iterator>().ctx.finalize(cursor);
@@ -354,7 +354,7 @@ void mint::capture_symbol(Cursor& cursor, const Symbol& symbol) {
 	});
 
 	for (auto& signature : stateful_signatures) {
-		if (auto item = cursor.symbols().find(symbol); item != cursor.symbols().end()) {
+		if (const auto item = cursor.symbols().find(symbol); item != cursor.symbols().end()) {
 			signature.capture(symbol, item->second);
 		}
 	}
@@ -396,7 +396,7 @@ void mint::capture_all_symbols(Cursor& cursor) {
 	});
 
 	for (auto& signature : stateful_signatures) {
-		for (auto& item : cursor.symbols()) {
+		for (const auto& item : cursor.symbols()) {
 			signature.capture(item.first, item.second);
 		}
 	}
@@ -550,7 +550,7 @@ Function::Mapping::const_iterator mint::find_function_signature(Cursor& cursor, 
 			return mapping.end();
 		}
 
-		auto* va_args = GarbageCollector::instance().alloc<Iterator>(cursor.ast());
+		auto* va_args = GarbageCollector::instance().alloc<Iterator>(cursor.program());
 		va_args->construct();
 
 		const auto from = std::prev(stack.end(), signature - required);
@@ -568,11 +568,11 @@ Function::Mapping::const_iterator mint::find_function_signature(Cursor& cursor, 
 
 bool mint::has_signature(Function::Mapping& mapping, int signature) {
 
-	if (auto it = mapping.find(signature); it != mapping.end()) {
+	if (const auto it = mapping.find(signature); it != mapping.end()) {
 		return true;
 	}
 
-	if (auto it = mapping.lower_bound(~signature); it != mapping.end()) {
+	if (const auto it = mapping.lower_bound(~signature); it != mapping.end()) {
 		return true;
 	}
 
@@ -612,7 +612,7 @@ Reference mint::get_symbol(Cursor& cursor, const Symbol& symbol) {
 }
 
 Reference mint::get_symbol(SymbolTable& symbols, const Symbol& symbol) {
-	if (auto it = symbols.find(symbol); it != symbols.end()) {
+	if (const auto it = symbols.find(symbol); it != symbols.end()) {
 		return it->second;
 	}
 	if (const auto* metadata = symbols.get_metadata()) {
@@ -623,7 +623,7 @@ Reference mint::get_symbol(SymbolTable& symbols, const Symbol& symbol) {
 		}
 	}
 	const auto& globals = symbols.get_global_data();
-	if (auto it = globals.symbols().find(symbol); it != globals.symbols().end()) {
+	if (const auto it = globals.symbols().find(symbol); it != globals.symbols().end()) {
 		return it->second;
 	}
 	return symbols[symbol];
@@ -635,7 +635,7 @@ std::tuple<Reference, Class*> mint::get_member(Cursor& cursor, const Reference& 
 	case Data::Format::package:
 		for (PackageData* package = &reference.data<Package>().data; package != nullptr;
 		    package = package->get_owner_package()) {
-			if (auto it = package->symbols().find(member); it != package->symbols().end()) {
+			if (const auto it = package->symbols().find(member); it != package->symbols().end()) {
 				return {it->second, nullptr};
 			}
 		}
@@ -664,29 +664,27 @@ std::tuple<Reference, Class*> mint::get_member(Cursor& cursor, const Reference& 
 
 			for (PackageData* package = &object.metadata.get_package(); package != nullptr;
 			    package = package->get_owner_package()) {
-				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
+				if (const auto it = package->symbols().find(member); it != package->symbols().end()) {
 					return {Reference(Reference::const_address | Reference::const_value, it->second.data()), nullptr};
 				}
 			}
 
 			if (member == builtin_symbols::allocate_method) {
 				const auto& result = get_accessible_global_member(cursor, member,
-				    object.metadata.make_allocate_method_reference(cursor.ast()), object.metadata);
+				    object.metadata.make_allocate_method_reference(cursor.program()), object.metadata);
 				return {result, &object.metadata};
 			}
 
 			if (is_object(object)) {
 				error("class '{}' has no member '{}'", object.metadata.full_name(), member.str());
 			}
-			else {
-				error("class '{}' has no global member '{}'", object.metadata.full_name(), member.str());
-			}
+			error("class '{}' has no global member '{}'", object.metadata.full_name(), member.str());
 		}
 		break;
 
 	default:
-		GlobalData& externals = cursor.ast().global_data();
-		if (auto it = externals.symbols().find(member); it != externals.symbols().end()) {
+		GlobalData& externals = cursor.program().global_data();
+		if (const auto it = externals.symbols().find(member); it != externals.symbols().end()) {
 			return {Reference(Reference::const_address | Reference::const_value, it->second.data()), nullptr};
 		}
 		error("'{}' values doesn't have member '{}'", type_name(reference), member.str());
@@ -715,10 +713,8 @@ std::tuple<Reference, Class*> mint::get_operator(Cursor& cursor, const Reference
 			error("class '{}' has no member '{}'", reference.data<Object>().metadata.full_name(),
 			    get_operator_symbol(op).str());
 		}
-		else {
-			error("class '{}' has no global member '{}'", reference.data<Object>().metadata.full_name(),
-			    get_operator_symbol(op).str());
-		}
+		error("class '{}' has no global member '{}'", reference.data<Object>().metadata.full_name(),
+		    get_operator_symbol(op).str());
 
 	default:
 		error("'{}' values doesn't have member '{}'", type_name(reference), get_operator_symbol(op).str());

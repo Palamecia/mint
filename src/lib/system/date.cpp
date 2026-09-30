@@ -105,7 +105,7 @@ std::string offset_to_timezone(const std::chrono::minutes& offset,
 
 std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_iso_date(std::string_view str) {
 
-	enum State : std::uint8_t {
+	enum class State : std::uint8_t {
 		read_start,
 		read_year_fraction,
 		read_month_day,
@@ -119,7 +119,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 		read_positive_offset_minutes,
 		read_negative_offset,
 		read_negative_offset_minutes,
-		read_end
+		read_end,
 	};
 
 	std::chrono::year year {1970};
@@ -129,7 +129,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 	std::chrono::milliseconds time {0};
 	std::chrono::minutes offset {0};
 
-	State state = read_start;
+	State state = State::read_start;
 	std::string token;
 
 	for (const auto ch : str) {
@@ -148,8 +148,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 			break;
 		case ':':
 			switch (state) {
-			case read_start:
-			case read_time:
+			case State::read_start:
+			case State::read_time:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0h, 23h);
@@ -157,10 +157,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_minutes;
+				state = State::read_minutes;
 				token.clear();
 				break;
-			case read_minutes:
+			case State::read_minutes:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0min, 59min);
@@ -168,10 +168,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_seconds;
+				state = State::read_seconds;
 				token.clear();
 				break;
-			case read_negative_offset:
+			case State::read_negative_offset:
 				switch (token.length()) {
 				case 2:
 					offset -= to_duration(token, 0h, 23h);
@@ -179,10 +179,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_negative_offset_minutes;
+				state = State::read_negative_offset_minutes;
 				token.clear();
 				break;
-			case read_positive_offset:
+			case State::read_positive_offset:
 				switch (token.length()) {
 				case 2:
 					offset += to_duration(token, 0h, 23h);
@@ -190,7 +190,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_positive_offset_minutes;
+				state = State::read_positive_offset_minutes;
 				token.clear();
 				break;
 			default:
@@ -199,7 +199,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 			break;
 		case '-':
 			switch (state) {
-			case read_start:
+			case State::read_start:
 				switch (token.length()) {
 				case 4:
 					year = std::chrono::year(std::stoi(token));
@@ -207,10 +207,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_year_fraction;
+				state = State::read_year_fraction;
 				token.clear();
 				break;
-			case read_year_fraction:
+			case State::read_year_fraction:
 				switch (token.length()) {
 				case 2:
 					month = std::chrono::month(std::stoi(token));
@@ -218,10 +218,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_month_day;
+				state = State::read_month_day;
 				token.clear();
 				break;
-			case read_week:
+			case State::read_week:
 				switch (token.length()) {
 				case 2:
 					week_number = std::stoi(token);
@@ -229,10 +229,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_week_day;
+				state = State::read_week_day;
 				token.clear();
 				break;
-			case read_time:
+			case State::read_time:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0h, 23h);
@@ -249,10 +249,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_negative_offset;
+				state = State::read_negative_offset;
 				token.clear();
 				break;
-			case read_minutes:
+			case State::read_minutes:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0min, 59min);
@@ -260,10 +260,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_negative_offset;
+				state = State::read_negative_offset;
 				token.clear();
 				break;
-			case read_seconds:
+			case State::read_seconds:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0s, 59s);
@@ -271,15 +271,15 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_negative_offset;
+				state = State::read_negative_offset;
 				token.clear();
 				break;
-			case read_seconds_fraction:
+			case State::read_seconds_fraction:
 				while (token.length() < 3) {
 					token += "0";
 				}
 				time += to_duration(token.substr(0, 3), 0ms, 999ms);
-				state = read_negative_offset;
+				state = State::read_negative_offset;
 				token.clear();
 				break;
 			default:
@@ -288,7 +288,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 			break;
 		case '+':
 			switch (state) {
-			case read_time:
+			case State::read_time:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0h, 23h);
@@ -305,10 +305,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_positive_offset;
+				state = State::read_positive_offset;
 				token.clear();
 				break;
-			case read_minutes:
+			case State::read_minutes:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0min, 59min);
@@ -316,10 +316,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_positive_offset;
+				state = State::read_positive_offset;
 				token.clear();
 				break;
-			case read_seconds:
+			case State::read_seconds:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0s, 59s);
@@ -327,15 +327,15 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_positive_offset;
+				state = State::read_positive_offset;
 				token.clear();
 				break;
-			case read_seconds_fraction:
+			case State::read_seconds_fraction:
 				while (token.length() < 3) {
 					token += "0";
 				}
 				time += to_duration(token.substr(0, 3), 0ms, 999ms);
-				state = read_positive_offset;
+				state = State::read_positive_offset;
 				token.clear();
 				break;
 			default:
@@ -344,7 +344,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 			break;
 		case 'T':
 			switch (state) {
-			case read_start:
+			case State::read_start:
 				switch (token.length()) {
 				case 0:
 					{
@@ -374,10 +374,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_time;
+				state = State::read_time;
 				token.clear();
 				break;
-			case read_year_fraction:
+			case State::read_year_fraction:
 				switch (token.length()) {
 				case 2:
 					month = std::chrono::month(std::stoi(token));
@@ -388,10 +388,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_time;
+				state = State::read_time;
 				token.clear();
 				break;
-			case read_month_day:
+			case State::read_month_day:
 				switch (token.length()) {
 				case 2:
 					day = std::chrono::day(std::stoi(token));
@@ -399,10 +399,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_time;
+				state = State::read_time;
 				token.clear();
 				break;
-			case read_week:
+			case State::read_week:
 				switch (token.length()) {
 				case 3:
 					std::tie(month, day) = week_number_to_month_and_day(year, std::stoi(token.substr(0, 2)),
@@ -411,10 +411,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_time;
+				state = State::read_time;
 				token.clear();
 				break;
-			case read_week_day:
+			case State::read_week_day:
 				switch (token.length()) {
 				case 1:
 					std::tie(month, day) = week_number_to_month_and_day(year, week_number,
@@ -423,7 +423,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_time;
+				state = State::read_time;
 				token.clear();
 				break;
 			default:
@@ -432,7 +432,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 			break;
 		case 'W':
 			switch (state) {
-			case read_start:
+			case State::read_start:
 				switch (token.length()) {
 				case 4:
 					year = std::chrono::year(std::stoi(token));
@@ -441,17 +441,17 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					throw std::runtime_error("date format is not valid");
 				}
 				break;
-			case read_year_fraction:
+			case State::read_year_fraction:
 				break;
 			default:
 				throw std::runtime_error("date format is not valid");
 			}
-			state = read_week;
+			state = State::read_week;
 			token.clear();
 			break;
 		case 'Z':
 			switch (state) {
-			case read_time:
+			case State::read_time:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0h, 23h);
@@ -468,10 +468,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_end;
+				state = State::read_end;
 				token.clear();
 				break;
-			case read_minutes:
+			case State::read_minutes:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0min, 59min);
@@ -479,10 +479,10 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_end;
+				state = State::read_end;
 				token.clear();
 				break;
-			case read_seconds:
+			case State::read_seconds:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0s, 59s);
@@ -490,15 +490,15 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				default:
 					throw std::runtime_error("date format is not valid");
 				}
-				state = read_end;
+				state = State::read_end;
 				token.clear();
 				break;
-			case read_seconds_fraction:
+			case State::read_seconds_fraction:
 				while (token.length() < 3) {
 					token += "0";
 				}
 				time += to_duration(token.substr(0, 3), 0ms, 999ms);
-				state = read_end;
+				state = State::read_end;
 				token.clear();
 				break;
 			default:
@@ -508,7 +508,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 		case '.':
 		case ',':
 			switch (state) {
-			case read_time:
+			case State::read_time:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0h, 23h);
@@ -526,7 +526,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					throw std::runtime_error("date format is not valid");
 				}
 				break;
-			case read_seconds:
+			case State::read_seconds:
 				switch (token.length()) {
 				case 2:
 					time += to_duration(token, 0s, 59s);
@@ -538,7 +538,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 			default:
 				throw std::runtime_error("date format is not valid");
 			}
-			state = read_seconds_fraction;
+			state = State::read_seconds_fraction;
 			token.clear();
 			break;
 		default:
@@ -548,7 +548,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 
 	if (!token.empty()) {
 		switch (state) {
-		case read_start:
+		case State::read_start:
 			switch (token.length()) {
 			case 4:
 				year = std::chrono::year(std::stoi(token));
@@ -570,7 +570,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_year_fraction:
+		case State::read_year_fraction:
 			switch (token.length()) {
 			case 2:
 				month = std::chrono::month(std::stoi(token));
@@ -582,7 +582,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_month_day:
+		case State::read_month_day:
 			switch (token.length()) {
 			case 2:
 				day = std::chrono::day(std::stoi(token));
@@ -591,7 +591,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_week:
+		case State::read_week:
 			switch (token.length()) {
 			case 3:
 				std::tie(month, day) = week_number_to_month_and_day(year, std::stoi(token.substr(0, 2)),
@@ -601,7 +601,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_week_day:
+		case State::read_week_day:
 			switch (token.length()) {
 			case 1:
 				std::tie(month, day) = week_number_to_month_and_day(year, week_number,
@@ -611,7 +611,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_time:
+		case State::read_time:
 			switch (token.length()) {
 			case 2:
 				time += to_duration(token, 0h, 23h);
@@ -629,7 +629,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_minutes:
+		case State::read_minutes:
 			switch (token.length()) {
 			case 2:
 				time += to_duration(token, 0min, 59min);
@@ -638,7 +638,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_seconds:
+		case State::read_seconds:
 			switch (token.length()) {
 			case 2:
 				time += to_duration(token, 0s, 59s);
@@ -647,13 +647,13 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_seconds_fraction:
+		case State::read_seconds_fraction:
 			while (token.length() < 3) {
 				token += "0";
 			}
 			time += to_duration(token.substr(0, 3), 0ms, 999ms);
 			break;
-		case read_negative_offset:
+		case State::read_negative_offset:
 			switch (token.length()) {
 			case 4:
 				offset -= to_duration(token.substr(0, 2), 0h, 23h);
@@ -663,7 +663,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_negative_offset_minutes:
+		case State::read_negative_offset_minutes:
 			switch (token.length()) {
 			case 2:
 				offset -= to_duration(token, 0min, 59min);
@@ -672,7 +672,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_positive_offset:
+		case State::read_positive_offset:
 			switch (token.length()) {
 			case 4:
 				offset += to_duration(token.substr(0, 2), 0h, 23h);
@@ -682,7 +682,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				throw std::runtime_error("date format is not valid");
 			}
 			break;
-		case read_positive_offset_minutes:
+		case State::read_positive_offset_minutes:
 			switch (token.length()) {
 			case 2:
 				offset += to_duration(token, 0min, 59min);
@@ -709,7 +709,7 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 }
 
 mint::Reference mint_date_current_timepoint(mint::Cursor& cursor) {
-	return mint::create_c_object(cursor.ast(),
+	return mint::create_c_object(cursor.program(),
 	    new std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
 	        std::chrono::system_clock::now().time_since_epoch())));
 }
@@ -767,7 +767,8 @@ mint::Reference mint_date_delete(mint::Cursor& /*cursor*/, const mint::Reference
 	return {};
 }
 
-mint::Reference mint_date_set_seconds(mint::Cursor& cursor, const mint::Reference& duration, mint::Reference& value) {
+mint::Reference mint_date_set_seconds(mint::Cursor& cursor, const mint::Reference& duration,
+    const mint::Reference& value) {
 	*duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr =
 	    std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
 	        std::chrono::seconds(to_integer<std::chrono::seconds::rep>(cursor, value))));
@@ -781,7 +782,7 @@ mint::Reference mint_date_timepoint_to_seconds(mint::Cursor& /*cursor*/, const m
 }
 
 mint::Reference mint_date_seconds_to_timepoint(mint::Cursor& cursor, const mint::Reference& value) {
-	return mint::create_c_object(cursor.ast(),
+	return mint::create_c_object(cursor.program(),
 	    new std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
 	        std::chrono::seconds(to_integer<std::chrono::seconds::rep>(cursor, value)))));
 }
@@ -801,7 +802,7 @@ mint::Reference mint_date_timepoint_to_milliseconds(mint::Cursor& /*cursor*/, co
 }
 
 mint::Reference mint_date_milliseconds_to_timepoint(mint::Cursor& cursor, const mint::Reference& value) {
-	return mint::create_c_object(cursor.ast(),
+	return mint::create_c_object(cursor.program(),
 	    new std::chrono::sys_time<std::chrono::milliseconds>(
 	        std::chrono::milliseconds(to_integer<std::chrono::milliseconds::rep>(cursor, value))));
 }
@@ -816,8 +817,8 @@ mint::Reference mint_parse_iso_date(mint::Cursor& cursor, const mint::Reference&
 	try {
 		const auto [timezone, timepoint] = parse_iso_date(mint::to_string(date));
 		return mint::create_iterator_from(cursor,
-		    mint::create_c_object(cursor.ast(), new std::chrono::sys_time<std::chrono::milliseconds>(timepoint)),
-		    mint::create_string(cursor.ast(), timezone));
+		    mint::create_c_object(cursor.program(), new std::chrono::sys_time<std::chrono::milliseconds>(timepoint)),
+		    mint::create_string(cursor.program(), timezone));
 	}
 	catch (const std::runtime_error&) {
 		return {};

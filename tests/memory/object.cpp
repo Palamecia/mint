@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include "mint/ast/module.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/module.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/class_tools.h"
 #include "mint/memory/data.h"
 #include "mint/memory/function_tools.h"
@@ -10,14 +10,14 @@
 
 TEST(object, number_boolean_and_package_formats) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 
 	const auto integer = mint::create_number(7357);
 	const auto decimal = mint::create_number(73.57);
 	const auto boolean = mint::create_boolean(true);
 	const auto package = mint::make_reference<mint::Package>(mint::Reference::default_flags,
-	    scheduler.ast().global_data());
+	    scheduler.program().global_data());
 
 	EXPECT_EQ(mint::Data::Format::number, integer.data().format());
 	EXPECT_TRUE(mint::is_integer(integer));
@@ -26,19 +26,19 @@ TEST(object, number_boolean_and_package_formats) {
 	EXPECT_EQ(mint::Data::Format::boolean, boolean.data().format());
 	EXPECT_TRUE(boolean.data<mint::Boolean>().value);
 	EXPECT_EQ(mint::Data::Format::package, package.data().format());
-	EXPECT_EQ(&scheduler.ast().global_data(), &package.data<mint::Package>().data);
+	EXPECT_EQ(&scheduler.program().global_data(), &package.data<mint::Package>().data);
 }
 
 TEST(object, object_constructs_slots_from_class_defaults) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
-	mint::Class& type = mint::create_class(scheduler.ast(), "__object_api_test__",
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
+	mint::Class& type = mint::create_class(scheduler.program(), "__object_api_test__",
 	    {
 	        {mint::Symbol("member"), mint::create_number(42)},
 	    });
 
-	auto ref = mint::make_reference<mint::Object>(mint::Reference::default_flags, type);
+	const auto ref = mint::make_reference<mint::Object>(mint::Reference::default_flags, type);
 	auto& object = ref.data<mint::Object>();
 	object.construct();
 
@@ -54,7 +54,7 @@ TEST(object, object_constructs_slots_from_class_defaults) {
 
 TEST(object, default_function_has_function_format_and_empty_mapping) {
 
-	auto function = mint::make_reference<mint::Function>(mint::Reference::default_flags);
+	const auto function = mint::make_reference<mint::Function>(mint::Reference::default_flags);
 
 	ASSERT_EQ(mint::Data::Format::function, function.data().format());
 	EXPECT_TRUE(function.data<mint::Function>().mapping.empty());

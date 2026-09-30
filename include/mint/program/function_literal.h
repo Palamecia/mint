@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_FUNCTION_LITERAL_H
-#define MINT_AST_FUNCTION_LITERAL_H
+#ifndef MINT_PROGRAM_FUNCTION_LITERAL_H
+#define MINT_PROGRAM_FUNCTION_LITERAL_H
 
 #include <cstddef>
 #include <string_view>
@@ -167,4 +167,4 @@ private:
 
 }
 
-#endif // MINT_AST_FUNCTION_LITERAL_H
+#endif // MINT_PROGRAM_FUNCTION_LITERAL_H

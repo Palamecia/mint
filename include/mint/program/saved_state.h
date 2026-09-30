@@ -21,28 +21,31 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_PRINTER_H
-#define MINT_AST_PRINTER_H
+#ifndef MINT_PROGRAM_SAVED_STATE_H
+#define MINT_PROGRAM_SAVED_STATE_H
 
+#include "mint/program/cursor.h"
 #include "mint/config.h"
+
+#include <functional>
+#include <stack>
 
 namespace mint {
 
-class Reference;
+struct MINT_EXPORT SavedState {
+	SavedState(Cursor& cursor, Cursor::StackFrame* stack_frame);
+	SavedState(const SavedState& other) = delete;
+	SavedState(SavedState&& other) = delete;
+	~SavedState();
 
-class MINT_EXPORT Printer {
-public:
-	Printer() = default;
-	Printer(Printer&& other) = delete;
-	Printer(const Printer& other) = delete;
-	virtual ~Printer() = default;
+	SavedState& operator=(const SavedState& other) = delete;
+	SavedState& operator=(SavedState&& other) = delete;
 
-	Printer& operator=(Printer&& other) = delete;
-	Printer& operator=(const Printer& other) = delete;
-
-	virtual void print(const Reference& reference) = 0;
+	std::reference_wrapper<Cursor> cursor;
+	Cursor::StackFrame* stack_frame;
+	std::stack<Cursor::RetrievePoint> retrieve_points;
 };
 
 }
 
-#endif // MINT_AST_PRINTER_H
+#endif // MINT_PROGRAM_SAVED_STATE_H

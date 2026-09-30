@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/config.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/function_tools.h"
@@ -171,7 +171,7 @@ mint::Reference file_time_to_date(const std::filesystem::file_time_type& time) {
 mint::Reference mint_file_read_symlink(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
 		return create_iterator_from(cursor,
-		    mint::create_string(cursor.ast(),
+		    mint::create_string(cursor.program(),
 		        std::filesystem::read_symlink(std::filesystem::absolute(to_string(path))).generic_string()),
 		    mint::create_none());
 	}
@@ -343,7 +343,7 @@ mint::Reference mint_file_is_hidden(mint::Cursor& cursor, const mint::Reference&
 mint::Reference mint_file_owner(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
 		return create_iterator_from(cursor,
-		    mint::create_string(cursor.ast(), mint::FileSystem::owner(std::filesystem::absolute(to_string(path)))),
+		    mint::create_string(cursor.program(), mint::FileSystem::owner(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
@@ -367,7 +367,7 @@ mint::Reference mint_file_owner_id(mint::Cursor& cursor, const mint::Reference& 
 mint::Reference mint_file_group(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
 		return create_iterator_from(cursor,
-		    mint::create_string(cursor.ast(), mint::FileSystem::group(std::filesystem::absolute(to_string(path)))),
+		    mint::create_string(cursor.program(), mint::FileSystem::group(std::filesystem::absolute(to_string(path)))),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
@@ -388,7 +388,8 @@ mint::Reference mint_file_group_id(mint::Cursor& cursor, const mint::Reference& 
 	}
 }
 
-mint::Reference mint_file_permission(mint::Cursor& cursor, const mint::Reference& path, mint::Reference& permissions) {
+mint::Reference mint_file_permission(mint::Cursor& cursor, const mint::Reference& path,
+    const mint::Reference& permissions) {
 	try {
 		return create_iterator_from(cursor,
 		    mint::create_boolean(mint::FileSystem::check_file_permissions(to_string(path),
@@ -473,12 +474,12 @@ mint::Reference mint_file_close(mint::Cursor& cursor, mint::Reference& d_ptr) {
 	return {};
 }
 
-mint::Reference mint_file_get_handle(mint::Cursor& cursor, mint::Reference& d_ptr) {
+mint::Reference mint_file_get_handle(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
-	return mint::create_handle(cursor.ast(),
+	return mint::create_handle(cursor.program(),
 	    std::bit_cast<mint::handle_t>(_get_osfhandle(mint::to_integer<int>(cursor, d_ptr))));
 #else
-	return mint::create_handle(cursor.ast(), std::bit_cast<mint::handle_t>(mint::to_integer<int>(cursor, d_ptr)));
+	return mint::create_handle(cursor.program(), std::bit_cast<mint::handle_t>(mint::to_integer<int>(cursor, d_ptr)));
 #endif
 }
 
@@ -489,7 +490,7 @@ mint::Reference mint_file_tell(mint::Cursor& cursor, const mint::Reference& d_pt
 }
 
 mint::Reference mint_file_seek(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& pos) {
-	auto cursor_pos = mint::to_integer<long>(cursor, pos);
+	const auto cursor_pos = mint::to_integer<long>(cursor, pos);
 	if (lseek(mint::to_integer<int>(cursor, d_ptr), cursor_pos, (cursor_pos < 0) ? SEEK_END : SEEK_SET) < 0) {
 		return mint::create_number(errno);
 	}
@@ -528,7 +529,7 @@ mint::Reference mint_file_read_some(mint::Cursor& cursor, const mint::Reference&
     const mint::Reference& count) {
 
 	const auto local_buffer_length = mint::to_integer<std::size_t>(cursor, count);
-	auto local_buffer = std::make_unique<char[]>(local_buffer_length);
+	const auto local_buffer = std::make_unique<char[]>(local_buffer_length);
 	auto* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 	const auto fd = mint::to_integer<int>(cursor, d_ptr);
 
@@ -577,12 +578,12 @@ mint::Reference mint_file_open_async(mint::Cursor& cursor, const mint::Reference
 		    createfile_mode.access, FILE_SHARE_READ, nullptr, createfile_mode.disposition,
 		    FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, nullptr);
 		if (handle != INVALID_HANDLE_VALUE) {
-			return create_iterator_from(cursor, mint::create_handle(cursor.ast(), handle), mint::create_none());
+			return create_iterator_from(cursor, mint::create_handle(cursor.program(), handle), mint::create_none());
 		}
 #elifdef MINT_OS_UNIX
 		const auto fd = mint::open_file_descriptor(mint::to_string(path), mint::to_string(mode).data());
 		if (fd != -1) {
-			return create_iterator_from(cursor, mint::create_handle(cursor.ast(), fd), mint::create_none());
+			return create_iterator_from(cursor, mint::create_handle(cursor.program(), fd), mint::create_none());
 		}
 #else
 #error "This operation is not implemented for this platform"
@@ -636,7 +637,7 @@ mint::Reference mint_file_tell_async(mint::Cursor& cursor, const mint::Reference
 mint::Reference mint_file_seek_async(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& pos) {
 #ifdef MINT_ASYNC_BACKEND_IOCP
 	const auto offset = mint::to_integer<LONGLONG>(cursor, pos);
-	auto cursor_pos = LARGE_INTEGER {
+	const auto cursor_pos = LARGE_INTEGER {
 	    .QuadPart = std::abs(offset),
 	};
 	if (!::SetFilePointerEx(mint::to_handle(d_ptr), cursor_pos, nullptr, (offset < 0) ? FILE_END : FILE_BEGIN)) {
@@ -798,7 +799,7 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 		}
 	};
 
-	return mint::create_async_operation(cursor.ast(),
+	return mint::create_async_operation(cursor.program(),
 	    new AsyncReadOperation(std::move(self), *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
 	        mint::to_handle(d_ptr), buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
 }
@@ -933,7 +934,7 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 		}
 	};
 
-	return mint::create_async_operation(cursor.ast(),
+	return mint::create_async_operation(cursor.program(),
 	    new AsyncReadSomeOperation(std::move(self), *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
 	        mint::to_handle(d_ptr), buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr,
 	        mint::to_integer<std::size_t>(cursor, count)));
@@ -1031,7 +1032,7 @@ mint::Reference mint_file_write_async(mint::Cursor& cursor, mint::Reference& sel
 		}
 	};
 
-	return mint::create_async_operation(cursor.ast(),
+	return mint::create_async_operation(cursor.program(),
 	    new AsyncWriteOperation(cursor, std::move(self), *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
 	        mint::to_handle(d_ptr), *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
 }
@@ -1083,7 +1084,7 @@ mint::Reference mint_file_flush_async(mint::Cursor& cursor, mint::Reference& sel
 		}
 	};
 
-	return mint::create_async_operation(cursor.ast(),
+	return mint::create_async_operation(cursor.program(),
 	    new AsyncFlushOperation(std::move(self), *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
 	        mint::to_handle(d_ptr)));
 }

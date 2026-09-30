@@ -24,8 +24,8 @@
 #ifndef MINT_DEBUG_CURSOR_DEBUGGER_H
 #define MINT_DEBUG_CURSOR_DEBUGGER_H
 
-#include "mint/ast/module.h"
-#include "mint/ast/node.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
 #include "mint/config.h"
 #include "mint/debug/line_info.h"
 #include "mint/debug/thread_context.h"

@@ -24,7 +24,7 @@
 #ifndef MINT_MEMORY_OBJECT_PRINTER_H
 #define MINT_MEMORY_OBJECT_PRINTER_H
 
-#include "mint/ast/printer.h"
+#include "mint/program/printer.h"
 #include "mint/config.h"
 #include "mint/memory/reference.h"
 #include <functional>

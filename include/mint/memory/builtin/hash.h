@@ -34,13 +34,13 @@
 
 namespace mint {
 
-class AbstractSyntaxTree;
+class Program;
 class Cursor;
 
 class MINT_EXPORT HashClass : public Class {
 public:
-	HashClass(AbstractSyntaxTree& ast);
-	static HashClass& instance(AbstractSyntaxTree& ast);
+	explicit HashClass(Program& program);
+	static HashClass& instance(Program& program);
 };
 
 class MINT_EXPORT Hash : public Object {
@@ -63,7 +63,7 @@ public:
 
 	using values_type = std::unordered_map<key_type, value_type, hash, equal_to>;
 
-	explicit Hash(AbstractSyntaxTree& ast);
+	explicit Hash(Program& program);
 	Hash(Hash&& other) noexcept;
 	Hash(const Hash& other);
 	~Hash() override = default;
@@ -82,11 +82,10 @@ private:
 MINT_EXPORT void hash_new(Cursor& cursor, std::size_t length);
 MINT_EXPORT Hash::values_type::iterator hash_insert(Hash& hash, const Hash::key_type& key, const Reference& value);
 MINT_EXPORT Reference hash_get_item(Hash& hash, const Hash::key_type& key);
-MINT_EXPORT Reference hash_get_item(Hash& hash, Hash::key_type& key);
 MINT_EXPORT Reference hash_get_key(const Hash::values_type::iterator& it);
 MINT_EXPORT Reference hash_get_key(const Hash::values_type::value_type& item);
 MINT_EXPORT Reference hash_get_value(const Hash::values_type::iterator& it);
-MINT_EXPORT Reference hash_get_value(Hash::values_type::value_type& item);
+MINT_EXPORT Reference hash_get_value(const Hash::values_type::value_type& item);
 MINT_EXPORT Hash::key_type hash_key(const Reference& key);
 MINT_EXPORT Reference hash_value(const Reference& value);
 

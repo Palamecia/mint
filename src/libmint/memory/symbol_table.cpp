@@ -22,7 +22,7 @@
  */
 
 #include "mint/memory/symbol_table.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/global_data.h"
 #include "mint/memory/class.h"

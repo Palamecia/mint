@@ -22,11 +22,11 @@
  */
 
 #include "mint/memory/function_tools.h"
-#include "mint/ast/class_register.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/function_literal.h"
-#include "mint/ast/module.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_register.h"
+#include "mint/program/cursor.h"
+#include "mint/program/function_literal.h"
+#include "mint/program/module.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/compiler.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
@@ -108,15 +108,15 @@ Reference mint::create_function(const std::pair<int, Function::Signature>& mappi
 	return make_reference<Function>(create_flags, mapping);
 }
 
-Reference mint::create_function(AbstractSyntaxTree& ast, const FunctionLiteral& function) {
-	return create_function(ast, ast.main(), function);
+Reference mint::create_function(Program& program, const FunctionLiteral& function) {
+	return create_function(program, program.main(), function);
 }
 
-Reference mint::create_function(AbstractSyntaxTree& ast, ModuleInfo& module, const FunctionLiteral& function) {
+Reference mint::create_function(Program& program, ModuleInfo& module, const FunctionLiteral& function) {
 
 	const std::size_t offset = module.bytecode.end() + 3;
 
-	auto compiler = Compiler(ast);
+	auto compiler = Compiler(program);
 	auto stream = BufferStream(std::string(function.script));
 	if (!compiler.build(stream, module)) {
 		return {};
@@ -162,67 +162,67 @@ Reference mint::create_object(Class& type) {
 	return ref;
 }
 
-Reference mint::create_string(AbstractSyntaxTree& ast) {
-	Reference ref = make_reference<String>(create_flags, ast);
+Reference mint::create_string(Program& program) {
+	Reference ref = make_reference<String>(create_flags, program);
 	ref.data<String>().construct();
 	return ref;
 }
 
-Reference mint::create_string(AbstractSyntaxTree& ast, const char* value) {
-	Reference ref = make_reference<String>(create_flags, ast, value);
+Reference mint::create_string(Program& program, const char* value) {
+	Reference ref = make_reference<String>(create_flags, program, value);
 	ref.data<String>().construct();
 	return ref;
 }
 
-Reference mint::create_string(AbstractSyntaxTree& ast, const std::string& value) {
-	Reference ref = make_reference<String>(create_flags, ast, value);
+Reference mint::create_string(Program& program, const std::string& value) {
+	Reference ref = make_reference<String>(create_flags, program, value);
 	ref.data<String>().construct();
 	return ref;
 }
 
-Reference mint::create_string(AbstractSyntaxTree& ast, std::string_view value) {
-	Reference ref = make_reference<String>(create_flags, ast, value);
+Reference mint::create_string(Program& program, std::string_view value) {
+	Reference ref = make_reference<String>(create_flags, program, value);
 	ref.data<String>().construct();
 	return ref;
 }
 
-Reference mint::create_regex(AbstractSyntaxTree& ast) {
-	Reference ref = make_reference<Regex>(create_flags, ast);
+Reference mint::create_regex(Program& program) {
+	Reference ref = make_reference<Regex>(create_flags, program);
 	ref.data<Regex>().construct();
 	return ref;
 }
 
-Reference mint::create_regex(AbstractSyntaxTree& ast, const std::string& value) {
-	Reference ref = make_reference<Regex>(create_flags, ast);
+Reference mint::create_regex(Program& program, const std::string& value) {
+	Reference ref = make_reference<Regex>(create_flags, program);
 	ref.data<Regex>().pattern = "/" + value + "/";
 	ref.data<Regex>().expr = value;
 	ref.data<Regex>().construct();
 	return ref;
 }
 
-Reference mint::create_regex(AbstractSyntaxTree& ast, const std::string& initializer, const std::regex& value) {
-	Reference ref = make_reference<Regex>(create_flags, ast);
+Reference mint::create_regex(Program& program, const std::string& initializer, const std::regex& value) {
+	Reference ref = make_reference<Regex>(create_flags, program);
 	ref.data<Regex>().pattern = "/" + initializer + "/";
 	ref.data<Regex>().expr = value;
 	ref.data<Regex>().construct();
 	return ref;
 }
 
-Reference mint::create_array(AbstractSyntaxTree& ast) {
-	Reference ref = make_reference<Array>(create_flags, ast);
+Reference mint::create_array(Program& program) {
+	Reference ref = make_reference<Array>(create_flags, program);
 	ref.data<Array>().construct();
 	return ref;
 }
 
-Reference mint::create_array(AbstractSyntaxTree& ast, Array::values_type&& values) {
-	Reference ref = make_reference<Array>(create_flags, ast);
+Reference mint::create_array(Program& program, Array::values_type&& values) {
+	Reference ref = make_reference<Array>(create_flags, program);
 	ref.data<Array>().values = std::move(values);
 	ref.data<Array>().construct();
 	return ref;
 }
 
-Reference mint::create_array(AbstractSyntaxTree& ast, std::initializer_list<Reference> items) {
-	Reference ref = make_reference<Array>(create_flags, ast);
+Reference mint::create_array(Program& program, std::initializer_list<Reference> items) {
+	Reference ref = make_reference<Array>(create_flags, program);
 	ref.data<Array>().values.reserve(items.size());
 	for (const auto& item : items) {
 		array_append(ref.data<Array>(), array_item(item));
@@ -231,21 +231,21 @@ Reference mint::create_array(AbstractSyntaxTree& ast, std::initializer_list<Refe
 	return ref;
 }
 
-Reference mint::create_hash(AbstractSyntaxTree& ast) {
-	Reference ref = make_reference<Hash>(create_flags, ast);
+Reference mint::create_hash(Program& program) {
+	Reference ref = make_reference<Hash>(create_flags, program);
 	ref.data<Hash>().construct();
 	return ref;
 }
 
-Reference mint::create_hash(AbstractSyntaxTree& ast, Hash::values_type&& values) {
-	Reference ref = make_reference<Hash>(create_flags, ast);
+Reference mint::create_hash(Program& program, Hash::values_type&& values) {
+	Reference ref = make_reference<Hash>(create_flags, program);
 	ref.data<Hash>().values = std::move(values);
 	ref.data<Hash>().construct();
 	return ref;
 }
 
-Reference mint::create_hash(AbstractSyntaxTree& ast, std::initializer_list<std::pair<Reference, Reference>> items) {
-	Reference ref = make_reference<Hash>(create_flags, ast);
+Reference mint::create_hash(Program& program, std::initializer_list<std::pair<Reference, Reference>> items) {
+	Reference ref = make_reference<Hash>(create_flags, program);
 	ref.data<Hash>().values.reserve(items.size());
 	for (const auto& item : items) {
 		hash_insert(ref.data<Hash>(), item.first, item.second);
@@ -254,28 +254,26 @@ Reference mint::create_hash(AbstractSyntaxTree& ast, std::initializer_list<std::
 	return ref;
 }
 
-Reference mint::create_iterator(AbstractSyntaxTree& ast) {
-	Reference ref = make_reference<Iterator>(create_flags, ast);
+Reference mint::create_iterator(Program& program) {
+	Reference ref = make_reference<Iterator>(create_flags, program);
 	ref.data<Iterator>().construct();
 	return ref;
 }
 
-Reference mint::create_iterator(FromGenerator from_generator, AbstractSyntaxTree& ast, std::size_t stack_size) {
-	Reference ref = make_reference<Iterator>(create_flags, from_generator, ast, stack_size);
+Reference mint::create_iterator(FromGenerator from_generator, Program& program, std::size_t stack_size) {
+	Reference ref = make_reference<Iterator>(create_flags, from_generator, program, stack_size);
 	ref.data<Iterator>().construct();
 	return ref;
 }
 
-Reference mint::create_iterator(FromInclusiveRange from_inclusive_range, AbstractSyntaxTree& ast, double begin,
-    double end) {
-	Reference ref = make_reference<Iterator>(create_flags, from_inclusive_range, ast, begin, end);
+Reference mint::create_iterator(FromInclusiveRange from_inclusive_range, Program& program, double begin, double end) {
+	Reference ref = make_reference<Iterator>(create_flags, from_inclusive_range, program, begin, end);
 	ref.data<Iterator>().construct();
 	return ref;
 }
 
-Reference mint::create_iterator(FromExclusiveRange from_exclusive_range, AbstractSyntaxTree& ast, double begin,
-    double end) {
-	Reference ref = make_reference<Iterator>(create_flags, from_exclusive_range, ast, begin, end);
+Reference mint::create_iterator(FromExclusiveRange from_exclusive_range, Program& program, double begin, double end) {
+	Reference ref = make_reference<Iterator>(create_flags, from_exclusive_range, program, begin, end);
 	ref.data<Iterator>().construct();
 	return ref;
 }
@@ -303,8 +301,8 @@ Reference mint::create_iterator_over(Cursor& cursor, Reference&& ref) {
 }
 
 #ifdef MINT_OS_WINDOWS
-Reference mint::create_handle(AbstractSyntaxTree& ast, mint::handle_t handle) {
-	Reference ref = make_reference<LibObject<std::remove_pointer_t<mint::handle_t>>>(create_flags, ast, handle);
+Reference mint::create_handle(Program& program, mint::handle_t handle) {
+	Reference ref = make_reference<LibObject<std::remove_pointer_t<mint::handle_t>>>(create_flags, program, handle);
 	ref.data<LibObject<std::remove_pointer_t<mint::handle_t>>>().construct();
 	return ref;
 }
@@ -317,8 +315,8 @@ mint::handle_t* mint::to_handle_ptr(const Reference& reference) {
 	return &reference.data<LibObject<std::remove_pointer_t<HANDLE>>>().ptr;
 }
 #else
-Reference mint::create_handle(AbstractSyntaxTree& ast, mint::handle_t handle) {
-	Reference ref = make_reference<LibObject<void>>(create_flags, ast, reinterpret_cast<void*>(handle));
+Reference mint::create_handle(Program& program, mint::handle_t handle) {
+	Reference ref = make_reference<LibObject<void>>(create_flags, program, reinterpret_cast<void*>(handle));
 	ref.data<LibObject<void>>().construct();
 	return ref;
 }
@@ -332,19 +330,19 @@ mint::handle_t* mint::to_handle_ptr(const Reference& reference) {
 }
 #endif
 
-Reference mint::create_async_operation(AbstractSyntaxTree& ast, MintAsyncOperation* operation) {
-	Reference ref = make_reference<LibObject<MintAsyncOperation>>(create_flags, ast, operation);
+Reference mint::create_async_operation(Program& program, MintAsyncOperation* operation) {
+	Reference ref = make_reference<LibObject<MintAsyncOperation>>(create_flags, program, operation);
 	ref.data<LibObject<MintAsyncOperation>>().construct();
 	return ref;
 }
 
-Reference mint::get_member_ignore_visibility(AbstractSyntaxTree& ast, const Reference& reference, const Symbol& member) {
+Reference mint::get_member_ignore_visibility(Program& program, const Reference& reference, const Symbol& member) {
 
 	switch (reference.data().format()) {
 	case Data::Format::package:
 		for (PackageData* package_data = &reference.data<Package>().data; package_data != nullptr;
 		    package_data = package_data->get_owner_package()) {
-			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
+			if (const auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
 				return it->second;
 			}
 		}
@@ -361,13 +359,13 @@ Reference mint::get_member_ignore_visibility(AbstractSyntaxTree& ast, const Refe
 				return {Reference::const_address | Reference::const_value | Reference::global, info->value.data()};
 			}
 
-			if (auto* info = object.metadata.find_global(member)) {
+			if (const auto* info = object.metadata.find_global(member)) {
 				return info->value;
 			}
 
 			for (PackageData* package = &object.metadata.get_package(); package != nullptr;
 			    package = package->get_owner_package()) {
-				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
+				if (const auto it = package->symbols().find(member); it != package->symbols().end()) {
 					return {Reference::const_address | Reference::const_value, it->second.data()};
 				}
 			}
@@ -375,8 +373,8 @@ Reference mint::get_member_ignore_visibility(AbstractSyntaxTree& ast, const Refe
 		break;
 
 	default:
-		GlobalData& externals = ast.global_data();
-		if (auto it = externals.symbols().find(member); it != externals.symbols().end()) {
+		GlobalData& externals = program.global_data();
+		if (const auto it = externals.symbols().find(member); it != externals.symbols().end()) {
 			return {Reference::const_address | Reference::const_value, it->second.data()};
 		}
 	}
@@ -387,7 +385,7 @@ Reference mint::get_member_ignore_visibility(AbstractSyntaxTree& ast, const Refe
 Reference mint::get_member_ignore_visibility(PackageData& package, const Symbol& member) {
 	for (PackageData* package_data = &package; package_data != nullptr;
 	    package_data = package_data->get_owner_package()) {
-		if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
+		if (const auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
 			return it->second;
 		}
 	}
@@ -402,7 +400,7 @@ Reference mint::get_member_ignore_visibility(Object& object, const Symbol& membe
 }
 
 Reference mint::get_global_ignore_visibility(Object& object, const Symbol& global) {
-	if (auto* info = object.metadata.find_global(global)) {
+	if (const auto* info = object.metadata.find_global(global)) {
 		return info->value;
 	}
 	return {};

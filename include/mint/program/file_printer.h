@@ -21,6 +21,39 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/symbol.h"
+#ifndef MINT_PROGRAM_FILE_PRINTER_H
+#define MINT_PROGRAM_FILE_PRINTER_H
 
-using namespace mint;
+#include "mint/program/printer.h"
+#include "mint/config.h"
+
+#include <cstdio>
+#include <filesystem>
+#include <string>
+
+namespace mint {
+
+class MINT_EXPORT FilePrinter : public Printer {
+public:
+	explicit FilePrinter(const std::filesystem::path& path);
+	explicit FilePrinter(int fd);
+	FilePrinter(FilePrinter&& other) = delete;
+	FilePrinter(const FilePrinter& other) = delete;
+	~FilePrinter() override;
+
+	FilePrinter& operator=(FilePrinter&& other) = delete;
+	FilePrinter& operator=(const FilePrinter& other) = delete;
+
+	void print(const Reference& reference) override;
+
+	[[nodiscard]] FILE* stream() const;
+
+private:
+	FILE* _stream;
+	void (*_print)(FILE* stream, const std::string& str);
+	int (*_close)(FILE* stream);
+};
+
+}
+
+#endif // MINT_PROGRAM_FILE_PRINTER_H

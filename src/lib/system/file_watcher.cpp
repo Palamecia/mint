@@ -77,7 +77,7 @@ namespace {
 enum Changes : std::uint8_t {
 	name = 0x01,
 	data = 0x02,
-	attributes = 0x04
+	attributes = 0x04,
 };
 
 Changes to_changes(mint::Cursor& cursor, const mint::Reference& value) {
@@ -201,7 +201,7 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 		}
 	}
 
-	return mint::create_c_object(cursor.ast(), watcher.release());
+	return mint::create_c_object(cursor.program(), watcher.release());
 
 #elifdef MINT_OS_LINUX
 
@@ -243,7 +243,7 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 		return {};
 	}
 
-	return mint::create_c_object(cursor.ast(), watcher.release());
+	return mint::create_c_object(cursor.program(), watcher.release());
 
 #elifdef MINT_OS_UNIX
 
@@ -274,7 +274,7 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 		watcher->event.fflags |= NOTE_ATTRIB;
 	}
 
-	return mint::create_c_object(cursor.ast(), watcher.release());
+	return mint::create_c_object(cursor.program(), watcher.release());
 #endif
 }
 
@@ -295,16 +295,16 @@ mint::Reference mint_file_watcher_delete(mint::Cursor& /*cursor*/, const mint::R
 }
 
 mint::Reference mint_file_watcher_get_handle(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	auto* watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().ptr;
+	const auto* watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().ptr;
 #ifdef MINT_OS_WINDOWS
-	return mint::create_handle(cursor.ast(), watcher->event.handle);
+	return mint::create_handle(cursor.program(), watcher->event.handle);
 #else
-	return mint::create_handle(cursor.ast(), watcher->event.fd);
+	return mint::create_handle(cursor.program(), watcher->event.fd);
 #endif
 }
 
 mint::Reference mint_file_watcher_get_poll_event(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	return mint::create_c_object(cursor.ast(), &d_ptr.data<mint::LibObject<FileWatcherData>>().ptr->event);
+	return mint::create_c_object(cursor.program(), &d_ptr.data<mint::LibObject<FileWatcherData>>().ptr->event);
 }
 
 mint::Reference mint_file_watcher_wait(mint::Cursor& cursor, const mint::Reference& d_ptr,
@@ -318,8 +318,8 @@ mint::Reference mint_file_watcher_wait(mint::Cursor& cursor, const mint::Referen
 	                             ? INFINITE
 	                             : mint::to_integer<DWORD>(cursor, timeout);
 
-	if (WaitForSingleObject(to_handle(d_ptr), timeout_ms) == WAIT_OBJECT_0) {
-		ResetEvent(to_handle(d_ptr));
+	if (WaitForSingleObject(watcher->event.handle, timeout_ms) == WAIT_OBJECT_0) {
+		ResetEvent(watcher->event.handle);
 		return mint::create_boolean(true);
 	}
 

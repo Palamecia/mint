@@ -24,9 +24,9 @@
 #ifndef BRANCH_H
 #define BRANCH_H
 
-#include "mint/ast/class_register.h"
-#include "mint/ast/node.h"
-#include "mint/ast/module.h"
+#include "mint/program/class_register.h"
+#include "mint/program/node.h"
+#include "mint/program/module.h"
 
 #include <cstddef>
 #include <unordered_set>
@@ -108,7 +108,7 @@ Branch::BackwardNodeIndex* Branch::next_jump_backward() {
 
 class MainBranch : public Branch {
 public:
-	MainBranch(AbstractSyntaxTree& ast, ModuleInfo& data);
+	MainBranch(Program& program, ModuleInfo& data);
 
 	void push_node(const Node& node) override;
 	void push_nodes(const std::vector<Node>& nodes) override;
@@ -125,7 +125,7 @@ private:
 #ifdef MINT_BUILD_TYPE_DEBUG
 	std::size_t _offset;
 #endif
-	std::reference_wrapper<AbstractSyntaxTree> _ast;
+	std::reference_wrapper<Program> _program;
 	std::reference_wrapper<ModuleInfo> _data;
 };
 
@@ -133,7 +133,7 @@ class SubBranch : public Branch {
 public:
 	static constexpr std::size_t tree_base_capacity = 500;
 
-	SubBranch(Branch& parent);
+	explicit SubBranch(Branch& parent);
 
 	void push_node(const Node& node) override;
 	void push_nodes(const std::vector<Node>& nodes) override;

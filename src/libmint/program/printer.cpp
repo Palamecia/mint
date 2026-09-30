@@ -21,20 +21,6 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef LIBMINT_AST_THREAD_ENTRY_POINT_H
-#define LIBMINT_AST_THREAD_ENTRY_POINT_H
+#include "mint/program/printer.h"
 
-#include "mint/ast/module.h"
-
-namespace mint {
-
-class ThreadEntryPoint : public Module {
-public:
-	ThreadEntryPoint(AbstractSyntaxTree& ast);
-
-	static ThreadEntryPoint& instance(AbstractSyntaxTree& ast);
-};
-
-}
-
-#endif // LIBMINT_AST_THREAD_ENTRY_POINT_H
+using namespace mint;

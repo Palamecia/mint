@@ -23,8 +23,8 @@
 
 #include "debug_printer.h"
 
-#include "mint/ast/module.h"
-#include "mint/debug/debug_info.h"
+#include "mint/config.h"
+#include "mint/program/module.h"
 #include "mint/debug/debug_tools.h"
 #include "mint/memory/algorithm.h"
 #include "mint/memory/builtin/array.h"
@@ -40,7 +40,7 @@
 #include "mint/memory/builtin/regex.h"
 #include "mint/memory/global_data.h"
 #include "mint/memory/memory_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/program/program.h"
 #include "mint/system/assert.h"
 #include "mint/system/string.h"
 #include "mint/system/terminal.h"
@@ -75,17 +75,17 @@ void DebugPrinter::print(const mint::Reference& reference) {
 		        const auto type = object.metadata.full_name();
 		        mint::Terminal::println(stdout, std::format("({}) {{", type));
 		        if (mint::is_object(object)) {
-			        for (auto member : object.metadata.members()) {
+			        for (const auto& [name, member] : object.metadata.members()) {
 				        mint::Terminal::println(stdout,
-				            std::format("\t{} : ({}) {}", member.first.str(), type_name(member.second.get().value),
-				                reference_value(mint::Class::MemberInfo::get(member.second, object))));
+				            std::format("\t{} : ({}) {}", name.str(), type_name(member.get().value),
+				                reference_value(mint::Class::MemberInfo::get(member, object))));
 			        }
 		        }
 		        else {
-			        for (auto member : object.metadata.members()) {
+			        for (const auto& [name, member] : object.metadata.members()) {
 				        mint::Terminal::println(stdout,
-				            std::format("\t{} : ({}) {}", member.first.str(), type_name(member.second.get().value),
-				                reference_value(member.second.get().value)));
+				            std::format("\t{} : ({}) {}", name.str(), type_name(member.get().value),
+				                reference_value(member.get().value)));
 			        }
 		        }
 		        mint::Terminal::println(stdout, "}");
@@ -180,36 +180,36 @@ std::string reference_value(const mint::Reference& reference) {
 	    reference);
 }
 
-std::string iterator_value(mint::Iterator& iterator) {
+std::string iterator_value(const mint::Iterator& iterator) {
 	return std::format("({})", std::views::transform(iterator.ctx,
-	                               [](auto& item) {
+	                               [](const auto& item) {
 		                               return reference_value(item);
 	                               })
 	                               | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 }
 
-std::string array_value(mint::Array& array) {
+std::string array_value(const mint::Array& array) {
 	return std::format("[{}]", std::views::transform(array.values,
-	                               [](auto& item) {
+	                               [](const auto& item) {
 		                               return reference_value(mint::array_get_item(item));
 	                               })
 	                               | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 }
 
-std::string hash_value(mint::Hash& hash) {
+std::string hash_value(const mint::Hash& hash) {
 	return std::format("{{{}}}", std::views::transform(hash.values,
-	                                 [](auto& item) {
+	                                 [](const auto& item) {
 		                                 return reference_value(mint::hash_get_key(item)) + " : "
 		                                        + reference_value(mint::hash_get_value(item));
 	                                 })
 	                                 | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 }
 
-std::string library_value(mint::Library& library) {
+std::string library_value(const mint::Library& library) {
 	return library.plugin->get_path().generic_string();
 }
 
-std::string object_value(mint::Data& object) {
+std::string object_value(const mint::Data& object) {
 	return std::format("0x{:X}", std::bit_cast<std::uintptr_t>(&object));
 }
 
@@ -217,10 +217,10 @@ std::string function_value(mint::Function& function) {
 	auto* scheduler = mint::Scheduler::instance();
 	assert_x(scheduler, __func__, "execution should be done using a scheduler");
 	return std::format("function: {}", std::views::transform(function.mapping,
-	                                       [&ast = scheduler->ast()](auto& item) {
+	                                       [&program = scheduler->program()](auto& item) {
 		                                       const auto& module = item.second.handle().module;
-		                                       const auto* debug_info = ast.find_debug_info(module);
-		                                       const auto module_name = ast.get_module_name(module);
+		                                       const auto* debug_info = program.find_debug_info(module);
+		                                       const auto module_name = program.get_module_name(module);
 		                                       return std::format("{}@{}({}:{})", std::to_string(item.first),
 		                                           module_name, mint::to_system_path(module_name).string(),
 		                                           debug_info->line_number(item.second.handle().offset));

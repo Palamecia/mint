@@ -26,8 +26,8 @@
 
 #include "iterator_items.h"
 #include "iterator_p.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/saved_state.h"
+#include "mint/program/cursor.h"
+#include "mint/program/saved_state.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/reference.h"
 #include <cstddef>

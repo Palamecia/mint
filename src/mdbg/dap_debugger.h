@@ -27,7 +27,7 @@
 #include "debugger_backend.h"
 #include "dap_message.h"
 #include "json.h"
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include "mint/debug/cursor_debugger.h"
 #include "mint/debug/debug_interface.h"
 #include "mint/memory/object.h"

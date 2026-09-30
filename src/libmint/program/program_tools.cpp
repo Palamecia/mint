@@ -21,9 +21,9 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/abstract_syntax_tree_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/module.h"
+#include "mint/program/program_tools.h"
+#include "mint/program/program.h"
+#include "mint/program/module.h"
 #include <memory>
 #include <string>
 
@@ -33,6 +33,6 @@ void mint::load_module(Cursor& cursor, const std::string& module_name) {
 	cursor.load_module(module_name);
 }
 
-std::unique_ptr<Cursor> mint::load_module(const std::string& module_name, AbstractSyntaxTree& ast) {
-	return std::make_unique<Cursor>(ast, ast.load_module(module_name).bytecode);
+std::unique_ptr<Cursor> mint::load_module(const std::string& module_name, Program& program) {
+	return std::make_unique<Cursor>(program, program.load_module(module_name).bytecode);
 }

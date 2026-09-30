@@ -52,7 +52,7 @@ enum class StandardPath : std::uint8_t {
 	local_data,
 	global_data,
 	config,
-	global_config
+	global_config,
 };
 
 StandardPath to_standard_path(mint::Cursor& cursor, const mint::Reference& value) {
@@ -129,30 +129,30 @@ std::vector<std::filesystem::path> standard_paths(StandardPath type) {
 };
 
 mint::Reference mint_fs_get_paths(mint::Cursor& cursor, const mint::Reference& type) {
-	return mint::create_array(cursor.ast(),
+	return mint::create_array(cursor.program(),
 	    {std::from_range, std::views::transform(standard_paths(to_standard_path(cursor, type)),
 	                          [&cursor](const std::filesystem::path& path) {
-		                          return mint::create_string(cursor.ast(), path.generic_string());
+		                          return mint::create_string(cursor.program(), path.generic_string());
 	                          })});
 }
 
 mint::Reference mint_fs_get_path(mint::Cursor& cursor, const mint::Reference& type) {
 	if (const auto paths = standard_paths(to_standard_path(cursor, type)); !paths.empty()) {
-		return mint::create_string(cursor.ast(), paths.front().generic_string());
+		return mint::create_string(cursor.program(), paths.front().generic_string());
 	}
 	return {};
 }
 
 mint::Reference mint_fs_get_path(mint::Cursor& cursor, const mint::Reference& type, const mint::Reference& path) {
 	if (const auto paths = standard_paths(to_standard_path(cursor, type)); !paths.empty()) {
-		return mint::create_string(cursor.ast(),
+		return mint::create_string(cursor.program(),
 		    std::filesystem::weakly_canonical(paths.front() / to_string(path)).generic_string());
 	}
 	return {};
 }
 
 mint::Reference mint_fs_find_paths(mint::Cursor& cursor, const mint::Reference& type, const mint::Reference& path) {
-	return mint::create_array(cursor.ast(),
+	return mint::create_array(cursor.program(),
 	    {std::from_range, std::views::transform(standard_paths(to_standard_path(cursor, type)), //
 	                          [path = to_string(path)](const std::filesystem::path& root) {
 		                          return std::filesystem::weakly_canonical(root / path);
@@ -161,7 +161,7 @@ mint::Reference mint_fs_find_paths(mint::Cursor& cursor, const mint::Reference& 
 		                            return std::filesystem::exists(full_path);
 	                            })
 	                          | std::views::transform([&cursor](const std::filesystem::path& full_path) {
-		                            return mint::create_string(cursor.ast(), full_path.generic_string());
+		                            return mint::create_string(cursor.program(), full_path.generic_string());
 	                            })});
 }
 
@@ -169,7 +169,7 @@ mint::Reference mint_fs_find_path(mint::Cursor& cursor, const mint::Reference& t
 	for (const std::filesystem::path& root : standard_paths(to_standard_path(cursor, type))) {
 		const auto full_path = std::filesystem::weakly_canonical(root / to_string(path));
 		if (std::filesystem::exists(full_path)) {
-			return mint::create_string(cursor.ast(), full_path.generic_string());
+			return mint::create_string(cursor.program(), full_path.generic_string());
 		}
 	}
 	return {};

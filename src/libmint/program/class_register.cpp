@@ -21,10 +21,10 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/class_register.h"
-#include "mint/ast/class_description.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_register.h"
+#include "mint/program/class_description.h"
+#include "mint/program/program.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/data.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/global_data.h"
@@ -70,7 +70,7 @@ const ClassDescription& ClassRegister::Path::locate(const ClassRegister& root_re
 
 	const auto* class_register = root_register.locate(*symbol);
 	if (class_register == nullptr) {
-		class_register = root_register.ast().global_data().locate(*symbol);
+		class_register = root_register.program().global_data().locate(*symbol);
 		if (class_register == nullptr) [[unlikely]] {
 			error("expected package or class name got '{}'", symbol->str());
 		}
@@ -100,7 +100,7 @@ ClassDescription& ClassRegister::Path::locate(ClassRegister& root_register) cons
 
 	auto* class_register = root_register.locate(*symbol);
 	if (class_register == nullptr) {
-		class_register = root_register.ast().global_data().locate(*symbol);
+		class_register = root_register.program().global_data().locate(*symbol);
 		if (class_register == nullptr) [[unlikely]] {
 			error("expected package or class name got '{}'", symbol->str());
 		}
@@ -124,7 +124,7 @@ std::string ClassRegister::Path::to_string() const {
 	std::string path;
 	for (auto i = _symbols.begin(); i != _symbols.end(); ++i) {
 		if (i != _symbols.begin()) {
-			path += ".";
+			path += '.';
 		}
 		path += i->str();
 	}
@@ -139,8 +139,8 @@ void ClassRegister::Path::clear() {
 	_symbols.clear();
 }
 
-ClassRegister::ClassRegister(AbstractSyntaxTree& ast) :
-    _ast(ast) {}
+ClassRegister::ClassRegister(Program& program) :
+    _program(program) {}
 
 const ClassRegister& ClassRegister::get_root_register() const {
 	if (_owner) {
@@ -172,7 +172,7 @@ const PackageData* ClassRegister::get_owner_package() const {
 	if (_owner == nullptr) {
 		return nullptr;
 	}
-	if (auto* package = _owner->get_package_data()) {
+	if (const auto* package = _owner->get_package_data()) {
 		return package;
 	}
 	return _owner->get_owner_package();
@@ -189,7 +189,7 @@ PackageData* ClassRegister::get_owner_package() {
 }
 
 ClassDescription* ClassRegister::find_class_description(const Symbol& name) const {
-	if (auto it = std::ranges::find(_defined_classes, name,
+	if (const auto it = std::ranges::find(_defined_classes, name,
 	        [](const auto& entry) {
 		        return entry.desc.get().name();
 	        });

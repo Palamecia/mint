@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "mint/memory/function_tools.h"
 #include "mint/memory/builtin/string.h"
-#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/program/program.h"
 #include "mint/memory/data.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
@@ -17,8 +17,8 @@ TEST(function_tools, return_value) {
 
 TEST(function_tools, create_number) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	const auto ref = mint::create_number(7357);
 
 	ASSERT_EQ(mint::Data::Format::number, ref.data().format());
@@ -27,8 +27,8 @@ TEST(function_tools, create_number) {
 
 TEST(function_tools, create_boolean) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	const auto ref = mint::create_boolean(true);
 
 	ASSERT_EQ(mint::Data::Format::boolean, ref.data().format());
@@ -37,9 +37,9 @@ TEST(function_tools, create_boolean) {
 
 TEST(function_tools, create_string) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
-	const auto ref = mint::create_string(scheduler.ast(), "test");
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
+	const auto ref = mint::create_string(scheduler.program(), "test");
 
 	ASSERT_EQ(mint::Data::Format::object, ref.data().format());
 	ASSERT_EQ(mint::Class::Metatype::string, ref.data<mint::Object>().metadata.metatype());

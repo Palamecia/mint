@@ -22,9 +22,9 @@
  */
 
 #include "mint/scheduler/processor.h"
-#include "mint/ast/class_register.h"
-#include "mint/ast/module.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_register.h"
+#include "mint/program/module.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/function_tools.h"
@@ -35,10 +35,10 @@
 #include "mint/scheduler/scheduler.h"
 #include "mint/debug/debug_interface.h"
 #include "mint/debug/cursor_debugger.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/abstract_syntax_tree_walker.h"
-#include "mint/ast/abstract_syntax_tree_tools.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/bytecode_walker.h"
+#include "mint/program/program_tools.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
@@ -181,7 +181,7 @@ public:
 	}
 
 	static void on_alloc_iterator(Cursor& cursor) {
-		cursor.waiting_calls().emplace(make_reference<Iterator>(Reference::const_address, cursor.ast()));
+		cursor.waiting_calls().emplace(make_reference<Iterator>(Reference::const_address, cursor.program()));
 	}
 
 	static void on_init_iterator(Cursor& cursor, std::size_t length) {
@@ -189,7 +189,7 @@ public:
 	}
 
 	static void on_alloc_array(Cursor& cursor) {
-		cursor.waiting_calls().emplace(make_reference<Array>(Reference::const_address, cursor.ast()));
+		cursor.waiting_calls().emplace(make_reference<Array>(Reference::const_address, cursor.program()));
 	}
 
 	static void on_init_array(Cursor& cursor, std::size_t length) {
@@ -197,7 +197,7 @@ public:
 	}
 
 	static void on_alloc_hash(Cursor& cursor) {
-		cursor.waiting_calls().emplace(make_reference<Hash>(Reference::const_address, cursor.ast()));
+		cursor.waiting_calls().emplace(make_reference<Hash>(Reference::const_address, cursor.program()));
 	}
 
 	static void on_init_hash(Cursor& cursor, std::size_t length) {
@@ -206,7 +206,7 @@ public:
 
 	static void on_create_lib(Cursor& cursor) {
 		constexpr auto flags = Reference::const_address | mint::Reference::const_value | Reference::temporary;
-		cursor.stack().emplace_back(make_reference<Library>(flags, cursor.ast()));
+		cursor.stack().emplace_back(make_reference<Library>(flags, cursor.program()));
 	}
 
 	static void on_regex_match(Cursor& cursor) {
@@ -442,7 +442,7 @@ public:
 	}
 
 	static void on_end_generator_expression(Cursor& cursor) {
-		auto scope = GarbageCollectorDeferScope();
+		const auto scope = GarbageCollectorDeferScope();
 		assert(cursor.is_in_generator());
 		cursor.exit_call();
 	}
@@ -455,7 +455,7 @@ public:
 
 	static void on_unpack_generator_expression(Cursor& cursor) {
 
-		auto value = std::move(cursor.stack().back());
+		const auto value = std::move(cursor.stack().back());
 		assert(is_iterator(value));
 
 		if (!value.data<Iterator>().ctx.empty()) {
@@ -476,7 +476,7 @@ public:
 
 	static void on_print(Cursor& cursor) {
 
-		auto reference = std::move(cursor.stack().back());
+		const auto reference = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
 
 		auto* printer = cursor.printer();
@@ -520,14 +520,14 @@ public:
 	}
 
 	static void on_raise(Cursor& cursor) {
-		auto scope = GarbageCollectorDeferScope();
+		const auto scope = GarbageCollectorDeferScope();
 		Reference exception = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
 		cursor.raise(std::move(exception));
 	}
 
 	static void on_reraise(Cursor& cursor) {
-		auto scope = GarbageCollectorDeferScope();
+		const auto scope = GarbageCollectorDeferScope();
 		auto* exception = cursor.get_exception();
 		assert(exception != nullptr);
 		exception->caught = false;
@@ -535,7 +535,7 @@ public:
 	}
 
 	static void on_reraise_in(Cursor& cursor) {
-		auto scope = GarbageCollectorDeferScope();
+		const auto scope = GarbageCollectorDeferScope();
 		Reference exception = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
 		auto cause = cursor.take_exception();
@@ -547,7 +547,7 @@ public:
 		auto object = cursor.stack().back();
 		switch (object.data().format()) {
 		case Data::Format::object:
-			if (auto* method = object.data<Object>().metadata.find_member(builtin_symbols::await_method)) {
+			if (const auto* method = object.data<Object>().metadata.find_member(builtin_symbols::await_method)) {
 				init_member_call(cursor, builtin_symbols::await_method, *method);
 				call_member_operator(cursor, 0);
 			}
@@ -563,7 +563,7 @@ public:
 
 	static void on_resume_coroutine(Cursor& cursor) {
 
-		auto scope = GarbageCollectorDeferScope();
+		const auto scope = GarbageCollectorDeferScope();
 
 		auto result = std::move(cursor.stack().back());
 		cursor.stack().pop_back();
@@ -580,7 +580,7 @@ public:
 	}
 
 	static void on_exit_generator(Cursor& cursor) {
-		auto scope = GarbageCollectorDeferScope();
+		const auto scope = GarbageCollectorDeferScope();
 		cursor.exit_call();
 	}
 
@@ -603,7 +603,7 @@ public:
 	}
 
 	static void on_init_capture(Cursor& cursor) {
-		auto& function = cursor.stack().back();
+		const auto& function = cursor.stack().back();
 		assert(is_instance_of(function, Data::Format::function));
 		cursor.stack().back() = Reference(copy_from, function.flags() | Reference::temporary, function.data());
 	}
@@ -629,13 +629,13 @@ public:
 	}
 
 	static void on_call_builtin(Cursor& cursor, std::size_t index) {
-		auto scope = GarbageCollectorDeferScope();
-		cursor.ast().call_builtin_method(index, cursor);
+		const auto scope = GarbageCollectorDeferScope();
+		cursor.program().call_builtin_method(index, cursor);
 	}
 
 	static void on_call_global_builtin(Cursor& cursor, std::size_t index) {
-		auto scope = GarbageCollectorDeferScope();
-		cursor.ast().call_global_builtin_method(index, cursor);
+		const auto scope = GarbageCollectorDeferScope();
+		cursor.program().call_global_builtin_method(index, cursor);
 	}
 
 	static void on_init_call(Cursor& cursor) {
@@ -702,7 +702,7 @@ public:
 	}
 
 	static void on_exit_call(Cursor& cursor) {
-		auto scope = GarbageCollectorDeferScope();
+		const auto scope = GarbageCollectorDeferScope();
 		cursor.exit_call();
 	}
 

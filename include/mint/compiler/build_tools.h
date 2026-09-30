@@ -24,10 +24,10 @@
 #ifndef MINT_COMPILER_BUILD_TOOLS_H
 #define MINT_COMPILER_BUILD_TOOLS_H
 
-#include "mint/ast/class_description.h"
-#include "mint/ast/module.h"
-#include "mint/ast/node.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_description.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/lexer.h"
 #include "mint/config.h"
 #include "mint/memory/class.h"

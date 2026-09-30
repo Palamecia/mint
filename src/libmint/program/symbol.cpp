@@ -21,18 +21,6 @@
  * IN THE SOFTWARE.
  */
 
-#include "thread_entry_point.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/module.h"
-#include "mint/ast/node.h"
+#include "mint/program/symbol.h"
 
 using namespace mint;
-
-ThreadEntryPoint::ThreadEntryPoint(AbstractSyntaxTree& ast) :
-    Module(ast) {
-	push_node(Node::Command::exit_thread);
-}
-
-ThreadEntryPoint& ThreadEntryPoint::instance(AbstractSyntaxTree& ast) {
-	return ast.unique_module<ThreadEntryPoint>();
-}

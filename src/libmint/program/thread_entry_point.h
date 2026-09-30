@@ -21,15 +21,20 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/saved_state.h"
-#include "mint/ast/cursor.h"
+#ifndef LIBMINT_PROGRAM_THREAD_ENTRY_POINT_H
+#define LIBMINT_PROGRAM_THREAD_ENTRY_POINT_H
 
-using namespace mint;
+#include "mint/program/module.h"
 
-SavedState::SavedState(Cursor& cursor, Cursor::StackFrame* stack_frame) :
-    cursor(cursor),
-    stack_frame(stack_frame) {}
+namespace mint {
 
-SavedState::~SavedState() {
-	cursor.get().destroy(this);
+class ThreadEntryPoint : public Module {
+public:
+	explicit ThreadEntryPoint(Program& program);
+
+	static ThreadEntryPoint& instance(Program& program);
+};
+
 }
+
+#endif // LIBMINT_PROGRAM_THREAD_ENTRY_POINT_H

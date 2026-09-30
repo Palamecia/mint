@@ -24,9 +24,9 @@
 #ifndef MINT_SCHEDULER_SCHEDULER_H
 #define MINT_SCHEDULER_SCHEDULER_H
 
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/saved_state.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/program.h"
+#include "mint/program/saved_state.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/class.h"
 #include "mint/memory/reference.h"
@@ -52,9 +52,9 @@ class Scheduler;
 class MINT_EXPORT SchedulerContextSwitcher {
 	Scheduler* _previous = nullptr;
 public:
+	explicit SchedulerContextSwitcher(Scheduler* scheduler);
 	SchedulerContextSwitcher(const SchedulerContextSwitcher&) = default;
 	SchedulerContextSwitcher(SchedulerContextSwitcher&&) = delete;
-	SchedulerContextSwitcher(Scheduler* scheduler);
 	~SchedulerContextSwitcher();
 
 	static Scheduler* current();
@@ -78,7 +78,7 @@ public:
 
 class MINT_EXPORT Scheduler {
 public:
-	Scheduler(const std::vector<std::string>& args);
+	explicit Scheduler(const std::vector<std::string>& args);
 	Scheduler(Scheduler&&) = delete;
 	Scheduler(const Scheduler&) = delete;
 	~Scheduler();
@@ -88,7 +88,7 @@ public:
 
 	static Scheduler* instance();
 
-	AbstractSyntaxTree& ast();
+	Program& program();
 	static Process* current_process();
 
 	void set_debug_interface(DebugInterface* debug_interface);
@@ -149,7 +149,7 @@ private:
 	std::queue<std::unique_ptr<Process>> _configured_process;
 	DebugInterface* _debug_interface = nullptr;
 
-	AbstractSyntaxTree _ast;
+	Program _program;
 	ThreadPool _thread_pool;
 
 	std::vector<std::function<void(int)>> _exit_callbacks;

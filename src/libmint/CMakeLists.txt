@@ -55,42 +55,6 @@ PRIVATE
 target_sources(
 	mint-libmint
 PUBLIC
-	FILE_SET ast TYPE HEADERS
-	BASE_DIRS ${MINT_INCLUDE_DIR}
-	FILES
-	${MINT_INCLUDE_DIR}/mint/ast/abstract_syntax_tree_tools.h
-	${MINT_INCLUDE_DIR}/mint/ast/abstract_syntax_tree_walker.h
-	${MINT_INCLUDE_DIR}/mint/ast/abstract_syntax_tree.h
-	${MINT_INCLUDE_DIR}/mint/ast/class_description.h
-	${MINT_INCLUDE_DIR}/mint/ast/class_register.h
-	${MINT_INCLUDE_DIR}/mint/ast/cursor.h
-	${MINT_INCLUDE_DIR}/mint/ast/exception.h
-	${MINT_INCLUDE_DIR}/mint/ast/file_printer.h
-	${MINT_INCLUDE_DIR}/mint/ast/function_literal.h
-	${MINT_INCLUDE_DIR}/mint/ast/module.h
-	${MINT_INCLUDE_DIR}/mint/ast/node.h
-	${MINT_INCLUDE_DIR}/mint/ast/printer.h
-	${MINT_INCLUDE_DIR}/mint/ast/saved_state.h
-	${MINT_INCLUDE_DIR}/mint/ast/symbol.h
-PRIVATE
-	ast/abstract_syntax_tree.cpp
-	ast/abstract_syntax_tree_tools.cpp
-	ast/class_description.cpp
-	ast/class_register.cpp
-	ast/cursor.cpp
-	ast/file_printer.cpp
-	ast/module.cpp
-	ast/node.cpp
-	ast/printer.cpp
-	ast/saved_state.cpp
-	ast/symbol.cpp
-	ast/thread_entry_point.cpp
-	ast/thread_entry_point.h
-)
-
-target_sources(
-	mint-libmint
-PUBLIC
 	FILE_SET compiler TYPE HEADERS
 	BASE_DIRS ${MINT_INCLUDE_DIR}
 	FILES
@@ -200,6 +164,42 @@ PRIVATE
 	memory/operator_tools.cpp
 	memory/reference.cpp
 	memory/symbol_table.cpp
+)
+
+target_sources(
+	mint-libmint
+PUBLIC
+	FILE_SET program TYPE HEADERS
+	BASE_DIRS ${MINT_INCLUDE_DIR}
+	FILES
+	${MINT_INCLUDE_DIR}/mint/program/bytecode_walker.h
+	${MINT_INCLUDE_DIR}/mint/program/class_description.h
+	${MINT_INCLUDE_DIR}/mint/program/class_register.h
+	${MINT_INCLUDE_DIR}/mint/program/cursor.h
+	${MINT_INCLUDE_DIR}/mint/program/exception.h
+	${MINT_INCLUDE_DIR}/mint/program/file_printer.h
+	${MINT_INCLUDE_DIR}/mint/program/function_literal.h
+	${MINT_INCLUDE_DIR}/mint/program/module.h
+	${MINT_INCLUDE_DIR}/mint/program/node.h
+	${MINT_INCLUDE_DIR}/mint/program/printer.h
+	${MINT_INCLUDE_DIR}/mint/program/program_tools.h
+	${MINT_INCLUDE_DIR}/mint/program/program.h
+	${MINT_INCLUDE_DIR}/mint/program/saved_state.h
+	${MINT_INCLUDE_DIR}/mint/program/symbol.h
+PRIVATE
+	program/class_description.cpp
+	program/class_register.cpp
+	program/cursor.cpp
+	program/file_printer.cpp
+	program/module.cpp
+	program/node.cpp
+	program/printer.cpp
+	program/program_tools.cpp
+	program/program.cpp
+	program/saved_state.cpp
+	program/symbol.cpp
+	program/thread_entry_point.cpp
+	program/thread_entry_point.h
 )
 
 target_sources(
@@ -343,11 +343,11 @@ install(
 	LIBRARY COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}
 	ARCHIVE COMPONENT runtime DESTINATION ${MINT_LIBRARY_INSTALL_DIR}
 	RUNTIME COMPONENT runtime DESTINATION ${MINT_RUNTIME_INSTALL_DIR}
-	FILE_SET ast COMPONENT devel DESTINATION ${MINT_HEADERS_INSTALL_DIR}
 	FILE_SET compiler COMPONENT devel DESTINATION ${MINT_HEADERS_INSTALL_DIR}
 	FILE_SET debug COMPONENT devel DESTINATION ${MINT_HEADERS_INSTALL_DIR}
 	FILE_SET memory COMPONENT devel DESTINATION ${MINT_HEADERS_INSTALL_DIR}
 	FILE_SET memory_builtin COMPONENT devel DESTINATION ${MINT_HEADERS_INSTALL_DIR}
+	FILE_SET program COMPONENT devel DESTINATION ${MINT_HEADERS_INSTALL_DIR}
 	FILE_SET scheduler COMPONENT devel DESTINATION ${MINT_HEADERS_INSTALL_DIR}
 	FILE_SET system COMPONENT devel DESTINATION ${MINT_HEADERS_INSTALL_DIR}
 	FILE_SET config COMPONENT devel DESTINATION ${MINT_HEADERS_INSTALL_DIR}

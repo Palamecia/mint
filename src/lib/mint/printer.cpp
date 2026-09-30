@@ -21,10 +21,10 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/printer.h"
+#include "mint/program/printer.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/function_tools.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/reference.h"
 
 namespace {
@@ -44,7 +44,7 @@ MINT_RAW_FUNCTION(mint_printer_current_handle, 0, cursor) {
 	cursor.exit_call();
 
 	if (mint::Printer* printer = cursor.printer()) {
-		cursor.stack().emplace_back(mint::create_c_object(cursor.ast(), printer));
+		cursor.stack().emplace_back(mint::create_c_object(cursor.program(), printer));
 	}
 	else {
 		cursor.stack().emplace_back(mint::create_none());

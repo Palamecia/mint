@@ -28,6 +28,7 @@
 #include "mint/memory/function_tools.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/reference.h"
+#include "mint/system/async_io.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -76,8 +77,8 @@ mint::Reference mint_pipe_create(mint::Cursor& cursor) {
 	if (CreatePipe(std::next(pipe.data(), 0), std::next(pipe.data(), 1), &pipe_attributes, 0) != 0) {
 		if ((pipe.at(0) != INVALID_HANDLE_VALUE) && (pipe.at(1) != INVALID_HANDLE_VALUE)) {
 			if (DWORD mode = PIPE_NOWAIT; SetNamedPipeHandleState(pipe.at(0), &mode, nullptr, nullptr)) {
-				return mint::create_iterator_from(cursor, mint::create_handle(cursor.ast(), pipe.at(0)),
-				    mint::create_handle(cursor.ast(), pipe.at(1)));
+				return mint::create_iterator_from(cursor, mint::create_handle(cursor.program(), pipe.at(0)),
+				    mint::create_handle(cursor.program(), pipe.at(1)));
 			}
 			CloseHandle(pipe.at(0));
 			CloseHandle(pipe.at(1));
@@ -92,8 +93,8 @@ mint::Reference mint_pipe_create(mint::Cursor& cursor) {
 		if ((fd.at(0) != -1) && (fd.at(1) != -1)) {
 			fcntl(fd.at(0), F_SETFL, fcntl(fd.at(0), F_GETFL) | O_NONBLOCK);
 			fcntl(fd.at(1), F_SETFL, fcntl(fd.at(1), F_GETFL) | O_NONBLOCK);
-			return mint::create_iterator_from(cursor, mint::create_handle(cursor.ast(), fd.at(0)),
-			    mint::create_handle(cursor.ast(), fd.at(1)));
+			return mint::create_iterator_from(cursor, mint::create_handle(cursor.program(), fd.at(0)),
+			    mint::create_handle(cursor.program(), fd.at(1)));
 		}
 	}
 
@@ -103,8 +104,8 @@ mint::Reference mint_pipe_create(mint::Cursor& cursor) {
 
 	if (pipe2(fd.data(), O_NONBLOCK) == 0) {
 		if ((fd.at(0) != -1) && (fd.at(1) != -1)) {
-			return mint::create_iterator_from(cursor, mint::create_handle(cursor.ast(), fd.at(0)),
-			    mint::create_handle(cursor.ast(), fd.at(1)));
+			return mint::create_iterator_from(cursor, mint::create_handle(cursor.program(), fd.at(0)),
+			    mint::create_handle(cursor.program(), fd.at(1)));
 		}
 	}
 
@@ -125,11 +126,11 @@ mint::Reference mint_pipe_read_some(mint::Cursor& cursor, const mint::Reference&
     const mint::Reference& count) {
 
 	const auto bytes_count = mint::to_integer<std::size_t>(cursor, count);
-	auto read_buffer = std::make_unique<std::uint8_t[]>(bytes_count);
+	const auto read_buffer = std::make_unique<std::uint8_t[]>(bytes_count);
 	auto* stream_buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
 #ifdef MINT_OS_WINDOWS
-	const auto h = to_handle(handle);
+	const mint::handle_t h = to_handle(handle);
 	if (auto byte_received = DWORD();
 	    ReadFile(h, read_buffer.get(), static_cast<DWORD>(bytes_count), &byte_received, nullptr)) {
 		if (byte_received > 0) {
@@ -154,7 +155,7 @@ mint::Reference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& 
 
 #ifdef MINT_OS_WINDOWS
 	auto byte_received = DWORD();
-	const auto h = to_handle(handle);
+	const mint::handle_t h = to_handle(handle);
 	while (ReadFile(h, read_buffer.data(), static_cast<DWORD>(read_buffer.size()), &byte_received, nullptr)) {
 
 		if (byte_received < 0) {
@@ -181,7 +182,7 @@ mint::Reference mint_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference&
 
 #ifdef MINT_OS_WINDOWS
 	DWORD count = 0;
-	const auto h = to_handle(handle);
+	const mint::handle_t h = to_handle(handle);
 	auto* buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 
 	WriteFile(h, buffer->data(), static_cast<DWORD>(buffer->size()), &count, nullptr);

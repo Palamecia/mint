@@ -24,7 +24,7 @@
 #ifndef MINT_DEBUG_LINE_INFO_H
 #define MINT_DEBUG_LINE_INFO_H
 
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include "mint/config.h"
 
 #include <cstddef>
@@ -34,18 +34,18 @@
 
 namespace mint {
 
-class AbstractSyntaxTree;
+class Program;
 
 class MINT_EXPORT LineInfo {
 public:
-	LineInfo(AbstractSyntaxTree& ast, std::string module, std::size_t line_number = 0);
+	LineInfo(Program& program, std::string module, std::size_t line_number = 0);
 	LineInfo(Module::Id module_id, std::string module, std::size_t line_number = 0);
 	LineInfo();
 
 	[[nodiscard]] Module::Id module_id() const;
 	[[nodiscard]] std::string module_name() const;
 	[[nodiscard]] std::size_t line_number() const;
-	[[nodiscard]] std::string to_string(const AbstractSyntaxTree& ast) const;
+	[[nodiscard]] std::string to_string(const Program& program) const;
 
 	[[nodiscard]] std::filesystem::path system_path() const;
 	[[nodiscard]] std::filesystem::path system_file_name() const;

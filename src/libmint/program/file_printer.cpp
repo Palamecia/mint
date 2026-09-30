@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/file_printer.h"
+#include "mint/program/file_printer.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/cast_tools.h"
 #include "mint/system/errno.h"

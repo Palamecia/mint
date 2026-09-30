@@ -22,8 +22,8 @@
  */
 
 #include "mint/memory/cast_tools.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/cursor.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"

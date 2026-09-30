@@ -23,9 +23,9 @@
 
 #include "highlighter.h"
 
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/class_description.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/program.h"
+#include "mint/program/class_description.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
@@ -43,12 +43,18 @@
 #include <tuple>
 #include <vector>
 
-#define is_standard_symbol(_token) ((_token == "self") || (_token == "va_args"))
+namespace {
+
+constexpr bool is_standard_symbol(std::string_view token) {
+	return (token == "self") || (token == "va_args");
+}
+
+}
 
 using namespace mint;
 
-Highlighter::Highlighter(const AbstractSyntaxTree& ast, std::string_view::size_type offset) :
-    _ast(ast),
+Highlighter::Highlighter(const Program& program, std::string_view::size_type offset) :
+    _program(program),
     _offset(offset) {}
 
 std::string Highlighter::output() const {
@@ -381,14 +387,14 @@ const Reference* Highlighter::find_defined_symbol(const std::vector<std::string>
 		return nullptr;
 	}
 	if (pack) {
-		if (auto it = pack->symbols().find(symbol); it != pack->symbols().end()) {
+		if (const auto it = pack->symbols().find(symbol); it != pack->symbols().end()) {
 			return std::addressof(it->second);
 		}
 		return nullptr;
 	}
 
-	const auto& global_data = _ast.get().global_data();
-	if (auto it = global_data.symbols().find(symbol); it != global_data.symbols().end()) {
+	const auto& global_data = _program.get().global_data();
+	if (const auto it = global_data.symbols().find(symbol); it != global_data.symbols().end()) {
 		return std::addressof(it->second);
 	}
 	return nullptr;
@@ -418,7 +424,7 @@ std::optional<std::tuple<const PackageData*, const ClassDescription*>> Highlight
 			}
 		}
 		else {
-			const auto& global_data = _ast.get().global_data();
+			const auto& global_data = _program.get().global_data();
 			desc = global_data.find_class_description(symbol);
 			if (desc == nullptr) {
 				pack = global_data.find_package(symbol);

@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_SYMBOL_H
-#define MINT_AST_SYMBOL_H
+#ifndef MINT_PROGRAM_SYMBOL_H
+#define MINT_PROGRAM_SYMBOL_H
 
 #include "mint/config.h"
 
@@ -202,4 +202,4 @@ struct std::hash<mint::Symbol> {
 	}
 };
 
-#endif // MINT_AST_SYMBOL_H
+#endif // MINT_PROGRAM_SYMBOL_H

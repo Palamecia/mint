@@ -24,19 +24,20 @@
 #ifndef MINT_MEMORY_MEMORY_TOOLS_H
 #define MINT_MEMORY_MEMORY_TOOLS_H
 
-#include "mint/ast/class_register.h"
+#include "mint/program/class_register.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/class.h"
-#include "mint/ast/printer.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/printer.h"
+#include "mint/program/symbol.h"
 #include <cstddef>
 #include <functional>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 
@@ -49,7 +50,7 @@ class SymbolTable;
 MINT_EXPORT std::string type_name(const Reference& reference);
 MINT_EXPORT inline bool is_instance_of(const Reference& reference, Data::Format format);
 MINT_EXPORT inline bool is_instance_of(const Reference& reference, Class::Metatype metatype);
-MINT_EXPORT bool is_instance_of(const Reference& reference, const std::string& type_name);
+MINT_EXPORT bool is_instance_of(const Reference& reference, std::string_view type_name);
 MINT_EXPORT inline bool is_class(const Reference& reference);
 MINT_EXPORT inline bool is_class(const Object& object);
 MINT_EXPORT inline bool is_object(const Object& object);

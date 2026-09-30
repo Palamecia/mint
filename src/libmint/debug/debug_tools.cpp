@@ -22,10 +22,10 @@
  */
 
 #include "mint/debug/debug_tools.h"
-#include "mint/ast/class_description.h"
-#include "mint/ast/module.h"
-#include "mint/ast/node.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_description.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
+#include "mint/program/symbol.h"
 #include "mint/debug/debug_info.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
@@ -36,9 +36,9 @@
 #include "mint/memory/builtin/string.h"
 #include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/iterator.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/abstract_syntax_tree_walker.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/bytecode_walker.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/system/filesystem.h"
@@ -880,10 +880,10 @@ std::string mint::get_module_line(const std::string& module, std::size_t line) {
 	return line_content;
 }
 
-const mint::FunctionInfo* mint::find_function_info(const AbstractSyntaxTree& ast, const Function& function) {
+const mint::FunctionInfo* mint::find_function_info(const Program& program, const Function& function) {
 	for (const auto& mapping : function.mapping) {
 		const auto& handle = mapping.second.handle();
-		if (const auto* debug_info = ast.find_debug_info(handle.module)) {
+		if (const auto* debug_info = program.find_debug_info(handle.module)) {
 			if (const auto* function_info = debug_info->find_function_from_offset(handle.offset)) {
 				return function_info;
 			}
@@ -990,14 +990,14 @@ std::string mint::to_debug_string(const Package& package) {
 }
 
 std::string mint::to_debug_string(Cursor& cursor, const Function& function) {
-	return std::format("(function: {})", std::views::transform(function.mapping,
-	                                         [&ast = cursor.ast()](const auto& item) {
-		                                         const auto& module = item.second.handle().module;
-		                                         return std::to_string(item.first) + "@" + ast.get_module_name(module)
-		                                                + to_debug_string(item.second.handle().offset);
-	                                         })
-	                                         | std::views::join_with(std::string(", "))
-	                                         | std::ranges::to<std::string>());
+	return std::format("(function: {})",
+	    std::views::transform(function.mapping,
+	        [&program = cursor.program()](const auto& item) {
+		        const auto& module = item.second.handle().module;
+		        return std::to_string(item.first) + "@" + program.get_module_name(module)
+		               + to_debug_string(item.second.handle().offset);
+	        })
+	        | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 }
 
 std::string mint::to_debug_string(Cursor& /*cursor*/, const Coroutine& /*coroutine*/) {

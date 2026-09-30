@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/reference.h"
@@ -49,17 +49,18 @@ public:
 	}
 };
 
-mint::Reference mint_operation_create(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler) {
-	return mint::create_async_operation(cursor.ast(),
+mint::Reference mint_operation_create(mint::Cursor& cursor, const mint::Reference& self,
+    const mint::Reference& scheduler) {
+	return mint::create_async_operation(cursor.program(),
 	    new DefaultAsyncOperation(self, *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr));
 }
 
-mint::Reference mint_operation_delete(mint::Cursor& /*cursor*/, mint::Reference& self) {
+mint::Reference mint_operation_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
 	delete self.data<mint::LibObject<mint::MintAsyncOperation>>().ptr;
 	return {};
 }
 
-mint::Reference mint_operation_get(mint::Cursor& /*cursor*/, mint::Reference& self) {
+mint::Reference mint_operation_get(mint::Cursor& /*cursor*/, const mint::Reference& self) {
 	return self.data<mint::LibObject<mint::MintAsyncOperation>>().ptr->get();
 }
 

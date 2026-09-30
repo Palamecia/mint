@@ -1,5 +1,5 @@
-#include "mint/ast/file_printer.h"
-#include "mint/ast/module.h"
+#include "mint/program/file_printer.h"
+#include "mint/program/module.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
@@ -14,14 +14,14 @@
 
 TEST(file_printer, print_none) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
@@ -41,14 +41,14 @@ TEST(file_printer, print_none) {
 
 TEST(file_printer, print_null) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
@@ -68,18 +68,18 @@ TEST(file_printer, print_null) {
 
 TEST(file_printer, print_libobject) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
-		const auto object = mint::create_c_object(scheduler.ast(), reinterpret_cast<int*>(0x7357));
+		const auto object = mint::create_c_object(scheduler.program(), reinterpret_cast<int*>(0x7357));
 		auto printer = mint::FilePrinter(fd);
 		printer.print(object);
 	}
@@ -95,18 +95,18 @@ TEST(file_printer, print_libobject) {
 
 TEST(file_printer, print_package) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
-		auto package_data = mint::PackageData(scheduler.ast(), "test");
+		auto package_data = mint::PackageData(scheduler.program(), "test");
 		const auto package = mint::make_reference<mint::Package>(mint::create_flags, package_data);
 		auto printer = mint::FilePrinter(fd);
 		printer.print(package);
@@ -123,14 +123,14 @@ TEST(file_printer, print_package) {
 
 TEST(file_printer, print_function) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
@@ -150,18 +150,18 @@ TEST(file_printer, print_function) {
 
 TEST(file_printer, print_string) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
-		const auto string = mint::create_string(scheduler.ast(), "foo");
+		const auto string = mint::create_string(scheduler.program(), "foo");
 		auto printer = mint::FilePrinter(fd);
 		printer.print(string);
 	}
@@ -177,14 +177,14 @@ TEST(file_printer, print_string) {
 
 TEST(file_printer, print_integer) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
@@ -204,14 +204,14 @@ TEST(file_printer, print_integer) {
 
 TEST(file_printer, print_number) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
@@ -231,14 +231,14 @@ TEST(file_printer, print_number) {
 
 TEST(file_printer, print_scientific_number) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
@@ -258,14 +258,14 @@ TEST(file_printer, print_scientific_number) {
 
 TEST(file_printer, print_false) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
@@ -285,14 +285,14 @@ TEST(file_printer, print_false) {
 
 TEST(file_printer, print_true) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	auto buffer = std::array<char, BUFSIZ>();
 
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	{
@@ -311,18 +311,18 @@ TEST(file_printer, print_true) {
 
 TEST(file_printer, print_twice) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	gsl::owner<FILE*> file = tmpfile();
 	ASSERT_NE(nullptr, file);
 
-	auto fd = fileno(file);
+	const auto fd = fileno(file);
 	ASSERT_NE(-1, fd);
 
 	auto buffer = std::array<char, BUFSIZ>();
 
 	{
-		const auto string = mint::create_string(scheduler.ast(), "foo\n");
+		const auto string = mint::create_string(scheduler.program(), "foo\n");
 		auto printer = mint::FilePrinter(fd);
 		printer.print(string);
 	}
@@ -334,7 +334,7 @@ TEST(file_printer, print_twice) {
 	EXPECT_STREQ("foo\n", buffer.data());
 
 	{
-		const auto string = mint::create_string(scheduler.ast(), "bar\n");
+		const auto string = mint::create_string(scheduler.program(), "bar\n");
 		auto printer = mint::FilePrinter(fd);
 		printer.print(string);
 	}

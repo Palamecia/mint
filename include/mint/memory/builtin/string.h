@@ -32,22 +32,22 @@
 
 namespace mint {
 
-class AbstractSyntaxTree;
 class GarbageCollector;
+class Program;
 
 class MINT_EXPORT StringClass : public Class {
 public:
-	StringClass(AbstractSyntaxTree& ast);
-	static StringClass& instance(AbstractSyntaxTree& ast);
+	explicit StringClass(Program& program);
+	static StringClass& instance(Program& program);
 };
 
 class MINT_EXPORT String : public Object {
 	friend class GarbageCollector;
 public:
-	explicit String(AbstractSyntaxTree& ast);
-	String(AbstractSyntaxTree& ast, const char* value);
-	String(AbstractSyntaxTree& ast, std::string value);
-	String(AbstractSyntaxTree& ast, std::string_view value);
+	explicit String(Program& program);
+	String(Program& program, const char* value);
+	String(Program& program, std::string value);
+	String(Program& program, std::string_view value);
 	String(String&& other) noexcept;
 	String(const String& other);
 	~String() override = default;

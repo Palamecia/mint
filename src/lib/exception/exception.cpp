@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/cast_tools.h"
@@ -35,12 +35,12 @@
 namespace {
 
 mint::Reference mint_exception_stacktrace(mint::Cursor& cursor) {
-	auto result = mint::create_iterator(cursor.ast());
+	auto result = mint::create_iterator(cursor.program());
 	if (const auto* exception = cursor.get_exception()) {
 		for (const auto& frame : exception->stacktrace) {
 			mint::iterator_yield(cursor, result.data<mint::Iterator>(),
 			    mint::create_iterator_from(cursor, mint::create_unsigned_number(frame.module_id()),
-			        mint::create_string(cursor.ast(), frame.module_name()),
+			        mint::create_string(cursor.program(), frame.module_name()),
 			        mint::create_unsigned_number(frame.line_number())));
 		}
 	}
@@ -59,11 +59,11 @@ mint::Reference mint_exception_stacktrace_for(mint::Cursor& cursor, const mint::
 		if (&exception->object.data() != &cause.data()) {
 			continue;
 		}
-		auto result = mint::create_iterator(cursor.ast());
+		auto result = mint::create_iterator(cursor.program());
 		for (const auto& frame : exception->stacktrace) {
 			mint::iterator_yield(cursor, result.data<mint::Iterator>(),
 			    mint::create_iterator_from(cursor, mint::create_unsigned_number(frame.module_id()),
-			        mint::create_string(cursor.ast(), frame.module_name()),
+			        mint::create_string(cursor.program(), frame.module_name()),
 			        mint::create_unsigned_number(frame.line_number())));
 		}
 		return result;
@@ -102,7 +102,7 @@ mint::Reference mint_exception_causes_for(mint::Cursor& cursor, const mint::Refe
 		if (&exception->object.data() != &error.data()) {
 			continue;
 		}
-		auto result = mint::create_iterator(cursor.ast());
+		auto result = mint::create_iterator(cursor.program());
 		for (const auto* cause = exception->cause.get(); cause != nullptr; cause = cause->cause.get()) {
 			mint::iterator_yield(cursor, result.data<mint::Iterator>(),
 			    mint::create_iterator_from(cursor, cause->object, mint::create_unsigned_number(cause->depth)));

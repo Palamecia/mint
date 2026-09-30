@@ -1,25 +1,29 @@
 #include <gtest/gtest.h>
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/class_register.h"
-#include "mint/ast/module.h"
-#include "mint/ast/node.h"
+#include "mint/program/program.h"
+#include "mint/program/class_register.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
 #include "mint/compiler/compiler.h"
 #include "mint/debug/debug_info.h"
 #include "mint/system/buffer_stream.h"
 
+namespace {
+
 class TestModule : public mint::Module {
 public:
-	TestModule(mint::AbstractSyntaxTree& ast) :
-	    Module(ast) {}
+	explicit TestModule(mint::Program& program) :
+	    Module(program) {}
 
 	using Module::push_node;
 };
 
+}
+
 TEST(debug_infos, new_line) {
 
-	auto ast = mint::AbstractSyntaxTree();
+	auto program = mint::Program();
 	auto infos = mint::DebugInfo();
-	auto module = TestModule(ast);
+	auto module = TestModule(program);
 
 	infos.new_line(module, 1);
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
@@ -33,9 +37,9 @@ TEST(debug_infos, new_line) {
 
 TEST(debug_infos, line_number) {
 
-	auto ast = mint::AbstractSyntaxTree();
+	auto program = mint::Program();
 	auto infos = mint::DebugInfo();
-	auto module = TestModule(ast);
+	auto module = TestModule(program);
 
 	infos.new_line(module, 1);
 	module.push_node(mint::Node(mint::Node::Command::exit_module));
@@ -69,11 +73,11 @@ TEST(debug_infos, line_number) {
 
 TEST(debug_infos, new_line_from_source) {
 
-	auto ast = mint::AbstractSyntaxTree();
+	auto program = mint::Program();
 	auto module = mint::ModuleInfo {
-	    .bytecode = mint::Module(ast),
+	    .bytecode = mint::Module(program),
 	};
-	auto compiler = mint::Compiler(ast);
+	auto compiler = mint::Compiler(program);
 
 	auto stream = mint::BufferStream(R"""(/* comment */
 

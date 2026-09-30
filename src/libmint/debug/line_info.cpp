@@ -22,10 +22,10 @@
  */
 
 #include "mint/debug/line_info.h"
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include "mint/debug/debug_info.h"
 #include "mint/debug/debug_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/program/program.h"
 #include <cstddef>
 #include <filesystem>
 #include <format>
@@ -34,8 +34,8 @@
 
 using namespace mint;
 
-LineInfo::LineInfo(AbstractSyntaxTree& ast, std::string module, std::size_t line_number) :
-    _module_id(ast.module_info(module).id),
+LineInfo::LineInfo(Program& program, std::string module, std::size_t line_number) :
+    _module_id(program.module_info(module).id),
     _module_name(std::move(module)),
     _line_number(line_number) {}
 
@@ -78,13 +78,13 @@ std::string execution_location(const DebugInfo* debug_info, const std::string& m
 
 }
 
-std::string LineInfo::to_string(const AbstractSyntaxTree& ast) const {
+std::string LineInfo::to_string(const Program& program) const {
 	auto module_path = to_system_path(_module_name).string();
 	if (module_path.empty()) {
 		module_path = "unknown";
 	}
 	if (_line_number) {
-		const auto location = execution_location(ast.find_debug_info(_module_id), _module_name, _line_number);
+		const auto location = execution_location(program.find_debug_info(_module_id), _module_name, _line_number);
 		return std::format("at {} ({}:{})", location, module_path, _line_number);
 	}
 	return std::format("at {} ({})", _module_name, module_path);

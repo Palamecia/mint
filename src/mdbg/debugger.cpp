@@ -30,9 +30,8 @@
 #include "mint/debug/debug_info.h"
 #include "mint/debug/debug_interface.h"
 #include "mint/scheduler/scheduler.h"
-#include "mint/system/error.h"
 
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include "mint/debug/debug_tools.h"
 #include "mint/system/stdio.h"
 
@@ -162,9 +161,9 @@ void Debugger::print_help() {
 
 bool Debugger::process_events(mint::CursorDebugger& cursor) {
 
-	mint::AbstractSyntaxTree& ast = cursor.cursor().ast();
+	mint::Program& program = cursor.cursor().program();
 
-	while (const auto* module = ast.find_module(_module_count)) {
+	while (const auto* module = program.find_module(_module_count)) {
 		_backend->on_module_loaded(*this, cursor, *module);
 		++_module_count;
 	}
@@ -174,7 +173,7 @@ bool Debugger::process_events(mint::CursorDebugger& cursor) {
 		const std::string module_name = breakpoint.type == PendingBreakpoint::From::file_path
 		                                    ? mint::to_module_path(breakpoint.module)
 		                                    : breakpoint.module;
-		const auto& module = ast.module_info(module_name);
+		const auto& module = program.module_info(module_name);
 		if (module.state != mint::Module::State::not_compiled) {
 			create_breakpoint(
 			    {module.id, module_name, module.debug_info.to_executable_line_number(breakpoint.line_number)});

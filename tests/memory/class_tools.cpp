@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "mint/memory/class_tools.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/function_tools.h"
@@ -9,10 +9,10 @@
 
 TEST(class_tools, create_class_with_builtin_member) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 
-	mint::Class& type = mint::create_class(scheduler.ast(), "__class_api_test__",
+	mint::Class& type = mint::create_class(scheduler.program(), "__class_api_test__",
 	    {
 	        {mint::Symbol("member"), mint::create_number(42)},
 	    });

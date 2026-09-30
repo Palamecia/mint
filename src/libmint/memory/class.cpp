@@ -35,11 +35,11 @@
 #include <vector>
 
 #include "mint/memory/class.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/class_description.h"
-#include "mint/ast/class_register.h"
-#include "mint/ast/module.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/program.h"
+#include "mint/program/class_description.h"
+#include "mint/program/class_register.h"
+#include "mint/program/module.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/object.h"
@@ -159,7 +159,7 @@ std::optional<Class::Operator> mint::get_symbol_operator(const Symbol& symbol) {
 	    {builtin_symbols::regex_match_operator, Class::regex_match_operator},
 	    {builtin_symbols::regex_unmatch_operator, Class::regex_unmatch_operator},
 	};
-	if (auto it = operators.find(symbol); it != operators.end()) {
+	if (const auto it = operators.find(symbol); it != operators.end()) {
 		return it->second;
 	}
 	return std::nullopt;
@@ -191,16 +191,18 @@ ClassDescription& Class::get_description() const {
 }
 
 const Class::MemberInfo* Class::find_class(const Symbol& name) const {
-	if (auto it = _members.find(name); it != _members.end() && is_instance_of(it->second->value, Data::Format::object)
-	                                   && is_class(it->second->value.data<Object>())) {
+	if (const auto it = _members.find(name); it != _members.end()
+	                                         && is_instance_of(it->second->value, Data::Format::object)
+	                                         && is_class(it->second->value.data<Object>())) {
 		return it->second.get();
 	}
 	return nullptr;
 }
 
 Class::MemberInfo* Class::find_class(const Symbol& name) {
-	if (auto it = _members.find(name); it != _members.end() && is_instance_of(it->second->value, Data::Format::object)
-	                                   && is_class(it->second->value.data<Object>())) {
+	if (const auto it = _members.find(name); it != _members.end()
+	                                         && is_instance_of(it->second->value, Data::Format::object)
+	                                         && is_class(it->second->value.data<Object>())) {
 		return it->second.get();
 	}
 	return nullptr;
@@ -245,14 +247,14 @@ bool Class::is_direct_base_or_same(const Class& other) const {
 	}) != other_bases.end();
 }
 
-const Class::MemberInfo& Class::make_allocate_method_reference(AbstractSyntaxTree& ast) {
+const Class::MemberInfo& Class::make_allocate_method_reference(Program& program) {
 	return *_globals
 	            .emplace(builtin_symbols::allocate_method,
 	                make_member_info({
 	                    .owner = std::ref(*this),
 	                    .value = make_reference<Function>(Reference::const_address | Reference::const_value
 	                                                          | Reference::global | Reference::protected_visibility,
-	                        ast.create_global_builtin_method(*this, 0,
+	                        program.create_global_builtin_method(*this, 0,
 	                            [](Class& metadata, Cursor& cursor) {
 		                            auto instance = make_reference<Object>(Reference::temporary, metadata);
 		                            instance.data<Object>().construct();
@@ -317,7 +319,7 @@ void Class::create_builtin_member(Operator op, Reference&& value) {
 void Class::create_builtin_member(Operator op, std::pair<int, FunctionHandle&> member) {
 	const auto op_index = static_cast<std::size_t>(op);
 	assert(op_index < _operators.size());
-	if (auto* op_info = _operators[op_index]) {
+	if (const auto* op_info = _operators[op_index]) {
 		op_info->value.data<Function>().mapping.insert(member);
 	}
 	else {
@@ -350,7 +352,7 @@ void Class::create_builtin_member(const Symbol& symbol, Reference&& value) {
 }
 
 void Class::create_builtin_member(const Symbol& symbol, std::pair<int, FunctionHandle&> member) {
-	if (auto it = _members.find(symbol); it != _members.end()) {
+	if (const auto it = _members.find(symbol); it != _members.end()) {
 		it->second->value.data<Function>().mapping.insert(member);
 	}
 	else {

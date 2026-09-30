@@ -24,7 +24,7 @@
 #ifndef MINT_DEBUG_DEBUG_INTERFACE_H
 #define MINT_DEBUG_DEBUG_INTERFACE_H
 
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include "mint/config.h"
 #include "mint/scheduler/process.h"
 #include "mint/debug/cursor_debugger.h"

@@ -22,17 +22,17 @@
  */
 
 #include "mint/memory/builtin/libobject.h"
-#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/program/program.h"
 #include "mint/memory/class.h"
 #include "mint/memory/global_data.h"
 
 using namespace mint;
 
-LibObjectClass& LibObjectClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<LibObjectClass>(Class::Metatype::libobject);
+LibObjectClass& LibObjectClass::instance(Program& program) {
+	return program.global_data().builtin<LibObjectClass>(Class::Metatype::libobject);
 }
 
-LibObjectClass::LibObjectClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "libobject", Class::Metatype::libobject) {
+LibObjectClass::LibObjectClass(Program& program) :
+    Class(program.global_data(), "libobject", Class::Metatype::libobject) {
 	create_builtin_member(delete_operator);
 }

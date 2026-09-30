@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/cast_tools.h"
 #include "mint/memory/function_tools.h"
@@ -44,7 +44,8 @@ mint::Reference mint_text_codec_decode(mint::Cursor& cursor, const mint::Referen
 	auto decoded = std::string();
 
 	if (bytes.empty()) {
-		return mint::create_iterator_from(cursor, mint::create_number(1), mint::create_string(cursor.ast(), decoded));
+		return mint::create_iterator_from(cursor, mint::create_number(1),
+		    mint::create_string(cursor.program(), decoded));
 	}
 
 	while (!bytes.empty()) {
@@ -52,24 +53,24 @@ mint::Reference mint_text_codec_decode(mint::Cursor& cursor, const mint::Referen
 		if (length > bytes.size()) {
 			pos.data<mint::Number>().value = mint::to_number(offset + decoded.size());
 			return mint::create_iterator_from(cursor, mint::create_number(1),
-			    mint::create_string(cursor.ast(), decoded));
+			    mint::create_string(cursor.program(), decoded));
 		}
 		decoded.append_range(std::span(bytes.data(), length));
 		bytes = bytes.subspan(length);
 	}
 
 	pos.data<mint::Number>().value = mint::to_number(offset + decoded.size());
-	return mint::create_iterator_from(cursor, mint::create_number(0), mint::create_string(cursor.ast(), decoded));
+	return mint::create_iterator_from(cursor, mint::create_number(0), mint::create_string(cursor.program(), decoded));
 }
 
 mint::Reference mint_text_codec_encode(mint::Cursor& cursor, const mint::Reference& str, const mint::Reference& buffer,
     const mint::Reference& pos) {
 
 	auto* output = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
-	auto input_string = mint::to_string(str);
+	const auto input_string = mint::to_string(str);
 	const auto offset = mint::utf8_code_point_index_to_byte_index(input_string,
 	    mint::to_integer<std::size_t>(cursor, pos));
-	auto input_view = std::string_view(input_string).substr(offset);
+	const auto input_view = std::string_view(input_string).substr(offset);
 	auto bytes_pos = 0uz;
 
 	while (bytes_pos < input_view.size()) {

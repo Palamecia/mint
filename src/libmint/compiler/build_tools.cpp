@@ -22,12 +22,12 @@
  */
 
 #include "mint/compiler/build_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/class_register.h"
-#include "mint/ast/node.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/program.h"
+#include "mint/program/class_register.h"
+#include "mint/program/node.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/compiler.h"
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include "mint/memory/data.h"
 #include "mint/memory/global_data.h"
 #include "mint/memory/object.h"
@@ -62,7 +62,7 @@ BuildContext::BuildContext(DataStream& stream, Compiler& compiler, ModuleInfo& d
     _compiler(compiler),
     _lexer(stream),
     _module_context(std::make_unique<Context>()),
-    _main_branch(std::make_unique<MainBranch>(compiler.ast(), data)),
+    _main_branch(std::make_unique<MainBranch>(compiler.program(), data)),
     _branch(*_main_branch) {
 	stream.set_new_line_callback([this](std::size_t line_number) {
 		_branch.get().set_pending_new_line(line_number);
@@ -111,18 +111,16 @@ std::size_t BuildContext::create_fast_scoped_symbol_index(const std::string& sym
 		context.range_loop_scoped_symbols->emplace_back(module_symbol);
 	}
 	else if (!context.blocks.empty()) {
-		auto& block = context.blocks.back();
+		const auto& block = context.blocks.back();
 		module_symbol = _data.get().bytecode.make_symbol(symbol);
 		block->block_scoped_symbols.push_back(module_symbol);
 	}
 
-	if (Definition* def = current_definition()) {
-		if (def->with_fast) {
-			if (module_symbol == nullptr) {
-				module_symbol = _data.get().bytecode.make_symbol(symbol);
-			}
-			return mint::create_fast_symbol_index(*def, *module_symbol);
+	if (Definition* def = current_definition(); def && def->with_fast) {
+		if (module_symbol == nullptr) {
+			module_symbol = _data.get().bytecode.make_symbol(symbol);
 		}
+		return mint::create_fast_symbol_index(*def, *module_symbol);
 	}
 
 	return invalid_index;
@@ -131,11 +129,9 @@ std::size_t BuildContext::create_fast_scoped_symbol_index(const std::string& sym
 std::size_t BuildContext::create_fast_symbol_index(const std::string& symbol) {
 
 	const Symbol* module_symbol = nullptr;
-	if (Definition* def = current_definition()) {
-		if (def->with_fast) {
-			module_symbol = _data.get().bytecode.make_symbol(symbol);
-			return mint::create_fast_symbol_index(*def, *module_symbol);
-		}
+	if (Definition* def = current_definition(); def && def->with_fast) {
+		module_symbol = _data.get().bytecode.make_symbol(symbol);
+		return mint::create_fast_symbol_index(*def, *module_symbol);
 	}
 
 	return invalid_index;
@@ -143,11 +139,9 @@ std::size_t BuildContext::create_fast_symbol_index(const std::string& symbol) {
 
 std::size_t BuildContext::fast_symbol_index(const std::string& symbol) {
 
-	if (Definition* def = current_definition()) {
-		if (def->with_fast) {
-			const Symbol* module_symbol = _data.get().bytecode.make_symbol(symbol);
-			return mint::fast_symbol_index(*def, *module_symbol);
-		}
+	if (Definition* def = current_definition(); def && def->with_fast) {
+		const Symbol* module_symbol = _data.get().bytecode.make_symbol(symbol);
+		return mint::fast_symbol_index(*def, *module_symbol);
 	}
 
 	return invalid_index;
@@ -208,7 +202,7 @@ void BuildContext::reset_scoped_symbols() {
 
 void BuildContext::reset_scoped_symbols_until(BlockType type) {
 	Context& context = current_context();
-	for (auto& block : std::views::reverse(context.blocks)) {
+	for (const auto& block : std::views::reverse(context.blocks)) {
 		reset_scoped_symbols(block->block_scoped_symbols);
 		if (block->range_loop_scoped_symbols) {
 			reset_scoped_symbols(*block->range_loop_scoped_symbols);
@@ -222,7 +216,7 @@ void BuildContext::reset_scoped_symbols_until(BlockType type) {
 void BuildContext::close_block() {
 
 	Context& context = current_context();
-	auto& block = context.blocks.back();
+	const auto& block = context.blocks.back();
 
 	if (block->condition_scoped_symbols) {
 		reset_scoped_symbols(*block->condition_scoped_symbols);
@@ -319,16 +313,11 @@ void BuildContext::prepare_break() {
 
 	if (const auto* block = current_breakable_block()) {
 
-		switch (block->type) {
-		case BlockType::range_loop_type:
+		if (block->type == BlockType::range_loop_type) {
 			// unload range
 			push_node(Node::Command::unload_reference);
 			// unload target
 			push_node(Node::Command::unload_reference);
-			break;
-
-		default:
-			break;
 		}
 
 		for (std::size_t i = 0; i < block->retrieve_point_count; ++i) {
@@ -351,16 +340,11 @@ void BuildContext::prepare_return() {
 	if (Definition* def = current_definition()) {
 
 		for (const auto& block : def->blocks) {
-			switch (block->type) {
-			case BlockType::range_loop_type:
+			if (block->type == BlockType::range_loop_type) {
 				// unload range
 				push_node(Node::Command::unload_reference);
 				// unload target
 				push_node(Node::Command::unload_reference);
-				break;
-
-			default:
-				break;
 			}
 		}
 
@@ -397,7 +381,7 @@ void BuildContext::unregister_retrieve_point() {
 void BuildContext::set_exception_symbol(const std::string& symbol) {
 
 	Context& context = current_context();
-	auto& block = context.blocks.back();
+	const auto& block = context.blocks.back();
 
 	if (CatchContext* catch_context = block->catch_context.get()) {
 		catch_context->symbol = _data.get().bytecode.make_symbol(symbol);
@@ -407,7 +391,7 @@ void BuildContext::set_exception_symbol(const std::string& symbol) {
 void BuildContext::reset_exception() {
 
 	Context& context = current_context();
-	auto& block = context.blocks.back();
+	const auto& block = context.blocks.back();
 
 	if (const auto* catch_context = block->catch_context.get()) {
 		push_node(Node::Command::reset_exception);
@@ -471,7 +455,7 @@ void BuildContext::start_jump_forward() {
 }
 
 void BuildContext::bloc_jump_forward() {
-	Block* block = current_breakable_block();
+	const auto* block = current_breakable_block();
 	assert(block && block->forward);
 	block->forward->push_back(_branch.get().next_node_offset());
 	push_node(0);
@@ -570,7 +554,7 @@ void BuildContext::set_generator() {
 	Definition* def = current_definition();
 	assert(def);
 
-	for (auto exit_point : def->exit_points) {
+	for (const auto exit_point : def->exit_points) {
 		_branch.get().replace_node(exit_point, Node::Command::yield_exit_generator);
 	}
 
@@ -673,7 +657,7 @@ Function& BuildContext::retrieve_definition(std::string name) {
 
 	assert(!_definitions.empty());
 
-	auto def = std::move(_definitions.top());
+	const auto def = std::move(_definitions.top());
 	_definitions.pop();
 
 	if (const auto& classes = current_context().classes; !classes.empty()) {
@@ -702,7 +686,7 @@ Function& BuildContext::retrieve_definition(std::string name) {
 
 PackageData& BuildContext::current_package() const {
 	if (_packages.empty()) {
-		return _compiler.get().ast().global_data();
+		return _compiler.get().program().global_data();
 	}
 	return _packages.top().get();
 }
@@ -722,7 +706,7 @@ void BuildContext::close_package() {
 
 void BuildContext::start_class_description(const std::string& name, Reference::Flags flags) {
 	_class_base.clear();
-	current_context().classes.emplace(_data.get().bytecode.make_class(_compiler.get().ast(), name), flags);
+	current_context().classes.emplace(_data.get().bytecode.make_class(_compiler.get().program(), name), flags);
 }
 
 void BuildContext::append_symbol_to_base_class_path(const std::string& symbol) {
@@ -770,7 +754,7 @@ void BuildContext::resolve_class_description() {
 		}
 		else if (auto* def = current_definition()) {
 			if (!def->global_data) {
-				def->global_data = std::make_unique<FunctionData>(_compiler.get().ast());
+				def->global_data = std::make_unique<FunctionData>(_compiler.get().program());
 			}
 			def->global_data->register_class_description(*desc, flags);
 		}
@@ -1048,7 +1032,7 @@ void BuildContext::parse_error(const std::string& error_msg) const {
 
 Block* BuildContext::current_breakable_block() {
 	const auto& current_stack = current_context().blocks;
-	auto it = std::ranges::find_if(std::views::reverse(current_stack), [](const auto& block) {
+	const auto it = std::ranges::find_if(std::views::reverse(current_stack), [](const auto& block) {
 		return block->is_breakable();
 	});
 	if (it != current_stack.rend()) {
@@ -1069,7 +1053,7 @@ const Block* BuildContext::current_breakable_block() const {
 
 Block* BuildContext::current_continuable_block() {
 	const auto& current_stack = current_context().blocks;
-	auto it = std::ranges::find_if(std::views::reverse(current_stack), [](const auto& block) {
+	const auto it = std::ranges::find_if(std::views::reverse(current_stack), [](const auto& block) {
 		return block->is_continuable();
 	});
 	if (it != current_stack.rend()) {
@@ -1117,10 +1101,8 @@ const Definition* BuildContext::current_definition() const {
 }
 
 std::size_t BuildContext::find_fast_symbol_index(const Symbol& symbol) const {
-	if (const Definition* def = current_definition()) {
-		if (def->with_fast) {
-			return mint::find_fast_symbol_index(*def, symbol);
-		}
+	if (const Definition* def = current_definition(); def && def->with_fast) {
+		return mint::find_fast_symbol_index(*def, symbol);
 	}
 	return invalid_index;
 }

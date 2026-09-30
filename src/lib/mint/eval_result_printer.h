@@ -24,15 +24,15 @@
 #ifndef LIB_MINT_EVAL_RESULT_PRINTER_H
 #define LIB_MINT_EVAL_RESULT_PRINTER_H
 
-#include "mint/ast/cursor.h"
-#include "mint/ast/printer.h"
+#include "mint/program/cursor.h"
+#include "mint/program/printer.h"
 #include "mint/memory/reference.h"
 #include <functional>
 #include <vector>
 
 class EvalResultPrinter : public mint::Printer {
 public:
-	EvalResultPrinter(mint::Cursor& cursor);
+	explicit EvalResultPrinter(mint::Cursor& cursor);
 
 	void print(const mint::Reference& reference) override;
 

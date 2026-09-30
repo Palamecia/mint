@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "mint/memory/operator_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/string.h"
 #include "mint/memory/class_tools.h"
 #include "mint/memory/data.h"
@@ -31,10 +31,10 @@
 TEST(operator_tools, call_overload) {
 
 	auto scheduler = mint::Scheduler({});
-	auto cursor = mint::Cursor(scheduler.ast());
+	auto cursor = mint::Cursor(scheduler.program());
 
-	cursor.stack().emplace_back(mint::create_string(scheduler.ast(), "foo"));
-	cursor.stack().emplace_back(mint::create_string(scheduler.ast(), "bar"));
+	cursor.stack().emplace_back(mint::create_string(scheduler.program(), "foo"));
+	cursor.stack().emplace_back(mint::create_string(scheduler.program(), "bar"));
 	EXPECT_TRUE(mint::call_overload(cursor, "+", 1));
 	WAIT_FOR_RESULT(cursor);
 
@@ -43,13 +43,13 @@ TEST(operator_tools, call_overload) {
 	EXPECT_EQ("foobar", cursor.stack().back().data<mint::String>().str);
 	cursor.stack().clear();
 
-	cursor.stack().emplace_back(mint::create_string(scheduler.ast(), "foo"));
-	cursor.stack().emplace_back(mint::create_string(scheduler.ast(), "bar"));
+	cursor.stack().emplace_back(mint::create_string(scheduler.program(), "foo"));
+	cursor.stack().emplace_back(mint::create_string(scheduler.program(), "bar"));
 	EXPECT_FALSE(mint::call_overload(cursor, "#", 1));
 	cursor.stack().clear();
 
-	cursor.stack().emplace_back(mint::create_alias(mint::create_class(scheduler.ast(), "Foo", {{"+", {}}})));
-	cursor.stack().emplace_back(mint::create_string(scheduler.ast(), "bar"));
+	cursor.stack().emplace_back(mint::create_alias(mint::create_class(scheduler.program(), "Foo", {{"+", {}}})));
+	cursor.stack().emplace_back(mint::create_string(scheduler.program(), "bar"));
 	EXPECT_THROW_WHAT(mint::call_overload(cursor, "+", 1), mint::MintRuntimeError,
 	    "invalid use of class 'Foo' with operator '+'(1)");
 	cursor.stack().clear();

@@ -26,25 +26,25 @@
 #include "mint/memory/class.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/function_literal.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/reference.h"
 #include "mint/system/plugin.h"
 #include "mint/system/error.h"
 #include "mint/scheduler/scheduler.h"
-#include <cstddef>
 #include <exception>
 #include <string>
 #include <utility>
 
 using namespace mint;
 
-LibraryClass& LibraryClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<LibraryClass>(Class::Metatype::library);
+LibraryClass& LibraryClass::instance(Program& program) {
+	return program.global_data().builtin<LibraryClass>(Class::Metatype::library);
 }
 
-Library::Library(AbstractSyntaxTree& ast) :
-    Object(LibraryClass::instance(ast)) {}
+Library::Library(Program& program) :
+    Object(LibraryClass::instance(program)) {}
 
 Library::Library(Library&& other) noexcept :
     Object(other.metadata),
@@ -69,10 +69,10 @@ Library& Library::operator=(const Library& other) {
 
 Library::~Library() {}
 
-LibraryClass::LibraryClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "lib", Class::Metatype::library) {
+LibraryClass::LibraryClass(Program& program) :
+    Class(program.global_data(), "lib", Class::Metatype::library) {
 
-	create_builtin_member(new_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(new_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& name = load_from_stack(cursor, base);
@@ -89,7 +89,7 @@ LibraryClass::LibraryClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("call", ast.create_builtin_method(*this, variadic(2), [](Cursor& cursor) {
+	create_builtin_member("call", program.create_builtin_method(*this, variadic(2), [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto va_args = move_from_stack(cursor, base);

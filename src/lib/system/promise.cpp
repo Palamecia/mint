@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/cursor.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
@@ -31,7 +31,7 @@
 #include "mint/memory/operator_tools.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/cast_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/program/program.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/scheduler/processor.h"
@@ -46,7 +46,7 @@ mint::Reference mint_promise_start_member(mint::FunctionHelper& helper, const mi
     const mint::Reference& method, const mint::Reference& args) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
-	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
+	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.program());
 	const auto signature = static_cast<int>(args.data<mint::Iterator>().ctx.size());
 
 	if (const auto* info = find_member_info(object.data<mint::Object>(), method)) {
@@ -61,7 +61,7 @@ mint::Reference mint_promise_start_member(mint::FunctionHelper& helper, const mi
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_member_operator(*thread_cursor, signature);
-	return mint::create_c_object(helper.cursor().ast(),
+	return mint::create_c_object(helper.cursor().program(),
 	    new std::future<mint::Reference>(scheduler.create_async_thread(std::move(thread_cursor))));
 }
 
@@ -69,21 +69,21 @@ mint::Reference mint_promise_start(mint::FunctionHelper& helper, const mint::Ref
     const mint::Reference& args) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
-	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
+	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.program());
 	const auto signature = static_cast<int>(args.data<mint::Iterator>().ctx.size());
 
 	thread_cursor->waiting_calls().emplace(func);
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_operator(*thread_cursor, signature);
-	return create_c_object(helper.cursor().ast(),
+	return create_c_object(helper.cursor().program(),
 	    new std::future<mint::Reference>(scheduler.create_async_thread(std::move(thread_cursor))));
 }
 
 mint::Reference mint_promise_spawn(mint::FunctionHelper& helper, const mint::Reference& coroutine) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
-	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
+	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.program());
 
 	if (mint::is_instance_of(coroutine, mint::Data::Format::coroutine)) {
 		coroutine.data<mint::Coroutine>().call(*thread_cursor, mint::Reference(coroutine));
@@ -92,7 +92,7 @@ mint::Reference mint_promise_spawn(mint::FunctionHelper& helper, const mint::Ref
 		thread_cursor->stack().emplace_back(coroutine);
 	}
 
-	return create_c_object(helper.cursor().ast(),
+	return create_c_object(helper.cursor().program(),
 	    new std::future<mint::Reference>(scheduler.create_async_thread(std::move(thread_cursor))));
 }
 
@@ -102,7 +102,7 @@ mint::Reference mint_promise_delete(mint::Cursor& /*cursor*/, const mint::Refere
 }
 
 mint::Reference mint_promise_wait_for(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& time) {
-	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
+	if (const auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
 		const auto _ = mint::ProcessorUnlocker();
 		switch (promise->wait_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)))) {
 		case std::future_status::deferred:
@@ -116,7 +116,7 @@ mint::Reference mint_promise_wait_for(mint::Cursor& cursor, const mint::Referenc
 }
 
 mint::Reference mint_promise_wait(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	if (auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
+	if (const auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
 		const auto _ = mint::ProcessorUnlocker();
 		promise->wait();
 	}

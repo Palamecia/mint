@@ -23,7 +23,7 @@
 
 #include "mint/debug/process_debugger.h"
 #include "mint/debug/debug_interface.h"
-#include "mint/ast/exception.h"
+#include "mint/program/exception.h"
 #include "mint/scheduler/process.h"
 #include "mint/scheduler/processor.h"
 #include "mint/system/error.h"

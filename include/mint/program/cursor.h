@@ -21,12 +21,12 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_CURSOR_H
-#define MINT_AST_CURSOR_H
+#ifndef MINT_PROGRAM_CURSOR_H
+#define MINT_PROGRAM_CURSOR_H
 
-#include "mint/ast/module.h"
-#include "mint/ast/node.h"
-#include "mint/ast/printer.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
+#include "mint/program/printer.h"
 #include "mint/config.h"
 #include "mint/debug/line_info.h"
 #include "mint/memory/garbage_collector.h"
@@ -47,7 +47,7 @@
 namespace mint {
 
 struct SavedState;
-class AbstractSyntaxTree;
+class Program;
 
 class MINT_EXPORT Cursor : public MemoryRoot {
 	friend class CursorDebugger;
@@ -60,9 +60,9 @@ public:
 		static constexpr Flags member_call = 0x01;
 		static constexpr Flags operator_call = 0x02;
 
-		Call(const Reference& function, Class* metadata = nullptr);
+		explicit(false) Call(const Reference& function, Class* metadata = nullptr);
 		Call(const Reference& function, Class& metadata);
-		Call(Reference&& function, Class* metadata = nullptr);
+		explicit(false) Call(Reference&& function, Class* metadata = nullptr);
 		Call(Reference&& function, Class& metadata);
 
 		[[nodiscard]] Flags get_flags() const;
@@ -143,8 +143,8 @@ public:
 		bool caught = false;
 	};
 
-	Cursor(AbstractSyntaxTree& ast, Module& module, Cursor* parent = nullptr);
-	Cursor(AbstractSyntaxTree& ast, Cursor* parent = nullptr);
+	Cursor(Program& program, const Module& module, Cursor* parent = nullptr);
+	explicit Cursor(Program& program, Cursor* parent = nullptr);
 	Cursor(const Cursor& other) = delete;
 	Cursor(Cursor&& other) = delete;
 	~Cursor();
@@ -155,8 +155,8 @@ public:
 	std::unique_ptr<Cursor> make_thread();
 	[[nodiscard]] bool is_thread() const;
 
-	[[nodiscard]] inline const AbstractSyntaxTree& ast() const;
-	[[nodiscard]] inline AbstractSyntaxTree& ast();
+	[[nodiscard]] inline const Program& program() const;
+	[[nodiscard]] inline Program& program();
 	[[nodiscard]] inline Cursor* parent() const;
 
 	inline const Node& next();
@@ -238,7 +238,7 @@ private:
 	std::vector<Reference>* _stack;
 	StackFrame* _current_stack_frame;
 
-	std::reference_wrapper<AbstractSyntaxTree> _ast;
+	std::reference_wrapper<Program> _program;
 	Cursor* _parent;
 	Cursor* _child;
 
@@ -258,12 +258,12 @@ inline Reference& load_from_stack(Cursor& cursor, std::size_t index) {
 	return cursor.stack()[index];
 }
 
-const AbstractSyntaxTree& Cursor::ast() const {
-	return _ast;
+const Program& Cursor::program() const {
+	return _program;
 }
 
-AbstractSyntaxTree& Cursor::ast() {
-	return _ast;
+Program& Cursor::program() {
+	return _program;
 }
 
 Cursor* Cursor::parent() const {
@@ -305,4 +305,4 @@ Reference& Cursor::coroutine() {
 
 }
 
-#endif // MINT_AST_CURSOR_H
+#endif // MINT_PROGRAM_CURSOR_H

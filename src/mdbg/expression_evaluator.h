@@ -26,7 +26,7 @@
 
 #include "mint/compiler/compiler.h"
 #include "mint/compiler/lexical_handler.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/symbol_table.h"
@@ -39,7 +39,7 @@
 
 class ExpressionEvaluator : public mint::LexicalHandler {
 public:
-	ExpressionEvaluator(mint::AbstractSyntaxTree& ast);
+	explicit ExpressionEvaluator(mint::Program& program);
 	ExpressionEvaluator(const ExpressionEvaluator&) = delete;
 	ExpressionEvaluator(ExpressionEvaluator&&) = delete;
 	~ExpressionEvaluator();
@@ -59,7 +59,7 @@ private:
 		read_operand,
 		read_operator,
 		read_member,
-		read_in_operator
+		read_in_operator,
 	};
 
 	enum class FrameKind : std::uint8_t {
@@ -67,12 +67,12 @@ private:
 		group_or_iterator,
 		array_literal,
 		hash_literal,
-		subscript
+		subscript,
 	};
 
 	enum class Associativity : std::uint8_t {
 		left_to_right,
-		right_to_left
+		right_to_left,
 	};
 
 	struct Priority {

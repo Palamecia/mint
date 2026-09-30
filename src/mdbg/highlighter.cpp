@@ -23,8 +23,8 @@
 
 #include "highlighter.h"
 
-#include "mint/ast/class_description.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_description.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/lexical_handler.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/class.h"

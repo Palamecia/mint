@@ -24,11 +24,11 @@
 #ifndef MINT_COMPILER_COMPILER_H
 #define MINT_COMPILER_COMPILER_H
 
-#include "mint/ast/class_register.h"
+#include "mint/program/class_register.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
 #include "mint/system/data_stream.h"
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -45,10 +45,10 @@ public:
 		data_true_hint,
 		data_false_hint,
 		data_null_hint,
-		data_none_hint
+		data_none_hint,
 	};
 
-	Compiler(AbstractSyntaxTree& ast);
+	explicit Compiler(Program& program);
 
 	[[nodiscard]] bool is_printing() const;
 	void set_printing(bool enabled);
@@ -64,10 +64,10 @@ public:
 	Data& make_hash();
 	static Data& make_none();
 
-	AbstractSyntaxTree& ast();
+	Program& program();
 
 private:
-	std::reference_wrapper<AbstractSyntaxTree> _ast;
+	std::reference_wrapper<Program> _program;
 	bool _printing = false;
 };
 

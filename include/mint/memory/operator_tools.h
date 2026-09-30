@@ -24,10 +24,10 @@
 #ifndef MINT_MEMORY_OPERATOR_TOOLS_H
 #define MINT_MEMORY_OPERATOR_TOOLS_H
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/class.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include <cstddef>
 
 namespace mint {

@@ -25,8 +25,8 @@
 #define LIBMINT_COMPILER_CONTEXT_H
 
 #include "branch.h"
-#include "mint/ast/class_register.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_register.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/build_tools.h"
 #include "mint/memory/global_data.h"
 #include "mint/memory/reference.h"

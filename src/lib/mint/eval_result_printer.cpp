@@ -23,7 +23,7 @@
 
 #include "eval_result_printer.h"
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/function_tools.h"
@@ -48,7 +48,7 @@ mint::Reference EvalResultPrinter::result() {
 		break;
 	}
 
-	mint::Reference reference = mint::create_iterator(_cursor.get().ast());
+	mint::Reference reference = mint::create_iterator(_cursor.get().program());
 
 	for (mint::Reference& item : _results) {
 		mint::iterator_yield(_cursor, reference.data<mint::Iterator>(), std::move(item));

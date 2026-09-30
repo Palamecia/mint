@@ -21,14 +21,14 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_MODULE_H
-#define MINT_AST_MODULE_H
+#ifndef MINT_PROGRAM_MODULE_H
+#define MINT_PROGRAM_MODULE_H
 
-#include "mint/ast/class_register.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_register.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
-#include "mint/ast/node.h"
+#include "mint/program/node.h"
 #include "mint/debug/debug_info.h"
 #include "mint/memory/garbage_collector.h"
 #include "mint/memory/reference.h"
@@ -46,17 +46,17 @@
 
 namespace mint {
 
-class AbstractSyntaxTree;
 class ClassDescription;
 class PackageData;
 class parser;
+class Program;
 
 struct FunctionHandle;
 
 class MINT_EXPORT Module : public ClassRegister, public MemoryRoot {
-	friend class AbstractSyntaxTree;
-	friend class MainBranch;
 	friend class BubBranch;
+	friend class MainBranch;
+	friend class Program;
 public:
 	using Id = std::size_t;
 
@@ -69,10 +69,10 @@ public:
 	enum class State : std::uint8_t {
 		not_compiled,
 		not_loaded,
-		ready
+		ready,
 	};
 
-	Module(AbstractSyntaxTree& ast);
+	explicit Module(Program& program);
 	Module(Module&& other) noexcept;
 	Module(const Module& other) = delete;
 	~Module();
@@ -95,7 +95,7 @@ public:
 	Reference* make_constant(Args&&... args);
 	Reference* make_constant(Data& data);
 	Symbol* make_symbol(const std::string& name);
-	ClassDescription* make_class(AbstractSyntaxTree& ast, const std::string& name);
+	ClassDescription* make_class(Program& program, const std::string& name);
 
 	void add_internal_register(std::unique_ptr<ClassRegister>&& class_register);
 
@@ -162,4 +162,4 @@ Reference* Module::make_constant(Args&&... args) {
 
 }
 
-#endif // MINT_AST_MODULE_H
+#endif // MINT_PROGRAM_MODULE_H

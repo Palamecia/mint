@@ -22,9 +22,9 @@
  */
 
 #include "mint/scheduler/scheduler.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/exception.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/cursor.h"
+#include "mint/program/exception.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/debug/process_debugger.h"
 #include "mint/memory/class.h"
@@ -40,7 +40,7 @@
 #include "mint/memory/operator_tools.h"
 #include "mint/debug/debug_interface.h"
 #include "mint/debug/debug_tools.h"
-#include "mint/ast/saved_state.h"
+#include "mint/program/saved_state.h"
 #include "mint/system/error.h"
 #include "mint/system/mint_runtime_error.h"
 
@@ -70,7 +70,7 @@ thread_local struct {
 } g_current;
 
 bool collect_safe() {
-	auto _ = ProcessorLocker();
+	const auto _ = ProcessorLocker();
 	return GarbageCollector::instance().collect() > 0;
 }
 
@@ -115,7 +115,7 @@ Scheduler::~Scheduler() {
 		// cleanup memory
 		{
 			const auto _ = ProcessorLocker();
-			_ast.cleanup_memory();
+			_program.cleanup_memory();
 		}
 
 		// cleanup threads
@@ -128,14 +128,14 @@ Scheduler::~Scheduler() {
 	{
 		const auto _ = ProcessorLocker();
 		garbage_collector.collect();
-		_ast.cleanup_metadata();
+		_program.cleanup_metadata();
 	}
 
 	// cleanup modules
 	{
 		const auto _ = ProcessorLocker();
 		garbage_collector.collect();
-		_ast.cleanup_modules();
+		_program.cleanup_modules();
 	}
 }
 
@@ -143,8 +143,8 @@ Scheduler* Scheduler::instance() {
 	return SchedulerContextSwitcher::current();
 }
 
-AbstractSyntaxTree& Scheduler::ast() {
-	return _ast;
+Program& Scheduler::program() {
+	return _program;
 }
 
 Process* Scheduler::current_process() {
@@ -445,7 +445,7 @@ void Scheduler::create_destructor(Object* object, const Reference& member, Class
 
 void Scheduler::create_generator(std::unique_ptr<SavedState>&& state) {
 
-	auto* thread = current_process();
+	const auto* thread = current_process();
 	if (!thread) {
 		error("cannot create generator without parent thread");
 	}
@@ -503,7 +503,7 @@ int Scheduler::run() {
 
 	while (!_configured_process.empty()) {
 
-		auto main_thread = std::move(_configured_process.front());
+		const auto main_thread = std::move(_configured_process.front());
 		_configured_process.pop();
 		_running = true;
 
@@ -526,7 +526,7 @@ std::unique_ptr<TestProcess> Scheduler::enable_testing() {
 		return {};
 	}
 
-	auto thread = std::make_unique<TestProcess>(*this, std::make_unique<Cursor>(_ast));
+	auto thread = std::make_unique<TestProcess>(*this, std::make_unique<Cursor>(_program));
 	g_current.process.emplace_back(*thread);
 	thread->setup();
 	lock_processor();
@@ -631,7 +631,7 @@ bool Scheduler::schedule(Process& thread) {
 		while (is_running() || is_destructor(thread)) {
 			switch (debug_thread.exec()) {
 			case ProcessStatus::failed:
-				if (auto thread_locker = DebugThreadLocker(*handle, thread);
+				if (const auto thread_locker = DebugThreadLocker(*handle, thread);
 				    !handle->catch_error(thread_locker.cursor())) {
 					handle->exit(thread_locker.cursor());
 				}

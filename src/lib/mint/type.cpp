@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/symbol.h"
-#include "mint/ast/class_description.h"
+#include "mint/program/symbol.h"
+#include "mint/program/class_description.h"
 #include "mint/memory/data.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
@@ -30,19 +30,19 @@
 #include "mint/memory/reference.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
-#include "mint/ast/class_register.h"
+#include "mint/program/class_register.h"
 #include "mint/system/plugin.h"
 #include <ranges>
-#include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
 namespace symbols {
 
-static const mint::Symbol name("name");
-static const mint::Symbol flags("flags");
+const auto name = mint::Symbol("name");
+const auto flags = mint::Symbol("flags");
 
-static const std::string member_info("MemberInfo");
+constexpr auto member_info = std::string_view("MemberInfo");
 
 }
 
@@ -57,19 +57,19 @@ mint::Reference mint_type_to_boolean(mint::Cursor& /*cursor*/, const mint::Refer
 }
 
 mint::Reference mint_type_to_string(mint::Cursor& cursor, const mint::Reference& value) {
-	return mint::create_string(cursor.ast(), to_string(value));
+	return mint::create_string(cursor.program(), to_string(value));
 }
 
 mint::Reference mint_type_to_regex(mint::Cursor& cursor, const mint::Reference& value) {
-	return mint::create_regex(cursor.ast(), mint::to_string(value), mint::to_regex(value));
+	return mint::create_regex(cursor.program(), mint::to_string(value), mint::to_regex(value));
 }
 
 mint::Reference mint_type_to_array(mint::Cursor& cursor, const mint::Reference& value) {
-	return mint::create_array(cursor.ast(), mint::to_array(value));
+	return mint::create_array(cursor.program(), mint::to_array(value));
 }
 
 mint::Reference mint_type_to_hash(mint::Cursor& cursor, const mint::Reference& value) {
-	return mint::create_hash(cursor.ast(), mint::to_hash(value));
+	return mint::create_hash(cursor.program(), mint::to_hash(value));
 }
 
 mint::Reference mint_lang_get_type(mint::Cursor& /*cursor*/, const mint::Reference& object) {
@@ -110,13 +110,13 @@ mint::Reference mint_lang_create_type(mint::Cursor& cursor, const mint::Referenc
 		}
 	}
 
-	return mint::create_alias(mint::create_class(cursor.ast(), to_string(type), base_list, member_list));
+	return mint::create_alias(mint::create_class(cursor.program(), to_string(type), base_list, member_list));
 }
 
 mint::Reference mint_type_get_member_info(mint::Cursor& cursor, const mint::Reference& type,
-    mint::Reference& member_name) {
+    const mint::Reference& member_name) {
 	if (is_instance_of(type, mint::Class::Metatype::object)) {
-		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
+		if (const auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
 			return create_iterator_from(cursor, mint::Reference(member_name),
 			    mint::create_number(member->value.flags() & ~mint::Reference::temporary),
 			    mint::create_alias(member->owner));
@@ -128,7 +128,7 @@ mint::Reference mint_type_get_member_info(mint::Cursor& cursor, const mint::Refe
 mint::Reference mint_type_is_member_private(mint::Cursor& /*cursor*/, const mint::Reference& type,
     const mint::Reference& member_name) {
 	if (is_instance_of(type, mint::Class::Metatype::object)) {
-		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
+		if (const auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
 			return mint::create_boolean(
 			    (member->value.flags() & mint::Reference::visibility_mask) == mint::Reference::private_visibility);
 		}
@@ -139,7 +139,7 @@ mint::Reference mint_type_is_member_private(mint::Cursor& /*cursor*/, const mint
 mint::Reference mint_type_is_member_protected(mint::Cursor& /*cursor*/, const mint::Reference& type,
     const mint::Reference& member_name) {
 	if (is_instance_of(type, mint::Class::Metatype::object)) {
-		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
+		if (const auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
 			return mint::create_boolean(
 			    (member->value.flags() & mint::Reference::visibility_mask) == mint::Reference::protected_visibility);
 		}
@@ -150,7 +150,7 @@ mint::Reference mint_type_is_member_protected(mint::Cursor& /*cursor*/, const mi
 mint::Reference mint_type_get_member_owner(mint::Cursor& /*cursor*/, const mint::Reference& type,
     const mint::Reference& member_name) {
 	if (is_instance_of(type, mint::Class::Metatype::object)) {
-		if (auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
+		if (const auto* member = type.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(member_name)))) {
 			return mint::create_alias(member->owner);
 		}
 	}
@@ -181,12 +181,12 @@ mint::Reference mint_type_is_object(mint::Cursor& /*cursor*/, const mint::Refere
 
 mint::Reference mint_type_super(mint::Cursor& cursor, const mint::Reference& type) {
 	if (type.data().format() == mint::Data::Format::object) {
-		return mint::create_array(cursor.ast(),
+		return mint::create_array(cursor.program(),
 		    {std::from_range, std::views::transform(type.data<mint::Object>().metadata.bases(), [](mint::Class& base) {
 			     return mint::create_alias(base);
 		     })});
 	}
-	return mint::create_array(cursor.ast());
+	return mint::create_array(cursor.program());
 }
 
 mint::Reference mint_type_is_base_of(mint::Cursor& /*cursor*/, const mint::Reference& base,

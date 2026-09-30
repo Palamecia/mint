@@ -21,10 +21,10 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_CLASS_REGISTER_H
-#define MINT_AST_CLASS_REGISTER_H
+#ifndef MINT_PROGRAM_CLASS_REGISTER_H
+#define MINT_PROGRAM_CLASS_REGISTER_H
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
@@ -38,10 +38,10 @@
 
 namespace mint {
 
-class AbstractSyntaxTree;
 class ClassDescription;
 class FunctionData;
 class PackageData;
+class Program;
 
 class MINT_EXPORT ClassRegister {
 public:
@@ -50,10 +50,10 @@ public:
 		Path() = default;
 		Path(Path&&) = default;
 		Path(const Path& other) = default;
-		Path(const Symbol& symbol);
+		explicit(false) Path(const Symbol& symbol);
 		Path(std::initializer_list<Symbol> symbols);
 		Path(const Path& other, const Symbol& symbol);
-		Path(const std::string& path);
+		explicit(false) Path(const std::string& path);
 		~Path() = default;
 
 		Path& operator=(Path&&) = default;
@@ -72,7 +72,7 @@ public:
 
 	static inline bool is_slot(const Reference& member);
 
-	ClassRegister(AbstractSyntaxTree& ast);
+	explicit ClassRegister(Program& program);
 	ClassRegister(const ClassRegister&) = delete;
 	ClassRegister(ClassRegister&&) = default;
 	virtual ~ClassRegister() = default;
@@ -111,8 +111,8 @@ public:
 	virtual void cleanup_memory();
 	virtual void cleanup_metadata();
 
-	[[nodiscard]] inline const AbstractSyntaxTree& ast() const;
-	[[nodiscard]] inline AbstractSyntaxTree& ast();
+	[[nodiscard]] inline const Program& program() const;
+	[[nodiscard]] inline Program& program();
 
 private:
 	struct ClassDescriptionEntry {
@@ -122,7 +122,7 @@ private:
 
 	ClassRegister* _owner = nullptr;
 	std::vector<ClassDescriptionEntry> _defined_classes;
-	std::reference_wrapper<AbstractSyntaxTree> _ast;
+	std::reference_wrapper<Program> _program;
 };
 
 bool ClassRegister::is_slot(const Reference& member) {
@@ -131,14 +131,14 @@ bool ClassRegister::is_slot(const Reference& member) {
 	       || member.data().format() == Data::Format::none;
 }
 
-const AbstractSyntaxTree& ClassRegister::ast() const {
-	return _ast;
+const Program& ClassRegister::program() const {
+	return _program;
 }
 
-AbstractSyntaxTree& ClassRegister::ast() {
-	return _ast;
+Program& ClassRegister::program() {
+	return _program;
 }
 
 }
 
-#endif // MINT_AST_CLASS_REGISTER_H
+#endif // MINT_PROGRAM_CLASS_REGISTER_H

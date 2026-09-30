@@ -21,9 +21,9 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
-#include "mint/ast/exception.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/cursor.h"
+#include "mint/program/exception.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/cast_tools.h"
@@ -53,13 +53,13 @@ mint::Reference mint_test_error_catcher_install(mint::FunctionHelper& helper) {
 	auto& scheduler = helper.scheduler();
 	auto& runtime_error_class = helper.reference("Test").member("RuntimeError")->data<mint::Object>().metadata;
 
-	return mint::create_c_object(cursor.ast(),
+	return mint::create_c_object(cursor.program(),
 	    new ErrorCatcher {
 	        .error_callbacks = mint::take_error_callbacks(),
 	        .on_error = mint::add_error_callback(
 	            [&cursor, &scheduler, &runtime_error_class](const std::string& message) {
 		            throw mint::MintException(cursor,
-		                scheduler.invoke(runtime_error_class, mint::create_string(cursor.ast(), message)));
+		                scheduler.invoke(runtime_error_class, mint::create_string(cursor.program(), message)));
 	            }),
 	    });
 }

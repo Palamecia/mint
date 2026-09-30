@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include "mint/scheduler/destructor.h"
-#include "mint/ast/module.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/module.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/data.h"
 #include "mint/scheduler/scheduler.h"
-#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/program/program.h"
 #include "mint/memory/class.h"
 #include "mint/memory/class_tools.h"
 #include "mint/memory/function_tools.h"
@@ -17,19 +17,22 @@
 
 TEST(destructor, is_destructor) {
 
-	mint::Scheduler scheduler({});
-	mint::AbstractSyntaxTree& ast = scheduler.ast();
-	auto& module = ast.create_module(mint::Module::State::ready);
+	auto scheduler = mint::Scheduler({});
+	mint::Program& program = scheduler.program();
+	auto& module = program.create_module(mint::Module::State::ready);
 
-	auto thread = scheduler.enable_testing();
+	const auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
 	EXPECT_FALSE(is_destructor(*thread));
 
-	mint::Class& test_class = mint::create_class(ast, "__test_class__",
+	mint::Class& test_class = mint::create_class(program, "__test_class__",
 	    {
-	        {mint::builtin_symbols::delete_method, mint::create_function(ast, module, R"(
+	        {
+	            mint::builtin_symbols::delete_method,
+	            mint::create_function(program, module, R"(
 					def (self) {}
-				)")},
+				)"),
+	        },
 	    });
 
 	const auto object = scheduler.invoke(test_class);

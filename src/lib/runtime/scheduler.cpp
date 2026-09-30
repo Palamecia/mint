@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
@@ -39,7 +39,7 @@
 namespace {
 
 mint::Reference mint_scheduler_new(mint::Cursor& cursor) {
-	return mint::create_c_object(cursor.ast(), new mint::AsyncRuntime());
+	return mint::create_c_object(cursor.program(), new mint::AsyncRuntime());
 }
 
 mint::Reference mint_scheduler_delete(mint::Cursor& /*cursor*/, const mint::Reference& scheduler) {

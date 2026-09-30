@@ -27,8 +27,8 @@
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
 #include "mint/system/error.h"
 #include "mint/scheduler/scheduler.h"
 
@@ -39,12 +39,12 @@
 
 using namespace mint;
 
-HashClass& HashClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<HashClass>(Class::Metatype::hash);
+HashClass& HashClass::instance(Program& program) {
+	return program.global_data().builtin<HashClass>(Class::Metatype::hash);
 }
 
-Hash::Hash(AbstractSyntaxTree& ast) :
-    Object(HashClass::instance(ast)) {}
+Hash::Hash(Program& program) :
+    Object(HashClass::instance(program)) {}
 
 Hash::Hash(Hash&& other) noexcept :
     Object(other.metadata),
@@ -83,10 +83,10 @@ void Hash::mark() {
 	}
 }
 
-HashClass::HashClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "hash", Class::Metatype::hash) {
+HashClass::HashClass(Program& program) :
+    Class(program.global_data(), "hash", Class::Metatype::hash) {
 
-	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& rvalue = load_from_stack(cursor, base);
@@ -96,7 +96,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(eq_operator, ast.create_builtin_method(*this, R"""(
+	create_builtin_member(eq_operator, program.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			if typeof self == typeof other {
 				if self.size() == other.size() {
@@ -114,7 +114,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 			return false
 		})"""));
 
-	create_builtin_member(ne_operator, ast.create_builtin_method(*this, R"""(
+	create_builtin_member(ne_operator, program.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			if typeof self == typeof other {
 				if self.size() == other.size() {
@@ -132,12 +132,12 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 			return true
 		})"""));
 
-	create_builtin_member(add_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(add_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& rvalue = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		Reference result = create_hash(cursor.ast());
+		Reference result = create_hash(cursor.program());
 
 		for (auto& item : self.data<Hash>().values) {
 			hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
@@ -151,7 +151,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(subscript_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(subscript_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		Reference& key = load_from_stack(cursor, base);
@@ -163,7 +163,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(subscript_move_operator, ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
+	create_builtin_member(subscript_move_operator, program.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& value = load_from_stack(cursor, base);
@@ -179,11 +179,11 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member(in_operator, ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member(in_operator, program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		cursor.stack().back() = create_iterator_over(cursor, cursor.stack().back());
 	}));
 
-	create_builtin_member(in_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(in_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& value = load_from_stack(cursor, base);
@@ -195,29 +195,29 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member("get", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("get", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& key = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
 
-		auto i = self.data<Hash>().values.find(key);
-		Reference result = i != self.data<Hash>().values.end() ? hash_get_value(i) : create_none();
+		const auto it = self.data<Hash>().values.find(key);
+		Reference result = it != self.data<Hash>().values.end() ? hash_get_value(it) : create_none();
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member("get", ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
+	create_builtin_member("get", program.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& default_value = load_from_stack(cursor, base);
 		const auto& key = load_from_stack(cursor, base - 1);
 		const auto& self = load_from_stack(cursor, base - 2);
 
-		auto i = self.data<Hash>().values.find(key);
-		Reference result = i != self.data<Hash>().values.end() ? hash_get_value(i) : Reference(default_value);
+		const auto it = self.data<Hash>().values.find(key);
+		Reference result = it != self.data<Hash>().values.end() ? hash_get_value(it) : Reference(default_value);
 
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
@@ -225,7 +225,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));
 
-	create_builtin_member("each", ast.create_builtin_method(*this, R"""(
+	create_builtin_member("each", program.create_builtin_method(*this, R"""(
 		def (const self, const func) {
 			var unpack_func = func[2]
 			if defined unpack_func {
@@ -239,26 +239,26 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 			}
 		})"""));
 
-	create_builtin_member(call_operator, ast.create_builtin_method(*this, R"""(
+	create_builtin_member(call_operator, program.create_builtin_method(*this, R"""(
 		def (const self, const key, ...) {
 			return self[key](self, *va_args)
 		})"""));
 
-	create_builtin_member("isEmpty", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("isEmpty", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		cursor.stack().back() = create_boolean(cursor.stack().back().data<Hash>().values.empty());
 	}));
 
-	create_builtin_member("size", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("size", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		cursor.stack().back() = create_unsigned_number(cursor.stack().back().data<Hash>().values.size());
 	}));
 
-	create_builtin_member("remove", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("remove", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& key = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
 
-		auto it = self.data<Hash>().values.find(key);
+		const auto it = self.data<Hash>().values.find(key);
 		if (it != self.data<Hash>().values.end()) {
 			self.data<Hash>().values.erase(it);
 		}
@@ -266,7 +266,7 @@ HashClass::HashClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member("clear", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("clear", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
 		if (self.flags() & Reference::const_value) [[unlikely]] {
 			error("invalid modification of constant value");
@@ -309,14 +309,6 @@ Reference mint::hash_get_item(Hash& hash, const Hash::key_type& key) {
 	return i->second;
 }
 
-Reference mint::hash_get_item(Hash& hash, Hash::key_type& key) {
-	auto i = hash.values.find(key);
-	if (i == hash.values.end()) {
-		i = hash_insert(hash, key, create_none());
-	}
-	return i->second;
-}
-
 Reference mint::hash_get_key(const Hash::values_type::iterator& it) {
 	return {it->first};
 }
@@ -329,7 +321,7 @@ Reference mint::hash_get_value(const Hash::values_type::iterator& it) {
 	return it->second;
 }
 
-Reference mint::hash_get_value(Hash::values_type::value_type& item) {
+Reference mint::hash_get_value(const Hash::values_type::value_type& item) {
 	return item.second;
 }
 

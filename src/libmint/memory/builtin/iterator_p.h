@@ -24,7 +24,7 @@
 #ifndef LIBMINT_MEMORY_BUILTIN_ITERATOR_P_H
 #define LIBMINT_MEMORY_BUILTIN_ITERATOR_P_H
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/iterator.h"
 #include <cstddef>
 #include <memory>

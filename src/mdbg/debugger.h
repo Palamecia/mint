@@ -24,7 +24,7 @@
 #ifndef MDBG_DEBUGGER_H
 #define MDBG_DEBUGGER_H
 
-#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/program/program.h"
 #include "mint/debug/debug_interface.h"
 #include "mint/scheduler/scheduler.h"
 
@@ -39,7 +39,7 @@ class DebuggerBackend;
 
 class Debugger : public mint::DebugInterface {
 public:
-	Debugger(const std::vector<std::string>& args);
+	explicit Debugger(const std::vector<std::string>& args);
 	Debugger(const Debugger&) = delete;
 	Debugger(Debugger&&) = delete;
 	~Debugger();
@@ -47,7 +47,7 @@ public:
 	Debugger& operator=(const Debugger&) = delete;
 	Debugger& operator=(Debugger&&) = delete;
 
-	inline mint::AbstractSyntaxTree& ast();
+	inline mint::Program& program();
 
 	void add_pending_breakpoint_from_file(const std::string& file_path, std::size_t line_number);
 	void add_pending_breakpoint_from_module(const std::string& module, std::size_t line_number);
@@ -80,7 +80,7 @@ private:
 	struct PendingBreakpoint {
 		enum class From : std::uint8_t {
 			file_path,
-			module_path
+			module_path,
 		} type;
 
 		std::string module;
@@ -95,8 +95,8 @@ private:
 	std::unique_ptr<mint::Scheduler> _scheduler;
 };
 
-mint::AbstractSyntaxTree& Debugger::ast() {
-	return _scheduler->ast();
+mint::Program& Debugger::program() {
+	return _scheduler->program();
 }
 
 #endif // MDBG_DEBUGGER_H

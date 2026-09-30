@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/class_register.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_register.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/cast_tools.h"
@@ -43,26 +43,20 @@
 
 namespace symbols {
 
-static const mint::Symbol d_ptr("d_ptr");
+const auto d_ptr = mint::Symbol("d_ptr");
 
-static const std::string int8("int8");
-static const std::string uint8("uint8");
-static const std::string int16("int16");
-static const std::string uint16("uint16");
-static const std::string int32("int32");
-static const std::string uint32("uint32");
-static const std::string int64("int64");
-static const std::string uint64("uint64");
+constexpr auto int8 = std::string_view("int8");
+constexpr auto uint8 = std::string_view("uint8");
+constexpr auto int16 = std::string_view("int16");
+constexpr auto uint16 = std::string_view("uint16");
+constexpr auto int32 = std::string_view("int32");
+constexpr auto uint32 = std::string_view("uint32");
+constexpr auto int64 = std::string_view("int64");
+constexpr auto uint64 = std::string_view("uint64");
 
 }
 
 namespace {
-
-template<std::integral number_t>
-number_t strtonum(const char* nptr, char** endptr, int base) {
-	return std::is_signed_v<number_t> ? static_cast<number_t>(strtoimax(nptr, endptr, base))
-	                                  : static_cast<number_t>(strtoumax(nptr, endptr, base));
-}
 
 template<std::integral number_t>
 class FixedInt {
@@ -135,8 +129,8 @@ public:
 		return std::move(value);
 	}
 
-	static mint::Reference call_operator(mint::AbstractSyntaxTree& ast, const mint::Reference& value) {
-		return mint::create_c_object(ast, new number_t(*get_d_ptr(value).data<mint::LibObject<number_t>>().ptr));
+	static mint::Reference call_operator(mint::Program& program, const mint::Reference& value) {
+		return mint::create_c_object(program, new number_t(*get_d_ptr(value).data<mint::LibObject<number_t>>().ptr));
 	}
 
 	static mint::Reference&& add_operator(mint::Reference&& value, const mint::Reference& other) {
@@ -288,24 +282,23 @@ public:
 		return std::move(value);
 	}
 
-	static mint::Reference inclusive_range_operator(mint::AbstractSyntaxTree& ast, mint::Reference& value,
+	static mint::Reference inclusive_range_operator(mint::Program& program, mint::Reference& value,
 	    const mint::Reference& other) {
-		return mint::create_iterator(mint::from_inclusive_range, ast,
+		return mint::create_iterator(mint::from_inclusive_range, program,
 		    mint::to_number(*get_d_ptr(value).data<mint::LibObject<number_t>>().ptr),
 		    mint::to_number(*get_d_ptr(other).data<mint::LibObject<number_t>>().ptr));
 	}
 
-	static mint::Reference exclusive_range_operator(mint::AbstractSyntaxTree& ast, mint::Reference& value,
+	static mint::Reference exclusive_range_operator(mint::Program& program, mint::Reference& value,
 	    const mint::Reference& other) {
-		return mint::create_iterator(mint::from_exclusive_range, ast,
+		return mint::create_iterator(mint::from_exclusive_range, program,
 		    mint::to_number(*get_d_ptr(value).data<mint::LibObject<number_t>>().ptr),
 		    mint::to_number(*get_d_ptr(other).data<mint::LibObject<number_t>>().ptr));
 	}
 
-	static mint::Reference subscript_operator(mint::AbstractSyntaxTree& ast, mint::Reference& value,
-	    std::intmax_t index) {
+	static mint::Reference subscript_operator(mint::Program& program, mint::Reference& value, std::intmax_t index) {
 		const number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		return mint::create_c_object(ast,
+		return mint::create_c_object(program,
 		    new number_t(
 		        number_t(data / static_cast<number_t>(std::pow(static_cast<std::intmax_t>(mint::decimal_base), index))
 		                 % mint::decimal_base)));
@@ -346,7 +339,7 @@ std::string_view FixedInt<std::int8_t>::name() {
 }
 
 mint::Reference mint_int8_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.ast(), FixedInt<std::int8_t>::create(cursor, value));
+	return mint::create_c_object(cursor.program(), FixedInt<std::int8_t>::create(cursor, value));
 }
 
 mint::Reference mint_int8_delete(mint::Cursor& /*cursor*/, mint::Reference& value) {
@@ -359,7 +352,7 @@ mint::Reference mint_int8_copy(mint::Cursor& /*cursor*/, mint::Reference& target
 }
 
 mint::Reference mint_int8_call(mint::Cursor& cursor, const mint::Reference& value) {
-	return FixedInt<std::int8_t>::call_operator(cursor.ast(), value);
+	return FixedInt<std::int8_t>::call_operator(cursor.program(), value);
 }
 
 mint::Reference mint_int8_add(mint::Cursor& /*cursor*/, mint::Reference& value, const mint::Reference& other) {
@@ -463,19 +456,19 @@ mint::Reference mint_int8_shift_right(mint::Cursor& /*cursor*/, mint::Reference&
 }
 
 mint::Reference mint_int8_inclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::int8_t>::inclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::int8_t>::inclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_int8_exclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::int8_t>::exclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::int8_t>::exclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_int8_subscript(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index) {
-	return FixedInt<std::int8_t>::subscript_operator(cursor.ast(), value, mint::to_signed_integer(cursor, index));
+	return FixedInt<std::int8_t>::subscript_operator(cursor.program(), value, mint::to_signed_integer(cursor, index));
 }
 
 mint::Reference mint_int8_subscript_move(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index,
-    mint::Reference& other) {
+    const mint::Reference& other) {
 	return FixedInt<std::int8_t>::subscript_move_operator(std::move(value), mint::to_signed_integer(cursor, index),
 	    other);
 }
@@ -490,10 +483,10 @@ std::string_view FixedInt<std::int16_t>::name() {
 }
 
 mint::Reference mint_int16_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.ast(), FixedInt<std::int16_t>::create(cursor, value));
+	return mint::create_c_object(cursor.program(), FixedInt<std::int16_t>::create(cursor, value));
 }
 
-mint::Reference mint_int16_delete(mint::Cursor& /*cursor*/, mint::Reference& value) {
+mint::Reference mint_int16_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
 	delete value.data<mint::LibObject<std::int16_t>>().ptr;
 	return {};
 }
@@ -503,7 +496,7 @@ mint::Reference mint_int16_copy(mint::Cursor& /*cursor*/, mint::Reference& targe
 }
 
 mint::Reference mint_int16_call(mint::Cursor& cursor, const mint::Reference& value) {
-	return FixedInt<std::int16_t>::call_operator(cursor.ast(), value);
+	return FixedInt<std::int16_t>::call_operator(cursor.program(), value);
 }
 
 mint::Reference mint_int16_add(mint::Cursor& /*cursor*/, mint::Reference& value, const mint::Reference& other) {
@@ -607,19 +600,19 @@ mint::Reference mint_int16_shift_right(mint::Cursor& /*cursor*/, mint::Reference
 }
 
 mint::Reference mint_int16_inclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::int16_t>::inclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::int16_t>::inclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_int16_exclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::int16_t>::exclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::int16_t>::exclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_int16_subscript(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index) {
-	return FixedInt<std::int16_t>::subscript_operator(cursor.ast(), value, mint::to_signed_integer(cursor, index));
+	return FixedInt<std::int16_t>::subscript_operator(cursor.program(), value, mint::to_signed_integer(cursor, index));
 }
 
 mint::Reference mint_int16_subscript_move(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index,
-    mint::Reference& other) {
+    const mint::Reference& other) {
 	return FixedInt<std::int16_t>::subscript_move_operator(std::move(value), mint::to_signed_integer(cursor, index),
 	    other);
 }
@@ -634,10 +627,10 @@ std::string_view FixedInt<std::int32_t>::name() {
 }
 
 mint::Reference mint_int32_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.ast(), FixedInt<std::int32_t>::create(cursor, value));
+	return mint::create_c_object(cursor.program(), FixedInt<std::int32_t>::create(cursor, value));
 }
 
-mint::Reference mint_int32_delete(mint::Cursor& /*cursor*/, mint::Reference& value) {
+mint::Reference mint_int32_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
 	delete value.data<mint::LibObject<std::int32_t>>().ptr;
 	return {};
 }
@@ -647,7 +640,7 @@ mint::Reference mint_int32_copy(mint::Cursor& /*cursor*/, mint::Reference& targe
 }
 
 mint::Reference mint_int32_call(mint::Cursor& cursor, const mint::Reference& value) {
-	return FixedInt<std::int32_t>::call_operator(cursor.ast(), value);
+	return FixedInt<std::int32_t>::call_operator(cursor.program(), value);
 }
 
 mint::Reference mint_int32_add(mint::Cursor& /*cursor*/, mint::Reference& value, const mint::Reference& other) {
@@ -751,19 +744,19 @@ mint::Reference mint_int32_shift_right(mint::Cursor& /*cursor*/, mint::Reference
 }
 
 mint::Reference mint_int32_inclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::int32_t>::inclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::int32_t>::inclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_int32_exclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::int32_t>::exclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::int32_t>::exclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_int32_subscript(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index) {
-	return FixedInt<std::int32_t>::subscript_operator(cursor.ast(), value, mint::to_signed_integer(cursor, index));
+	return FixedInt<std::int32_t>::subscript_operator(cursor.program(), value, mint::to_signed_integer(cursor, index));
 }
 
 mint::Reference mint_int32_subscript_move(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index,
-    mint::Reference& other) {
+    const mint::Reference& other) {
 	return FixedInt<std::int32_t>::subscript_move_operator(std::move(value), mint::to_signed_integer(cursor, index),
 	    other);
 }
@@ -778,10 +771,10 @@ std::string_view FixedInt<std::int64_t>::name() {
 }
 
 mint::Reference mint_int64_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.ast(), FixedInt<std::int64_t>::create(cursor, value));
+	return mint::create_c_object(cursor.program(), FixedInt<std::int64_t>::create(cursor, value));
 }
 
-mint::Reference mint_int64_delete(mint::Cursor& /*cursor*/, mint::Reference& value) {
+mint::Reference mint_int64_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
 	delete value.data<mint::LibObject<std::int64_t>>().ptr;
 	return {};
 }
@@ -791,7 +784,7 @@ mint::Reference mint_int64_copy(mint::Cursor& /*cursor*/, mint::Reference& targe
 }
 
 mint::Reference mint_int64_call(mint::Cursor& cursor, const mint::Reference& value) {
-	return FixedInt<std::int64_t>::call_operator(cursor.ast(), value);
+	return FixedInt<std::int64_t>::call_operator(cursor.program(), value);
 }
 
 mint::Reference mint_int64_add(mint::Cursor& /*cursor*/, mint::Reference& value, const mint::Reference& other) {
@@ -810,7 +803,7 @@ mint::Reference mint_int64_div(mint::Cursor& /*cursor*/, mint::Reference& value,
 	return FixedInt<std::int64_t>::div_operator(std::move(value), other);
 }
 
-mint::Reference mint_int64_pow(mint::Cursor&, mint::Reference& value, const mint::Reference& other) {
+mint::Reference mint_int64_pow(mint::Cursor& /*cursor*/, mint::Reference& value, const mint::Reference& other) {
 	return FixedInt<std::int64_t>::pow_operator(std::move(value), other);
 }
 
@@ -895,19 +888,19 @@ mint::Reference mint_int64_shift_right(mint::Cursor& /*cursor*/, mint::Reference
 }
 
 mint::Reference mint_int64_inclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::int64_t>::inclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::int64_t>::inclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_int64_exclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::int64_t>::exclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::int64_t>::exclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_int64_subscript(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index) {
-	return FixedInt<std::int64_t>::subscript_operator(cursor.ast(), value, mint::to_signed_integer(cursor, index));
+	return FixedInt<std::int64_t>::subscript_operator(cursor.program(), value, mint::to_signed_integer(cursor, index));
 }
 
 mint::Reference mint_int64_subscript_move(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index,
-    mint::Reference& other) {
+    const mint::Reference& other) {
 	return FixedInt<std::int64_t>::subscript_move_operator(std::move(value), mint::to_signed_integer(cursor, index),
 	    other);
 }
@@ -922,10 +915,10 @@ std::string_view FixedInt<std::uint8_t>::name() {
 }
 
 mint::Reference mint_uint8_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.ast(), FixedInt<std::uint8_t>::create(cursor, value));
+	return mint::create_c_object(cursor.program(), FixedInt<std::uint8_t>::create(cursor, value));
 }
 
-mint::Reference mint_uint8_delete(mint::Cursor& /*cursor*/, mint::Reference& value) {
+mint::Reference mint_uint8_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
 	delete value.data<mint::LibObject<std::uint8_t>>().ptr;
 	return {};
 }
@@ -935,7 +928,7 @@ mint::Reference mint_uint8_copy(mint::Cursor& /*cursor*/, mint::Reference& targe
 }
 
 mint::Reference mint_uint8_call(mint::Cursor& cursor, const mint::Reference& value) {
-	return FixedInt<std::uint8_t>::call_operator(cursor.ast(), value);
+	return FixedInt<std::uint8_t>::call_operator(cursor.program(), value);
 }
 
 mint::Reference mint_uint8_add(mint::Cursor& /*cursor*/, mint::Reference& value, const mint::Reference& other) {
@@ -1035,19 +1028,19 @@ mint::Reference mint_uint8_shift_right(mint::Cursor& /*cursor*/, mint::Reference
 }
 
 mint::Reference mint_uint8_inclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::uint8_t>::inclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::uint8_t>::inclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_uint8_exclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::uint8_t>::exclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::uint8_t>::exclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_uint8_subscript(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index) {
-	return FixedInt<std::uint8_t>::subscript_operator(cursor.ast(), value, mint::to_signed_integer(cursor, index));
+	return FixedInt<std::uint8_t>::subscript_operator(cursor.program(), value, mint::to_signed_integer(cursor, index));
 }
 
 mint::Reference mint_uint8_subscript_move(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index,
-    mint::Reference& other) {
+    const mint::Reference& other) {
 	return FixedInt<std::uint8_t>::subscript_move_operator(std::move(value), mint::to_signed_integer(cursor, index),
 	    other);
 }
@@ -1062,10 +1055,10 @@ std::string_view FixedInt<std::uint16_t>::name() {
 }
 
 mint::Reference mint_uint16_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.ast(), FixedInt<std::uint16_t>::create(cursor, value));
+	return mint::create_c_object(cursor.program(), FixedInt<std::uint16_t>::create(cursor, value));
 }
 
-mint::Reference mint_uint16_delete(mint::Cursor& /*cursor*/, mint::Reference& value) {
+mint::Reference mint_uint16_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
 	delete value.data<mint::LibObject<std::uint16_t>>().ptr;
 	return {};
 }
@@ -1075,7 +1068,7 @@ mint::Reference mint_uint16_copy(mint::Cursor& /*cursor*/, mint::Reference& targ
 }
 
 mint::Reference mint_uint16_call(mint::Cursor& cursor, const mint::Reference& value) {
-	return FixedInt<std::uint16_t>::call_operator(cursor.ast(), value);
+	return FixedInt<std::uint16_t>::call_operator(cursor.program(), value);
 }
 
 mint::Reference mint_uint16_add(mint::Cursor& /*cursor*/, mint::Reference& value, const mint::Reference& other) {
@@ -1175,19 +1168,19 @@ mint::Reference mint_uint16_shift_right(mint::Cursor& /*cursor*/, mint::Referenc
 }
 
 mint::Reference mint_uint16_inclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::uint16_t>::inclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::uint16_t>::inclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_uint16_exclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::uint16_t>::exclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::uint16_t>::exclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_uint16_subscript(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index) {
-	return FixedInt<std::uint16_t>::subscript_operator(cursor.ast(), value, mint::to_signed_integer(cursor, index));
+	return FixedInt<std::uint16_t>::subscript_operator(cursor.program(), value, mint::to_signed_integer(cursor, index));
 }
 
 mint::Reference mint_uint16_subscript_move(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index,
-    mint::Reference& other) {
+    const mint::Reference& other) {
 	return FixedInt<std::uint16_t>::subscript_move_operator(std::move(value), mint::to_signed_integer(cursor, index),
 	    other);
 }
@@ -1202,10 +1195,10 @@ std::string_view FixedInt<std::uint32_t>::name() {
 }
 
 mint::Reference mint_uint32_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.ast(), FixedInt<std::uint32_t>::create(cursor, value));
+	return mint::create_c_object(cursor.program(), FixedInt<std::uint32_t>::create(cursor, value));
 }
 
-mint::Reference mint_uint32_delete(mint::Cursor& /*cursor*/, mint::Reference& value) {
+mint::Reference mint_uint32_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
 	delete value.data<mint::LibObject<std::uint32_t>>().ptr;
 	return {};
 }
@@ -1215,7 +1208,7 @@ mint::Reference mint_uint32_copy(mint::Cursor& /*cursor*/, mint::Reference& targ
 }
 
 mint::Reference mint_uint32_call(mint::Cursor& cursor, const mint::Reference& value) {
-	return FixedInt<std::uint32_t>::call_operator(cursor.ast(), value);
+	return FixedInt<std::uint32_t>::call_operator(cursor.program(), value);
 }
 
 mint::Reference mint_uint32_add(mint::Cursor& /*cursor*/, mint::Reference& value, const mint::Reference& other) {
@@ -1315,19 +1308,19 @@ mint::Reference mint_uint32_shift_right(mint::Cursor& /*cursor*/, mint::Referenc
 }
 
 mint::Reference mint_uint32_inclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::uint32_t>::inclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::uint32_t>::inclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_uint32_exclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::uint32_t>::exclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::uint32_t>::exclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_uint32_subscript(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index) {
-	return FixedInt<std::uint32_t>::subscript_operator(cursor.ast(), value, mint::to_signed_integer(cursor, index));
+	return FixedInt<std::uint32_t>::subscript_operator(cursor.program(), value, mint::to_signed_integer(cursor, index));
 }
 
 mint::Reference mint_uint32_subscript_move(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index,
-    mint::Reference& other) {
+    const mint::Reference& other) {
 	return FixedInt<std::uint32_t>::subscript_move_operator(std::move(value), mint::to_signed_integer(cursor, index),
 	    other);
 }
@@ -1342,10 +1335,10 @@ std::string_view FixedInt<std::uint64_t>::name() {
 }
 
 mint::Reference mint_uint64_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.ast(), FixedInt<std::uint64_t>::create(cursor, value));
+	return mint::create_c_object(cursor.program(), FixedInt<std::uint64_t>::create(cursor, value));
 }
 
-mint::Reference mint_uint64_delete(mint::Cursor& /*cursor*/, mint::Reference& value) {
+mint::Reference mint_uint64_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
 	delete value.data<mint::LibObject<std::uint64_t>>().ptr;
 	return {};
 }
@@ -1355,7 +1348,7 @@ mint::Reference mint_uint64_copy(mint::Cursor& /*cursor*/, mint::Reference& targ
 }
 
 mint::Reference mint_uint64_call(mint::Cursor& cursor, const mint::Reference& value) {
-	return FixedInt<std::uint64_t>::call_operator(cursor.ast(), value);
+	return FixedInt<std::uint64_t>::call_operator(cursor.program(), value);
 }
 
 mint::Reference mint_uint64_add(mint::Cursor& /*cursor*/, mint::Reference& value, const mint::Reference& other) {
@@ -1455,19 +1448,19 @@ mint::Reference mint_uint64_shift_right(mint::Cursor& /*cursor*/, mint::Referenc
 }
 
 mint::Reference mint_uint64_inclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::uint64_t>::inclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::uint64_t>::inclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_uint64_exclusive_range(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& other) {
-	return FixedInt<std::uint64_t>::exclusive_range_operator(cursor.ast(), value, other);
+	return FixedInt<std::uint64_t>::exclusive_range_operator(cursor.program(), value, other);
 }
 
 mint::Reference mint_uint64_subscript(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index) {
-	return FixedInt<std::uint64_t>::subscript_operator(cursor.ast(), value, mint::to_signed_integer(cursor, index));
+	return FixedInt<std::uint64_t>::subscript_operator(cursor.program(), value, mint::to_signed_integer(cursor, index));
 }
 
 mint::Reference mint_uint64_subscript_move(mint::Cursor& cursor, mint::Reference& value, const mint::Reference& index,
-    mint::Reference& other) {
+    const mint::Reference& other) {
 	return FixedInt<std::uint64_t>::subscript_move_operator(std::move(value), mint::to_signed_integer(cursor, index),
 	    other);
 }

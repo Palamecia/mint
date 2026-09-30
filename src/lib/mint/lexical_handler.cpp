@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
@@ -61,11 +61,11 @@ namespace {
 
 class MintLexicalHandler : public mint::LexicalHandler {
 public:
-	explicit MintLexicalHandler(mint::Scheduler& scheduler, const mint::Reference& self) :
+	explicit MintLexicalHandler(mint::Scheduler& scheduler, mint::Reference self) :
 	    _scheduler(scheduler),
 	    _lexical_handler_class(
-	        mint::get_member_ignore_visibility(scheduler.ast().global_data(), symbols::lexical_handler)),
-	    _self(self) {}
+	        mint::get_member_ignore_visibility(scheduler.program().global_data(), symbols::lexical_handler)),
+	    _self(std::move(self)) {}
 
 protected:
 	bool on_script_begin() override {
@@ -87,28 +87,28 @@ protected:
 
 	bool on_module_path_token(const std::vector<std::string>& context, const std::string& token,
 	    std::string::size_type offset) override {
-		mint::Reference context_values = mint::create_array(_scheduler.get().ast(),
+		mint::Reference context_values = mint::create_array(_scheduler.get().program(),
 		    {std::from_range, std::views::transform(context, [this](const std::string& context_symbol) {
-			     return mint::create_string(_scheduler.get().ast(), context_symbol);
+			     return mint::create_string(_scheduler.get().program(), context_symbol);
 		     })});
 		return to_boolean(_scheduler.get().invoke(_self, symbols::on_module_path_token, std::move(context_values),
-		    mint::create_string(_scheduler.get().ast(), token), mint::create_unsigned_number(offset)));
+		    mint::create_string(_scheduler.get().program(), token), mint::create_unsigned_number(offset)));
 	}
 
 	bool on_symbol_token(const std::vector<std::string>& context, const std::string& token,
 	    std::string::size_type offset) override {
-		mint::Reference context_values = mint::create_array(_scheduler.get().ast(),
+		mint::Reference context_values = mint::create_array(_scheduler.get().program(),
 		    {std::from_range, std::views::transform(context, [this](const std::string& context_symbol) {
-			     return mint::create_string(_scheduler.get().ast(), context_symbol);
+			     return mint::create_string(_scheduler.get().program(), context_symbol);
 		     })});
 		return to_boolean(_scheduler.get().invoke(_self, symbols::on_symbol_token, std::move(context_values),
-		    mint::create_string(_scheduler.get().ast(), token), mint::create_unsigned_number(offset)));
+		    mint::create_string(_scheduler.get().program(), token), mint::create_unsigned_number(offset)));
 	}
 
 	bool on_symbol_token(const std::vector<std::string>& context, std::string::size_type offset) override {
-		mint::Reference context_values = mint::create_array(_scheduler.get().ast(),
+		mint::Reference context_values = mint::create_array(_scheduler.get().program(),
 		    {std::from_range, std::views::transform(context, [this](const std::string& context_symbol) {
-			     return mint::create_string(_scheduler.get().ast(), context_symbol);
+			     return mint::create_string(_scheduler.get().program(), context_symbol);
 		     })});
 		return to_boolean(_scheduler.get().invoke(_self, symbols::on_symbol_token, std::move(context_values),
 		    mint::create_unsigned_number(offset)));
@@ -119,17 +119,17 @@ protected:
 		    symbols::token);
 		return to_boolean(_scheduler.get().invoke(_self, symbols::on_token,
 		    find_enum_value(token_value.data<mint::Object>(), static_cast<double>(type)),
-		    mint::create_string(_scheduler.get().ast(), token), mint::create_unsigned_number(offset)));
+		    mint::create_string(_scheduler.get().program(), token), mint::create_unsigned_number(offset)));
 	}
 
 	bool on_white_space(const std::string& token, std::string::size_type offset) override {
 		return to_boolean(_scheduler.get().invoke(_self, symbols::on_white_space,
-		    mint::create_string(_scheduler.get().ast(), token), mint::create_unsigned_number(offset)));
+		    mint::create_string(_scheduler.get().program(), token), mint::create_unsigned_number(offset)));
 	}
 
 	bool on_comment(const std::string& token, std::string::size_type offset) override {
 		return to_boolean(_scheduler.get().invoke(_self, symbols::on_comment,
-		    mint::create_string(_scheduler.get().ast(), token), mint::create_unsigned_number(offset)));
+		    mint::create_string(_scheduler.get().program(), token), mint::create_unsigned_number(offset)));
 	}
 
 	bool on_new_line(std::size_t line_number, std::string::size_type offset) override {
@@ -183,7 +183,7 @@ private:
 };
 
 mint::Reference mint_lexical_handler_new(mint::FunctionHelper& helper, const mint::Reference& self) {
-	return mint::create_c_object(helper.cursor().ast(), new MintLexicalHandler(helper.scheduler(), self));
+	return mint::create_c_object(helper.cursor().program(), new MintLexicalHandler(helper.scheduler(), self));
 }
 
 mint::Reference mint_lexical_handler_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
@@ -192,7 +192,7 @@ mint::Reference mint_lexical_handler_delete(mint::Cursor& /*cursor*/, const mint
 }
 
 mint::Reference mint_lexical_handler_parse(mint::FunctionHelper& helper, const mint::Reference& self,
-    mint::Reference& stream) {
+    const mint::Reference& stream) {
 	auto handler_stream = LexicalHandlerStream(helper.scheduler(), stream);
 	return mint::create_boolean(self.data<mint::LibObject<MintLexicalHandler>>().ptr->parse(handler_stream));
 }

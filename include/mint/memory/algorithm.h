@@ -24,7 +24,7 @@
 #ifndef MINT_MEMORY_ALGORITHM_H
 #define MINT_MEMORY_ALGORITHM_H
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/library.h"
@@ -94,9 +94,9 @@ void for_each(Cursor& cursor, const Reference& ref, Function function) {
 		switch (ref.data<Object>().metadata.metatype()) {
 		case Class::Metatype::string:
 			for (const auto& item : views::utf8(ref.data<String>().str)) {
-				auto substr = make_reference<String>(Reference::const_address | Reference::const_value, cursor.ast(),
-				    item);
-				substr.data<String>().construct();
+				auto substr = make_reference<String>(Reference::const_address | Reference::const_value,
+				    cursor.program(), item);
+				substr.template data<String>().construct();
 				function(std::move(substr));
 			}
 			break;
@@ -107,10 +107,11 @@ void for_each(Cursor& cursor, const Reference& ref, Function function) {
 			break;
 		case Class::Metatype::hash:
 			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value, cursor.ast());
-				iterator_yield(cursor, element.data<Iterator>(), hash_get_key(item));
-				iterator_yield(cursor, element.data<Iterator>(), hash_get_value(item));
-				element.data<Iterator>().construct();
+				auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value,
+				    cursor.program());
+				iterator_yield(cursor, element.template data<Iterator>(), hash_get_key(item));
+				iterator_yield(cursor, element.template data<Iterator>(), hash_get_value(item));
+				element.template data<Iterator>().construct();
 				function(std::move(element));
 			}
 			break;
@@ -140,8 +141,8 @@ bool for_each_if(Cursor& cursor, const Reference& ref, Function function) {
 		switch (ref.data<Object>().metadata.metatype()) {
 		case Class::Metatype::string:
 			for (const auto& item : views::utf8(ref.data<String>().str)) {
-				auto substr = make_reference<String>(Reference::const_address | Reference::const_value, cursor.ast(),
-				    item);
+				auto substr = make_reference<String>(Reference::const_address | Reference::const_value,
+				    cursor.program(), item);
 				substr.data<String>().construct();
 				if (!function(std::move(substr))) [[unlikely]] {
 					return false;
@@ -157,7 +158,8 @@ bool for_each_if(Cursor& cursor, const Reference& ref, Function function) {
 			break;
 		case Class::Metatype::hash:
 			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value, cursor.ast());
+				auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value,
+				    cursor.program());
 				iterator_yield(cursor, element.data<Iterator>(), hash_get_key(item));
 				iterator_yield(cursor, element.data<Iterator>(), hash_get_value(item));
 				element.data<Iterator>().construct();

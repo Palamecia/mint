@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/function_tools.h"
@@ -112,13 +112,13 @@ std::string mime_type_from_data(const void* buffer, std::size_t length) {
 }
 
 mint::Reference mint_mime_type_from_buffer(mint::Cursor& cursor, const mint::Reference& data) {
-	return mint::create_string(cursor.ast(),
+	return mint::create_string(cursor.program(),
 	    mime_type_from_data(data.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data(),
 	        data.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()));
 }
 
 mint::Reference mint_mime_type_from_string(mint::Cursor& cursor, const mint::Reference& data) {
-	return mint::create_string(cursor.ast(),
+	return mint::create_string(cursor.program(),
 	    mime_type_from_data(data.data<mint::String>().str.data(), data.data<mint::String>().str.size()));
 }
 

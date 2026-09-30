@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/class_register.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_register.h"
+#include "mint/program/symbol.h"
 #include "mint/debug/line_info.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
@@ -38,7 +38,7 @@
 #include "mint/system/filesystem.h"
 #include "mint/system/error.h"
 #include "mint/debug/debug_tools.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 
 #include "eval_result_printer.h"
 #include <filesystem>
@@ -54,41 +54,42 @@ std::filesystem::path add_module_extension(std::filesystem::path path) {
 	return path.replace_extension(".mn");
 }
 
-void find_module_recursive_helper(mint::AbstractSyntaxTree& ast, mint::Array& result,
-    const std::filesystem::path& root_path, const std::filesystem::path& directory_path) {
+void find_module_recursive_helper(mint::Program& program, mint::Array& result, const std::filesystem::path& root_path,
+    const std::filesystem::path& directory_path) {
 	for (const auto& entry : std::filesystem::directory_iterator {directory_path}) {
 		if (entry.is_directory()) {
-			find_module_recursive_helper(ast, result, root_path, entry.path());
+			find_module_recursive_helper(program, result, root_path, entry.path());
 		}
 		else if (mint::is_module_file(entry.path())) {
-			array_append(result, mint::create_string(ast, mint::FileSystem::to_module_path(root_path, entry.path())));
+			array_append(result,
+			    mint::create_string(program, mint::FileSystem::to_module_path(root_path, entry.path())));
 		}
 	}
 }
 
 mint::Reference mint_lang_modules_roots(mint::Cursor& cursor) {
-	return mint::create_array(cursor.ast(),
+	return mint::create_array(cursor.program(),
 	    {std::from_range, std::views::transform(mint::FileSystem::instance().library_path(),
-	                          [&ast = cursor.ast()](const std::filesystem::path& path) {
-		                          return mint::create_string(ast, path.generic_string());
+	                          [&program = cursor.program()](const std::filesystem::path& path) {
+		                          return mint::create_string(program, path.generic_string());
 	                          })});
 }
 
 mint::Reference mint_lang_modules_list(mint::Cursor& cursor, const mint::Reference& module_path) {
 
 	const auto module_path_str = to_string(module_path);
-	mint::Reference result = mint::create_array(cursor.ast());
+	mint::Reference result = mint::create_array(cursor.program());
 
 	for (const std::filesystem::path& path : mint::FileSystem::instance().library_path()) {
 		if (const auto root_path = std::filesystem::absolute(path); module_path_str.empty()) {
-			find_module_recursive_helper(cursor.ast(), result.data<mint::Array>(), root_path, root_path);
+			find_module_recursive_helper(cursor.program(), result.data<mint::Array>(), root_path, root_path);
 		}
 		else if (const auto file_path = mint::FileSystem::to_system_path(root_path, module_path_str);
 		    std::filesystem::exists(add_module_extension(file_path))) {
-			array_append(result.data<mint::Array>(), mint::create_string(cursor.ast(), module_path_str));
+			array_append(result.data<mint::Array>(), mint::create_string(cursor.program(), module_path_str));
 		}
 		else if (std::filesystem::exists(file_path)) {
-			find_module_recursive_helper(cursor.ast(), result.data<mint::Array>(), root_path, file_path);
+			find_module_recursive_helper(cursor.program(), result.data<mint::Array>(), root_path, file_path);
 		}
 	}
 
@@ -96,7 +97,7 @@ mint::Reference mint_lang_modules_list(mint::Cursor& cursor, const mint::Referen
 }
 
 mint::Reference mint_lang_main_module_path(mint::Cursor& cursor) {
-	return mint::create_string(cursor.ast(), mint::FileSystem::instance().get_main_module_path().generic_string());
+	return mint::create_string(cursor.program(), mint::FileSystem::instance().get_main_module_path().generic_string());
 }
 
 mint::Reference mint_lang_to_module_path(mint::Cursor& cursor, const mint::Reference& file_path) {
@@ -107,7 +108,7 @@ mint::Reference mint_lang_to_module_path(mint::Cursor& cursor, const mint::Refer
 		for (const std::filesystem::path& path : mint::FileSystem::instance().library_path()) {
 			if (const auto root_path = std::filesystem::absolute(path);
 			    mint::FileSystem::is_subpath(file_path_str, root_path)) {
-				return mint::create_string(cursor.ast(), mint::FileSystem::to_module_path(root_path, file_path_str));
+				return mint::create_string(cursor.program(), mint::FileSystem::to_module_path(root_path, file_path_str));
 			}
 		}
 	}
@@ -120,7 +121,7 @@ mint::Reference mint_lang_to_file_path(mint::Cursor& cursor, const mint::Referen
 	try {
 		const std::filesystem::path file_path = std::filesystem::absolute(mint::to_system_path(to_string(module_path)));
 		if (std::filesystem::exists(file_path)) {
-			return mint::create_string(cursor.ast(), file_path.generic_string());
+			return mint::create_string(cursor.program(), file_path.generic_string());
 		}
 	}
 	catch (const std::filesystem::filesystem_error&) {
@@ -132,12 +133,12 @@ mint::Reference mint_lang_to_file_path(mint::Cursor& cursor, const mint::Referen
 
 mint::Reference mint_lang_get_object_locals(mint::Cursor& cursor, const mint::Reference& object) {
 
-	mint::Reference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.program());
 
 	if (mint::is_instance_of(object, mint::Data::Format::object)) {
 		for (const auto& [symbol, member] : object.data<mint::Object>().metadata.members()) {
 			if (!(member.get().value.flags() & mint::Reference::visibility_mask)) {
-				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
+				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()),
 				    member.get().value);
 			}
 		}
@@ -148,20 +149,20 @@ mint::Reference mint_lang_get_object_locals(mint::Cursor& cursor, const mint::Re
 
 mint::Reference mint_lang_get_object_globals(mint::Cursor& cursor, const mint::Reference& object) {
 
-	mint::Reference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.program());
 
 	switch (object.data().format()) {
 	case mint::Data::Format::object:
 		for (const auto& [symbol, member] : object.data<mint::Object>().metadata.globals()) {
 			if (!(member.get().value.flags() & mint::Reference::visibility_mask)) {
-				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
+				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()),
 				    member.get().value);
 			}
 		}
 		break;
 	case mint::Data::Format::package:
 		for (const auto& [symbol, member] : object.data<mint::Package>().data.symbols()) {
-			hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()), member);
+			hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()), member);
 		}
 		break;
 	default:
@@ -173,10 +174,10 @@ mint::Reference mint_lang_get_object_globals(mint::Cursor& cursor, const mint::R
 
 mint::Reference mint_lang_get_globals(mint::Cursor& cursor) {
 
-	mint::Reference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.program());
 
-	for (const auto& [symbol, member] : cursor.ast().global_data().symbols()) {
-		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()), member);
+	for (const auto& [symbol, member] : cursor.program().global_data().symbols()) {
+		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()), member);
 	}
 
 	return result;
@@ -184,20 +185,20 @@ mint::Reference mint_lang_get_globals(mint::Cursor& cursor) {
 
 mint::Reference mint_lang_get_object_types(mint::Cursor& cursor, const mint::Reference& object) {
 
-	mint::Reference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.program());
 
 	switch (object.data().format()) {
 	case mint::Data::Format::object:
 		for (const auto& [symbol, type] : object.data<mint::Object>().metadata.classes()) {
 			if (!(type.get().value.flags() & mint::Reference::visibility_mask)) {
-				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
+				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()),
 				    mint::create_alias(type.get().value.data<mint::Object>().metadata));
 			}
 		}
 		break;
 	case mint::Data::Format::package:
 		for (const auto& [symbol, type] : object.data<mint::Package>().data.classes()) {
-			hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
+			hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()),
 			    mint::create_alias(type));
 		}
 		break;
@@ -210,10 +211,10 @@ mint::Reference mint_lang_get_object_types(mint::Cursor& cursor, const mint::Ref
 
 mint::Reference mint_lang_get_types(mint::Cursor& cursor) {
 
-	mint::Reference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.program());
 
-	for (const auto& [symbol, type] : cursor.ast().global_data().classes()) {
-		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.str()),
+	for (const auto& [symbol, type] : cursor.program().global_data().classes()) {
+		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()),
 		    mint::create_alias(type));
 	}
 
@@ -249,19 +250,19 @@ mint::Reference mint_at_error(mint::FunctionHelper& helper, const mint::Referenc
 		    _function(std::make_shared<mint::RootReference>(function)) {}
 
 		void operator()(const std::string& message) {
-			mint::Reference stacktrace = mint::create_array(_scheduler.get().ast());
+			mint::Reference stacktrace = mint::create_array(_scheduler.get().program());
 			if (const mint::Process* process = mint::Scheduler::current_process()) {
-				if (auto* stack_frame_class = _scheduler.get().ast().global_data().find_class("StackFrame")) {
+				if (auto* stack_frame_class = _scheduler.get().program().global_data().find_class("StackFrame")) {
 					for (const auto& frame : process->cursor().dump()) {
 						mint::array_append(stacktrace.data<mint::Array>(),
 						    mint::array_item(_scheduler.get().invoke(*stack_frame_class,
 						        mint::create_unsigned_number(frame.module_id()),
-						        mint::create_string(_scheduler.get().ast(), frame.module_name()),
+						        mint::create_string(_scheduler.get().program(), frame.module_name()),
 						        mint::create_unsigned_number(frame.line_number()))));
 					}
 				}
 			}
-			_scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().ast(), message),
+			_scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().program(), message),
 			    std::move(stacktrace));
 		}
 
@@ -277,9 +278,9 @@ mint::Reference mint_at_error(mint::FunctionHelper& helper, const mint::Referenc
 mint::Reference mint_lang_exec(mint::FunctionHelper& helper, const mint::Reference& src,
     const mint::Reference& context) {
 
-	if (auto process = mint::Process::from_buffer(helper.scheduler(), to_string(src) + "\n")) {
+	if (const auto process = mint::Process::from_buffer(helper.scheduler(), to_string(src) + "\n")) {
 
-		for (auto& symbol : to_hash(context)) {
+		for (const auto& symbol : to_hash(context)) {
 			process->cursor().symbols().emplace(mint::Symbol(to_string(symbol.first)), symbol.second);
 		}
 
@@ -306,9 +307,9 @@ mint::Reference mint_lang_exec(mint::FunctionHelper& helper, const mint::Referen
 mint::Reference mint_lang_eval(mint::FunctionHelper& helper, const mint::Reference& src,
     const mint::Reference& context) {
 
-	if (auto process = mint::Process::from_buffer(helper.scheduler(), to_string(src) + "\n")) {
+	if (const auto process = mint::Process::from_buffer(helper.scheduler(), to_string(src) + "\n")) {
 
-		for (auto& symbol : to_hash(context)) {
+		for (const auto& symbol : to_hash(context)) {
 			process->cursor().symbols().emplace(mint::Symbol(to_string(symbol.first)), symbol.second);
 		}
 
@@ -359,10 +360,10 @@ MINT_RAW_FUNCTION(mint_lang_get_locals, 0, cursor) {
 	cursor.exit_call();
 	cursor.exit_call();
 
-	mint::Reference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.program());
 
-	for (auto& symbol : cursor.symbols()) {
-		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.ast(), symbol.first.str()), symbol.second);
+	for (const auto& symbol : cursor.symbols()) {
+		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.first.str()), symbol.second);
 	}
 
 	cursor.stack().emplace_back(std::move(result));

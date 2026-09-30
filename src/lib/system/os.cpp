@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
 #include "mint/memory/reference.h"
@@ -35,6 +35,7 @@
 #include <processenv.h>
 #include <stringapiset.h>
 #include <winnls.h>
+#include <minwindef.h>
 #else
 #undef linux
 #endif
@@ -101,15 +102,15 @@ mint::Reference mint_os_get_version(mint::Cursor& /*cursor*/) {
 mint::Reference mint_os_get_environment(mint::Cursor& cursor, const mint::Reference& name,
     mint::Reference& default_value) {
 #ifdef MINT_OS_WINDOWS
-	std::array<wchar_t, 32767> buffer;
-	std::wstring name_str = utf8_to_windows(to_string(name));
-	if (GetEnvironmentVariableW(name_str.data(), buffer.data(), buffer.size())) {
-		return mint::create_string(cursor.ast(), windows_to_utf8(buffer.data()));
+	auto buffer = std::array<wchar_t, 32767>();
+	const auto name_str = utf8_to_windows(to_string(name));
+	if (GetEnvironmentVariableW(name_str.data(), buffer.data(), static_cast<DWORD>(buffer.size()))) {
+		return mint::create_string(cursor.program(), windows_to_utf8(buffer.data()));
 	}
 #else
 	const auto name_str = to_string(name);
 	if (const char* value = std::getenv(name_str.c_str())) {
-		return mint::create_string(cursor.ast(), value);
+		return mint::create_string(cursor.program(), value);
 	}
 #endif
 	return std::move(default_value);
@@ -118,8 +119,8 @@ mint::Reference mint_os_get_environment(mint::Cursor& cursor, const mint::Refere
 mint::Reference mint_os_set_environment(mint::Cursor& /*cursor*/, const mint::Reference& name,
     const mint::Reference& value) {
 #ifdef MINT_OS_WINDOWS
-	std::wstring name_str = utf8_to_windows(to_string(name));
-	std::wstring value_str = utf8_to_windows(to_string(value));
+	const auto name_str = utf8_to_windows(to_string(name));
+	const auto value_str = utf8_to_windows(to_string(value));
 	if (!SetEnvironmentVariableW(name_str.c_str(), value_str.c_str())) {
 		return mint::create_number(mint::errno_from_error_code(mint::last_error_code()));
 	}
@@ -135,7 +136,7 @@ mint::Reference mint_os_set_environment(mint::Cursor& /*cursor*/, const mint::Re
 
 mint::Reference mint_os_unset_environment(mint::Cursor& /*cursor*/, const mint::Reference& name) {
 #ifdef MINT_OS_WINDOWS
-	std::wstring name_str = utf8_to_windows(to_string(name));
+	const auto name_str = utf8_to_windows(to_string(name));
 	if (!SetEnvironmentVariableW(name_str.c_str(), nullptr)) {
 		return mint::create_number(mint::errno_from_error_code(mint::last_error_code()));
 	}

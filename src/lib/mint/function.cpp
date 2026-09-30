@@ -29,7 +29,7 @@
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/operator_tools.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include <algorithm>
 #include <string>
 #include <utility>
@@ -41,7 +41,7 @@ std::string get_member_name(const mint::Class::MemberInfo& infos) {
 	mint::Class& metadata = infos.owner.get();
 	const auto members = metadata.members();
 
-	auto it = std::ranges::find(members, &infos, [](const auto& member) {
+	const auto it = std::ranges::find(members, &infos, [](const auto& member) {
 		return &member.second.get();
 	});
 	if (it != members.end()) {
@@ -54,14 +54,14 @@ mint::Reference mint_get_member_info(mint::Cursor& cursor, const mint::Reference
     const mint::Reference& member) {
 	if (is_instance_of(object, mint::Data::Format::object)) {
 		if (const auto* infos = find_member_info(object.data<mint::Object>(), member)) {
-			return create_c_object(cursor.ast(), infos);
+			return create_c_object(cursor.program(), infos);
 		}
 	}
 	return {};
 }
 
 mint::Reference mint_function_name(mint::Cursor& cursor, const mint::Reference& infos) {
-	return mint::create_string(cursor.ast(),
+	return mint::create_string(cursor.program(),
 	    get_member_name(*infos.data<mint::LibObject<const mint::Class::MemberInfo>>().ptr));
 }
 

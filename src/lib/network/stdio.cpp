@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/cast_tools.h"
@@ -68,28 +68,28 @@ mint::Reference mint_stdio_endpoint_to_handle(mint::Cursor& cursor, const mint::
 	switch (const auto fd = mint::to_integer<int>(cursor, descriptor)) {
 	case mint::stdin_file_no:
 		if (auto* handle = GetStdHandle(STD_INPUT_HANDLE); handle != mint::invalid_handle) {
-			return mint::create_handle(cursor.ast(), handle);
+			return mint::create_handle(cursor.program(), handle);
 		}
 		break;
 	case mint::stdout_file_no:
 		if (auto* handle = GetStdHandle(STD_OUTPUT_HANDLE); handle != mint::invalid_handle) {
-			return mint::create_handle(cursor.ast(), handle);
+			return mint::create_handle(cursor.program(), handle);
 		}
 		break;
 	case mint::stderr_file_no:
 		if (auto* handle = GetStdHandle(STD_ERROR_HANDLE); handle != mint::invalid_handle) {
-			return mint::create_handle(cursor.ast(), handle);
+			return mint::create_handle(cursor.program(), handle);
 		}
 		break;
 	default:
 		if (auto* handle = std::bit_cast<mint::handle_t>(_get_osfhandle(fd)); handle != mint::invalid_handle) {
-			return mint::create_handle(cursor.ast(), handle);
+			return mint::create_handle(cursor.program(), handle);
 		}
 		break;
 	}
 #else
 	if (auto handle = mint::to_integer<int>(cursor, descriptor); handle != mint::invalid_handle) {
-		return mint::create_handle(cursor.ast(), handle);
+		return mint::create_handle(cursor.program(), handle);
 	}
 #endif
 
@@ -103,8 +103,8 @@ mint::Reference mint_stdio_socket_read_some(mint::Cursor& cursor, const mint::Re
 
 #ifdef MINT_OS_WINDOWS
 	auto bytes_read = DWORD();
-	auto read_buffer_length = mint::to_integer<std::size_t>(cursor, count);
-	auto read_buffer = std::make_unique<std::uint8_t[]>(read_buffer_length);
+	const auto read_buffer_length = mint::to_integer<std::size_t>(cursor, count);
+	const auto read_buffer = std::make_unique<std::uint8_t[]>(read_buffer_length);
 	if (ReadFile(to_handle(handle), read_buffer.get(), static_cast<DWORD>(read_buffer_length), &bytes_read, nullptr)) {
 		buf->append_range(std::span(read_buffer.get(), bytes_read));
 	}
@@ -114,8 +114,8 @@ mint::Reference mint_stdio_socket_read_some(mint::Cursor& cursor, const mint::Re
 	const int flags = fcntl(fd, F_GETFL);
 	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
-	auto read_buffer_length = mint::to_integer<std::size_t>(cursor, count);
-	auto read_buffer = std::make_unique<std::uint8_t[]>(read_buffer_length);
+	const auto read_buffer_length = mint::to_integer<std::size_t>(cursor, count);
+	const auto read_buffer = std::make_unique<std::uint8_t[]>(read_buffer_length);
 	if (auto bytes_read = ::read(fd, read_buffer.get(), read_buffer_length)) {
 		buf->append_range(std::span(read_buffer.get(), bytes_read));
 	}
@@ -134,7 +134,7 @@ mint::Reference mint_stdio_socket_read(mint::Cursor& /*cursor*/, const mint::Ref
 
 	auto bytes_read = DWORD();
 	while (PeekNamedPipe(to_handle(handle), nullptr, 0, nullptr, &bytes_read, nullptr) && bytes_read) {
-		auto read_buffer = std::make_unique<std::uint8_t[]>(bytes_read);
+		const auto read_buffer = std::make_unique<std::uint8_t[]>(bytes_read);
 		if (ReadFile(to_handle(handle), read_buffer.get(), bytes_read, &bytes_read, nullptr)) {
 			buf->append_range(std::span(read_buffer.get(), bytes_read));
 		}

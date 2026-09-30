@@ -24,7 +24,7 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/build_tools.h"
 #include "case_table.h"
 #include "catch_context.h"

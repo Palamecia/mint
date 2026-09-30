@@ -24,7 +24,7 @@
 #ifndef MINT_SCHEDULER_PROCESS_H
 #define MINT_SCHEDULER_PROCESS_H
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/config.h"
 #include "mint/scheduler/processor.h"
 

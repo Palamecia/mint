@@ -24,11 +24,11 @@
 #ifndef MINT_MEMORY_FUNCTION_TOOLS_H
 #define MINT_MEMORY_FUNCTION_TOOLS_H
 
-#include "mint/ast/class_register.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/function_literal.h"
-#include "mint/ast/module.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_register.h"
+#include "mint/program/cursor.h"
+#include "mint/program/function_literal.h"
+#include "mint/program/module.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
@@ -148,8 +148,8 @@ public:
 	}
 
 	[[nodiscard]] ReferenceHelper reference(const Symbol& symbol) const {
-		SymbolTable& symbols = _cursor.get().ast().global_data().symbols();
-		if (auto it = symbols.find(symbol); it != symbols.end()) {
+		SymbolTable& symbols = _cursor.get().program().global_data().symbols();
+		if (const auto it = symbols.find(symbol); it != symbols.end()) {
 			return {*this, it->second};
 		}
 		return {*this, mint::GlobalData::none_ref()};
@@ -163,7 +163,7 @@ public:
 	Scheduler& scheduler() {
 		auto* scheduler = Scheduler::instance();
 		assert_x(scheduler, __func__, "execution should be done using a scheduler");
-		assert_x(&scheduler->ast() == &_cursor.get().ast(), __func__, "execution uses a wrong scheduler");
+		assert_x(&scheduler->program() == &_cursor.get().program(), __func__, "execution uses a wrong scheduler");
 		return *scheduler;
 	}
 
@@ -256,8 +256,8 @@ MINT_EXPORT Reference create_function();
 MINT_EXPORT Reference create_function(Function::Mapping mapping);
 MINT_EXPORT Reference create_function(int signature, Function::Signature&& handle);
 MINT_EXPORT Reference create_function(const std::pair<int, Function::Signature>& mapping);
-MINT_EXPORT Reference create_function(AbstractSyntaxTree& ast, const FunctionLiteral& function);
-MINT_EXPORT Reference create_function(AbstractSyntaxTree& ast, ModuleInfo& module, const FunctionLiteral& function);
+MINT_EXPORT Reference create_function(Program& program, const FunctionLiteral& function);
+MINT_EXPORT Reference create_function(Program& program, ModuleInfo& module, const FunctionLiteral& function);
 
 MINT_EXPORT Reference create_none();
 MINT_EXPORT Reference create_null();
@@ -270,28 +270,28 @@ MINT_EXPORT Reference create_boolean(bool value);
 MINT_EXPORT Reference create_alias(Class& type);
 MINT_EXPORT Reference create_object(Class& type);
 
-MINT_EXPORT Reference create_string(AbstractSyntaxTree& ast);
-MINT_EXPORT Reference create_string(AbstractSyntaxTree& ast, const char* value);
-MINT_EXPORT Reference create_string(AbstractSyntaxTree& ast, const std::string& value);
-MINT_EXPORT Reference create_string(AbstractSyntaxTree& ast, std::string_view value);
+MINT_EXPORT Reference create_string(Program& program);
+MINT_EXPORT Reference create_string(Program& program, const char* value);
+MINT_EXPORT Reference create_string(Program& program, const std::string& value);
+MINT_EXPORT Reference create_string(Program& program, std::string_view value);
 
-MINT_EXPORT Reference create_regex(AbstractSyntaxTree& ast);
-MINT_EXPORT Reference create_regex(AbstractSyntaxTree& ast, const std::string& value);
-MINT_EXPORT Reference create_regex(AbstractSyntaxTree& ast, const std::string& initializer, const std::regex& value);
+MINT_EXPORT Reference create_regex(Program& program);
+MINT_EXPORT Reference create_regex(Program& program, const std::string& value);
+MINT_EXPORT Reference create_regex(Program& program, const std::string& initializer, const std::regex& value);
 
-MINT_EXPORT Reference create_array(AbstractSyntaxTree& ast);
-MINT_EXPORT Reference create_array(AbstractSyntaxTree& ast, Array::values_type&& values);
-MINT_EXPORT Reference create_array(AbstractSyntaxTree& ast, std::initializer_list<Reference> items);
+MINT_EXPORT Reference create_array(Program& program);
+MINT_EXPORT Reference create_array(Program& program, Array::values_type&& values);
+MINT_EXPORT Reference create_array(Program& program, std::initializer_list<Reference> items);
 
-MINT_EXPORT Reference create_hash(AbstractSyntaxTree& ast);
-MINT_EXPORT Reference create_hash(AbstractSyntaxTree& ast, Hash::values_type&& values);
-MINT_EXPORT Reference create_hash(AbstractSyntaxTree& ast, std::initializer_list<std::pair<Reference, Reference>> items);
+MINT_EXPORT Reference create_hash(Program& program);
+MINT_EXPORT Reference create_hash(Program& program, Hash::values_type&& values);
+MINT_EXPORT Reference create_hash(Program& program, std::initializer_list<std::pair<Reference, Reference>> items);
 
-MINT_EXPORT Reference create_iterator(AbstractSyntaxTree& ast);
-MINT_EXPORT Reference create_iterator(FromGenerator from_generator, AbstractSyntaxTree& ast, std::size_t stack_size);
-MINT_EXPORT Reference create_iterator(FromInclusiveRange from_inclusive_range, AbstractSyntaxTree& ast, double begin,
+MINT_EXPORT Reference create_iterator(Program& program);
+MINT_EXPORT Reference create_iterator(FromGenerator from_generator, Program& program, std::size_t stack_size);
+MINT_EXPORT Reference create_iterator(FromInclusiveRange from_inclusive_range, Program& program, double begin,
     double end);
-MINT_EXPORT Reference create_iterator(FromExclusiveRange from_exclusive_range, AbstractSyntaxTree& ast, double begin,
+MINT_EXPORT Reference create_iterator(FromExclusiveRange from_exclusive_range, Program& program, double begin,
     double end);
 
 MINT_EXPORT Reference create_iterator_over(Cursor& cursor, const Reference& ref);
@@ -299,29 +299,28 @@ MINT_EXPORT Reference create_iterator_over(Cursor& cursor, Reference&& ref);
 
 template<std::derived_from<Reference>... Items>
 Reference create_iterator_from(Cursor& cursor, Items... items) {
-	Reference ref = make_reference<Iterator>(create_flags, cursor.ast(), sizeof...(items));
+	Reference ref = make_reference<Iterator>(create_flags, cursor.program(), sizeof...(items));
 	(iterator_yield(cursor, ref.data<Iterator>(), std::forward<Items>(items)), ...);
 	ref.data<Iterator>().construct();
 	return ref;
 }
 
 template<class Type>
-Reference create_c_object(AbstractSyntaxTree& ast, Type* object) {
-	Reference ref = make_reference<LibObject<Type>>(create_flags, ast, object);
+Reference create_c_object(Program& program, Type* object) {
+	Reference ref = make_reference<LibObject<Type>>(create_flags, program, object);
 	ref.data<LibObject<Type>>().construct();
 	return ref;
 }
 
-MINT_EXPORT Reference create_handle(AbstractSyntaxTree& ast, handle_t handle);
+MINT_EXPORT Reference create_handle(Program& program, handle_t handle);
 MINT_EXPORT handle_t to_handle(const Reference& reference);
 MINT_EXPORT handle_t* to_handle_ptr(const Reference& reference);
 
-MINT_EXPORT Reference create_async_operation(AbstractSyntaxTree& ast, MintAsyncOperation* operation);
+MINT_EXPORT Reference create_async_operation(Program& program, MintAsyncOperation* operation);
 
 // ...
 
-MINT_EXPORT Reference get_member_ignore_visibility(AbstractSyntaxTree& ast, const Reference& reference,
-    const Symbol& member);
+MINT_EXPORT Reference get_member_ignore_visibility(Program& program, const Reference& reference, const Symbol& member);
 MINT_EXPORT Reference get_member_ignore_visibility(PackageData& package, const Symbol& member);
 MINT_EXPORT Reference get_member_ignore_visibility(Object& object, const Symbol& member);
 MINT_EXPORT Reference get_global_ignore_visibility(Object& object, const Symbol& global);

@@ -24,8 +24,8 @@
 #include "mint/scheduler/generator.h"
 #include "mint/scheduler/process.h"
 #include "mint/scheduler/processor.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/saved_state.h"
+#include "mint/program/program.h"
+#include "mint/program/saved_state.h"
 #include <memory>
 #include <utility>
 

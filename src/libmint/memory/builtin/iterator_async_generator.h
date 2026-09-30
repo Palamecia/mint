@@ -26,7 +26,7 @@
 
 #include "iterator_items.h"
 #include "iterator_p.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"

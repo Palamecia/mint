@@ -22,8 +22,8 @@
  */
 
 #include "mint/scheduler/output.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/module.h"
+#include "mint/program/program.h"
+#include "mint/program/module.h"
 #include "mint/debug/debug_info.h"
 #include "mint/debug/debug_tools.h"
 #include "mint/memory/builtin/array.h"
@@ -49,7 +49,7 @@ using namespace mint;
 
 namespace {
 
-std::string reference_value(const AbstractSyntaxTree& ast, const Reference& reference) {
+std::string reference_value(const Program& program, const Reference& reference) {
 	switch (reference.data().format()) {
 	case Data::Format::none:
 		return MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_DARK) "none");
@@ -63,10 +63,10 @@ std::string reference_value(const AbstractSyntaxTree& ast, const Reference& refe
 		return std::format(MINT_TERM_STR(
 		                       MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "function:" MINT_TERM_OPT(MINT_TERM_RESET) " {}"),
 		    std::views::transform(reference.data<Function>().mapping,
-		        [&ast](const auto& item) {
+		        [&program](const auto& item) {
 			        const auto& module = item.second.handle().module;
-			        const auto* debug_info = ast.find_debug_info(module);
-			        const auto module_name = ast.get_module_name(module);
+			        const auto* debug_info = program.find_debug_info(module);
+			        const auto module_name = program.get_module_name(module);
 			        return std::format("{}@{}({}:{})", std::to_string(item.first), module_name,
 			            to_system_path(module_name).string(), debug_info->line_number(item.second.handle().offset));
 		        })
@@ -90,16 +90,16 @@ std::string reference_value(const AbstractSyntaxTree& ast, const Reference& refe
 			return MINT_TERM_STDSTR(MINT_TERM_OPT(MINT_TERM_FG_RED) + to_string(reference));
 		case Class::Metatype::array:
 			return std::format("[ {} ]", std::views::transform(reference.data<Array>().values,
-			                                 [&ast](const auto& item) {
-				                                 return reference_value(ast, item);
+			                                 [&program](const auto& item) {
+				                                 return reference_value(program, item);
 			                                 })
 			                                 | std::views::join_with(std::string(", "))
 			                                 | std::ranges::to<std::string>());
 		case Class::Metatype::hash:
 			return std::format("{{ {} }}",
 			    std::views::transform(reference.data<Hash>().values,
-			        [&ast](const auto& item) {
-				        return reference_value(ast, item.first) + ": " + reference_value(ast, item.second);
+			        [&program](const auto& item) {
+				        return reference_value(program, item.first) + ": " + reference_value(program, item.second);
 			        })
 			        | std::views::join_with(std::string(", ")) | std::ranges::to<std::string>());
 		case Class::Metatype::iterator:
@@ -107,7 +107,7 @@ std::string reference_value(const AbstractSyntaxTree& ast, const Reference& refe
 			if (auto item = iterator_get(reference.data<Iterator>())) {
 				return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "iterator:" MINT_TERM_OPT(
 				                       MINT_TERM_RESET) " {}"),
-				    reference_value(ast, *item));
+				    reference_value(program, *item));
 			}
 			return MINT_TERM_STR(
 			    MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "iterator:" MINT_TERM_OPT(MINT_TERM_FG_YELLOW) " empty");
@@ -129,13 +129,13 @@ std::string reference_value(const AbstractSyntaxTree& ast, const Reference& refe
 
 }
 
-mint::Output::Output(AbstractSyntaxTree& ast) :
-    _ast(ast) {}
+mint::Output::Output(Program& program) :
+    _program(program) {}
 
 Output::~Output() {
 	Terminal::print(stdout, "\n");
 }
 
 void Output::print(const Reference& reference) {
-	Terminal::println(stdout, reference_value(_ast, reference));
+	Terminal::println(stdout, reference_value(_program, reference));
 }

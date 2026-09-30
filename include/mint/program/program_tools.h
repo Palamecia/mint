@@ -21,10 +21,10 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_ABSTRACT_SYNTAX_TREE_TOOLS_H
-#define MINT_AST_ABSTRACT_SYNTAX_TREE_TOOLS_H
+#ifndef MINT_PROGRAM_PROGRAM_TOOLS_H
+#define MINT_PROGRAM_PROGRAM_TOOLS_H
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/config.h"
 #include <memory>
 #include <string>
@@ -32,8 +32,8 @@
 namespace mint {
 
 MINT_EXPORT void load_module(Cursor& cursor, const std::string& module_name);
-MINT_EXPORT std::unique_ptr<Cursor> load_module(const std::string& module_name, AbstractSyntaxTree& ast);
+MINT_EXPORT std::unique_ptr<Cursor> load_module(const std::string& module_name, Program& program);
 
 }
 
-#endif // MINT_AST_ABSTRACT_SYNTAX_TREE_TOOLS_H
+#endif // MINT_PROGRAM_PROGRAM_TOOLS_H

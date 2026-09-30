@@ -24,10 +24,10 @@
 #ifndef MINT_MEMORY_OBJECT_H
 #define MINT_MEMORY_OBJECT_H
 
-#include "mint/ast/saved_state.h"
+#include "mint/program/saved_state.h"
 #include "mint/config.h"
-#include "mint/ast/symbol.h"
-#include "mint/ast/module.h"
+#include "mint/program/symbol.h"
+#include "mint/program/module.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/memory_pool.h"

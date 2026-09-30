@@ -38,8 +38,8 @@
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/algorithm.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
 #include "mint/system/error.h"
 #include "mint/scheduler/scheduler.h"
 
@@ -50,32 +50,32 @@
 
 using namespace mint;
 
-IteratorClass& IteratorClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<IteratorClass>(Class::Metatype::iterator);
+IteratorClass& IteratorClass::instance(Program& program) {
+	return program.global_data().builtin<IteratorClass>(Class::Metatype::iterator);
 }
 
-AsyncIteratorClass& AsyncIteratorClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<AsyncIteratorClass>(Class::Metatype::async_iterator);
+AsyncIteratorClass& AsyncIteratorClass::instance(Program& program) {
+	return program.global_data().builtin<AsyncIteratorClass>(Class::Metatype::async_iterator);
 }
 
-Iterator::Iterator(AbstractSyntaxTree& ast) :
-    Object(IteratorClass::instance(ast)),
+Iterator::Iterator(Program& program) :
+    Object(IteratorClass::instance(program)),
     ctx(std::make_unique<mint::internal::ItemsIteratorData>()) {}
 
 Iterator::Iterator(Cursor& cursor, const Reference& ref) :
-    Object(IteratorClass::instance(cursor.ast())),
+    Object(IteratorClass::instance(cursor.program())),
     ctx(std::make_unique<mint::internal::ItemsIteratorData>(cursor, ref)) {}
 
 Iterator::Iterator(Cursor& cursor, Reference&& ref) :
-    Object(IteratorClass::instance(cursor.ast())),
+    Object(IteratorClass::instance(cursor.program())),
     ctx(std::make_unique<mint::internal::ItemsIteratorData>(cursor, std::move(ref))) {}
 
-Iterator::Iterator(AbstractSyntaxTree& ast, std::size_t capacity) :
-    Object(IteratorClass::instance(ast)),
+Iterator::Iterator(Program& program, std::size_t capacity) :
+    Object(IteratorClass::instance(program)),
     ctx(std::make_unique<mint::internal::ItemsIteratorData>(capacity)) {}
 
-Iterator::Iterator(AbstractSyntaxTree& ast, std::unique_ptr<mint::internal::IteratorData>&& data) :
-    Object(IteratorClass::instance(ast)),
+Iterator::Iterator(Program& program, std::unique_ptr<mint::internal::IteratorData>&& data) :
+    Object(IteratorClass::instance(program)),
     ctx(std::move(data)) {}
 
 Iterator::Iterator(const Iterator& other) :
@@ -86,19 +86,19 @@ Iterator::Iterator(Iterator&& other) noexcept :
     Object(other.metadata),
     ctx(std::move(other.ctx)) {}
 
-Iterator::Iterator(FromGenerator /*from_generator*/, AbstractSyntaxTree& ast, std::size_t stack_size) :
-    Iterator(ast, std::make_unique<mint::internal::GeneratorData>(stack_size)) {}
+Iterator::Iterator(FromGenerator /*from_generator*/, Program& program, std::size_t stack_size) :
+    Iterator(program, std::make_unique<mint::internal::GeneratorData>(stack_size)) {}
 
-Iterator::Iterator(FromAsyncGenerator /*from_async_generator*/, AbstractSyntaxTree& ast, Coroutine& coroutine,
+Iterator::Iterator(FromAsyncGenerator /*from_async_generator*/, Program& program, Coroutine& coroutine,
     std::size_t stack_size) :
-    Object(AsyncIteratorClass::instance(ast)),
+    Object(AsyncIteratorClass::instance(program)),
     ctx(std::make_unique<mint::internal::AsyncGeneratorData>(coroutine, stack_size)) {}
 
-Iterator::Iterator(FromInclusiveRange /*from_inclusive_range*/, AbstractSyntaxTree& ast, double begin, double end) :
-    Iterator(ast, std::make_unique<mint::internal::RangeIteratorData>(begin, begin <= end ? end + 1 : end - 1)) {}
+Iterator::Iterator(FromInclusiveRange /*from_inclusive_range*/, Program& program, double begin, double end) :
+    Iterator(program, std::make_unique<mint::internal::RangeIteratorData>(begin, begin <= end ? end + 1 : end - 1)) {}
 
-Iterator::Iterator(FromExclusiveRange /*from_exclusive_range*/, AbstractSyntaxTree& ast, double begin, double end) :
-    Iterator(ast, std::make_unique<mint::internal::RangeIteratorData>(begin, end)) {}
+Iterator::Iterator(FromExclusiveRange /*from_exclusive_range*/, Program& program, double begin, double end) :
+    Iterator(program, std::make_unique<mint::internal::RangeIteratorData>(begin, end)) {}
 
 Iterator& Iterator::operator=(const Iterator& other) {
 	if (this == &other) [[unlikely]] {
@@ -123,10 +123,10 @@ void Iterator::mark() {
 	ctx.mark();
 }
 
-IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "iterator", Class::Metatype::iterator) {
+IteratorClass::IteratorClass(Program& program) :
+    Class(program.global_data(), "iterator", Class::Metatype::iterator) {
 
-	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& other = load_from_stack(cursor, base);
@@ -152,7 +152,7 @@ IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member("next", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("next", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const auto self = std::move(cursor.stack().back());
 
 		if (!self.data<Iterator>().ctx.empty()) {
@@ -166,7 +166,7 @@ IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("value", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("value", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		if (std::optional<Reference>&& result = iterator_get(cursor.stack().back().data<Iterator>())) {
 			cursor.stack().back() = std::move(*result);
 		}
@@ -175,11 +175,11 @@ IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("isEmpty", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("isEmpty", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		cursor.stack().back() = create_boolean(cursor.stack().back().data<Iterator>().ctx.empty());
 	}));
 
-	create_builtin_member("each", ast.create_builtin_method(*this, R"""(
+	create_builtin_member("each", program.create_builtin_method(*this, R"""(
 		def (self, const func) {
 			for let item in self {
 				func(item)
@@ -189,10 +189,10 @@ IteratorClass::IteratorClass(AbstractSyntaxTree& ast) :
 	/// \todo register operator overloads
 }
 
-AsyncIteratorClass::AsyncIteratorClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "async_iterator", Class::Metatype::async_iterator) {
+AsyncIteratorClass::AsyncIteratorClass(Program& program) :
+    Class(program.global_data(), "async_iterator", Class::Metatype::async_iterator) {
 
-	create_builtin_member(copy_operator, ast.create_builtin_async_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(copy_operator, program.create_builtin_async_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& other = load_from_stack(cursor, base);
@@ -218,7 +218,7 @@ AsyncIteratorClass::AsyncIteratorClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member("next", ast.create_builtin_async_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("next", program.create_builtin_async_method(*this, 1, [](Cursor& cursor) {
 		const auto self = std::move(cursor.stack().back());
 
 		if (!self.data<Iterator>().ctx.empty()) {
@@ -232,7 +232,7 @@ AsyncIteratorClass::AsyncIteratorClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("value", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("value", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		if (std::optional<Reference>&& result = iterator_get(cursor.stack().back().data<Iterator>())) {
 			cursor.stack().back() = std::move(*result);
 		}
@@ -241,11 +241,11 @@ AsyncIteratorClass::AsyncIteratorClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("isEmpty", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("isEmpty", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		cursor.stack().back() = create_boolean(cursor.stack().back().data<Iterator>().ctx.empty());
 	}));
 
-	create_builtin_member("each", ast.create_builtin_method(*this, R"""(
+	create_builtin_member("each", program.create_builtin_method(*this, R"""(
 		async def (self, const func) {
 			for let item in await self {
 				func(item)

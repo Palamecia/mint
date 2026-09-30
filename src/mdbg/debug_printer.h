@@ -26,7 +26,7 @@
 
 #include "mint/memory/builtin/library.h"
 #include "mint/memory/data.h"
-#include "mint/ast/printer.h"
+#include "mint/program/printer.h"
 #include "mint/system/stdio.h"
 #include <cstdio>
 #include <format>
@@ -56,11 +56,11 @@ public:
 };
 
 std::string reference_value(const mint::Reference& reference);
-std::string iterator_value(mint::Iterator& iterator);
-std::string array_value(mint::Array& array);
-std::string hash_value(mint::Hash& hash);
-std::string library_value(mint::Library& library);
-std::string object_value(mint::Data& object);
+std::string iterator_value(const mint::Iterator& iterator);
+std::string array_value(const mint::Array& array);
+std::string hash_value(const mint::Hash& hash);
+std::string library_value(const mint::Library& library);
+std::string object_value(const mint::Data& object);
 std::string function_value(mint::Function& function);
 
 template<typename... Args>

@@ -1,6 +1,6 @@
 #include <cstdint>
 #include <gtest/gtest.h>
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/class_tools.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
@@ -25,10 +25,10 @@ TEST(class, operator_symbols_round_trip) {
 
 TEST(class, created_class_exposes_members_slots_and_metadata) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 
-	mint::Class& type = mint::create_class(scheduler.ast(), "__class_api_test__",
+	mint::Class& type = mint::create_class(scheduler.program(), "__class_api_test__",
 	    {
 	        {mint::Symbol("slot"), mint::Reference(mint::Reference::default_flags)},
 	        {mint::Symbol("constant"), mint::create_number(7357)},
@@ -37,7 +37,7 @@ TEST(class, created_class_exposes_members_slots_and_metadata) {
 	EXPECT_EQ(mint::Class::Metatype::object, type.metatype());
 	EXPECT_EQ("__class_api_test__", type.full_name());
 	EXPECT_EQ("__class_api_test__", type.name().str());
-	EXPECT_EQ(&scheduler.ast().global_data(), &type.get_package());
+	EXPECT_EQ(&scheduler.program().global_data(), &type.get_package());
 	EXPECT_EQ(1, type.size());
 	EXPECT_TRUE(type.is_trivially_copyable());
 
@@ -60,11 +60,11 @@ TEST(class, created_class_exposes_members_slots_and_metadata) {
 
 TEST(class, same_class_relationships_do_not_require_bases) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 
-	mint::Class& first = mint::create_class(scheduler.ast(), "ClassApiFirst", {});
-	mint::Class& second = mint::create_class(scheduler.ast(), "ClassApiSecond", {});
+	const auto& first = mint::create_class(scheduler.program(), "ClassApiFirst", {});
+	const auto& second = mint::create_class(scheduler.program(), "ClassApiSecond", {});
 
 	EXPECT_TRUE(first.is_same(first));
 	EXPECT_FALSE(first.is_same(second));

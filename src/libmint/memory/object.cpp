@@ -22,8 +22,8 @@
  */
 
 #include "mint/memory/object.h"
-#include "mint/ast/module.h"
-#include "mint/ast/saved_state.h"
+#include "mint/program/module.h"
+#include "mint/program/saved_state.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
@@ -33,7 +33,7 @@
 #include "mint/memory/builtin/library.h"
 #include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/string.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/symbol_table.h"
 #include "mint/system/error.h"
 #include <algorithm>

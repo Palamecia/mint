@@ -31,20 +31,20 @@
 
 namespace mint {
 
-class AbstractSyntaxTree;
 class GarbageCollector;
 class Plugin;
+class Program;
 
 class MINT_EXPORT LibraryClass : public Class {
 public:
-	explicit LibraryClass(AbstractSyntaxTree& ast);
-	static LibraryClass& instance(AbstractSyntaxTree& ast);
+	explicit LibraryClass(Program& program);
+	static LibraryClass& instance(Program& program);
 };
 
 class MINT_EXPORT Library : public Object {
 	friend class GarbageCollector;
 public:
-	Library(AbstractSyntaxTree& ast);
+	explicit Library(Program& program);
 	Library(Library&& other) noexcept;
 	Library(const Library& other);
 	~Library() override;

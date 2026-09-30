@@ -21,11 +21,11 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_ABSTRACT_SYNTAX_TREE_H
-#define MINT_AST_ABSTRACT_SYNTAX_TREE_H
+#ifndef MINT_PROGRAM_PROGRAM_H
+#define MINT_PROGRAM_PROGRAM_H
 
-#include "mint/ast/function_literal.h"
-#include "mint/ast/module.h"
+#include "mint/program/function_literal.h"
+#include "mint/program/module.h"
 #include "mint/config.h"
 #include "mint/debug/debug_info.h"
 #include "mint/memory/global_data.h"
@@ -50,16 +50,16 @@ namespace mint {
 class Cursor;
 class Class;
 
-class MINT_EXPORT AbstractSyntaxTree {
+class MINT_EXPORT Program {
 	friend class Cursor;
 public:
-	AbstractSyntaxTree();
-	AbstractSyntaxTree(AbstractSyntaxTree&& other) = delete;
-	AbstractSyntaxTree(const AbstractSyntaxTree& other) = delete;
-	~AbstractSyntaxTree();
+	Program();
+	Program(Program&& other) = delete;
+	Program(const Program& other) = delete;
+	~Program();
 
-	AbstractSyntaxTree& operator=(AbstractSyntaxTree&& other) = delete;
-	AbstractSyntaxTree& operator=(const AbstractSyntaxTree& other) = delete;
+	Program& operator=(Program&& other) = delete;
+	Program& operator=(const Program& other) = delete;
 
 	using GlobalBuiltinMethod = std::add_pointer_t<void(Class&, Cursor&)>;
 	using BuiltinMethod = std::add_pointer_t<void(Cursor&)>;
@@ -112,41 +112,40 @@ private:
 	std::vector<BuiltinMethod> _builtin_methods;
 };
 
-void AbstractSyntaxTree::call_builtin_method(std::size_t method, Cursor& cursor) {
+void Program::call_builtin_method(std::size_t method, Cursor& cursor) {
 	_builtin_methods[method](cursor);
 }
 
 template<std::derived_from<Module> UniqueModule>
-inline UniqueModule& AbstractSyntaxTree::unique_module() {
+inline UniqueModule& Program::unique_module() {
 	const std::type_index type_index = std::type_index(typeid(UniqueModule));
-	auto it = _unique_modules.find(type_index);
-	if (it != _unique_modules.end()) {
+	if (const auto it = _unique_modules.find(type_index); it != _unique_modules.end()) {
 		return static_cast<UniqueModule&>(*it->second);
 	}
 	return static_cast<UniqueModule&>(
 	    *_unique_modules.emplace(type_index, std::make_unique<UniqueModule>(*this)).first->second);
 }
 
-const Module* AbstractSyntaxTree::find_module(Module::Id module_id) const {
-	return (module_id < _modules.size()) ? &_modules[module_id].bytecode : nullptr;
+const Module* Program::find_module(Module::Id module_id) const {
+	return (module_id < _modules.size()) ? &_modules.at(module_id).bytecode : nullptr;
 }
 
-const DebugInfo* AbstractSyntaxTree::find_debug_info(Module::Id module_id) const {
-	return (module_id < _modules.size()) ? &_modules[module_id].debug_info : nullptr;
+const DebugInfo* Program::find_debug_info(Module::Id module_id) const {
+	return (module_id < _modules.size()) ? &_modules.at(module_id).debug_info : nullptr;
 }
 
-const DebugInfo* AbstractSyntaxTree::find_debug_info(const Module& module) const {
+const DebugInfo* Program::find_debug_info(const Module& module) const {
 	return find_debug_info(get_module_id(module));
 }
 
-const GlobalData& AbstractSyntaxTree::global_data() const {
+const GlobalData& Program::global_data() const {
 	return _global_data;
 }
 
-GlobalData& AbstractSyntaxTree::global_data() {
+GlobalData& Program::global_data() {
 	return _global_data;
 }
 
 }
 
-#endif // MINT_AST_ABSTRACT_SYNTAX_TREE_H
+#endif // MINT_PROGRAM_PROGRAM_H

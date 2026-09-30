@@ -21,15 +21,15 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/module.h"
-#include "mint/ast/node.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/builtin/string.h"
 #include "mint/debug/debug_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/abstract_syntax_tree_tools.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/program_tools.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/reference.h"
 #include <cstddef>
 #include <sstream>
@@ -39,12 +39,12 @@ namespace {
 
 mint::Reference mint_assembly_from_function(mint::Cursor& cursor, const mint::Reference& object) {
 
-	mint::Reference result = mint::create_hash(cursor.ast());
+	mint::Reference result = mint::create_hash(cursor.program());
 
 	for (auto& signature : object.data<mint::Function>().mapping) {
 
 		mint::FunctionHandle& handle = signature.second.handle();
-		auto dump_cursor = mint::Cursor(cursor.ast(), handle.module);
+		auto dump_cursor = mint::Cursor(cursor.program(), handle.module);
 		dump_cursor.jmp(handle.offset - 1);
 
 		const auto end_offset = static_cast<std::size_t>(dump_cursor.next().as_parameter());
@@ -55,7 +55,7 @@ mint::Reference mint_assembly_from_function(mint::Cursor& cursor, const mint::Re
 		}
 
 		hash_insert(result.data<mint::Hash>(), mint::create_signed_number(signature.first),
-		    mint::create_string(cursor.ast(), std::move(stream).str()));
+		    mint::create_string(cursor.program(), std::move(stream).str()));
 	}
 
 	return result;
@@ -63,14 +63,14 @@ mint::Reference mint_assembly_from_function(mint::Cursor& cursor, const mint::Re
 
 mint::Reference mint_assembly_from_module(mint::Cursor& cursor, const mint::Reference& object) {
 
-	auto dump_cursor = load_module(object.data<mint::String>().str, cursor.ast());
+	const auto dump_cursor = load_module(object.data<mint::String>().str, cursor.program());
 	auto stream = std::stringstream();
 
 	while (mint::dump_command(*dump_cursor, stream) != mint::Node::Command::exit_module) {
 		;
 	}
 
-	return mint::create_string(cursor.ast(), std::move(stream).str());
+	return mint::create_string(cursor.program(), std::move(stream).str());
 }
 
 }

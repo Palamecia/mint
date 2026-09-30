@@ -21,11 +21,11 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_ABSTRACT_SYNTAX_TREE_WALKER_H
-#define MINT_AST_ABSTRACT_SYNTAX_TREE_WALKER_H
+#ifndef MINT_PROGRAM_BYTECODE_WALKER_H
+#define MINT_PROGRAM_BYTECODE_WALKER_H
 
-#include "mint/ast/cursor.h"
-#include "mint/ast/node.h"
+#include "mint/program/cursor.h"
+#include "mint/program/node.h"
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
@@ -348,4 +348,4 @@ R walk(Cursor& cursor, Walker& walker) {
 
 }
 
-#endif // MINT_AST_ABSTRACT_SYNTAX_TREE_WALKER_H
+#endif // MINT_PROGRAM_BYTECODE_WALKER_H

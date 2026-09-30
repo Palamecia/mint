@@ -30,8 +30,8 @@
 #include "mint/memory/function_tools.h"
 #include "mint/memory/algorithm.h"
 #include "mint/memory/cast_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
 #include "mint/system/string.h"
 #include "mint/system/error.h"
 #include "mint/scheduler/scheduler.h"
@@ -58,12 +58,12 @@ inline Array::values_type::const_iterator array_next(const Array& array, std::si
 
 }
 
-ArrayClass& ArrayClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<ArrayClass>(Class::Metatype::array);
+ArrayClass& ArrayClass::instance(Program& program) {
+	return program.global_data().builtin<ArrayClass>(Class::Metatype::array);
 }
 
-Array::Array(AbstractSyntaxTree& ast) :
-    Object(ArrayClass::instance(ast)) {}
+Array::Array(Program& program) :
+    Object(ArrayClass::instance(program)) {}
 
 Array::Array(Array&& other) noexcept :
     Object(other.metadata),
@@ -101,10 +101,10 @@ void Array::mark() {
 	}
 }
 
-ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "array", Class::Metatype::array) {
+ArrayClass::ArrayClass(Program& program) :
+    Class(program.global_data(), "array", Class::Metatype::array) {
 
-	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
@@ -113,7 +113,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(eq_operator, ast.create_builtin_method(*this, R"""(
+	create_builtin_member(eq_operator, program.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			if typeof self == typeof other {
 				if self.size() == other.size() {
@@ -128,7 +128,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return false
 		})"""));
 
-	create_builtin_member(ne_operator, ast.create_builtin_method(*this, R"""(
+	create_builtin_member(ne_operator, program.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			if typeof self == typeof other {
 				if self.size() == other.size() {
@@ -143,16 +143,16 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return true
 		})"""));
 
-	create_builtin_member(add_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(add_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		Reference result = create_array(cursor.ast());
+		Reference result = create_array(cursor.program());
 
-		for (auto& value : self.data<Array>().values) {
+		for (const auto& value : self.data<Array>().values) {
 			result.data<Array>().values.push_back(array_get_item(value));
 		}
-		for (auto& value : to_array(other)) {
+		for (const auto& value : to_array(other)) {
 			result.data<Array>().values.push_back(array_get_item(value));
 		}
 
@@ -161,7 +161,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::move(result));
 	}));
 
-	create_builtin_member(sub_operator, ast.create_builtin_method(*this, R"""(
+	create_builtin_member(sub_operator, program.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			var result = []
 			for let item in self {
@@ -172,14 +172,14 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return result
 		})"""));
 
-	create_builtin_member(mul_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(mul_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
-		Reference result = create_array(cursor.ast());
+		Reference result = create_array(cursor.program());
 
 		for (std::intmax_t i = 0; i < to_signed_integer(cursor, other); ++i) {
-			for (auto& value : self.data<Array>().values) {
+			for (const auto& value : self.data<Array>().values) {
 				result.data<Array>().values.push_back(array_get_item(value));
 			}
 		}
@@ -189,7 +189,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(std::move(result));
 	}));
 
-	create_builtin_member(shift_left_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(shift_left_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
@@ -199,7 +199,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member("push", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("push", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& other = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
@@ -209,7 +209,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(band_operator, ast.create_builtin_method(*this, R"""(
+	create_builtin_member(band_operator, program.create_builtin_method(*this, R"""(
 		def (const self, const other) {
 			var store = {}
 			var result = []
@@ -224,7 +224,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return result
 		})"""));
 
-	create_builtin_member(subscript_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(subscript_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& index = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
@@ -245,7 +245,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 				std::swap(begin_index, end_index);
 			}
 
-			Reference result = create_array(cursor.ast());
+			Reference result = create_array(cursor.program());
 
 			for (std::size_t i = begin_index; i <= end_index; ++i) {
 				result.data<Array>().values.emplace_back(array_get_item(self.data<Array>().values[i]));
@@ -256,7 +256,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		}
 		else {
 
-			Reference result = create_array(cursor.ast());
+			Reference result = create_array(cursor.program());
 
 			while (std::optional<Reference>&& item = iterator_next(cursor, index.data<Iterator>())) {
 				result.data<Array>().values.emplace_back(array_get_item(
@@ -268,7 +268,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member(subscript_move_operator, ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
+	create_builtin_member(subscript_move_operator, program.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 		const auto& value = load_from_stack(cursor, base);
 		const auto& index = load_from_stack(cursor, base - 1);
@@ -342,7 +342,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("insert", ast.create_builtin_method(*this, 3, [](Cursor& cursor) {
+	create_builtin_member("insert", program.create_builtin_method(*this, 3, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& value = load_from_stack(cursor, base);
@@ -354,11 +354,11 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(in_operator, ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member(in_operator, program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		cursor.stack().back() = create_iterator_over(cursor, cursor.stack().back());
 	}));
 
-	create_builtin_member(in_operator, ast.create_builtin_method(*this, R"""(
+	create_builtin_member(in_operator, program.create_builtin_method(*this, R"""(
 		def (const self, const value) {
 			for let item in self {
 				if item == value {
@@ -368,22 +368,22 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return false
 		})"""));
 
-	create_builtin_member("each", ast.create_builtin_method(*this, R"""(
+	create_builtin_member("each", program.create_builtin_method(*this, R"""(
 		def (const self, const func) {
 			for let item in self {
 				func(item)
 			}
 		})"""));
 
-	create_builtin_member("isEmpty", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("isEmpty", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		cursor.stack().back() = create_boolean(cursor.stack().back().data<Array>().values.empty());
 	}));
 
-	create_builtin_member("size", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("size", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		cursor.stack().back() = create_unsigned_number(cursor.stack().back().data<Array>().values.size());
 	}));
 
-	create_builtin_member("remove", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("remove", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& index = load_from_stack(cursor, base);
@@ -424,21 +424,21 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member("pop", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("pop", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
 		auto item = std::move(self.data<Array>().values.back());
 		self.data<Array>().values.pop_back();
 		cursor.stack().back() = std::move(item);
 	}));
 
-	create_builtin_member("shift", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("shift", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
 		auto item = std::move(self.data<Array>().values.front());
 		self.data<Array>().values.erase(self.data<Array>().values.begin());
 		cursor.stack().back() = std::move(item);
 	}));
 
-	create_builtin_member("clear", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("clear", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
 		if (self.flags() & Reference::const_value) [[unlikely]] {
 			error("invalid modification of constant value");
@@ -447,7 +447,7 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 		cursor.stack().back() = create_none();
 	}));
 
-	create_builtin_member("contains", ast.create_builtin_method(*this, R"""(
+	create_builtin_member("contains", program.create_builtin_method(*this, R"""(
 		def (const self, const value) {
 			if value in self {
 				return true
@@ -455,12 +455,12 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return false
 		})"""));
 
-	create_builtin_member("indexOf", ast.create_builtin_method(*this, R"""(
+	create_builtin_member("indexOf", program.create_builtin_method(*this, R"""(
 		def (const self, const value) {
 			return self.indexOf(value, 0)
 		})"""));
 
-	create_builtin_member("indexOf", ast.create_builtin_method(*this, R"""(
+	create_builtin_member("indexOf", program.create_builtin_method(*this, R"""(
 		def (const self, const value, const from) {
 			for let i in from...self.size() {
 				if self[i] == value {
@@ -470,12 +470,12 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return none
 		})"""));
 
-	create_builtin_member("lastIndexOf", ast.create_builtin_method(*this, R"""(
+	create_builtin_member("lastIndexOf", program.create_builtin_method(*this, R"""(
 		def (const self, const value) {
 			return self.lastIndexOf(value, none)
 		})"""));
 
-	create_builtin_member("lastIndexOf", ast.create_builtin_method(*this, R"""(
+	create_builtin_member("lastIndexOf", program.create_builtin_method(*this, R"""(
 		def (const self, const value, const from) {
 			if not defined from {
 				from = self.size() - 1
@@ -488,13 +488,13 @@ ArrayClass::ArrayClass(AbstractSyntaxTree& ast) :
 			return none
 		})"""));
 
-	create_builtin_member("join", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("join", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& sep = load_from_stack(cursor, base);
 		const Reference& self = load_from_stack(cursor, base - 1);
 
-		Reference result = create_string(cursor.ast(),
+		Reference result = create_string(cursor.program(),
 		    std::format("{}", std::views::transform(self.data<Array>().values,
 		                          [](auto& item) {
 			                          return to_string(item);
@@ -553,7 +553,7 @@ Reference mint::array_get_item(const Array::values_type::iterator& it) {
 	return *it;
 }
 
-Reference mint::array_get_item(Array::values_type::value_type& value) {
+Reference mint::array_get_item(const Array::values_type::value_type& value) {
 	return value;
 }
 

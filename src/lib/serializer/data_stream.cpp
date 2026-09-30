@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/cursor.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/class.h"
@@ -34,7 +34,6 @@
 #include "mint/memory/cast_tools.h"
 #include "mint/memory/builtin/string.h"
 #include <algorithm>
-#include <bit>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -47,17 +46,17 @@
 
 namespace symbols {
 
-static const mint::Symbol d_ptr("d_ptr");
+const auto d_ptr = mint::Symbol("d_ptr");
 
-static const std::string int8("int8");
-static const std::string uint8("uint8");
-static const std::string int16("int16");
-static const std::string uint16("uint16");
-static const std::string int32("int32");
-static const std::string uint32("uint32");
-static const std::string int64("int64");
-static const std::string uint64("uint64");
-static const std::string data_stream("Serializer.DataStream");
+constexpr auto int8 = std::string_view("int8");
+constexpr auto uint8 = std::string_view("uint8");
+constexpr auto int16 = std::string_view("int16");
+constexpr auto uint16 = std::string_view("uint16");
+constexpr auto int32 = std::string_view("int32");
+constexpr auto uint32 = std::string_view("uint32");
+constexpr auto int64 = std::string_view("int64");
+constexpr auto uint64 = std::string_view("uint64");
+constexpr auto data_stream = std::string_view("Serializer.DataStream");
 
 }
 
@@ -70,12 +69,12 @@ constexpr const std::string_view base64_url_alphabet = "ABCDEFGHIJKLMNOPQRSTUVWX
 
 template<class T>
 void copy_from_buffer(const std::uint8_t* buffer, T* target) {
-	std::ranges::copy_n(buffer, sizeof(T), std::bit_cast<std::uint8_t*>(target));
+	std::ranges::copy_n(buffer, sizeof(T), reinterpret_cast<std::uint8_t*>(target));
 }
 
 template<class T>
 void copy_to_buffer(std::vector<std::uint8_t>& buffer, const T* source) {
-	std::ranges::copy_n(std::bit_cast<const std::uint8_t*>(source), sizeof(T), std::back_inserter(buffer));
+	std::ranges::copy_n(reinterpret_cast<const std::uint8_t*>(source), sizeof(T), std::back_inserter(buffer));
 }
 
 mint::Reference get_d_ptr(const mint::Reference& reference) {
@@ -94,11 +93,11 @@ std::string buffer_to_base64(std::vector<std::uint8_t>* buffer, std::string_view
 	auto it = buffer->begin();
 	while (it != buffer->end()) {
 
-		int chunk = int(*it++) << 16;
+		int chunk = static_cast<int>(*it++) << 16;
 		if (it != buffer->end()) {
-			chunk |= int(*it++) << 8;
+			chunk |= static_cast<int>(*it++) << 8;
 			if (it != buffer->end()) {
-				chunk |= int(*it++);
+				chunk |= static_cast<int>(*it++);
 			}
 			else {
 				padlen = 1;
@@ -133,7 +132,7 @@ bool base64_to_buffer(std::vector<std::uint8_t>* buffer, const std::string& data
 	int nbits = 0;
 
 	for (std::size_t i = 0; i < data.size(); ++i) {
-		int ch = data[i];
+		const int ch = data[i];
 		if (ch >= alphabet[0] && ch <= alphabet[25]) {
 			buf = (buf << 6) | (ch - alphabet[0]);
 		}
@@ -202,7 +201,7 @@ mint::Reference mint_data_stream_from_utf8_bytes_from(mint::Cursor& cursor, cons
 }
 
 mint::Reference mint_data_stream_create_buffer(mint::Cursor& cursor) {
-	return mint::create_c_object(cursor.ast(), new std::vector<std::uint8_t>());
+	return mint::create_c_object(cursor.program(), new std::vector<std::uint8_t>());
 }
 
 mint::Reference mint_data_stream_delete_buffer(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
@@ -211,49 +210,49 @@ mint::Reference mint_data_stream_delete_buffer(mint::Cursor& /*cursor*/, const m
 }
 
 mint::Reference mint_data_stream_contains_int8(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    mint::Reference& count) {
+    const mint::Reference& count) {
 	return mint::create_boolean(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::int8_t) * mint::to_unsigned_integer(cursor, count));
 }
 
 mint::Reference mint_data_stream_contains_int16(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    mint::Reference& count) {
+    const mint::Reference& count) {
 	return mint::create_boolean(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::int16_t) * mint::to_unsigned_integer(cursor, count));
 }
 
 mint::Reference mint_data_stream_contains_int32(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    mint::Reference& count) {
+    const mint::Reference& count) {
 	return mint::create_boolean(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::int32_t) * mint::to_unsigned_integer(cursor, count));
 }
 
 mint::Reference mint_data_stream_contains_int64(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    mint::Reference& count) {
+    const mint::Reference& count) {
 	return mint::create_boolean(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::int64_t) * mint::to_unsigned_integer(cursor, count));
 }
 
 mint::Reference mint_data_stream_contains_uint8(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    mint::Reference& count) {
+    const mint::Reference& count) {
 	return mint::create_boolean(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::uint8_t) * mint::to_unsigned_integer(cursor, count));
 }
 
 mint::Reference mint_data_stream_contains_uint16(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    mint::Reference& count) {
+    const mint::Reference& count) {
 	return mint::create_boolean(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::uint16_t) * mint::to_unsigned_integer(cursor, count));
 }
 
 mint::Reference mint_data_stream_contains_uint32(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    mint::Reference& count) {
+    const mint::Reference& count) {
 	return mint::create_boolean(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::uint32_t) * mint::to_unsigned_integer(cursor, count));
 }
 
 mint::Reference mint_data_stream_contains_uint64(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    mint::Reference& count) {
+    const mint::Reference& count) {
 	return mint::create_boolean(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()
 	                            >= sizeof(std::uint64_t) * mint::to_unsigned_integer(cursor, count));
 }
@@ -295,7 +294,7 @@ mint::Reference mint_data_stream_get(mint::Cursor& /*cursor*/, const mint::Refer
 		break;
 
 	case mint::Data::Format::object:
-		switch (auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
+		switch (const auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
 		case mint::Class::Metatype::object:
 			if (object.metadata.full_name() == symbols::int8) {
 				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::int8_t>>().ptr);
@@ -332,7 +331,7 @@ mint::Reference mint_data_stream_get(mint::Cursor& /*cursor*/, const mint::Refer
 			break;
 
 		case mint::Class::Metatype::string:
-			data.data<mint::String>().str = std::bit_cast<char*>(buffer_data);
+			data.data<mint::String>().str = reinterpret_cast<char*>(buffer_data);
 			break;
 
 		case mint::Class::Metatype::regex:
@@ -351,11 +350,12 @@ mint::Reference mint_data_stream_get(mint::Cursor& /*cursor*/, const mint::Refer
 }
 
 mint::Reference mint_data_stream_get_substr(mint::Cursor& cursor, const mint::Reference& d_ptr,
-    const mint::Reference& from, mint::Reference& length) {
+    const mint::Reference& from, const mint::Reference& length) {
 	const auto* buffer_data = d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
-	return mint::create_string(cursor.ast(), std::string(std::next(reinterpret_cast<const char*>(buffer_data->data()),
-	                                                         mint::to_integer<std::ptrdiff_t>(cursor, from)),
-	                                             mint::to_integer<std::size_t>(cursor, length)));
+	return mint::create_string(cursor.program(),
+	    std::string(std::next(reinterpret_cast<const char*>(buffer_data->data()),
+	                    mint::to_integer<std::ptrdiff_t>(cursor, from)),
+	        mint::to_integer<std::size_t>(cursor, length)));
 }
 
 mint::Reference mint_data_stream_get_array(mint::Cursor& cursor, const mint::Reference& d_ptr,
@@ -366,7 +366,7 @@ mint::Reference mint_data_stream_get_array(mint::Cursor& cursor, const mint::Ref
 	for (std::intmax_t index = 0; index < mint::to_signed_integer(cursor, count); ++index) {
 		const auto item = array_get_item(data.data<mint::Array>(), index);
 		if (mint::is_instance_of(item, mint::Class::Metatype::object)) {
-			auto& object = item.data<mint::Object>();
+			const auto& object = item.data<mint::Object>();
 			if (object.metadata.full_name() == symbols::int8) {
 				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::int8_t>>().ptr);
 				std::advance(buffer_data, sizeof(std::int8_t));
@@ -434,12 +434,12 @@ mint::Reference mint_data_stream_get_some_from(mint::Cursor& cursor, const mint:
 }
 
 mint::Reference mint_data_stream_to_base64(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	return mint::create_string(cursor.ast(),
+	return mint::create_string(cursor.program(),
 	    buffer_to_base64(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr, base64_alphabet));
 }
 
 mint::Reference mint_data_stream_to_base64url(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	return mint::create_string(cursor.ast(),
+	return mint::create_string(cursor.program(),
 	    buffer_to_base64(d_ptr.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr, base64_url_alphabet));
 }
 
@@ -479,7 +479,7 @@ mint::Reference mint_data_stream_read(mint::Cursor& /*cursor*/, const mint::Refe
 		break;
 
 	case mint::Data::Format::object:
-		switch (auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
+		switch (const auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
 		case mint::Class::Metatype::object:
 			if (object.metadata.full_name() == symbols::int8) {
 				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::int8_t>>().ptr);
@@ -524,7 +524,7 @@ mint::Reference mint_data_stream_read(mint::Cursor& /*cursor*/, const mint::Refe
 			break;
 
 		case mint::Class::Metatype::string:
-			data.data<mint::String>().str = std::bit_cast<char*>(buffer_object.data());
+			data.data<mint::String>().str = reinterpret_cast<char*>(buffer_object.data());
 			buffer_object.erase(buffer_object.begin(),
 			    std::next(buffer_object.begin(), static_cast<std::ptrdiff_t>(data.data<mint::String>().str.size()) + 1));
 			break;
@@ -584,7 +584,7 @@ mint::Reference mint_data_stream_write(mint::Cursor& /*cursor*/, const mint::Ref
 		break;
 
 	case mint::Data::Format::object:
-		switch (auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
+		switch (const auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
 		case mint::Class::Metatype::object:
 			if (object.metadata.full_name() == symbols::data_stream) {
 				buffer_object.append_range(*get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr);

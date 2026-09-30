@@ -22,9 +22,9 @@
  */
 
 #include "branch.h"
-#include "mint/ast/node.h"
+#include "mint/program/node.h"
 #include "mint/compiler/build_tools.h"
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include <cstddef>
 #include <functional>
 #include <optional>
@@ -33,8 +33,8 @@
 #include <vector>
 
 #if defined(MINT_BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
 #include "mint/debug/debug_tools.h"
 #include "mint/system/stdio.h"
 #include <format>
@@ -127,11 +127,11 @@ void Branch::forward_jumps(Branch& parent, std::size_t offset) {
 	_jump_backward.clear();
 }
 
-MainBranch::MainBranch(AbstractSyntaxTree& ast, ModuleInfo& data) :
+MainBranch::MainBranch(Program& program, ModuleInfo& data) :
 #ifdef MINT_BUILD_TYPE_DEBUG
     _offset(data.bytecode.next_node_offset()),
 #endif
-    _ast(ast),
+    _program(program),
     _data(data) {
 }
 
@@ -167,11 +167,12 @@ void MainBranch::build() {
 #if defined(MINT_BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
 	if (_data.get().id != Module::invalid_id) {
 		const auto& bytecode = _data.get().bytecode;
-		auto cursor = Cursor(_ast, bytecode);
-		mint::print(stdout, std::format("## MODULE: {} ({})\n", _data.get().id, _ast.get().get_module_name(bytecode)));
+		auto cursor = Cursor(_program, bytecode);
+		mint::print(stdout,
+		    std::format("## MODULE: {} ({})\n", _data.get().id, _program.get().get_module_name(bytecode)));
 		cursor.jmp(_offset);
 		for (std::size_t offset = cursor.offset(); offset < bytecode.next_node_offset(); offset = cursor.offset()) {
-			mint::print(stdout, std::format("LINE {} ", _data.get().debug_info.line_number()(offset)));
+			mint::print(stdout, std::format("LINE {} ", _data.get().debug_info.line_number(offset)));
 			if (dump_command(cursor, std::cout) == Node::Command::exit_module) {
 				cursor.jmp(bytecode.next_node_offset());
 			}

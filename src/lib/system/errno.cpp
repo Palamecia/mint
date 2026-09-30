@@ -492,7 +492,7 @@ mint::Reference mint_errno_setup(mint::Cursor& /*cursor*/, const mint::Reference
 }
 
 mint::Reference mint_errno_strerror(mint::Cursor& cursor, const mint::Reference& error) {
-	return mint::create_string(cursor.ast(), strerror(mint::to_integer<int>(cursor, error)));
+	return mint::create_string(cursor.program(), strerror(mint::to_integer<int>(cursor, error)));
 }
 
 }

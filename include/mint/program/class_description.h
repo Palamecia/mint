@@ -21,11 +21,11 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_CLASS_DESCRIPTION_H
-#define MINT_AST_CLASS_DESCRIPTION_H
+#ifndef MINT_PROGRAM_CLASS_DESCRIPTION_H
+#define MINT_PROGRAM_CLASS_DESCRIPTION_H
 
-#include "mint/ast/class_register.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_register.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/class.h"
 #include "mint/memory/reference.h"
@@ -39,7 +39,7 @@ namespace mint {
 
 class MINT_EXPORT ClassDescription : public ClassRegister {
 public:
-	ClassDescription(AbstractSyntaxTree& ast, const std::string& name);
+	ClassDescription(Program& program, const std::string& name);
 
 	[[nodiscard]] Symbol name() const;
 	[[nodiscard]] std::string full_name() const;
@@ -61,7 +61,7 @@ public:
 	void cleanup_metadata() override;
 
 	void mark() {
-		for (auto& member : _members) {
+		for (const auto& member : _members) {
 			member.second.data().mark();
 		}
 	}
@@ -81,4 +81,4 @@ private:
 
 }
 
-#endif // MINT_AST_CLASS_DESCRIPTION_H
+#endif // MINT_PROGRAM_CLASS_DESCRIPTION_H

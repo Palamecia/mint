@@ -24,7 +24,7 @@
 #ifndef LIBMINT_COMPILER_CATCH_CONTEXT_H
 #define LIBMINT_COMPILER_CATCH_CONTEXT_H
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 
 namespace mint {
 

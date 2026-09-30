@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/operator_tools.h"
@@ -116,9 +116,9 @@ AbstractMutex::Kind to_abstract_mutex_kind(mint::Cursor& cursor, const mint::Ref
 mint::Reference mint_mutex_create(mint::Cursor& cursor, const mint::Reference& kind) {
 	switch (to_abstract_mutex_kind(cursor, kind)) {
 	case AbstractMutex::Kind::normal:
-		return mint::create_c_object<AbstractMutex>(cursor.ast(), new Mutex);
+		return mint::create_c_object<AbstractMutex>(cursor.program(), new Mutex);
 	case AbstractMutex::Kind::recursive:
-		return mint::create_c_object<AbstractMutex>(cursor.ast(), new RecursiveMutex);
+		return mint::create_c_object<AbstractMutex>(cursor.program(), new RecursiveMutex);
 	}
 	return {};
 }

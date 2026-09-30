@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/config.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/cast_tools.h"
@@ -233,15 +233,15 @@ public:
 							done(mint::create_iterator_from(_cursor,
 							    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 							        mint_network::symbols::io_success),
-							    mint::create_c_object<LocalSocket>(_cursor.get().ast(), _socket),
-							    mint_network::create_socket(_cursor.get().ast(), socket_fd)));
+							    mint::create_c_object<LocalSocket>(_cursor.get().program(), _socket),
+							    mint_network::create_socket(_cursor.get().program(), socket_fd)));
 							break;
 						case IOStatus::would_block:
 							done(mint::create_iterator_from(_cursor,
 							    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 							        mint_network::symbols::io_would_block),
-							    mint::create_c_object<LocalSocket>(_cursor.get().ast(), _socket),
-							    mint_network::create_socket(_cursor.get().ast(), socket_fd)));
+							    mint::create_c_object<LocalSocket>(_cursor.get().program(), _socket),
+							    mint_network::create_socket(_cursor.get().program(), socket_fd)));
 							break;
 						case IOStatus::closed:
 							done(mint::create_iterator_from(_cursor,
@@ -586,9 +586,9 @@ public:
 					    std::bit_cast<mint::handle_t>(_socket_fd.get());
 					mint_network::SocketManager::instance().set_socket_listening(_socket_fd, true);
 					done(mint::create_iterator_from(_cursor, mint::create_number(0),
-					    mint::create_c_object<LocalSocket>(_cursor.get().ast(),
+					    mint::create_c_object<LocalSocket>(_cursor.get().program(),
 					        new NamedPipeLocalSocket(client_fd, _socket.get().get_path())),
-					    mint_network::create_socket(_cursor.get().ast(), client_fd)));
+					    mint_network::create_socket(_cursor.get().program(), client_fd)));
 #else
 #error "This operation is not implemented for this platform"
 #endif
@@ -849,15 +849,15 @@ public:
 							done(mint::create_iterator_from(_cursor,
 							    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 							        mint_network::symbols::io_success),
-							    mint::create_c_object<LocalSocket>(_cursor.get().ast(), _socket),
-							    mint_network::create_socket(_cursor.get().ast(), socket_fd)));
+							    mint::create_c_object<LocalSocket>(_cursor.get().program(), _socket),
+							    mint_network::create_socket(_cursor.get().program(), socket_fd)));
 							break;
 						case IOStatus::would_block:
 							done(mint::create_iterator_from(_cursor,
 							    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 							        mint_network::symbols::io_would_block),
-							    mint::create_c_object<LocalSocket>(_cursor.get().ast(), _socket),
-							    mint_network::create_socket(_cursor.get().ast(), socket_fd)));
+							    mint::create_c_object<LocalSocket>(_cursor.get().program(), _socket),
+							    mint_network::create_socket(_cursor.get().program(), socket_fd)));
 							break;
 						case IOStatus::closed:
 							done(mint::create_iterator_from(_cursor,
@@ -877,8 +877,8 @@ public:
 					done(mint::create_iterator_from(_cursor,
 					    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 					        mint_network::symbols::io_success),
-					    mint::create_c_object<LocalSocket>(_cursor.get().ast(), _socket),
-					    mint_network::create_socket(_cursor.get().ast(), socket_fd)));
+					    mint::create_c_object<LocalSocket>(_cursor.get().program(), _socket),
+					    mint_network::create_socket(_cursor.get().program(), socket_fd)));
 #else
 #error "This operation is not implemented for this platform"
 #endif
@@ -1473,8 +1473,8 @@ public:
 						mint_network::set_socket_option(_client_fd, SO_UPDATE_ACCEPT_CONTEXT, socket_fd);
 						mint_network::SocketManager::instance().accept_socket(_client_fd);
 						done(mint::create_iterator_from(_cursor, mint::create_number(0),
-						    mint::create_c_object<LocalSocket>(_cursor.get().ast(), new UnixLocalSocket(_client_fd)),
-						    mint_network::create_socket(_cursor.get().ast(), _client_fd)));
+						    mint::create_c_object<LocalSocket>(_cursor.get().program(), new UnixLocalSocket(_client_fd)),
+						    mint_network::create_socket(_cursor.get().program(), _client_fd)));
 					}
 					catch (const std::system_error& error) {
 						done(mint::create_iterator_from(_cursor, mint::create_number(error.code().value())));
@@ -1483,8 +1483,8 @@ public:
 					const auto client_fd = static_cast<SOCKET>(bytes_transferred);
 					mint_network::SocketManager::instance().accept_socket(client_fd);
 					done(mint::create_iterator_from(_cursor, mint::create_number(0),
-					    mint::create_c_object<LocalSocket>(_cursor.get().ast(), new UnixLocalSocket(client_fd)),
-					    mint_network::create_socket(_cursor.get().ast(), client_fd)));
+					    mint::create_c_object<LocalSocket>(_cursor.get().program(), new UnixLocalSocket(client_fd)),
+					    mint_network::create_socket(_cursor.get().program(), client_fd)));
 #else
 #error "This operation is not implemented for this platform"
 #endif
@@ -1575,7 +1575,7 @@ mint::Reference mint_local_endpoint_create(mint::Cursor& cursor, const mint::Ref
 	                          .string();
 	if (path_str.size() < UNIX_PATH_MAX) {
 		std::ranges::copy(path_str, d_ptr->sun_path);
-		return mint::create_c_object<sockaddr>(cursor.ast(), reinterpret_cast<sockaddr*>(d_ptr.release()));
+		return mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release()));
 	}
 #endif
 	return {};
@@ -1590,7 +1590,7 @@ mint::Reference mint_local_endpoint_delete(mint::Cursor& /*cursor*/, const mint:
 
 mint::Reference mint_local_endpoint_get_path(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 	if (mint::is_instance_of(d_ptr, mint::Class::Metatype::libobject)) {
-		return mint::create_string(cursor.ast(),
+		return mint::create_string(cursor.program(),
 		    reinterpret_cast<sockaddr_un*>(d_ptr.data<mint::LibObject<sockaddr>>().ptr)->sun_path);
 	}
 	return {};
@@ -1614,13 +1614,13 @@ mint::Reference mint_local_socket_connect(mint::FunctionHelper& helper, const mi
 		case IOStatus::success:
 			return mint::create_iterator_from(helper.cursor(),
 			    io_status.member(mint_network::symbols::io_success).share(),
-			    mint::create_c_object(helper.cursor().ast(), socket.release()),
-			    mint_network::create_socket(helper.cursor().ast(), socket_fd));
+			    mint::create_c_object(helper.cursor().program(), socket.release()),
+			    mint_network::create_socket(helper.cursor().program(), socket_fd));
 		case IOStatus::would_block:
 			return mint::create_iterator_from(helper.cursor(),
 			    io_status.member(mint_network::symbols::io_would_block).share(),
-			    mint::create_c_object(helper.cursor().ast(), socket.release()),
-			    mint_network::create_socket(helper.cursor().ast(), socket_fd));
+			    mint::create_c_object(helper.cursor().program(), socket.release()),
+			    mint_network::create_socket(helper.cursor().program(), socket_fd));
 		case IOStatus::closed:
 			return mint::create_iterator_from(helper.cursor(),
 			    io_status.member(mint_network::symbols::io_closed).share(), mint::create_null());
@@ -1643,7 +1643,7 @@ mint::Reference mint_local_socket_connect_async(mint::FunctionHelper& helper, mi
 		                                  : std::make_tuple<sockaddr*, socklen_t>(nullptr, 0);
 
 		return mint::create_iterator_from(helper.cursor(), mint::create_number(0),
-		    mint::create_async_operation(helper.cursor().ast(),
+		    mint::create_async_operation(helper.cursor().program(),
 		        socket.release()
 		            ->connect_async(helper, std::move(self), scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
 		                mint::to_string(name), target, length)
@@ -1699,7 +1699,7 @@ mint::Reference mint_local_socket_recv_some(mint::FunctionHelper& helper, const 
 
 mint::Reference mint_local_socket_recv_some_async(mint::FunctionHelper& helper, mint::Reference& self,
     const mint::Reference& d_ptr, const mint::Reference& buffer, const mint::Reference& count) {
-	return mint::create_async_operation(helper.cursor().ast(),
+	return mint::create_async_operation(helper.cursor().program(),
 	    d_ptr.data<mint::LibObject<LocalSocket>>()
 	        .ptr
 	        ->read_some_async(helper, std::move(self), buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr,
@@ -1737,7 +1737,7 @@ mint::Reference mint_local_socket_recv(mint::FunctionHelper& helper, const mint:
 
 mint::Reference mint_local_socket_recv_async(mint::FunctionHelper& helper, mint::Reference& self,
     const mint::Reference& d_ptr, const mint::Reference& buffer) {
-	return mint::create_async_operation(helper.cursor().ast(),
+	return mint::create_async_operation(helper.cursor().program(),
 	    d_ptr.data<mint::LibObject<LocalSocket>>()
 	        .ptr->read_async(helper, std::move(self), buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
 	        .release());
@@ -1774,7 +1774,7 @@ mint::Reference mint_local_socket_send(mint::FunctionHelper& helper, const mint:
 
 mint::Reference mint_local_socket_send_async(mint::FunctionHelper& helper, mint::Reference& self,
     const mint::Reference& d_ptr, const mint::Reference& buffer) {
-	return mint::create_async_operation(helper.cursor().ast(),
+	return mint::create_async_operation(helper.cursor().program(),
 	    d_ptr.data<mint::LibObject<LocalSocket>>()
 	        .ptr->write_async(helper, std::move(self), buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
 	        .release());
@@ -1790,8 +1790,8 @@ mint::Reference mint_local_socket_listen(mint::Cursor& cursor, const mint::Refer
 		socket->listen(mint::to_string(name), address, address_length);
 		const auto socket_fd = socket->get_socket();
 		return mint::create_iterator_from(cursor, mint::create_number(0),
-		    mint::create_c_object(cursor.ast(), socket.release()),
-		    mint_network::create_socket(cursor.ast(), socket_fd));
+		    mint::create_c_object(cursor.program(), socket.release()),
+		    mint_network::create_socket(cursor.program(), socket_fd));
 	}
 	catch (const std::system_error& error) {
 		return mint::create_iterator_from(cursor, mint::create_number(error.code().value()), mint::create_null());
@@ -1806,8 +1806,8 @@ mint::Reference mint_local_socket_accept(mint::Cursor& cursor, const mint::Refer
 		}
 		const auto socket_fd = socket->get_socket();
 		return mint::create_iterator_from(cursor, mint::create_number(0),
-		    mint::create_c_object(cursor.ast(), socket.release()),
-		    mint_network::create_socket(cursor.ast(), socket_fd));
+		    mint::create_c_object(cursor.program(), socket.release()),
+		    mint_network::create_socket(cursor.program(), socket_fd));
 	}
 	catch (const std::system_error& error) {
 		return mint::create_iterator_from(cursor, mint::create_number(error.code().value()), mint::create_null());
@@ -1816,9 +1816,10 @@ mint::Reference mint_local_socket_accept(mint::Cursor& cursor, const mint::Refer
 
 mint::Reference mint_local_socket_accept_async(mint::Cursor& cursor, mint::Reference& self,
     const mint::Reference& d_ptr, mint::Reference& handle) {
-	return mint::create_async_operation(cursor.ast(), d_ptr.data<mint::LibObject<LocalSocket>>()
-	                                                      .ptr->accept_async(cursor, std::move(self), std::move(handle))
-	                                                      .release());
+	return mint::create_async_operation(cursor.program(),
+	    d_ptr.data<mint::LibObject<LocalSocket>>()
+	        .ptr->accept_async(cursor, std::move(self), std::move(handle))
+	        .release());
 }
 
 mint::Reference mint_local_socket_set_non_blocking(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,

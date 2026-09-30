@@ -21,16 +21,16 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/operator_tools.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/cast_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/program/program.h"
 #include "mint/scheduler/process.h"
 #include "mint/scheduler/scheduler.h"
 #include "mint/scheduler/processor.h"
@@ -63,7 +63,7 @@ mint::Reference mint_thread_start_member(mint::FunctionHelper& helper, const min
     const mint::Reference& method, const mint::Reference& args) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
-	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
+	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.program());
 	const auto signature = static_cast<int>(args.data<mint::Iterator>().ctx.size());
 
 	if (mint::is_instance_of(method, mint::Data::Format::function)) {
@@ -83,7 +83,7 @@ mint::Reference mint_thread_start_member(mint::FunctionHelper& helper, const min
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_member_operator(*thread_cursor, signature);
-	mint::Reference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().program());
 	try {
 		const auto thread_id = scheduler.create_thread(std::move(thread_cursor));
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(thread_id));
@@ -99,14 +99,14 @@ mint::Reference mint_thread_start(mint::FunctionHelper& helper, const mint::Refe
     const mint::Reference& args) {
 
 	mint::Scheduler& scheduler = helper.scheduler();
-	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.ast());
+	auto thread_cursor = std::make_unique<mint::Cursor>(scheduler.program());
 	const auto signature = static_cast<int>(args.data<mint::Iterator>().ctx.size());
 
 	thread_cursor->waiting_calls().emplace(func);
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_operator(*thread_cursor, signature);
-	mint::Reference result = mint::create_iterator(helper.cursor().ast());
+	mint::Reference result = mint::create_iterator(helper.cursor().program());
 	try {
 		const auto thread_id = scheduler.create_thread(std::move(thread_cursor));
 		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(thread_id));

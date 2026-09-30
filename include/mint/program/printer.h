@@ -21,40 +21,28 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_EXCEPTION_H
-#define MINT_AST_EXCEPTION_H
+#ifndef MINT_PROGRAM_PRINTER_H
+#define MINT_PROGRAM_PRINTER_H
 
-#include "mint/ast/cursor.h"
-#include "mint/memory/reference.h"
-#include <exception>
-#include <functional>
-#include <utility>
+#include "mint/config.h"
 
 namespace mint {
 
-class MintException : public std::exception {
+class Reference;
+
+class MINT_EXPORT Printer {
 public:
-	MintException(Cursor& cursor, Reference&& reference) :
-	    _cursor(cursor),
-	    _reference(std::move(reference)) {}
+	Printer() = default;
+	Printer(Printer&& other) = delete;
+	Printer(const Printer& other) = delete;
+	virtual ~Printer() = default;
 
-	Cursor& cursor() {
-		return _cursor;
-	}
+	Printer& operator=(Printer&& other) = delete;
+	Printer& operator=(const Printer& other) = delete;
 
-	Reference&& take_exception() noexcept {
-		return std::move(_reference);
-	}
-
-	[[nodiscard]] const char* what() const noexcept override {
-		return "unhandled exception";
-	}
-
-private:
-	std::reference_wrapper<Cursor> _cursor;
-	RootReference _reference;
+	virtual void print(const Reference& reference) = 0;
 };
 
 }
 
-#endif // MINT_AST_EXCEPTION_H
+#endif // MINT_PROGRAM_PRINTER_H

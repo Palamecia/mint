@@ -23,8 +23,8 @@
 
 #include "symbol_evaluator.h"
 
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/program.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/data.h"
 #include "mint/memory/global_data.h"
@@ -91,12 +91,12 @@ bool SymbolEvaluator::on_token(mint::Token type, const std::string& token, std::
 std::optional<mint::Reference> SymbolEvaluator::get_symbol_reference(mint::SymbolTable& symbols,
     const mint::Symbol& symbol) {
 
-	if (auto it = symbols.find(symbol); it != symbols.end()) {
+	if (const auto it = symbols.find(symbol); it != symbols.end()) {
 		return it->second;
 	}
 
-	mint::GlobalData& globals = _cursor.get().ast().global_data();
-	if (auto it = globals.symbols().find(symbol); it != globals.symbols().end()) {
+	mint::GlobalData& globals = _cursor.get().program().global_data();
+	if (const auto it = globals.symbols().find(symbol); it != globals.symbols().end()) {
 		return it->second;
 	}
 
@@ -109,7 +109,7 @@ std::optional<mint::Reference> SymbolEvaluator::get_member_reference(const mint:
 	case mint::Data::Format::package:
 		for (mint::PackageData* package_data = &reference.data<mint::Package>().data; package_data != nullptr;
 		    package_data = package_data->get_owner_package()) {
-			if (auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
+			if (const auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
 				return it->second;
 			}
 		}
@@ -133,7 +133,7 @@ std::optional<mint::Reference> SymbolEvaluator::get_member_reference(const mint:
 
 			for (mint::PackageData* package = &object.metadata.get_package(); package != nullptr;
 			    package = package->get_owner_package()) {
-				if (auto it = package->symbols().find(member); it != package->symbols().end()) {
+				if (const auto it = package->symbols().find(member); it != package->symbols().end()) {
 					constexpr auto flags = mint::Reference::const_address | mint::Reference::const_value;
 					return mint::Reference(flags, it->second.data());
 				}
@@ -142,8 +142,8 @@ std::optional<mint::Reference> SymbolEvaluator::get_member_reference(const mint:
 		break;
 
 	default:
-		mint::GlobalData& externals = _cursor.get().ast().global_data();
-		if (auto it = externals.symbols().find(member); it != externals.symbols().end()) {
+		mint::GlobalData& externals = _cursor.get().program().global_data();
+		if (const auto it = externals.symbols().find(member); it != externals.symbols().end()) {
 			constexpr auto flags = mint::Reference::const_address | mint::Reference::const_value;
 			return mint::Reference(flags, it->second.data());
 		}

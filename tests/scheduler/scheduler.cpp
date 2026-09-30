@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 #include "mint/scheduler/scheduler.h"
-#include "mint/ast/module.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/module.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/class.h"
 #include "mint/memory/class_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
+#include "mint/program/program.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/object.h"
@@ -12,12 +12,12 @@
 
 TEST(scheduler, invoke_function) {
 
-	mint::Scheduler scheduler({});
-	auto& module = scheduler.ast().create_module(mint::Module::State::ready);
-	auto thread = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	auto& module = scheduler.program().create_module(mint::Module::State::ready);
+	const auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
 
-	const auto fn = mint::create_function(scheduler.ast(), module, R"(
+	const auto fn = mint::create_function(scheduler.program(), module, R"(
         def (a, b) {
             return a + b
         }
@@ -31,11 +31,11 @@ TEST(scheduler, invoke_function) {
 
 TEST(scheduler, invoke_new) {
 
-	mint::Scheduler scheduler({});
-	auto thread = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
 
-	mint::Class& test_class = mint::create_class(scheduler.ast(), "__test_class__", {});
+	mint::Class& test_class = mint::create_class(scheduler.program(), "__test_class__", {});
 
 	const auto object = scheduler.invoke(test_class);
 	ASSERT_EQ(mint::Data::Format::object, object.data().format());
@@ -43,28 +43,37 @@ TEST(scheduler, invoke_new) {
 
 TEST(scheduler, invoke_method) {
 
-	mint::Scheduler scheduler({});
-	auto thread = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
 
-	mint::Class& test_class = mint::create_class(scheduler.ast(), "__test_class__",
+	mint::Class& test_class = mint::create_class(scheduler.program(), "__test_class__",
 	    {
-	        {mint::builtin_symbols::new_method, mint::create_function(scheduler.ast(), R"(
+	        {
+	            mint::builtin_symbols::new_method,
+	            mint::create_function(scheduler.program(), R"(
 					def (self, value) {
 						self.value = value
 						return self
 					}
-				)")},
-	        {"getSelf", mint::create_function(scheduler.ast(), R"(
+				)"),
+	        },
+	        {
+	            "getSelf",
+	            mint::create_function(scheduler.program(), R"(
 					def (self) {
 						return self
 					}
-				)")},
-	        {"getValue", mint::create_function(scheduler.ast(), R"(
+				)"),
+	        },
+	        {
+	            "getValue",
+	            mint::create_function(scheduler.program(), R"(
 					def (self) {
 						return self.value
 					}
-				)")},
+				)"),
+	        },
 	        {"value", mint::create_none()},
 	    });
 
@@ -86,23 +95,29 @@ TEST(scheduler, invoke_method) {
 
 TEST(scheduler, invoke_operator) {
 
-	mint::Scheduler scheduler({});
-	auto thread = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
 
-	mint::Class& test_class = mint::create_class(scheduler.ast(), "__test_class__",
+	mint::Class& test_class = mint::create_class(scheduler.program(), "__test_class__",
 	    {
-	        {mint::builtin_symbols::new_method, mint::create_function(scheduler.ast(), R"(
+	        {
+	            mint::builtin_symbols::new_method,
+	            mint::create_function(scheduler.program(), R"(
 										def (self, value) {
 											self.value = value
 											return self
 										}
-									)")},
-	        {mint::builtin_symbols::add_operator, mint::create_function(scheduler.ast(), R"(
+									)"),
+	        },
+	        {
+	            mint::builtin_symbols::add_operator,
+	            mint::create_function(scheduler.program(), R"(
 										def (self, value) {
 											return self.value + value
 										}
-									)")},
+									)"),
+	        },
 	        {"value", mint::create_none()},
 	    });
 

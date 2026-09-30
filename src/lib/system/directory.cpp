@@ -27,7 +27,7 @@
 #include "mint/memory/reference.h"
 #include "mint/system/errno.h"
 #include "mint/system/filesystem.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 
 #include <filesystem>
 #include <utility>
@@ -35,7 +35,7 @@
 namespace {
 
 mint::Reference mint_directory_to_native_path(mint::Cursor& cursor, const mint::Reference& path) {
-	return mint::create_string(cursor.ast(), mint::FileSystem::normalized(to_string(path)).generic_string());
+	return mint::create_string(cursor.program(), mint::FileSystem::normalized(to_string(path)).generic_string());
 }
 
 mint::Reference mint_directory_set_current(mint::Cursor& /*cursor*/, const mint::Reference& path) {
@@ -51,7 +51,7 @@ mint::Reference mint_directory_set_current(mint::Cursor& /*cursor*/, const mint:
 mint::Reference mint_directory_absolute_path(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
 		return mint::create_iterator_from(cursor,
-		    mint::create_string(cursor.ast(), std::filesystem::absolute(to_string(path)).generic_string()),
+		    mint::create_string(cursor.program(), std::filesystem::absolute(to_string(path)).generic_string()),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
@@ -63,7 +63,7 @@ mint::Reference mint_directory_absolute_path(mint::Cursor& cursor, const mint::R
 mint::Reference mint_directory_canonical_path(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
 		return mint::create_iterator_from(cursor,
-		    mint::create_string(cursor.ast(), std::filesystem::canonical(to_string(path)).generic_string()),
+		    mint::create_string(cursor.program(), std::filesystem::canonical(to_string(path)).generic_string()),
 		    mint::create_none());
 	}
 	catch (const std::filesystem::filesystem_error& error) {
@@ -76,7 +76,7 @@ mint::Reference mint_directory_relative_path(mint::Cursor& cursor, const mint::R
     const mint::Reference& path) {
 	try {
 		return mint::create_iterator_from(cursor,
-		    mint::create_string(cursor.ast(),
+		    mint::create_string(cursor.program(),
 		        std::filesystem::relative(to_string(path), to_string(root)).generic_string()),
 		    mint::create_none());
 	}
@@ -88,10 +88,10 @@ mint::Reference mint_directory_relative_path(mint::Cursor& cursor, const mint::R
 
 mint::Reference mint_directory_list(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		mint::Reference entries = mint::create_iterator(cursor.ast());
+		mint::Reference entries = mint::create_iterator(cursor.program());
 		for (const auto& entry : std::filesystem::directory_iterator {to_string(path)}) {
 			iterator_yield(cursor, entries.data<mint::Iterator>(),
-			    mint::create_string(cursor.ast(), entry.path().filename().generic_string()));
+			    mint::create_string(cursor.program(), entry.path().filename().generic_string()));
 		}
 		return mint::create_iterator_from(cursor, std::move(entries), mint::create_none());
 	}
@@ -161,19 +161,19 @@ mint::Reference mint_directory_is_subpath(mint::Cursor& cursor, const mint::Refe
 }
 
 MINT_RAW_FUNCTION(mint_directory_native_separator, 0, cursor) {
-	cursor.stack().emplace_back(mint::create_string(cursor.ast(), {std::filesystem::path::preferred_separator}));
+	cursor.stack().emplace_back(mint::create_string(cursor.program(), {std::filesystem::path::preferred_separator}));
 }
 
 MINT_RAW_FUNCTION(mint_directory_root, 0, cursor) {
-	cursor.stack().emplace_back(mint::create_string(cursor.ast(), mint::FileSystem::root_path().generic_string()));
+	cursor.stack().emplace_back(mint::create_string(cursor.program(), mint::FileSystem::root_path().generic_string()));
 }
 
 MINT_RAW_FUNCTION(mint_directory_home, 0, cursor) {
-	cursor.stack().emplace_back(mint::create_string(cursor.ast(), mint::FileSystem::home_path().generic_string()));
+	cursor.stack().emplace_back(mint::create_string(cursor.program(), mint::FileSystem::home_path().generic_string()));
 }
 
 MINT_RAW_FUNCTION(mint_directory_current, 0, cursor) {
-	cursor.stack().emplace_back(mint::create_string(cursor.ast(), std::filesystem::current_path().generic_string()));
+	cursor.stack().emplace_back(mint::create_string(cursor.program(), std::filesystem::current_path().generic_string()));
 }
 
 MINT_EXPORT_FUNCTION(mint_directory_to_native_path, 1)

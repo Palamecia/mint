@@ -22,12 +22,12 @@
  */
 
 #include "mint/debug/cursor_debugger.h"
-#include "mint/ast/module.h"
-#include "mint/ast/node.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
 #include "mint/debug/debug_info.h"
 #include "mint/debug/debug_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
 #include "mint/debug/line_info.h"
 #include "mint/debug/thread_context.h"
 #include "mint/memory/symbol_table.h"
@@ -96,7 +96,7 @@ const SymbolTable* CursorDebugger::symbols(std::size_t stack_frame_index) const 
 
 LineInfo CursorDebugger::line_info(std::size_t stack_frame_index) const {
 	const Cursor::StackFrame* stack_frame = nullptr;
-	const auto& ast = _cursor.get().ast();
+	const auto& program = _cursor.get().program();
 	if (stack_frame_index == 0) {
 		stack_frame = _cursor.get()._current_stack_frame;
 	}
@@ -105,25 +105,25 @@ LineInfo CursorDebugger::line_info(std::size_t stack_frame_index) const {
 	}
 	if (stack_frame) {
 		std::size_t line_number = 0;
-		const auto module_id = ast.get_module_id(stack_frame->module);
-		if (const auto* debug_info = ast.find_debug_info(module_id)) {
+		const auto module_id = program.get_module_id(stack_frame->module);
+		if (const auto* debug_info = program.find_debug_info(module_id)) {
 			line_number = debug_info->line_number(stack_frame->iptr);
 		}
-		return {module_id, ast.get_module_name(stack_frame->module), line_number};
+		return {module_id, program.get_module_name(stack_frame->module), line_number};
 	}
 	return {};
 }
 
 std::string CursorDebugger::module_name() const {
-	return _cursor.get().ast().get_module_name(_cursor.get()._current_stack_frame->module);
+	return _cursor.get().program().get_module_name(_cursor.get()._current_stack_frame->module);
 }
 
 Module::Id CursorDebugger::module_id() const {
-	return _cursor.get().ast().get_module_id(_cursor.get()._current_stack_frame->module);
+	return _cursor.get().program().get_module_id(_cursor.get()._current_stack_frame->module);
 }
 
 std::size_t CursorDebugger::line_number() const {
-	if (const auto* debug_info = _cursor.get().ast().find_debug_info(module_id())) {
+	if (const auto* debug_info = _cursor.get().program().find_debug_info(module_id())) {
 		return debug_info->line_number(_cursor.get()._current_stack_frame->iptr);
 	}
 	return 0;

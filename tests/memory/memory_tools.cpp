@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <utility>
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/file_printer.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
+#include "mint/program/file_printer.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
@@ -18,8 +18,8 @@
 
 TEST(memory_tools, get_stack_base) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	mint::Cursor& cursor = process->cursor();
 
 	cursor.stack().emplace_back(mint::create_none());
@@ -33,27 +33,27 @@ TEST(memory_tools, get_stack_base) {
 
 TEST(memory_tools, type_name) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 
 	EXPECT_EQ("none", mint::type_name(mint::create_none()));
 	EXPECT_EQ("null", mint::type_name(mint::create_null()));
 	EXPECT_EQ("number", mint::type_name(mint::create_number(0.)));
 	EXPECT_EQ("boolean", mint::type_name(mint::create_boolean(false)));
 	EXPECT_EQ("function", mint::type_name(mint::create_function()));
-	EXPECT_EQ("string", mint::type_name(mint::create_string(scheduler.ast())));
-	EXPECT_EQ("regex", mint::type_name(mint::create_regex(scheduler.ast())));
-	EXPECT_EQ("array", mint::type_name(mint::create_array(scheduler.ast())));
-	EXPECT_EQ("hash", mint::type_name(mint::create_hash(scheduler.ast())));
-	EXPECT_EQ("iterator", mint::type_name(mint::create_iterator(scheduler.ast())));
+	EXPECT_EQ("string", mint::type_name(mint::create_string(scheduler.program())));
+	EXPECT_EQ("regex", mint::type_name(mint::create_regex(scheduler.program())));
+	EXPECT_EQ("array", mint::type_name(mint::create_array(scheduler.program())));
+	EXPECT_EQ("hash", mint::type_name(mint::create_hash(scheduler.program())));
+	EXPECT_EQ("iterator", mint::type_name(mint::create_iterator(scheduler.program())));
 }
 
 TEST(memory_tools, is_class) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 
-	const auto ref = mint::make_reference<mint::String>(mint::create_flags, scheduler.ast());
+	const auto ref = mint::make_reference<mint::String>(mint::create_flags, scheduler.program());
 	EXPECT_TRUE(is_class(ref.data<mint::String>()));
 
 	ref.data<mint::String>().construct();
@@ -62,10 +62,10 @@ TEST(memory_tools, is_class) {
 
 TEST(memory_tools, is_object) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 
-	const auto ref = mint::make_reference<mint::String>(mint::create_flags, scheduler.ast());
+	const auto ref = mint::make_reference<mint::String>(mint::create_flags, scheduler.program());
 	EXPECT_FALSE(is_object(ref.data<mint::String>()));
 
 	ref.data<mint::String>().construct();
@@ -74,35 +74,35 @@ TEST(memory_tools, is_object) {
 
 TEST(memory_tools, create_printer_from_fd) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	mint::Cursor& cursor = process->cursor();
 
 	cursor.stack().emplace_back(mint::create_number(0));
-	auto printer = create_printer(cursor);
+	const auto printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<mint::FilePrinter*>(printer.get()));
 }
 
 TEST(memory_tools, create_printer_from_path) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	mint::Cursor& cursor = process->cursor();
 
-	cursor.stack().emplace_back(mint::create_string(scheduler.ast(), "test"));
-	auto printer = create_printer(cursor);
+	cursor.stack().emplace_back(mint::create_string(scheduler.program(), "test"));
+	const auto printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<mint::FilePrinter*>(printer.get()));
 }
 
 TEST(memory_tools, create_printer_from_object) {
 
-	mint::Scheduler scheduler({});
-	auto process = scheduler.enable_testing();
+	auto scheduler = mint::Scheduler({});
+	const auto process = scheduler.enable_testing();
 	mint::Cursor& cursor = process->cursor();
-	mint::Class& test_class = mint::create_class(scheduler.ast(), "__test_class__", {});
+	mint::Class& test_class = mint::create_class(scheduler.program(), "__test_class__", {});
 
 	cursor.stack().emplace_back(mint::create_object(test_class));
-	auto printer = create_printer(cursor);
+	const auto printer = create_printer(cursor);
 	EXPECT_NE(nullptr, dynamic_cast<mint::ObjectPrinter*>(printer.get()));
 }
 
@@ -212,7 +212,7 @@ TEST(memory_tools, iterator_add) {
 
 TEST(memory_tools, iterator_next) {
 
-	mint::Scheduler scheduler({});
+	auto scheduler = mint::Scheduler({});
 	auto process = scheduler.enable_testing();
 
 	const auto it = mint::create_iterator_from(process->cursor(), mint::create_number(0), mint::create_number(1));

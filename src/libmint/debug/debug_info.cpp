@@ -22,7 +22,7 @@
  */
 
 #include "mint/debug/debug_info.h"
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include <cstddef>
 #include <iterator>
 #include <set>

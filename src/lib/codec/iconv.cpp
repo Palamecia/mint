@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/cursor.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/cast_tools.h"
 #include "mint/memory/object.h"
@@ -59,7 +59,7 @@ struct IconvContext {
 constexpr auto iconv_failed = static_cast<std::size_t>(-1);
 
 mint::Reference mint_iconv_open(mint::Cursor& cursor, const mint::Reference& encoding) {
-	return mint::create_c_object(cursor.ast(),
+	return mint::create_c_object(cursor.program(),
 	    new IconvContext {
 	        .decode_cd = iconv_open("UTF-8", encoding.data<mint::String>().str.c_str()),
 	        .encode_cd = iconv_open(encoding.data<mint::String>().str.c_str(), "UTF-8"),
@@ -77,7 +77,7 @@ mint::Reference mint_iconv_decode(mint::Cursor& cursor, const mint::Reference& d
     const mint::Reference& pos) {
 
 	const auto offset = mint::to_integer<std::size_t>(cursor, pos);
-	auto bytes = std::span(*buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr).subspan(offset);
+	const auto bytes = std::span(*buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr).subspan(offset);
 	auto* cd = d_ptr.data<mint::LibObject<IconvContext>>().ptr->decode_cd;
 	auto decoded = std::string();
 
@@ -106,7 +106,7 @@ mint::Reference mint_iconv_decode(mint::Cursor& cursor, const mint::Reference& d
 				decoded.append_range(std::span(outbuf.data(), outbuf.size() - outlen));
 				pos.data<mint::Number>().value = mint::to_number(offset + decoded.size());
 				return mint::create_iterator_from(cursor, mint::create_number(1),
-				    mint::create_string(cursor.ast(), decoded));
+				    mint::create_string(cursor.program(), decoded));
 			case EINVAL:
 				decoded.append_range(std::span(outbuf.data(), outbuf.size() - outlen));
 				pos.data<mint::Number>().value = mint::to_number(offset + decoded.size());
@@ -119,7 +119,7 @@ mint::Reference mint_iconv_decode(mint::Cursor& cursor, const mint::Reference& d
 			decoded.append_range(std::span(outbuf.data(), outbuf.size() - outlen));
 			pos.data<mint::Number>().value = mint::to_number(offset + decoded.size());
 			return mint::create_iterator_from(cursor, mint::create_number(0),
-			    mint::create_string(cursor.ast(), decoded));
+			    mint::create_string(cursor.program(), decoded));
 		}
 	}
 }
@@ -129,10 +129,10 @@ mint::Reference mint_iconv_encode(mint::Cursor& cursor, const mint::Reference& d
 
 	auto* output = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
 	auto* cd = d_ptr.data<mint::LibObject<IconvContext>>().ptr->encode_cd;
-	auto input_string = mint::to_string(str);
+	const auto input_string = mint::to_string(str);
 	const auto offset = mint::utf8_code_point_index_to_byte_index(input_string,
 	    mint::to_integer<std::size_t>(cursor, pos));
-	auto input_view = std::string_view(input_string).substr(offset);
+	const auto input_view = std::string_view(input_string).substr(offset);
 	auto bytes_pos = 0uz;
 
 #ifdef MINT_OS_WINDOWS

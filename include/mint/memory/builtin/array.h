@@ -35,19 +35,19 @@
 
 namespace mint {
 
-class AbstractSyntaxTree;
+class Program;
 class Cursor;
 
 class MINT_EXPORT ArrayClass : public Class {
 public:
-	ArrayClass(AbstractSyntaxTree& ast);
-	static ArrayClass& instance(AbstractSyntaxTree& ast);
+	explicit ArrayClass(Program& program);
+	static ArrayClass& instance(Program& program);
 };
 
 class MINT_EXPORT Array : public Object {
 	friend class GarbageCollector;
 public:
-	explicit Array(AbstractSyntaxTree& ast);
+	explicit Array(Program& program);
 	Array(Array&& other) noexcept;
 	Array(const Array& other);
 	~Array() override = default;
@@ -71,7 +71,7 @@ MINT_EXPORT Reference array_insert(Array& array, intmax_t index, const Reference
 MINT_EXPORT Reference array_insert(Array& array, intmax_t index, Reference&& item);
 MINT_EXPORT Reference array_get_item(Array& array, intmax_t index);
 MINT_EXPORT Reference array_get_item(const Array::values_type::iterator& it);
-MINT_EXPORT Reference array_get_item(Array::values_type::value_type& value);
+MINT_EXPORT Reference array_get_item(const Array::values_type::value_type& value);
 MINT_EXPORT std::size_t array_index(const Array& array, intmax_t index);
 MINT_EXPORT Reference array_item(const Reference& item);
 

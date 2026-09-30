@@ -21,11 +21,11 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/module.h"
-#include "mint/ast/class_description.h"
-#include "mint/ast/class_register.h"
-#include "mint/ast/node.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/module.h"
+#include "mint/program/class_description.h"
+#include "mint/program/class_register.h"
+#include "mint/program/node.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
 
@@ -40,8 +40,8 @@
 
 using namespace mint;
 
-Module::Module(AbstractSyntaxTree& ast) :
-    ClassRegister(ast) {
+Module::Module(Program& program) :
+    ClassRegister(program) {
 	register_root();
 }
 
@@ -64,7 +64,7 @@ Module& Module::operator=(Module&& other) noexcept = default;
 
 FunctionHandle* Module::find_handle(std::size_t offset) const {
 	auto handles = std::ranges::reverse_view(_handles);
-	auto it = std::ranges::find(handles, offset, &FunctionHandle::offset);
+	const auto it = std::ranges::find(handles, offset, &FunctionHandle::offset);
 	if (it != handles.end()) {
 		return it->get();
 	}
@@ -73,7 +73,7 @@ FunctionHandle* Module::find_handle(std::size_t offset) const {
 
 FunctionHandle& Module::get_handle(PackageData& package, std::size_t offset) {
 	auto handles = std::ranges::reverse_view(_handles);
-	auto it = std::ranges::find(handles, offset, &FunctionHandle::offset);
+	const auto it = std::ranges::find(handles, offset, &FunctionHandle::offset);
 	if (it != handles.end()) {
 		return **it;
 	}
@@ -122,8 +122,8 @@ Symbol* Module::make_symbol(const std::string& name) {
 	return it->second.get();
 }
 
-ClassDescription* mint::Module::make_class(AbstractSyntaxTree& ast, const std::string& name) {
-	return _classes.emplace_back(std::make_unique<ClassDescription>(ast, name)).get();
+ClassDescription* mint::Module::make_class(Program& program, const std::string& name) {
+	return _classes.emplace_back(std::make_unique<ClassDescription>(program, name)).get();
 }
 
 void Module::add_internal_register(std::unique_ptr<ClassRegister>&& class_register) {

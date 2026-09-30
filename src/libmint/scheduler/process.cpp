@@ -22,10 +22,10 @@
  */
 
 #include "mint/scheduler/process.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/exception.h"
-#include "mint/ast/module.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
+#include "mint/program/exception.h"
+#include "mint/program/module.h"
 #include "mint/compiler/compiler.h"
 #include "mint/debug/debug_interface.h"
 #include "mint/debug/debug_tools.h"
@@ -84,11 +84,11 @@ private:
 	bool read_next() {
 		for (;;) {
 			try {
-				auto compiler = Compiler(cursor().ast());
+				auto compiler = Compiler(cursor().program());
 				compiler.set_printing(true);
 				cursor().resume();
 				InputStream::instance().next();
-				return compiler.build(InputStream::instance(), cursor().ast().main());
+				return compiler.build(InputStream::instance(), cursor().program().main());
 			}
 			catch (const MintRuntimeError& error) {
 				print_error(error.what());
@@ -113,14 +113,14 @@ std::unique_ptr<Process> Process::from_main_file(Scheduler& scheduler, const std
 		                                                   ? file
 		                                                   : FileSystem::instance().get_script_path(file);
 
-		auto& ast = scheduler.ast();
-		auto compiler = Compiler(ast);
+		auto& program = scheduler.program();
+		auto compiler = Compiler(program);
 		auto stream = FileStream(module_file_path);
 
 		if (stream.is_valid()) {
-			if (auto& module = ast.create_main_module(Module::State::ready); compiler.build(stream, module)) {
+			if (auto& module = program.create_main_module(Module::State::ready); compiler.build(stream, module)) {
 				FileSystem::instance().set_main_module_path(module_file_path);
-				return std::make_unique<Process>(scheduler, std::make_unique<Cursor>(ast, module.bytecode));
+				return std::make_unique<Process>(scheduler, std::make_unique<Cursor>(program, module.bytecode));
 			}
 		}
 	}
@@ -136,14 +136,14 @@ std::unique_ptr<Process> Process::from_file(Scheduler& scheduler, const std::fil
 
 	try {
 
-		auto& ast = scheduler.ast();
-		auto compiler = Compiler(ast);
+		auto& program = scheduler.program();
+		auto compiler = Compiler(program);
 		auto stream = FileStream(file);
 
 		if (stream.is_valid()) {
-			if (auto& module = ast.create_module_from_file_path(file, Module::State::ready);
+			if (auto& module = program.create_module_from_file_path(file, Module::State::ready);
 			    compiler.build(stream, module)) {
-				return std::make_unique<Process>(scheduler, std::make_unique<Cursor>(ast, module.bytecode));
+				return std::make_unique<Process>(scheduler, std::make_unique<Cursor>(program, module.bytecode));
 			}
 		}
 	}
@@ -158,13 +158,13 @@ std::unique_ptr<Process> Process::from_file(Scheduler& scheduler, const std::fil
 std::unique_ptr<Process> Process::from_buffer(Scheduler& scheduler, const std::string& buffer) {
 
 	try {
-		auto& ast = scheduler.ast();
-		auto compiler = Compiler(ast);
+		auto& program = scheduler.program();
+		auto compiler = Compiler(program);
 		auto stream = BufferStream(buffer);
 
 		if (stream.is_valid()) {
-			if (auto& module = ast.create_module(Module::State::ready); compiler.build(stream, module)) {
-				return std::make_unique<Process>(scheduler, std::make_unique<Cursor>(ast, module.bytecode));
+			if (auto& module = program.create_module(Module::State::ready); compiler.build(stream, module)) {
+				return std::make_unique<Process>(scheduler, std::make_unique<Cursor>(program, module.bytecode));
 			}
 		}
 	}
@@ -180,13 +180,13 @@ std::unique_ptr<Process> Process::from_standard_input(Scheduler& scheduler) {
 
 	if (InputStream::instance().is_valid()) {
 
-		AbstractSyntaxTree& ast = scheduler.ast();
-		auto& module = ast.create_main_module(Module::State::ready);
-		auto process = std::make_unique<ReplProcess>(scheduler, std::make_unique<Cursor>(ast, module.bytecode));
-		process->cursor().open_printer(std::make_unique<Output>(ast));
+		Program& program = scheduler.program();
+		auto& module = program.create_main_module(Module::State::ready);
+		auto process = std::make_unique<ReplProcess>(scheduler, std::make_unique<Cursor>(program, module.bytecode));
+		process->cursor().open_printer(std::make_unique<Output>(program));
 
-		InputStream::instance().set_highlighter([&ast](std::string_view input, std::string_view::size_type offset) {
-			auto highlighter = Highlighter(ast, offset);
+		InputStream::instance().set_highlighter([&program](std::string_view input, std::string_view::size_type offset) {
+			auto highlighter = Highlighter(program, offset);
 			auto stream = std::stringstream(std::string {input});
 			if (highlighter.parse(stream)) {
 				return highlighter.output();
@@ -229,11 +229,11 @@ std::unique_ptr<Process> Process::from_standard_input(Scheduler& scheduler) {
 void Process::parse_argument(const std::string& arg) {
 	auto args = _cursor->symbols().find("va_args");
 	if (args == _cursor->symbols().end()) {
-		auto va_args = make_reference<Iterator>(Reference::default_flags, _cursor->ast());
+		auto va_args = make_reference<Iterator>(Reference::default_flags, _cursor->program());
 		va_args.data<Iterator>().construct();
 		args = _cursor->symbols().emplace("va_args", std::move(va_args)).first;
 	}
-	iterator_yield(*_cursor, args->second.data<Iterator>(), create_string(_cursor->ast(), arg));
+	iterator_yield(*_cursor, args->second.data<Iterator>(), create_string(_cursor->program(), arg));
 }
 
 void Process::setup() {
@@ -253,13 +253,13 @@ void Process::cleanup() {
 		remove_error_callback(_error_handler);
 	}
 
-	auto _ = ProcessorLocker();
+	const auto _ = ProcessorLocker();
 	_cursor->cleanup();
 }
 
 ProcessStatus Process::exec() {
 
-	auto _ = ProcessorLocker();
+	const auto _ = ProcessorLocker();
 
 	try {
 		return run_steps(*_cursor);
@@ -326,13 +326,13 @@ std::string format_exception(const Reference& exception) {
 	}
 }
 
-void dump_cause(const Cursor::Exception& cause, const AbstractSyntaxTree& ast) {
+void dump_cause(const Cursor::Exception& cause, const Program& program) {
 	if (cause.cause) {
-		dump_cause(*cause.cause, ast);
+		dump_cause(*cause.cause, program);
 	}
 	std::println(stderr, "Caused by:");
 	for (const LineInfo& call : cause.stacktrace) {
-		std::println(stderr, "  {}", call.to_string(ast));
+		std::println(stderr, "  {}", call.to_string(program));
 		std::println(stderr, "    {}", get_module_line(call.module_name(), call.line_number()));
 	}
 	std::println("{}", format_exception(cause.object));
@@ -344,18 +344,18 @@ void dump_cause(const Cursor::Exception& cause, const AbstractSyntaxTree& ast) {
 void Process::on_error() {
 	if (const auto* exception = _cursor->get_exception()) {
 		if (exception->cause) {
-			dump_cause(*exception->cause, _cursor->ast());
+			dump_cause(*exception->cause, _cursor->program());
 		}
 		std::println(stderr, "Stacktrace thread {}:", _thread_id);
 		for (const LineInfo& call : exception->stacktrace) {
-			std::println(stderr, "  {}", call.to_string(_cursor->ast()));
+			std::println(stderr, "  {}", call.to_string(_cursor->program()));
 			std::println(stderr, "    {}", get_module_line(call.module_name(), call.line_number()));
 		}
 	}
 	else {
 		std::println(stderr, "Stacktrace thread {}:", _thread_id);
 		for (const LineInfo& call : _cursor->dump()) {
-			std::println(stderr, "  {}", call.to_string(_cursor->ast()));
+			std::println(stderr, "  {}", call.to_string(_cursor->program()));
 			std::println(stderr, "    {}", get_module_line(call.module_name(), call.line_number()));
 		}
 	}

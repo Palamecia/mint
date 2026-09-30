@@ -31,13 +31,13 @@
 
 namespace mint {
 
-class AbstractSyntaxTree;
 class GarbageCollector;
+class Program;
 
 class MINT_EXPORT LibObjectClass : public Class {
 public:
-	LibObjectClass(AbstractSyntaxTree& ast);
-	static LibObjectClass& instance(AbstractSyntaxTree& ast);
+	explicit LibObjectClass(Program& program);
+	static LibObjectClass& instance(Program& program);
 };
 
 template<typename Type>
@@ -46,8 +46,8 @@ struct LibObject : public Object {
 public:
 	using object_type = Type;
 
-	explicit LibObject(AbstractSyntaxTree& ast);
-	LibObject(AbstractSyntaxTree& ast, object_type* ptr);
+	explicit LibObject(Program& program);
+	LibObject(Program& program, object_type* ptr);
 
 	object_type* ptr = nullptr;
 
@@ -56,12 +56,12 @@ private:
 };
 
 template<typename Type>
-LibObject<Type>::LibObject(AbstractSyntaxTree& ast) :
-    Object(LibObjectClass::instance(ast)) {}
+LibObject<Type>::LibObject(Program& program) :
+    Object(LibObjectClass::instance(program)) {}
 
 template<typename Type>
-LibObject<Type>::LibObject(AbstractSyntaxTree& ast, object_type* ptr) :
-    Object(LibObjectClass::instance(ast)),
+LibObject<Type>::LibObject(Program& program, object_type* ptr) :
+    Object(LibObjectClass::instance(program)),
     ptr(ptr) {}
 
 template<typename Type>

@@ -24,7 +24,7 @@
 #ifndef MINT_PROCESS_HIGHLIGHTER_H
 #define MINT_PROCESS_HIGHLIGHTER_H
 
-#include "mint/ast/class_register.h"
+#include "mint/program/class_register.h"
 #include "mint/compiler/lexical_handler.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/reference.h"
@@ -34,6 +34,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <vector>
 
@@ -44,7 +45,7 @@ class ClassDescription;
 
 class Highlighter : public LexicalHandler {
 public:
-	Highlighter(const AbstractSyntaxTree& ast, std::string_view::size_type offset);
+	Highlighter(const Program& program, std::string_view::size_type offset);
 	Highlighter(const Highlighter&) = delete;
 	Highlighter(Highlighter&&) = delete;
 	~Highlighter() override = default;
@@ -79,7 +80,7 @@ protected:
 		standard_symbol,
 		module_path,
 		brace,
-		brace_match
+		brace_match,
 	};
 
 	void set_style(Style style);
@@ -90,7 +91,7 @@ protected:
 	    const std::vector<std::string>& context) const;
 
 private:
-	std::reference_wrapper<const AbstractSyntaxTree> _ast;
+	std::reference_wrapper<const Program> _program;
 	std::string_view::size_type _offset;
 	std::string _output;
 

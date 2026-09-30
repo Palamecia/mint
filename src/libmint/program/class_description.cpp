@@ -21,10 +21,10 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/class_description.h"
-#include "mint/ast/class_register.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/class_description.h"
+#include "mint/program/class_register.h"
+#include "mint/program/program.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/global_data.h"
@@ -76,8 +76,8 @@ std::tuple<bool, int> function_signature_mismatch(const Function& expected, cons
 
 }
 
-ClassDescription::ClassDescription(AbstractSyntaxTree& ast, const std::string& name) :
-    ClassRegister(ast),
+ClassDescription::ClassDescription(Program& program, const std::string& name) :
+    ClassRegister(program),
     _name(name) {}
 
 Symbol ClassDescription::name() const {
@@ -88,10 +88,8 @@ std::string ClassDescription::full_name() const {
 	if (const auto* owner = get_owner_class()) {
 		return owner->full_name() + "." + name().str();
 	}
-	if (const auto* package = get_owner_package()) {
-		if (package != &ast().global_data()) {
-			return package->full_name() + "." + name().str();
-		}
+	if (const auto* package = get_owner_package(); package && package != &program().global_data()) {
+		return package->full_name() + "." + name().str();
 	}
 	return name().str();
 }
@@ -119,7 +117,7 @@ ClassDescription* ClassDescription::get_owner_class() {
 }
 
 const Reference* ClassDescription::find_member(const Symbol& name) const {
-	if (auto it = _members.find(name); it != _members.end()) {
+	if (const auto it = _members.find(name); it != _members.end()) {
 		return &it->second;
 	}
 	for (const auto& base_path : _bases) {
@@ -139,7 +137,7 @@ bool ClassDescription::create_member(const Symbol& name, const Reference& value)
 
 bool ClassDescription::update_member(const Symbol& name, const Reference& value) {
 
-	if (auto it = _members.find(name); it != _members.end()) {
+	if (const auto it = _members.find(name); it != _members.end()) {
 
 		Reference& member = it->second;
 
@@ -170,7 +168,7 @@ Class& ClassDescription::generate() {
 	auto* owner_package = get_owner_package();
 	auto& root_register = get_root_register();
 
-	_metadata = std::make_unique<Class>(owner_package ? *owner_package : ast().global_data(), full_name());
+	_metadata = std::make_unique<Class>(owner_package ? *owner_package : program().global_data(), full_name());
 	_metadata->_description = this;
 	_bases_metadata.reserve(_bases.size());
 
@@ -304,7 +302,7 @@ Class::MemberInfo* mint::ClassDescription::update_member_info(const Symbol& symb
 		it->second->owner = std::ref(*_metadata);
 	}
 	if (value.flags() & Reference::override_member) {
-		auto member_override = member_overrides.find(symbol);
+		const auto member_override = member_overrides.find(symbol);
 		if (member_override == member_overrides.end()) [[unlikely]] {
 			error("member '{}' is marked override but does not override a member for class '{}'", symbol.str(),
 			    _metadata->full_name());

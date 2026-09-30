@@ -21,11 +21,11 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
-#include "mint/ast/function_literal.h"
-#include "mint/ast/module.h"
-#include "mint/ast/node.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
+#include "mint/program/function_literal.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
 #include "mint/compiler/compiler.h"
 #include "mint/debug/debug_info.h"
 #include "mint/debug/debug_tools.h"
@@ -45,17 +45,17 @@
 
 using namespace mint;
 
-AbstractSyntaxTree::AbstractSyntaxTree() {
+Program::Program() {
 	_builtin_modules.reserve(Class::builtin_class_count);
 }
 
-AbstractSyntaxTree::~AbstractSyntaxTree() {
+Program::~Program() {
 	cleanup_memory();
 	cleanup_metadata();
 	cleanup_modules();
 }
 
-void AbstractSyntaxTree::cleanup_memory() {
+void Program::cleanup_memory() {
 
 	// cleanup global data
 	_global_data.cleanup_memory();
@@ -66,7 +66,7 @@ void AbstractSyntaxTree::cleanup_memory() {
 	}
 }
 
-void AbstractSyntaxTree::cleanup_metadata() {
+void Program::cleanup_metadata() {
 
 	// cleanup global data
 	_global_data.cleanup_metadata();
@@ -81,7 +81,7 @@ void AbstractSyntaxTree::cleanup_metadata() {
 	_builtin_modules.clear();
 }
 
-void AbstractSyntaxTree::cleanup_modules() {
+void Program::cleanup_modules() {
 
 	// cleanup modules
 	_modules.clear();
@@ -90,7 +90,7 @@ void AbstractSyntaxTree::cleanup_modules() {
 	_module_cache.clear();
 }
 
-std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_global_builtin_method(Class& type, int signature,
+std::pair<int, FunctionHandle&> Program::create_global_builtin_method(Class& type, int signature,
     GlobalBuiltinMethod method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
@@ -105,15 +105,14 @@ std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_global_builtin_method
 		Node::Command::jump, static_cast<int>(offset) + 5,
 		Node::Command::load_constant, module.bytecode.make_constant<Object>(type),
 		Node::Command::call_global_builtin, static_cast<int>(index),
-		Node::Command::exit_call, Node::Command::exit_module
+		Node::Command::exit_call, Node::Command::exit_module,
 	});
 	// clang-format on
 
 	return {signature, module.bytecode.make_builtin_handle(type.get_package(), offset)};
 }
 
-std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_builtin_method(const Class& type,
-    const FunctionLiteral& method) {
+std::pair<int, FunctionHandle&> Program::create_builtin_method(const Class& type, const FunctionLiteral& method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
 	auto& module = builtin_module(builtin_index);
@@ -126,8 +125,7 @@ std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_builtin_method(const 
 	return {method.signature, module.bytecode.get_handle(type.get_package(), offset)};
 }
 
-std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_builtin_method(const Class& type, int signature,
-    BuiltinMethod method) {
+std::pair<int, FunctionHandle&> Program::create_builtin_method(const Class& type, int signature, BuiltinMethod method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
 	auto& module = builtin_module(builtin_index);
@@ -140,14 +138,14 @@ std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_builtin_method(const 
 	module.bytecode.push_nodes({
 		Node::Command::jump, static_cast<int>(offset) + 3,
 		Node::Command::call_builtin, static_cast<int>(index),
-		Node::Command::exit_call, Node::Command::exit_module
+		Node::Command::exit_call, Node::Command::exit_module,
 	});
 	// clang-format on
 
 	return {signature, module.bytecode.make_builtin_handle(type.get_package(), offset)};
 }
 
-std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_builtin_async_method(const Class& type, int signature,
+std::pair<int, FunctionHandle&> Program::create_builtin_async_method(const Class& type, int signature,
     BuiltinMethod method) {
 
 	const auto builtin_index = static_cast<std::size_t>(type.metatype());
@@ -161,27 +159,27 @@ std::pair<int, FunctionHandle&> AbstractSyntaxTree::create_builtin_async_method(
 	module.bytecode.push_nodes({
 		Node::Command::jump, static_cast<int>(offset) + 3,
 		Node::Command::call_builtin, static_cast<int>(index),
-		Node::Command::resume_coroutine, Node::Command::exit_module
+		Node::Command::resume_coroutine, Node::Command::exit_module,
 	});
 	// clang-format on
 
 	return {signature, module.bytecode.make_builtin_async_handle(type.get_package(), offset)};
 }
 
-void AbstractSyntaxTree::call_global_builtin_method(std::size_t method, Cursor& cursor) {
+void Program::call_global_builtin_method(std::size_t method, Cursor& cursor) {
 	const auto type = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
 	_global_builtin_methods[method](type.data<Object>().metadata, cursor);
 }
 
-ModuleInfo& AbstractSyntaxTree::main() {
+ModuleInfo& Program::main() {
 	if (_modules.empty()) {
 		return create_module(Module::State::not_compiled);
 	}
 	return _modules.front();
 }
 
-ModuleInfo& AbstractSyntaxTree::create_module(Module::State state) {
+ModuleInfo& Program::create_module(Module::State state) {
 	return _modules.emplace_back(ModuleInfo {
 	    .bytecode = Module(*this),
 	    .id = _modules.size(),
@@ -189,7 +187,7 @@ ModuleInfo& AbstractSyntaxTree::create_module(Module::State state) {
 	});
 }
 
-ModuleInfo& AbstractSyntaxTree::create_main_module(Module::State state) {
+ModuleInfo& Program::create_main_module(Module::State state) {
 	if (_modules.empty()) {
 		return create_module(state);
 	}
@@ -197,9 +195,8 @@ ModuleInfo& AbstractSyntaxTree::create_main_module(Module::State state) {
 	return _modules.front();
 }
 
-ModuleInfo& AbstractSyntaxTree::create_module_from_file_path(const std::filesystem::path& file_path,
-    Module::State state) {
-	auto it = _module_cache.find(file_path);
+ModuleInfo& Program::create_module_from_file_path(const std::filesystem::path& file_path, Module::State state) {
+	const auto it = _module_cache.find(file_path);
 	if (it == _module_cache.end()) {
 		if (_modules.empty()) [[unlikely]] {
 			create_main_module(Module::State::not_compiled);
@@ -212,7 +209,7 @@ ModuleInfo& AbstractSyntaxTree::create_module_from_file_path(const std::filesyst
 	return it->second;
 }
 
-ModuleInfo& AbstractSyntaxTree::load_module(const std::string& module_name) {
+ModuleInfo& Program::load_module(const std::string& module_name) {
 
 	const auto path = FileSystem::instance().get_module_path(module_name);
 	if (path.empty()) [[unlikely]] {
@@ -234,7 +231,7 @@ ModuleInfo& AbstractSyntaxTree::load_module(const std::string& module_name) {
 	return it->second;
 }
 
-const ModuleInfo& AbstractSyntaxTree::module_info(const std::string& module_name) {
+const ModuleInfo& Program::module_info(const std::string& module_name) {
 
 	static const auto invalid_module_info = ModuleInfo {
 	    .bytecode = Module(*this),
@@ -249,7 +246,7 @@ const ModuleInfo& AbstractSyntaxTree::module_info(const std::string& module_name
 		return invalid_module_info;
 	}
 
-	if (auto it = _module_cache.find(path); it != _module_cache.end()) {
+	if (const auto it = _module_cache.find(path); it != _module_cache.end()) {
 		return it->second;
 	}
 
@@ -265,7 +262,7 @@ const ModuleInfo& AbstractSyntaxTree::module_info(const std::string& module_name
 	return invalid_module_info;
 }
 
-std::string AbstractSyntaxTree::get_module_name(const Module& module) const {
+std::string Program::get_module_name(const Module& module) const {
 	if (is_main(module)) {
 		return Module::main_name;
 	}
@@ -277,8 +274,8 @@ std::string AbstractSyntaxTree::get_module_name(const Module& module) const {
 	return Module::invalid_name;
 }
 
-Module::Id AbstractSyntaxTree::get_module_id(const Module& module) const {
-	auto it = std::ranges::find_if(_modules, [&module](const ModuleInfo& info) {
+Module::Id Program::get_module_id(const Module& module) const {
+	const auto it = std::ranges::find_if(_modules, [&module](const ModuleInfo& info) {
 		return &module == &info.bytecode;
 	});
 	if (it != _modules.end()) {
@@ -287,17 +284,17 @@ Module::Id AbstractSyntaxTree::get_module_id(const Module& module) const {
 	return Module::invalid_id;
 }
 
-bool AbstractSyntaxTree::is_main(const Module& module) const {
+bool Program::is_main(const Module& module) const {
 	return !_modules.empty() && (&module == &_modules.front().bytecode);
 }
 
-ModuleInfo& AbstractSyntaxTree::builtin_module(std::size_t module_index) {
+ModuleInfo& Program::builtin_module(std::size_t module_index) {
 	for (std::size_t i = _builtin_modules.size(); i <= module_index; ++i) {
 		_builtin_modules.emplace_back(create_module(Module::State::ready));
 	}
 	return _builtin_modules[module_index];
 }
 
-void AbstractSyntaxTree::set_module_state(Module::Id module_id, Module::State state) {
+void Program::set_module_state(Module::Id module_id, Module::State state) {
 	_modules[module_id].state = state;
 }

@@ -24,7 +24,7 @@
 #ifndef MINT_MEMORY_SYMBOLTABLE_H
 #define MINT_MEMORY_SYMBOLTABLE_H
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/garbage_collector.h"
 #include "mint/memory/reference.h"

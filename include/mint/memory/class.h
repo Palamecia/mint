@@ -24,8 +24,8 @@
 #ifndef MINT_MEMORY_CLASS_H
 #define MINT_MEMORY_CLASS_H
 
-#include "mint/ast/module.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/module.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
 #include "mint/memory/garbage_collector.h"
@@ -61,7 +61,7 @@ public:
 		iterator,
 		async_iterator,
 		library,
-		libobject
+		libobject,
 	};
 
 	static constexpr const std::size_t builtin_class_count = static_cast<std::size_t>(Metatype::libobject) + 1;
@@ -100,7 +100,7 @@ public:
 		subscript_operator,
 		subscript_move_operator,
 		regex_match_operator,
-		regex_unmatch_operator
+		regex_unmatch_operator,
 	};
 
 	static constexpr const std::size_t operator_count = regex_unmatch_operator + 1;
@@ -172,7 +172,7 @@ public:
 	[[nodiscard]] bool is_base_or_same(const Class& other) const;
 	[[nodiscard]] bool is_direct_base_or_same(const Class& other) const;
 
-	[[nodiscard]] const Class::MemberInfo& make_allocate_method_reference(AbstractSyntaxTree& ast);
+	[[nodiscard]] const Class::MemberInfo& make_allocate_method_reference(Program& program);
 	[[nodiscard]] bool is_trivially_copyable() const;
 	void disable_trivial_copy();
 
@@ -180,10 +180,10 @@ public:
 	void cleanup_metadata();
 
 	void mark() override {
-		for (auto& member : _members) {
+		for (const auto& member : _members) {
 			member.second->value.data().mark();
 		}
-		for (auto& global : _globals) {
+		for (const auto& global : _globals) {
 			global.second->value.data().mark();
 		}
 	}
@@ -241,28 +241,28 @@ Class::MemberInfo* Class::find_operator(Operator op) {
 }
 
 const Class::MemberInfo* Class::find_member(const Symbol& symbol) const {
-	if (auto it = _members.find(symbol); it != _members.end()) {
+	if (const auto it = _members.find(symbol); it != _members.end()) {
 		return it->second.get();
 	}
 	return nullptr;
 }
 
 Class::MemberInfo* Class::find_member(const Symbol& symbol) {
-	if (auto it = _members.find(symbol); it != _members.end()) {
+	if (const auto it = _members.find(symbol); it != _members.end()) {
 		return it->second.get();
 	}
 	return nullptr;
 }
 
 const Class::MemberInfo* Class::find_global(const Symbol& symbol) const {
-	if (auto it = _globals.find(symbol); it != _globals.end()) {
+	if (const auto it = _globals.find(symbol); it != _globals.end()) {
 		return it->second.get();
 	}
 	return nullptr;
 }
 
 Class::MemberInfo* Class::find_global(const Symbol& symbol) {
-	if (auto it = _globals.find(symbol); it != _globals.end()) {
+	if (const auto it = _globals.find(symbol); it != _globals.end()) {
 		return it->second.get();
 	}
 	return nullptr;

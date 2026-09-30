@@ -21,10 +21,10 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_AST_NODE_H
-#define MINT_AST_NODE_H
+#ifndef MINT_PROGRAM_NODE_H
+#define MINT_PROGRAM_NODE_H
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/reference.h"
 #include <cstdint>
@@ -181,14 +181,14 @@ union MINT_EXPORT Node {
 		exit_call,
 		exit_thread,
 		exit_exec,
-		exit_module
+		exit_module,
 	};
 
-	Node(Command command);
-	Node(int parameter);
-	Node(const Symbol* symbol);
-	Node(const Reference* constant);
-	Node(ClassDescription* class_description);
+	explicit(false) Node(Command command);
+	explicit(false) Node(int parameter);
+	explicit(false) Node(const Symbol* symbol);
+	explicit(false) Node(const Reference* constant);
+	explicit(false) Node(ClassDescription* class_description);
 
 	[[nodiscard]] Command as_command() const {
 		return command;
@@ -219,4 +219,4 @@ union MINT_EXPORT Node {
 
 }
 
-#endif // MINT_AST_NODE_H
+#endif // MINT_PROGRAM_NODE_H

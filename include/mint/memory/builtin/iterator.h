@@ -46,20 +46,20 @@ class IteratorViewDataIterator;
 
 }
 
-class AbstractSyntaxTree;
-class GarbageCollector;
 class Cursor;
+class GarbageCollector;
+class Program;
 
 class MINT_EXPORT IteratorClass : public Class {
 public:
-	IteratorClass(AbstractSyntaxTree& ast);
-	static IteratorClass& instance(AbstractSyntaxTree& ast);
+	explicit IteratorClass(Program& program);
+	static IteratorClass& instance(Program& program);
 };
 
 class MINT_EXPORT AsyncIteratorClass : public Class {
 public:
-	AsyncIteratorClass(AbstractSyntaxTree& ast);
-	static AsyncIteratorClass& instance(AbstractSyntaxTree& ast);
+	explicit AsyncIteratorClass(Program& program);
+	static AsyncIteratorClass& instance(Program& program);
 };
 
 MINT_EXPORT bool is_iterator(const Reference& ref);
@@ -80,16 +80,16 @@ inline constexpr FromExclusiveRange from_exclusive_range;
 class MINT_EXPORT Iterator : public Object {
 	friend class GarbageCollector;
 public:
-	explicit Iterator(AbstractSyntaxTree& ast);
+	explicit Iterator(Program& program);
 	Iterator(Cursor& cursor, const Reference& ref);
 	Iterator(Cursor& cursor, Reference&& ref);
-	Iterator(AbstractSyntaxTree& ast, std::size_t capacity);
-	Iterator(AbstractSyntaxTree& ast, std::unique_ptr<mint::internal::IteratorData>&& data);
-	Iterator(FromGenerator /*from_generator*/, AbstractSyntaxTree& ast, std::size_t stack_size);
-	Iterator(FromAsyncGenerator /*from_async_generator*/, AbstractSyntaxTree& ast, Coroutine& coroutine,
+	Iterator(Program& program, std::size_t capacity);
+	Iterator(Program& program, std::unique_ptr<mint::internal::IteratorData>&& data);
+	Iterator(FromGenerator /*from_generator*/, Program& program, std::size_t stack_size);
+	Iterator(FromAsyncGenerator /*from_async_generator*/, Program& program, Coroutine& coroutine,
 	    std::size_t stack_size);
-	Iterator(FromInclusiveRange /*from_inclusive_range*/, AbstractSyntaxTree& ast, double begin, double end);
-	Iterator(FromExclusiveRange /*from_exclusive_range*/, AbstractSyntaxTree& ast, double begin, double end);
+	Iterator(FromInclusiveRange /*from_inclusive_range*/, Program& program, double begin, double end);
+	Iterator(FromExclusiveRange /*from_exclusive_range*/, Program& program, double begin, double end);
 
 	Iterator(const Iterator& other);
 	Iterator(Iterator&& other) noexcept;
@@ -180,7 +180,7 @@ public:
 		enum class Type : std::uint8_t {
 			items,
 			range,
-			generator
+			generator,
 		};
 
 		using value_type = Reference;

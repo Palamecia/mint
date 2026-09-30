@@ -68,7 +68,7 @@ protected:
 
 	static bool token_match(const std::string& symbol, const std::string& pattern);
 	bool resolve_path(const std::vector<std::string>& context, PackageData*& pack, ClassDescription*& desc,
-	    Reference*& member);
+	    Reference*& member) const;
 };
 
 }

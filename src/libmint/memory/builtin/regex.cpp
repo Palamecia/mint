@@ -27,8 +27,8 @@
 #include "mint/memory/data.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/reference.h"
 #include "mint/system/utf8.h"
 #include "mint/scheduler/scheduler.h"
@@ -43,14 +43,14 @@ namespace {
 
 Reference sub_match_to_iterator(Cursor& cursor, const std::string& str, const std::smatch& match, std::size_t index) {
 	const auto match_str = match[index].str();
-	return create_iterator_from(cursor, create_string(cursor.ast(), match_str),
+	return create_iterator_from(cursor, create_string(cursor.program(), match_str),
 	    create_unsigned_number(utf8_byte_index_to_code_point_index(str, match.position(index))),
 	    create_unsigned_number(utf8_code_point_count(match_str)));
 }
 
 Reference match_to_iterator(Cursor& cursor, const std::string& str, const std::smatch& match) {
 
-	Reference result = create_iterator(cursor.ast());
+	Reference result = create_iterator(cursor.program());
 
 	for (std::size_t index = 0; index < match.size(); ++index) {
 		iterator_yield(cursor, result.data<Iterator>(), sub_match_to_iterator(cursor, str, match, index));
@@ -61,12 +61,12 @@ Reference match_to_iterator(Cursor& cursor, const std::string& str, const std::s
 
 }
 
-RegexClass& RegexClass::instance(AbstractSyntaxTree& ast) {
-	return ast.global_data().builtin<RegexClass>(Class::Metatype::regex);
+RegexClass& RegexClass::instance(Program& program) {
+	return program.global_data().builtin<RegexClass>(Class::Metatype::regex);
 }
 
-Regex::Regex(AbstractSyntaxTree& ast) :
-    Object(RegexClass::instance(ast)) {}
+Regex::Regex(Program& program) :
+    Object(RegexClass::instance(program)) {}
 
 Regex::Regex(Regex&& other) noexcept :
     Object(other.metadata),
@@ -90,10 +90,10 @@ Regex& Regex::operator=(const Regex& other) {
 	return *this;
 }
 
-RegexClass::RegexClass(AbstractSyntaxTree& ast) :
-    Class(ast.global_data(), "regex", Class::Metatype::regex) {
+RegexClass::RegexClass(Program& program) :
+    Class(program.global_data(), "regex", Class::Metatype::regex) {
 
-	create_builtin_member(copy_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto& other = load_from_stack(cursor, base);
@@ -111,7 +111,7 @@ RegexClass::RegexClass(AbstractSyntaxTree& ast) :
 		cursor.stack().pop_back();
 	}));
 
-	create_builtin_member(regex_match_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(regex_match_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& rvalue = load_from_stack(cursor, base);
@@ -123,7 +123,7 @@ RegexClass::RegexClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(create_boolean(result));
 	}));
 
-	create_builtin_member(regex_unmatch_operator, ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member(regex_unmatch_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& rvalue = load_from_stack(cursor, base);
@@ -135,7 +135,7 @@ RegexClass::RegexClass(AbstractSyntaxTree& ast) :
 		cursor.stack().emplace_back(create_boolean(result));
 	}));
 
-	create_builtin_member("match", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("match", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& str = load_from_stack(cursor, base);
@@ -156,7 +156,7 @@ RegexClass::RegexClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("search", ast.create_builtin_method(*this, 2, [](Cursor& cursor) {
+	create_builtin_member("search", program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const Reference& str = load_from_stack(cursor, base);
@@ -177,9 +177,9 @@ RegexClass::RegexClass(AbstractSyntaxTree& ast) :
 		}
 	}));
 
-	create_builtin_member("getFlags", ast.create_builtin_method(*this, 1, [](Cursor& cursor) {
+	create_builtin_member("getFlags", program.create_builtin_method(*this, 1, [](Cursor& cursor) {
 		const Reference& self = cursor.stack().back();
-		cursor.stack().back() = create_string(cursor.ast(),
+		cursor.stack().back() = create_string(cursor.program(),
 		    self.data<Regex>().pattern.substr(self.data<Regex>().pattern.rfind('/') + 1));
 	}));
 }

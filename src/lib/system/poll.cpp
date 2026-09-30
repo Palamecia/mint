@@ -21,8 +21,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
-#include "mint/ast/symbol.h"
+#include "mint/program/cursor.h"
+#include "mint/program/symbol.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
@@ -62,14 +62,14 @@ namespace {
 
 mint::Reference mint_poll_new(mint::Cursor& cursor) {
 #ifdef MINT_OS_WINDOWS
-	return mint::create_c_object(cursor.ast(), new std::vector<mint::poll_event_t*>());
+	return mint::create_c_object(cursor.program(), new std::vector<mint::poll_event_t*>());
 #elifdef MINT_OS_LINUX
 	if (auto fd = ::epoll_create1(EPOLL_CLOEXEC); fd != -1) {
-		return mint::create_handle(cursor.ast(), fd);
+		return mint::create_handle(cursor.program(), fd);
 	}
 #elifdef MINT_OS_UNIX
 	if (auto fd = ::kqueue(); fd != -1) {
-		return mint::create_handle(cursor.ast(), fd);
+		return mint::create_handle(cursor.program(), fd);
 	}
 #else
 #error "Poll is not implemented for this platform"
@@ -93,7 +93,7 @@ mint::Reference mint_poll_delete(mint::Cursor& /*cursor*/, const mint::Reference
 mint::Reference mint_poll_watch(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& event) {
 #ifdef MINT_OS_WINDOWS
 	auto* context = d_ptr.data<mint::LibObject<std::vector<mint::poll_event_t*>>>().ptr;
-	auto* poll_event = mint::get_member_ignore_visibility(cursor.ast(), event, symbols::event)
+	auto* poll_event = mint::get_member_ignore_visibility(cursor.program(), event, symbols::event)
 	                       .data<mint::LibObject<mint::poll_event_t>>()
 	                       .ptr;
 	if (std::ranges::find(*context, poll_event) != context->end()) {
@@ -104,7 +104,7 @@ mint::Reference mint_poll_watch(mint::Cursor& cursor, const mint::Reference& d_p
 	return mint::create_number(0);
 #elifdef MINT_OS_LINUX
 
-	auto* poll_event = mint::get_member_ignore_visibility(cursor.ast(), event, symbols::event)
+	auto* poll_event = mint::get_member_ignore_visibility(cursor.program(), event, symbols::event)
 	                       .data<mint::LibObject<mint::poll_event_t>>()
 	                       .ptr;
 	poll_event->ptr = &event.data();
@@ -123,7 +123,7 @@ mint::Reference mint_poll_watch(mint::Cursor& cursor, const mint::Reference& d_p
 
 #elifdef MINT_OS_UNIX
 
-	auto* poll_event = mint::get_member_ignore_visibility(cursor.ast(), event, symbols::event)
+	auto* poll_event = mint::get_member_ignore_visibility(cursor.program(), event, symbols::event)
 	                       .data<mint::LibObject<mint::poll_event_t>>()
 	                       .ptr;
 	poll_event->ptr = &event.data();
@@ -150,7 +150,7 @@ mint::Reference mint_poll_unwatch(mint::Cursor& cursor, const mint::Reference& d
 #ifdef MINT_OS_WINDOWS
 
 	auto* context = d_ptr.data<mint::LibObject<std::vector<mint::poll_event_t*>>>().ptr;
-	auto* poll_event = mint::get_member_ignore_visibility(cursor.ast(), event, symbols::event)
+	auto* poll_event = mint::get_member_ignore_visibility(cursor.program(), event, symbols::event)
 	                       .data<mint::LibObject<mint::poll_event_t>>()
 	                       .ptr;
 
@@ -162,7 +162,7 @@ mint::Reference mint_poll_unwatch(mint::Cursor& cursor, const mint::Reference& d
 	return mint::create_number(0);
 #elifdef MINT_OS_LINUX
 
-	auto* poll_event = mint::get_member_ignore_visibility(cursor.ast(), event, symbols::event)
+	auto* poll_event = mint::get_member_ignore_visibility(cursor.program(), event, symbols::event)
 	                       .data<mint::LibObject<mint::poll_event_t>>()
 	                       .ptr;
 
@@ -174,7 +174,7 @@ mint::Reference mint_poll_unwatch(mint::Cursor& cursor, const mint::Reference& d
 
 #elifdef MINT_OS_UNIX
 
-	auto* poll_event = mint::get_member_ignore_visibility(cursor.ast(), event, symbols::event)
+	auto* poll_event = mint::get_member_ignore_visibility(cursor.program(), event, symbols::event)
 	                       .data<mint::LibObject<mint::poll_event_t>>()
 	                       .ptr;
 	struct kevent kev {
@@ -289,19 +289,19 @@ mint::Reference mint_poll(mint::Cursor& cursor, const mint::Reference& d_ptr, co
 
 mint::Reference mint_poll_event_from_handle(mint::Cursor& cursor, const mint::Reference& handle) {
 #ifdef MINT_OS_WINDOWS
-	return mint::create_c_object(cursor.ast(), new mint::poll_event_t {
-	                                               .handle = to_handle(handle),
-	                                           });
+	return mint::create_c_object(cursor.program(), new mint::poll_event_t {
+	                                                   .handle = to_handle(handle),
+	                                               });
 #elifdef MINT_OS_LINUX
-	return mint::create_c_object(cursor.ast(), new mint::poll_event_t {
-	                                               .fd = to_handle(handle),
-	                                               .events = EPOLLIN,
-	                                           });
+	return mint::create_c_object(cursor.program(), new mint::poll_event_t {
+	                                                   .fd = to_handle(handle),
+	                                                   .events = EPOLLIN,
+	                                               });
 #elifdef MINT_OS_UNIX
-	return mint::create_c_object(cursor.ast(), new mint::poll_event_t {
-	                                               .fd = to_handle(handle),
-	                                               .filter = EVFILT_READ,
-	                                           });
+	return mint::create_c_object(cursor.program(), new mint::poll_event_t {
+	                                                   .fd = to_handle(handle),
+	                                                   .filter = EVFILT_READ,
+	                                               });
 #else
 #error "Poll is not implemented for this platform"
 #endif

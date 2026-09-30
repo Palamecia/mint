@@ -93,11 +93,11 @@ mint::Reference mint_string_is_upper(mint::Cursor& /*cursor*/, const mint::Refer
 }
 
 mint::Reference mint_string_to_lower(mint::Cursor& cursor, const mint::Reference& self) {
-	return mint::create_string(cursor.ast(), mint::utf8_to_lower(to_string(self)));
+	return mint::create_string(cursor.program(), mint::utf8_to_lower(to_string(self)));
 }
 
 mint::Reference mint_string_to_upper(mint::Cursor& cursor, const mint::Reference& self) {
-	return mint::create_string(cursor.ast(), mint::utf8_to_upper(to_string(self)));
+	return mint::create_string(cursor.program(), mint::utf8_to_upper(to_string(self)));
 }
 
 }

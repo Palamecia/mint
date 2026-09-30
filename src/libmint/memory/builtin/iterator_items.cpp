@@ -23,7 +23,7 @@
 
 #include "iterator_items.h"
 #include "iterator_p.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
@@ -99,22 +99,22 @@ ItemsIteratorData::ItemsIteratorData(Cursor& cursor, const Reference& ref) {
 			_capacity = ref.data<String>().str.size();
 			_data = g_allocator.allocate(_capacity);
 			for (const auto& item : views::utf8(ref.data<String>().str)) {
-				std::construct_at(_data + _size++, create_string(cursor.ast(), item));
+				std::construct_at(_data + _size++, create_string(cursor.program(), item));
 			}
 			break;
 		case Class::Metatype::array:
 			_capacity = ref.data<Array>().values.size();
 			_data = g_allocator.allocate(_capacity);
-			for (auto& item : ref.data<Array>().values) {
+			for (const auto& item : ref.data<Array>().values) {
 				std::construct_at(_data + _size++, array_get_item(item));
 			}
 			break;
 		case Class::Metatype::hash:
 			_capacity = ref.data<Hash>().values.size();
 			_data = g_allocator.allocate(_capacity);
-			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value, cursor.ast(),
-				    2);
+			for (const auto& item : ref.data<Hash>().values) {
+				const auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value,
+				    cursor.program(), 2);
 				element.data<Iterator>().ctx.yield(cursor, hash_get_key(item));
 				element.data<Iterator>().ctx.yield(cursor, hash_get_value(item));
 				element.data<Iterator>().construct();
@@ -156,22 +156,22 @@ ItemsIteratorData::ItemsIteratorData(Cursor& cursor, Reference&& ref) {
 			_capacity = ref.data<String>().str.size();
 			_data = g_allocator.allocate(_capacity);
 			for (const auto& item : views::utf8(ref.data<String>().str)) {
-				std::construct_at(_data + _size++, create_string(cursor.ast(), item));
+				std::construct_at(_data + _size++, create_string(cursor.program(), item));
 			}
 			break;
 		case Class::Metatype::array:
 			_capacity = ref.data<Array>().values.size();
 			_data = g_allocator.allocate(_capacity);
-			for (auto& item : ref.data<Array>().values) {
+			for (const auto& item : ref.data<Array>().values) {
 				std::construct_at(_data + _size++, array_get_item(item));
 			}
 			break;
 		case Class::Metatype::hash:
 			_capacity = ref.data<Hash>().values.size();
 			_data = g_allocator.allocate(_capacity);
-			for (auto& item : ref.data<Hash>().values) {
-				auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value, cursor.ast(),
-				    2);
+			for (const auto& item : ref.data<Hash>().values) {
+				const auto element = make_reference<Iterator>(Reference::const_address | Reference::const_value,
+				    cursor.program(), 2);
 				element.data<Iterator>().ctx.yield(cursor, hash_get_key(item));
 				element.data<Iterator>().ctx.yield(cursor, hash_get_value(item));
 				element.data<Iterator>().construct();

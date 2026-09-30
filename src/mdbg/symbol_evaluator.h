@@ -24,9 +24,9 @@
 #ifndef MDBG_SYMBOL_EVALUATOR_H
 #define MDBG_SYMBOL_EVALUATOR_H
 
-#include "mint/ast/symbol.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/lexical_handler.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/symbol_table.h"

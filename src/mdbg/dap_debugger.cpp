@@ -27,7 +27,7 @@
 #include "debugger.h"
 #include "json.h"
 #include "log.h"
-#include "mint/ast/module.h"
+#include "mint/program/module.h"
 #include "mint/debug/debug_info.h"
 #include "mint/debug/debug_interface.h"
 #include "mint/debug/line_info.h"
@@ -38,7 +38,7 @@
 #include "mint/scheduler/scheduler.h"
 #include "utils.h"
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/debug/debug_tools.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/system/terminal.h"
@@ -279,10 +279,10 @@ void DapDebugger::on_breakpoint_deleted(Debugger& /*debugger*/, const mint::Brea
 }
 
 void DapDebugger::on_module_loaded(Debugger& /*debugger*/, mint::CursorDebugger& cursor, const mint::Module& module) {
-	const auto& ast = cursor.cursor().ast();
-	const auto module_id = ast.get_module_id(module);
+	const auto& program = cursor.cursor().program();
+	const auto module_id = program.get_module_id(module);
 	if (module_id != mint::Module::invalid_id) {
-		const std::string module_name = ast.get_module_name(module);
+		const std::string module_name = program.get_module_name(module);
 		const std::filesystem::path system_path = mint::to_system_path(module_name);
 		if (!system_path.empty()) {
 			send_event("loadedSource", JsonObject {
@@ -316,10 +316,13 @@ bool DapDebugger::on_breakpoint(Debugger& /*debugger*/, mint::CursorDebugger& cu
 	                          {"threadId", JsonNumber(to_client_id(cursor.get_thread_id()))},
 	                          {"preserveFocusHint", JsonBoolean(false)},
 	                          {"allThreadsStopped", JsonBoolean(true)},
-	                          {"hitBreakpointIds", JsonArray(std::from_range, std::views::transform(breakpoints,
-	                                                                              [](mint::Breakpoint::Id id) {
-		                                                                              return JsonNumber(id);
-	                                                                              }))},
+	                          {
+	                              "hitBreakpointIds",
+	                              JsonArray(std::from_range, std::views::transform(breakpoints,
+	                                                             [](mint::Breakpoint::Id id) {
+		                                                             return JsonNumber(id);
+	                                                             })),
+	                          },
 	                      });
 	_variables.clear();
 	return true;
@@ -375,11 +378,11 @@ void DapDebugger::shutdown() {
 }
 
 bool DapDebugger::dispatch_request(const DapRequestMessage& message, Debugger& debugger, mint::Scheduler& scheduler) {
-	if (auto it = g_commands.find(message.get_command()); it != g_commands.end()) {
+	if (const auto it = g_commands.find(message.get_command()); it != g_commands.end()) {
 		call_command(it->second, message, debugger);
 		return true;
 	}
-	if (auto it = g_setup_commands.find(message.get_command()); it != g_setup_commands.end()) {
+	if (const auto it = g_setup_commands.find(message.get_command()); it != g_setup_commands.end()) {
 		call_command(it->second, message, debugger, scheduler);
 		return true;
 	}
@@ -387,11 +390,11 @@ bool DapDebugger::dispatch_request(const DapRequestMessage& message, Debugger& d
 }
 
 bool DapDebugger::dispatch_request(const DapRequestMessage& message, Debugger& debugger, mint::CursorDebugger& cursor) {
-	if (auto it = g_commands.find(message.get_command()); it != g_commands.end()) {
+	if (const auto it = g_commands.find(message.get_command()); it != g_commands.end()) {
 		call_command(it->second, message, debugger);
 		return true;
 	}
-	if (auto it = g_runtime_commands.find(message.get_command()); it != g_runtime_commands.end()) {
+	if (const auto it = g_runtime_commands.find(message.get_command()); it != g_runtime_commands.end()) {
 		call_command(it->second, message, debugger, cursor);
 		return true;
 	}
@@ -484,7 +487,7 @@ void DapDebugger::on_set_breakpoints(const DapRequestMessage& request, const Jso
 			debugger.remove_breakpoint(breakpoint.id);
 		}
 	}
-	const auto& module = debugger.ast().module_info(module_name);
+	const auto& module = debugger.program().module_info(module_name);
 	if (const JsonArray* breakpoints = arguments.get_array("breakpoints")) {
 		for (const Json& breakpoint : *breakpoints) {
 			if (module.state != mint::Module::State::not_compiled) {
@@ -559,8 +562,11 @@ void DapDebugger::on_stack_trace(const DapRequestMessage& request, const JsonObj
 			const std::filesystem::path system_path = mint::to_system_path(cursor->module_name());
 			auto stack_frame = JsonObject {
 			    {"id", JsonNumber(to_client_id(to_stack_frame_id(cursor->get_thread_id(), i)))},
-			    {"name", JsonString("Stack frame " + std::to_string(i) + ": module '" + cursor->module_name()
-			                        + "', line " + std::to_string(cursor->line_number()))},
+			    {
+			        "name",
+			        JsonString("Stack frame " + std::to_string(i) + ": module '" + cursor->module_name() + "', line "
+			                   + std::to_string(cursor->line_number())),
+			    },
 			    {"moduleId", JsonNumber(to_client_id(cursor->module_id()))},
 			};
 			if (!system_path.empty()) {
@@ -575,20 +581,23 @@ void DapDebugger::on_stack_trace(const DapRequestMessage& request, const JsonObj
 			++i;
 		}
 		for (; i < count; ++i) {
-			const std::filesystem::path system_path = mint::to_system_path(call_stack[i].module_name());
+			const std::filesystem::path system_path = mint::to_system_path(call_stack.at(i).module_name());
 			auto stack_frame = JsonObject {
 			    {"id", JsonNumber(to_client_id(to_stack_frame_id(cursor->get_thread_id(), i)))},
-			    {"name", JsonString("Stack frame " + std::to_string(i) + ": module '" + call_stack[i].module_name()
-			                        + "', line " + std::to_string(call_stack[i].line_number()))},
-			    {"moduleId", JsonNumber(to_client_id(call_stack[i].module_id()))},
+			    {
+			        "name",
+			        JsonString("Stack frame " + std::to_string(i) + ": module '" + call_stack.at(i).module_name()
+			                   + "', line " + std::to_string(call_stack.at(i).line_number())),
+			    },
+			    {"moduleId", JsonNumber(to_client_id(call_stack.at(i).module_id()))},
 			};
 			if (!system_path.empty()) {
 				stack_frame.emplace("source",
 				    JsonObject {
-				        {"name", JsonString(call_stack[i].system_file_name().generic_string())},
-				        {"path", JsonString(call_stack[i].system_path().generic_string())},
+				        {"name", JsonString(call_stack.at(i).system_file_name().generic_string())},
+				        {"path", JsonString(call_stack.at(i).system_path().generic_string())},
 				    });
-				stack_frame.emplace("line", JsonNumber(to_client_line_number(call_stack[i].line_number())));
+				stack_frame.emplace("line", JsonNumber(to_client_line_number(call_stack.at(i).line_number())));
 				stack_frame.emplace("column", JsonNumber(to_client_column_number(1)));
 			}
 			stack_frames.push_back(stack_frame);
@@ -606,7 +615,7 @@ void DapDebugger::on_breakpoint_locations(const DapRequestMessage& request, cons
 	const auto from_line = to_line_number(*arguments.get_number("line"));
 	const auto to_line = attribute_or_default(arguments.get_number("endLine"), from_line);
 	const std::string module = mint::to_module_path(*arguments.get_object("source")->get_string("path"));
-	const auto& debug_info = debugger.ast().module_info(module).debug_info;
+	const auto& debug_info = debugger.program().module_info(module).debug_info;
 	for (std::size_t line = debug_info.to_executable_line_number(from_line); line >= from_line && line <= to_line;
 	    line = debug_info.to_executable_line_number(line + 1)) {
 		breakpoints.push_back(JsonObject {
@@ -653,7 +662,7 @@ void DapDebugger::on_variables(const DapRequestMessage& request, const JsonObjec
 		return;
 	}
 
-	const auto& variables_reference = _variables[variables_reference_id];
+	const auto& variables_reference = _variables.at(variables_reference_id);
 	const auto [thread_id, frame_index] = from_stack_frame_id(variables_reference.frame_id);
 	if (const auto* thread = debugger.find_thread(thread_id)) {
 		auto variables = JsonArray();
@@ -663,16 +672,18 @@ void DapDebugger::on_variables(const DapRequestMessage& request, const JsonObjec
 					if (member.get().offset == mint::Class::MemberInfo::invalid_offset) {
 						continue;
 					}
-					auto& reference = mint::Class::MemberInfo::get(member.get(), *object);
+					const auto& reference = mint::Class::MemberInfo::get(member.get(), *object);
 					if (is_instance_of(reference, mint::Data::Format::object)
 					    && !reference.data<mint::Object>().metadata.slots().empty()) {
 						variables.push_back(JsonObject {
 						    {"name", JsonString(symbol.str())},
 						    {"value", JsonString(reference_value(reference))},
 						    {"type", JsonString(type_name(reference))},
-						    {"variablesReference",
+						    {
+						        "variablesReference",
 						        JsonNumber(to_client_id(register_frame_variables_reference(variables_reference.frame_id,
-						            &reference.data<mint::Object>())))},
+						            &reference.data<mint::Object>()))),
+						    },
 						});
 					}
 					else {
@@ -693,9 +704,11 @@ void DapDebugger::on_variables(const DapRequestMessage& request, const JsonObjec
 						    {"name", JsonString(symbol.str())},
 						    {"value", JsonString(reference_value(reference))},
 						    {"type", JsonString(type_name(reference))},
-						    {"variablesReference",
+						    {
+						        "variablesReference",
 						        JsonNumber(to_client_id(register_frame_variables_reference(variables_reference.frame_id,
-						            &reference.data<mint::Object>())))},
+						            &reference.data<mint::Object>()))),
+						    },
 						});
 					}
 					else {
@@ -795,11 +808,9 @@ void DapDebugger::on_initialize(const DapRequestMessage& request, const JsonObje
 	if (const JsonBoolean* lines_start_at1 = arguments.get_boolean("linesStartAt1")) {
 		_client_lines_start_at_1 = *lines_start_at1;
 	}
-	if (const JsonString* path_format = arguments.get_string("pathFormat")) {
-		if (*path_format != "path") {
-			send_error(request, 2018, "debug adapter only supports native paths", std::nullopt, telemetry);
-			return;
-		}
+	if (const JsonString* path_format = arguments.get_string("pathFormat"); path_format && *path_format != "path") {
+		send_error(request, 2018, "debug adapter only supports native paths", std::nullopt, telemetry);
+		return;
 	}
 	send_response(request, JsonObject {
 	                           {"supportsConfigurationDoneRequest", JsonBoolean(true)},

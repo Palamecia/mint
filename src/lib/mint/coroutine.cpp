@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/ast/cursor.h"
+#include "mint/program/cursor.h"
 #include "mint/memory/data.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/memory_tools.h"

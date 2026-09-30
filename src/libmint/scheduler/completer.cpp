@@ -23,8 +23,8 @@
 
 #include "completer.h"
 
-#include "mint/ast/symbol.h"
-#include "mint/ast/class_description.h"
+#include "mint/program/symbol.h"
+#include "mint/program/class_description.h"
 #include "mint/memory/data.h"
 #include "mint/memory/global_data.h"
 #include "mint/debug/debug_tools.h"
@@ -32,8 +32,8 @@
 #include "mint/system/filesystem.h"
 #include "mint/system/terminal.h"
 #include "mint/system/utf8.h"
-#include "mint/ast/abstract_syntax_tree.h"
-#include "mint/ast/cursor.h"
+#include "mint/program/program.h"
+#include "mint/program/cursor.h"
 
 #include <compare>
 #include <filesystem>
@@ -179,7 +179,7 @@ void Completer::find_context_symbols_helper(PackageData* pack, ClassDescription*
 		return;
 	}
 
-	const auto& global_data = _cursor.get().ast().global_data();
+	const auto& global_data = _cursor.get().program().global_data();
 	for (const auto& [symbol, _] : global_data.symbols()) {
 		if (token_match(symbol.str(), token)) {
 			_completions.push_back({
@@ -198,7 +198,7 @@ bool Completer::token_match(const std::string& symbol, const std::string& patter
 }
 
 bool Completer::resolve_path(const std::vector<std::string>& context, PackageData*& pack, ClassDescription*& desc,
-    Reference*& member) {
+    Reference*& member) const {
 
 	for (const std::string& token : context) {
 		const auto symbol = Symbol(token);
@@ -211,7 +211,7 @@ bool Completer::resolve_path(const std::vector<std::string>& context, PackageDat
 		else if (pack) {
 			desc = pack->find_class_description(symbol);
 			if (desc == nullptr) {
-				auto it = pack->symbols().find(symbol);
+				const auto it = pack->symbols().find(symbol);
 				if (it != pack->symbols().end()) {
 					member = &it->second;
 				}
@@ -224,7 +224,7 @@ bool Completer::resolve_path(const std::vector<std::string>& context, PackageDat
 			}
 		}
 		else {
-			const auto& global_data = _cursor.get().ast().global_data();
+			const auto& global_data = _cursor.get().program().global_data();
 			desc = global_data.find_class_description(symbol);
 			if (desc == nullptr) {
 				pack = global_data.find_package(symbol);

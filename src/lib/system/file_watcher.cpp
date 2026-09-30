@@ -97,14 +97,16 @@ struct FileWatcherData {
 
 #ifdef MINT_OS_WINDOWS
 std::generator<FILE_NOTIFY_INFORMATION*> to_file_notify_informations(std::span<BYTE> buffer) {
+	if (!buffer.empty()) {
 
-	auto* notify_info = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(buffer.data());
-	co_yield notify_info;
-
-	while (notify_info->NextEntryOffset != 0) {
-		notify_info = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(
-		    std::next(reinterpret_cast<BYTE*>(notify_info), notify_info->NextEntryOffset));
+		auto* notify_info = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(buffer.data());
 		co_yield notify_info;
+
+		while (notify_info->NextEntryOffset != 0) {
+			notify_info = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(
+			    std::next(reinterpret_cast<BYTE*>(notify_info), notify_info->NextEntryOffset));
+			co_yield notify_info;
+		}
 	}
 }
 
@@ -115,11 +117,13 @@ void CALLBACK file_watcher_notification_callback(DWORD error_code, DWORD bytes_t
 	}
 
 	auto* watcher = CONTAINING_RECORD(overlapped, FileWatcherData, overlapped);
-	for (auto* notify_info : to_file_notify_informations(watcher->buffer)) {
-		auto file_name = std::wstring(notify_info->FileName, notify_info->FileNameLength / sizeof(wchar_t));
-		if (file_name == watcher->target_name) {
-			SetEvent(watcher->event.handle);
-			break;
+	if (!watcher->target_name.empty()) {
+		for (auto* notify_info : to_file_notify_informations(std::span(watcher->buffer.data(), bytes_transferred))) {
+			const auto file_name = std::wstring(notify_info->FileName, notify_info->FileNameLength / sizeof(wchar_t));
+			if (file_name == watcher->target_name) {
+				SetEvent(watcher->event.handle);
+				break;
+			}
 		}
 	}
 
@@ -129,7 +133,8 @@ void CALLBACK file_watcher_notification_callback(DWORD error_code, DWORD bytes_t
 }
 #endif
 
-mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Reference& path, mint::Reference& flags) {
+mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Reference& path,
+    const mint::Reference& flags) {
 #ifdef MINT_OS_WINDOWS
 
 	auto watcher = std::make_unique<FileWatcherData>();
@@ -146,7 +151,7 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 
 	bool is_directory_watch = false;
 	auto dir_to_open = std::filesystem::path();
-	auto path_to_watch = std::filesystem::path(mint::to_string(path));
+	const auto path_to_watch = std::filesystem::path(mint::to_string(path));
 	if (std::filesystem::is_directory(path_to_watch)) {
 		dir_to_open = path_to_watch;
 		is_directory_watch = true;
@@ -171,7 +176,7 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 
 		const auto success = ReadDirectoryChangesW(watcher->directory_handle, watcher->buffer.data(),
 		    static_cast<DWORD>(watcher->buffer.size()), false, watcher->notify_filter, &bytes_returned,
-		    &watcher->overlapped, nullptr);
+		    &watcher->overlapped, &file_watcher_notification_callback);
 
 		if (!success && GetLastError() != ERROR_IO_PENDING) {
 			return {};
@@ -276,8 +281,9 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 mint::Reference mint_file_watcher_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 	auto* watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().ptr;
 #ifdef MINT_OS_WINDOWS
+	CancelIoEx(watcher->directory_handle, &watcher->overlapped);
+	WaitForSingleObjectEx(watcher->directory_handle, 0, true);
 	if (watcher->directory_handle != watcher->event.handle) {
-		CancelIo(watcher->directory_handle);
 		CloseHandle(watcher->directory_handle);
 	}
 	CloseHandle(watcher->event.handle);

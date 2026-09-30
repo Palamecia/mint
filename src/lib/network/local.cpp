@@ -95,7 +95,7 @@ namespace {
 enum class IOStatus : std::uint8_t {
 	success,
 	would_block,
-	closed
+	closed,
 };
 
 class LocalSocket {
@@ -192,7 +192,8 @@ public:
 							if (auto* handle = CreateFileW(_path.wstring().data(), GENERIC_READ | GENERIC_WRITE, 0,
 							        nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
 							    handle != mint::invalid_handle) {
-								auto socket_fd = mint_network::SocketManager::instance().open_socket_from_handle(handle);
+								const auto socket_fd = mint_network::SocketManager::instance().open_socket_from_handle(
+								    handle);
 								mint_network::SocketManager::instance().set_socket_listening(socket_fd, false);
 								_socket->set_socket(socket_fd);
 								return IOStatus::success;
@@ -345,7 +346,7 @@ public:
 	IOStatus read_some(std::vector<std::uint8_t>* buf, std::size_t count) override {
 
 		auto bytes_read = DWORD();
-		auto read_buffer = std::make_unique<std::uint8_t[]>(count);
+		const auto read_buffer = std::make_unique<std::uint8_t[]>(count);
 
 		mint::unlock_processor();
 		const auto read_result = ReadFile(std::bit_cast<HANDLE>(_socket), read_buffer.get(), static_cast<DWORD>(count),
@@ -574,7 +575,7 @@ public:
 				}
 				else {
 #ifdef MINT_ASYNC_BACKEND_IOCP
-					auto client_fd = _socket_fd.get();
+					const auto client_fd = _socket_fd.get();
 					mint_network::SocketManager::instance().set_socket_listening(client_fd, false);
 					auto* handle = _socket.get().create_listener();
 					if (handle == mint::invalid_handle) {
@@ -616,7 +617,7 @@ public:
 			}
 		}
 
-		auto client_fd = _socket;
+		const auto client_fd = _socket;
 		mint_network::SocketManager::instance().set_socket_listening(client_fd, false);
 		auto* handle = create_listener();
 		if (handle == mint::invalid_handle) {
@@ -676,7 +677,7 @@ public:
 		}
 	}
 
-	UnixLocalSocket(SOCKET socket) :
+	explicit UnixLocalSocket(SOCKET socket) :
 	    _socket(socket) {}
 
 	[[nodiscard]] SOCKET get_socket() const override {
@@ -1023,7 +1024,7 @@ public:
 
 	IOStatus read_some(std::vector<std::uint8_t>* buf, std::size_t count) override {
 
-		auto local_buffer = std::make_unique<std::uint8_t[]>(count);
+		const auto local_buffer = std::make_unique<std::uint8_t[]>(count);
 		mint::unlock_processor();
 		const auto bytes_transferred = recv(_socket, reinterpret_cast<char*>(local_buffer.get()),
 		    static_cast<int>(count), 0);
@@ -1180,7 +1181,7 @@ public:
 			length = BUFSIZ;
 		}
 
-		auto local_buffer = std::make_unique<std::uint8_t[]>(length);
+		const auto local_buffer = std::make_unique<std::uint8_t[]>(length);
 		mint::unlock_processor();
 		const auto bytes_transferred = recv(_socket, reinterpret_cast<char*>(local_buffer.get()),
 		    static_cast<int>(length), 0);
@@ -1396,7 +1397,7 @@ public:
 
 					auto bytes_received = DWORD();
 					auto* address_buffer = _accept_buffer.data();
-					auto address_buffer_length = static_cast<DWORD>(address_length);
+					const auto address_buffer_length = static_cast<DWORD>(address_length);
 					if (!AcceptEx(socket_fd, _client_fd, address_buffer, 0, address_buffer_length,
 					        address_buffer_length, &bytes_received, this)) {
 						switch (WSAGetLastError()) {
@@ -1457,9 +1458,9 @@ public:
 				}
 				else {
 #ifdef MINT_ASYNC_BACKEND_IOCP
-					auto socket_fd = reinterpret_cast<SOCKET>(get_handle());
+					const auto socket_fd = reinterpret_cast<SOCKET>(get_handle());
 					auto* address_buffer = _accept_buffer.data();
-					auto address_buffer_length = static_cast<DWORD>(address_length);
+					const auto address_buffer_length = static_cast<DWORD>(address_length);
 					socklen_t local_address_length = sizeof(sockaddr);
 					LPSOCKADDR local_address = nullptr;
 					socklen_t remote_address_length = sizeof(sockaddr);
@@ -1496,11 +1497,8 @@ public:
 
 	std::unique_ptr<LocalSocket> accept(mint::Reference& /*handle*/) override {
 
-		sockaddr remote_address {};
-		socklen_t remote_address_length = sizeof(remote_address);
-
 		mint::unlock_processor();
-		const SOCKET client_fd = ::accept(_socket, &remote_address, &remote_address_length);
+		const SOCKET client_fd = ::accept(_socket, nullptr, nullptr);
 		mint::lock_processor();
 
 		if (client_fd != INVALID_SOCKET) {
@@ -1601,9 +1599,9 @@ mint::Reference mint_local_endpoint_get_path(mint::Cursor& cursor, const mint::R
 mint::Reference mint_local_socket_connect(mint::FunctionHelper& helper, const mint::Reference& name,
     const mint::Reference& endpoint) {
 
-	auto io_status = helper.reference(mint_network::symbols::network)
-	                     .member(mint_network::symbols::socket)
-	                     .member(mint_network::symbols::io_status);
+	const auto io_status = helper.reference(mint_network::symbols::network)
+	                           .member(mint_network::symbols::socket)
+	                           .member(mint_network::symbols::io_status);
 
 	try {
 		auto socket = make_local_socket();
@@ -1671,11 +1669,11 @@ mint::Reference mint_local_socket_close(mint::Cursor& /*cursor*/, mint::Referenc
 }
 
 mint::Reference mint_local_socket_recv_some(mint::FunctionHelper& helper, const mint::Reference& d_ptr,
-    mint::Reference& buffer, mint::Reference& count) {
+    const mint::Reference& buffer, const mint::Reference& count) {
 
-	auto io_status = helper.reference(mint_network::symbols::network)
-	                     .member(mint_network::symbols::socket)
-	                     .member(mint_network::symbols::io_status);
+	const auto io_status = helper.reference(mint_network::symbols::network)
+	                           .member(mint_network::symbols::socket)
+	                           .member(mint_network::symbols::io_status);
 
 	try {
 		switch (d_ptr.data<mint::LibObject<LocalSocket>>()
@@ -1700,7 +1698,7 @@ mint::Reference mint_local_socket_recv_some(mint::FunctionHelper& helper, const 
 }
 
 mint::Reference mint_local_socket_recv_some_async(mint::FunctionHelper& helper, mint::Reference& self,
-    const mint::Reference& d_ptr, mint::Reference& buffer, mint::Reference& count) {
+    const mint::Reference& d_ptr, const mint::Reference& buffer, const mint::Reference& count) {
 	return mint::create_async_operation(helper.cursor().ast(),
 	    d_ptr.data<mint::LibObject<LocalSocket>>()
 	        .ptr
@@ -1710,11 +1708,11 @@ mint::Reference mint_local_socket_recv_some_async(mint::FunctionHelper& helper, 
 }
 
 mint::Reference mint_local_socket_recv(mint::FunctionHelper& helper, const mint::Reference& d_ptr,
-    mint::Reference& buffer) {
+    const mint::Reference& buffer) {
 
-	auto io_status = helper.reference(mint_network::symbols::network)
-	                     .member(mint_network::symbols::socket)
-	                     .member(mint_network::symbols::io_status);
+	const auto io_status = helper.reference(mint_network::symbols::network)
+	                           .member(mint_network::symbols::socket)
+	                           .member(mint_network::symbols::io_status);
 
 	try {
 		switch (d_ptr.data<mint::LibObject<LocalSocket>>().ptr->read(
@@ -1738,7 +1736,7 @@ mint::Reference mint_local_socket_recv(mint::FunctionHelper& helper, const mint:
 }
 
 mint::Reference mint_local_socket_recv_async(mint::FunctionHelper& helper, mint::Reference& self,
-    const mint::Reference& d_ptr, mint::Reference& buffer) {
+    const mint::Reference& d_ptr, const mint::Reference& buffer) {
 	return mint::create_async_operation(helper.cursor().ast(),
 	    d_ptr.data<mint::LibObject<LocalSocket>>()
 	        .ptr->read_async(helper, std::move(self), buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
@@ -1746,11 +1744,11 @@ mint::Reference mint_local_socket_recv_async(mint::FunctionHelper& helper, mint:
 }
 
 mint::Reference mint_local_socket_send(mint::FunctionHelper& helper, const mint::Reference& d_ptr,
-    mint::Reference& buffer) {
+    const mint::Reference& buffer) {
 
-	auto io_status = helper.reference(mint_network::symbols::network)
-	                     .member(mint_network::symbols::socket)
-	                     .member(mint_network::symbols::io_status);
+	const auto io_status = helper.reference(mint_network::symbols::network)
+	                           .member(mint_network::symbols::socket)
+	                           .member(mint_network::symbols::io_status);
 
 	try {
 		switch (const auto [status, count] = d_ptr.data<mint::LibObject<LocalSocket>>().ptr->write(
@@ -1775,7 +1773,7 @@ mint::Reference mint_local_socket_send(mint::FunctionHelper& helper, const mint:
 }
 
 mint::Reference mint_local_socket_send_async(mint::FunctionHelper& helper, mint::Reference& self,
-    const mint::Reference& d_ptr, mint::Reference& buffer) {
+    const mint::Reference& d_ptr, const mint::Reference& buffer) {
 	return mint::create_async_operation(helper.cursor().ast(),
 	    d_ptr.data<mint::LibObject<LocalSocket>>()
 	        .ptr->write_async(helper, std::move(self), buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
@@ -1824,7 +1822,7 @@ mint::Reference mint_local_socket_accept_async(mint::Cursor& cursor, mint::Refer
 }
 
 mint::Reference mint_local_socket_set_non_blocking(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
-    mint::Reference& enabled) {
+    const mint::Reference& enabled) {
 	try {
 		d_ptr.data<mint::LibObject<LocalSocket>>().ptr->set_non_blocking(to_boolean(enabled));
 	}

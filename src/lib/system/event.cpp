@@ -45,9 +45,8 @@
 #endif
 #ifdef MINT_OS_MAC
 #include <fcntl.h>
-#include <sys/socket.h>
-#endif
-#ifndef MINT_OS_MAC
+#include <sys/event.h>
+#else
 #include <sys/eventfd.h>
 #endif
 #include <unistd.h>
@@ -117,7 +116,7 @@ mint::Reference mint_event_create(mint::Cursor& cursor) {
 
 #elifdef MINT_OS_MAC
 	auto fds = std::to_array<int>({-1, -1});
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, fds.data()) == 0) {
+	if (pipe(fds.data()) == 0) {
 		if (set_nonblocking(fds.at(0)) && set_nonblocking(fds.at(1))) {
 			return mint::create_c_object(cursor.ast(), new EventData {
 			                                               .event =
@@ -174,7 +173,7 @@ mint::Reference mint_event_is_set(mint::Cursor& /*cursor*/, const mint::Referenc
 #elifdef MINT_OS_MAC
 	std::uint64_t value = 0;
 	const auto fd = d_ptr.data<mint::LibObject<EventData>>().ptr->event.fd;
-	return mint::create_boolean(recv(fd, &value, sizeof(value), MSG_PEEK) == sizeof(value));
+	return mint::create_boolean(read(fd, &value, sizeof(value)) == sizeof(value));
 #else
 	std::uint64_t value = 0;
 	const auto fd = d_ptr.data<mint::LibObject<EventData>>().ptr->event.fd;

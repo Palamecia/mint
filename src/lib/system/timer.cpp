@@ -55,9 +55,8 @@
 #ifdef MINT_OS_MAC
 #include <dispatch/dispatch.h>
 #include <fcntl.h>
-#include <sys/socket.h>
-#endif
-#ifndef MINT_OS_MAC
+#include <sys/event.h>
+#else
 #include <sys/timerfd.h>
 #endif
 #include <unistd.h>
@@ -181,7 +180,7 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	static_cast<void>(to_clock_type(cursor, clock_type));
 
 	auto fds = std::to_array<int>({-1, -1});
-	if (socketpair(AF_UNIX, SOCK_STREAM, 0, fds.data()) != 0) {
+	if (pipe(fds.data()) != 0) {
 		return {};
 	}
 	if (!set_nonblocking(fds.at(0)) || !set_nonblocking(fds.at(1))) {

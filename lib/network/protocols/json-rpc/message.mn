@@ -231,7 +231,7 @@ package Network {
 
 			/**
 			 * Creates an instance of {Network.JsonRpc.Message} from an instance of {Serializer.DataStream} given by
-			  `data`. The `length` parameter is the number of bytes to be used to create the message.
+			 * `data`. The `length` parameter is the number of bytes to be used to create the message.
 			 */
 			@const def decode(data, length) {
 				if length {

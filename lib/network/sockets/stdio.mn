@@ -39,14 +39,14 @@ package Network {
 
 		/**
 		 * Binds the socket to the peer described by `endpoint`. The `endpoint` parameter should be an instance of
-         * {Network.StdioEndpoint}.
+		 * {Network.StdioEndpoint}.
 		 */
 		const def bind(self, endpoint) {
 			self.readHandle = endpoint.getReadHandle()
-            self.writeHandle = endpoint.getWriteHandle()
+			self.writeHandle = endpoint.getWriteHandle()
 			self.setEndpoint(endpoint)
 			self.setHandle(self.readHandle)
-            self.setState(Network.Socket.State.Bound)
+			self.setState(Network.Socket.State.Bound)
 		}
 
 		/**

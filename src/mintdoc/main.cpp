@@ -27,6 +27,7 @@
 #include "parser.h"
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <filesystem>
 #include <fstream>
 #include <ranges>
@@ -160,5 +161,11 @@ int run(const std::vector<std::string>& args) {
 }
 
 int main() {
-	return run({std::from_range, std::views::drop(mint::arguments(), 1)});
+	try {
+		return run({std::from_range, std::views::drop(mint::arguments(), 1)});
+	}
+	catch (const std::exception& error) {
+		mint::print_error(error.what());
+		return EXIT_FAILURE;
+	}
 }

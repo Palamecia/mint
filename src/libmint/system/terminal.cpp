@@ -181,7 +181,7 @@ void Terminal::add_history(const std::string& line) {
 }
 
 std::optional<std::string> Terminal::read_line() {
-	auto mode = term_setup_mode();
+	const auto mode = term_setup_mode();
 	auto buffer = edit();
 	term_reset_mode(mode);
 	return buffer;
@@ -1459,9 +1459,9 @@ void Terminal::edit_refresh(bool for_validation) {
 	const bool has_trailing_new_line = !_input.empty() && _input.back() == '\n';
 	const CursorPos input_cursor = to_cursor_pos(_input, _pos);
 
-	const std::string input = _highlight ? _highlight(_input, _pos) : _input;
-	std::vector<std::pair<std::string::size_type, bool>> line_breaks;
-	std::vector<std::string> prompts;
+	const auto input = _highlight ? _highlight(_input, _pos) : _input;
+	auto line_breaks = std::vector<std::pair<std::string::size_type, bool>>();
+	auto prompts = std::vector<std::string>();
 
 	_input_rows = 0;
 	prompts.push_back(_prompt ? _prompt(_input_rows) : "");
@@ -1469,7 +1469,7 @@ void Terminal::edit_refresh(bool for_validation) {
 
 	// calculate rows separation including word wrap
 	for (std::size_t pos = 0, column = 0; pos < input.size();) {
-		if (input[pos] == '\n') {
+		if (input.at(pos) == '\n') {
 			line_breaks.emplace_back(pos, true);
 			prompts.push_back(_prompt ? _prompt(++_input_rows) : "");
 			prompt_width = column_count(prompts.back());

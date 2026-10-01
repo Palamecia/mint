@@ -30,6 +30,7 @@
 #include <cstdio>
 #include <map>
 #include <string>
+#include <utility>
 
 const std::map<std::string, int> Lexer::keywords {
     {"and", parser::token::dbl_amp_token},
@@ -149,24 +150,24 @@ const std::map<std::string, int> Lexer::operators {
 Lexer::Lexer(DataStream& stream) :
     _stream(stream) {}
 
-std::string Lexer::next_token() {
+std::pair<std::string, int> Lexer::next_token() {
 
 	while (is_white_space(static_cast<char>(_cptr))) {
 		_cptr = _stream.get().get_char();
 	}
 
 	std::string token;
-	int token_type = -1;
+	int token_id = -1;
 
-	enum SearchMode : std::uint8_t {
+	enum class SearchMode : std::uint8_t {
 		find_operator,
 		find_number,
-		find_identifier
+		find_identifier,
 	};
 
-	const auto find_mode = is_operator(std::string({static_cast<char>(_cptr)}), &token_type) ? find_operator
-	                       : is_digit(_cptr)                                                 ? find_number
-	                                                                                         : find_identifier;
+	const auto find_mode = is_operator(std::string({static_cast<char>(_cptr)}), &token_id) ? SearchMode::find_operator
+	                       : is_digit(_cptr) ? SearchMode::find_number
+	                                         : SearchMode::find_identifier;
 
 	if (_remaining) {
 		token += static_cast<char>(_remaining);
@@ -174,28 +175,28 @@ std::string Lexer::next_token() {
 	}
 
 	if (_cptr == '\'' || _cptr == '"') {
-		return tokenize_string(static_cast<char>(_cptr));
+		return std::make_pair(tokenize_string(static_cast<char>(_cptr)), parser::token::string_token);
 	}
 
 	switch (find_mode) {
-	case find_operator:
+	case SearchMode::find_operator:
 		while (!is_white_space(static_cast<char>(_cptr)) && (_cptr != EOF)
-		       && is_operator(token + static_cast<char>(_cptr), &token_type)) {
+		       && is_operator(token + static_cast<char>(_cptr), &token_id)) {
 			token += static_cast<char>(_cptr);
 			_cptr = _stream.get().get_char();
 		}
 
-		switch (token_type) {
+		switch (token_id) {
 		case parser::token::back_slash_token:
 		case parser::token::close_bracket_token:
 			while (is_white_space(static_cast<char>(_cptr)) && (_cptr != EOF)) {
 				_cptr = _stream.get().get_char();
 			}
-			if (is_operator(token + static_cast<char>(_cptr), &token_type)) {
+			if (is_operator(token + static_cast<char>(_cptr), &token_id)) {
 				_remaining = _cptr;
 				_cptr = _stream.get().get_char();
 				if (is_operator(std::string({static_cast<char>(_remaining), static_cast<char>(_cptr)}))) [[unlikely]] {
-					token_type = -1;
+					token_id = -1;
 				}
 				else {
 					token += static_cast<char>(_remaining);
@@ -207,22 +208,29 @@ std::string Lexer::next_token() {
 		case parser::token::comment_token:
 			if (token == "//" || token == "#!") {
 				while (_cptr != '\n' && _cptr != EOF) {
+					token += static_cast<char>(_cptr);
 					_cptr = _stream.get().get_char();
 				}
-				return next_token();
+				return std::make_pair(token, token_id);
 			}
 
 			if (token == "/*") {
 				for (;;) {
 					while (_cptr != '*' && _cptr != EOF) {
+						token += static_cast<char>(_cptr);
 						_cptr = _stream.get().get_char();
 					}
+					if (_cptr == EOF) {
+						return std::make_pair(token, token_id);
+					}
+					token += static_cast<char>(_cptr);
 					switch ((_cptr = _stream.get().get_char())) {
 					case '/':
+						token += static_cast<char>(_cptr);
 						_cptr = _stream.get().get_char();
-						return next_token();
+						return std::make_pair(token, token_id);
 					case EOF:
-						return {};
+						return std::make_pair(token, token_id);
 					default:
 						break;
 					}
@@ -234,12 +242,17 @@ std::string Lexer::next_token() {
 			break;
 		}
 
-		if (token_type == parser::token::no_line_end_token) {
-			return next_token();
+		if (token_id == parser::token::no_line_end_token) {
+			return std::make_pair(token, token_id);
 		}
+
+		if (const auto it = operators.find(token); it != operators.end()) {
+			return std::make_pair(token, it->second);
+		}
+
 		break;
 
-	case find_number:
+	case SearchMode::find_number:
 		while (!is_white_space(static_cast<char>(_cptr)) && (_cptr != EOF) && is_digit(_cptr)) {
 			token += static_cast<char>(_cptr);
 			_cptr = _stream.get().get_char();
@@ -251,7 +264,7 @@ std::string Lexer::next_token() {
 				token += static_cast<char>(_cptr);
 				_cptr = _stream.get().get_char();
 			}
-			return token;
+			return std::make_pair(token, parser::token::number_token);
 		}
 
 		if (_cptr == '.') {
@@ -259,7 +272,7 @@ std::string Lexer::next_token() {
 			_cptr = _stream.get().get_char();
 			if (is_operator(decimals + static_cast<char>(_cptr))) {
 				_remaining = '.';
-				return token;
+				return std::make_pair(token, parser::token::number_token);
 			}
 			while (is_digit(_cptr)) {
 				decimals += static_cast<char>(_cptr);
@@ -281,27 +294,37 @@ std::string Lexer::next_token() {
 			}
 			token += exponent;
 		}
-		break;
 
-	case find_identifier:
+		return std::make_pair(token, parser::token::number_token);
+
+	case SearchMode::find_identifier:
 		while (!is_white_space(static_cast<char>(_cptr)) && (_cptr != EOF)
 		       && !is_operator(std::string({static_cast<char>(_cptr)}))) {
 			token += static_cast<char>(_cptr);
 			_cptr = _stream.get().get_char();
 		}
+
+		if (token.empty()) {
+			return std::make_pair(token, parser::token::file_end_token);
+		}
+
 		break;
 	}
 
-	return token;
+	if (const auto it = keywords.find(token); it != keywords.end()) {
+		return std::make_pair(token, it->second);
+	}
+
+	return std::make_pair(token, parser::token::symbol_token);
 }
 
 int Lexer::token_type(const std::string& token) {
 
-	if (auto it = keywords.find(token); it != keywords.end()) {
+	if (const auto it = keywords.find(token); it != keywords.end()) {
 		return it->second;
 	}
 
-	if (auto it = operators.find(token); it != operators.end()) {
+	if (const auto it = operators.find(token); it != operators.end()) {
 		return it->second;
 	}
 
@@ -338,9 +361,9 @@ std::string Lexer::read_regex() {
 
 std::string Lexer::format_error(const std::string& error) const {
 
-	auto path = _stream.get().path();
-	auto line_number = _stream.get().line_number();
-	auto line_error = _stream.get().line_error();
+	const auto path = _stream.get().path();
+	const auto line_number = _stream.get().line_number();
+	const auto line_error = _stream.get().line_error();
 
 	return path.generic_string() + ":" + std::to_string(line_number) + " " + error + "\n" + line_error;
 }
@@ -366,7 +389,7 @@ bool Lexer::is_operator(const std::string& token) {
 }
 
 bool Lexer::is_operator(const std::string& token, int* type) {
-	if (auto it = operators.find(token); it != operators.end()) {
+	if (const auto it = operators.find(token); it != operators.end()) {
 		*type = it->second;
 		return true;
 	}

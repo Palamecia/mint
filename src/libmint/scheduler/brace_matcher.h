@@ -30,13 +30,15 @@
 #include <cstddef>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
 #include <vector>
 
 namespace mint {
 
 class BraceMatcher : public LexicalHandler {
 public:
-	BraceMatcher(std::string_view::size_type offset);
+	explicit BraceMatcher(std::string_view::size_type offset);
 	BraceMatcher(BraceMatcher&&) = delete;
 	BraceMatcher(const BraceMatcher&) = delete;
 	~BraceMatcher() override = default;

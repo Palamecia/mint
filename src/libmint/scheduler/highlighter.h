@@ -81,6 +81,7 @@ protected:
 		module_path,
 		brace,
 		brace_match,
+		line_continuation,
 	};
 
 	void set_style(Style style);

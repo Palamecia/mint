@@ -52,7 +52,7 @@ void value_add_token(Constant& constant, const std::string& token) {
 	if (token != "\n") {
 		if (!constant.value.empty() && !unpadded_prefixes.contains(std::string(1, constant.value.back()))
 		    && !unpadded_postfixes.contains(token)) {
-			constant.value += " ";
+			constant.value += ' ';
 		}
 		constant.value += token;
 	}
@@ -61,7 +61,7 @@ void value_add_token(Constant& constant, const std::string& token) {
 void signature_add_token(Function::Signature& signature, const std::string& token) {
 	if (!signature.format.empty() && !unpadded_prefixes.contains(std::string(1, signature.format.back()))
 	    && !unpadded_postfixes.contains(token)) {
-		signature.format += " ";
+		signature.format += ' ';
 	}
 	signature.format += token;
 }
@@ -89,7 +89,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 
 	case State::expect_value:
 	case State::expect_value_subexpression:
-		if (auto instance = std::static_pointer_cast<Constant>(_context->definition)) {
+		if (const auto instance = std::static_pointer_cast<Constant>(_context->definition)) {
 			value_add_token(*instance, token);
 		}
 		break;
@@ -109,7 +109,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 		break;
 	case mint::Token::def_token:
 		if (_context->definition) {
-			if (auto instance = _context->dictionary.get().get_or_create_function(_context->definition->name)) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(_context->definition->name)) {
 				instance->flags = _context->definition->flags;
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
@@ -153,7 +153,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 		else {
 			switch (get_state()) {
 			case State::expect_package:
-				if (auto instance = _context->dictionary.get().get_or_create_package(definition_name(token))) {
+				if (const auto instance = _context->dictionary.get().get_or_create_package(definition_name(token))) {
 					push_context(token, instance);
 					if (!instance->doc) {
 						instance->doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
@@ -167,7 +167,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 				break;
 
 			case State::expect_class:
-				if (auto instance = std::make_shared<Class>(definition_name(token))) {
+				if (const auto instance = std::make_shared<Class>(definition_name(token))) {
 					push_context(token, instance);
 					if (!instance->doc) {
 						instance->doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
@@ -181,7 +181,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 				break;
 
 			case State::expect_enum:
-				if (auto instance = std::make_shared<Enum>(definition_name(token))) {
+				if (const auto instance = std::make_shared<Enum>(definition_name(token))) {
 					push_context(token, instance);
 					if (!instance->doc) {
 						instance->doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
@@ -196,7 +196,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 				break;
 
 			case State::expect_function:
-				if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+				if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 					_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 					    .format = "def",
 					    .doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
@@ -211,7 +211,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 
 			case State::expect_start:
 				if (_context->modifiers & mint::Reference::global) {
-					if (auto instance = std::make_shared<Constant>(definition_name(token))) {
+					if (const auto instance = std::make_shared<Constant>(definition_name(token))) {
 						if (!instance->doc) {
 							instance->doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
 							    _context->comment_column_number));
@@ -220,34 +220,32 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 						_context->definition = instance;
 					}
 				}
-				else if (const auto* context = current_context()) {
-					if (context->depth == 1) {
-						switch (context->definition->type) {
-						case Definition::class_definition:
-							if (auto instance = std::make_shared<Constant>(definition_name(token))) {
-								if (!instance->doc) {
-									instance->doc = parse_doc(cleanup_doc(_context->comment,
-									    _context->comment_line_number, _context->comment_column_number));
-								}
-								instance->flags = retrieve_modifiers();
-								_context->definition = instance;
+				else if (const auto* context = current_context(); context && context->depth == 1) {
+					switch (context->definition->type) {
+					case Definition::class_definition:
+						if (const auto instance = std::make_shared<Constant>(definition_name(token))) {
+							if (!instance->doc) {
+								instance->doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
+								    _context->comment_column_number));
 							}
-							break;
-
-						case Definition::enum_definition:
-							if (auto instance = std::make_shared<Constant>(definition_name(token))) {
-								if (!instance->doc) {
-									instance->doc = parse_doc(cleanup_doc(_context->comment,
-									    _context->comment_line_number, _context->comment_column_number));
-								}
-								instance->flags = retrieve_modifiers();
-								_context->definition = instance;
-							}
-							break;
-
-						default:
-							break;
+							instance->flags = retrieve_modifiers();
+							_context->definition = instance;
 						}
+						break;
+
+					case Definition::enum_definition:
+						if (const auto instance = std::make_shared<Constant>(definition_name(token))) {
+							if (!instance->doc) {
+								instance->doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
+								    _context->comment_column_number));
+							}
+							instance->flags = retrieve_modifiers();
+							_context->definition = instance;
+						}
+						break;
+
+					default:
+						break;
 					}
 				}
 
@@ -302,7 +300,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::close_parenthesis_token:
 		switch (get_state()) {
 		case State::expect_parenthesis_operator:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name("()"))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name("()"))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -365,7 +363,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::close_bracket_token:
 		switch (get_state()) {
 		case State::expect_bracket_operator:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name("[]"))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name("[]"))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {.format = "def",
 				    .doc = parse_doc(cleanup_doc(_context->comment, _context->comment_line_number,
 				        _context->comment_column_number))});
@@ -390,7 +388,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::close_bracket_equal_token:
 		switch (get_state()) {
 		case State::expect_bracket_operator:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name("[]="))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name("[]="))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -415,7 +413,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::open_brace_token:
 		switch (get_state()) {
 		case State::expect_base:
-			if (auto instance = std::static_pointer_cast<Class>(_context->definition)) {
+			if (const auto instance = std::static_pointer_cast<Class>(_context->definition)) {
 				instance->bases.push_back(_context->base);
 				_context->base.clear();
 			}
@@ -471,24 +469,24 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 			if (_context->definition) {
 				switch (_context->definition->type) {
 				case Definition::constant_definition:
-					if (const auto* context = current_context()) {
-						if (context->definition->type == Definition::enum_definition) {
-							if (auto instance = std::static_pointer_cast<Constant>(_context->definition)) {
-								if (instance->value.empty()) {
-									instance->value = std::to_string(_context->next_enum_constant++);
-								}
-								else {
-									_context->next_enum_constant = mint::to_signed_integer(instance->value);
-									_context->next_enum_constant++;
-								}
+					if (const auto* context = current_context();
+					    context && context->definition->type == Definition::enum_definition) {
+						if (const auto instance = std::static_pointer_cast<Constant>(_context->definition)) {
+							if (instance->value.empty()) {
+								instance->value = std::to_string(_context->next_enum_constant++);
+							}
+							else {
+								_context->next_enum_constant = mint::to_signed_integer(instance->value);
+								_context->next_enum_constant++;
 							}
 						}
 					}
+
 					break;
 
 				case Definition::function_definition:
 					if (_context->signature) {
-						if (auto instance = std::static_pointer_cast<Function>(_context->definition)) {
+						if (const auto instance = std::static_pointer_cast<Function>(_context->definition)) {
 							instance->signatures.emplace_back(_context->signature);
 						}
 						_context->signature.reset();
@@ -548,7 +546,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::comma_token:
 		switch (get_state()) {
 		case State::expect_base:
-			if (auto instance = std::static_pointer_cast<Class>(_context->definition)) {
+			if (const auto instance = std::static_pointer_cast<Class>(_context->definition)) {
 				instance->bases.push_back(_context->base);
 				_context->base.clear();
 			}
@@ -562,7 +560,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::in_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -582,7 +580,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::colon_equal_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -602,7 +600,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::dbl_pipe_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -622,7 +620,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::dbl_amp_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -642,7 +640,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::pipe_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -662,7 +660,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::caret_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -682,7 +680,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::amp_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -702,7 +700,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::dbl_equal_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -722,7 +720,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::exclamation_equal_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -742,7 +740,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::left_angled_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -762,7 +760,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::right_angled_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -782,7 +780,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::left_angled_equal_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -802,7 +800,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::right_angled_equal_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -822,7 +820,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::dbl_left_angled_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -842,7 +840,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::dbl_right_angled_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -862,7 +860,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::plus_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -882,7 +880,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::minus_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -903,7 +901,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::asterisk_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -923,7 +921,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::slash_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -943,7 +941,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::percent_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -964,7 +962,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::exclamation_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -984,7 +982,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::tilde_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -1005,7 +1003,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::dbl_plus_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -1025,7 +1023,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::dbl_minus_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -1045,7 +1043,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::dbl_asterisk_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -1064,7 +1062,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::dbl_dot_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -1083,7 +1081,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::tpl_dot_token:
 		switch (get_state()) {
 		case State::expect_function:
-			if (auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
+			if (const auto instance = _context->dictionary.get().get_or_create_function(definition_name(token))) {
 				_context->signature = std::make_shared<Function::Signature>(Function::Signature {
 				    .format = "def",
 				    .doc = parse_doc(
@@ -1166,7 +1164,8 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 
 bool Parser::on_new_line(std::size_t line_number, std::string::size_type offset) {
 	_context->line_number = line_number;
-	_context->line_offset = offset;
+	// Skip the '\n' character if this is not the beginning of the file
+	_context->line_offset = offset ? offset + 1 : offset;
 	return true;
 }
 
@@ -1189,7 +1188,7 @@ void Parser::parse_error(const std::string& message, std::size_t column, std::si
 	for (std::size_t i = 1; i <= end_line; ++i) {
 		getline(stream, line_content, '\n');
 		if (i >= begin_line) {
-			for (char c : line_content) {
+			for (const auto c : line_content) {
 				switch (c) {
 				case '\t':
 					message_line += tab_placeholder;
@@ -1208,7 +1207,7 @@ void Parser::parse_error(const std::string& message, std::size_t column, std::si
 
 	for (std::size_t i = 0; i < line_content.size(); ++i) {
 		if (i < column - 1) {
-			switch (const auto c = line_content[i]) {
+			switch (const char8_t c = line_content.at(i)) {
 			case '\t':
 				message_line += tab_placeholder;
 				message_pos += '\t';
@@ -1327,19 +1326,19 @@ void Parser::bind_definition_to_context(ScriptContext& context, Definition& defi
 
 	switch (context.definition->type) {
 	case Definition::package_definition:
-		if (auto instance = std::static_pointer_cast<Package>(context.definition)) {
+		if (const auto instance = std::static_pointer_cast<Package>(context.definition)) {
 			instance->members.insert(definition.name);
 		}
 		break;
 
 	case Definition::enum_definition:
-		if (auto instance = std::static_pointer_cast<Enum>(context.definition)) {
+		if (const auto instance = std::static_pointer_cast<Enum>(context.definition)) {
 			instance->members.insert(definition.name);
 		}
 		break;
 
 	case Definition::class_definition:
-		if (auto instance = std::static_pointer_cast<Class>(context.definition)) {
+		if (const auto instance = std::static_pointer_cast<Class>(context.definition)) {
 			instance->members.insert(definition.name);
 		}
 		break;

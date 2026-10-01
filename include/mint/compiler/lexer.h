@@ -30,6 +30,7 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <utility>
 
 namespace mint {
 
@@ -40,7 +41,7 @@ class MINT_EXPORT Lexer {
 public:
 	explicit Lexer(DataStream& stream);
 
-	std::string next_token();
+	std::pair<std::string, int> next_token();
 	static int token_type(const std::string& token);
 
 	std::string read_regex();

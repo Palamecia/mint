@@ -106,12 +106,12 @@ bool BraceMatcher::on_token(mint::Token type, const std::string& token, std::str
 	return true;
 }
 
-bool BraceMatcher::on_comment_begin([[maybe_unused]] std::string::size_type offset) {
+bool BraceMatcher::on_comment_begin(std::string::size_type /*offset*/) {
 	_comment = true;
 	return true;
 }
 
-bool BraceMatcher::on_comment_end([[maybe_unused]] std::string::size_type offset) {
+bool BraceMatcher::on_comment_end(std::string::size_type /*offset*/) {
 	_comment = false;
 	return true;
 }

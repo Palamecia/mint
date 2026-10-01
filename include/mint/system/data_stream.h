@@ -64,7 +64,7 @@ private:
 
 	enum class State : std::uint8_t {
 		state_new_line,
-		state_reading
+		state_reading,
 	};
 
 	std::function<void(std::size_t)> _new_line_callback = [](std::size_t) {};

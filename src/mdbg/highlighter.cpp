@@ -55,8 +55,6 @@ constexpr bool is_standard_symbol(std::string_view token) {
 	return token == "self" || token == "va_args";
 }
 
-}
-
 class Highlighter : public mint::LexicalHandler {
 public:
 	Highlighter(std::size_t from_line, std::size_t to_line, std::size_t current_line, mint::GlobalData& global_data) :
@@ -229,6 +227,10 @@ protected:
 		case mint::Token::close_parenthesis_token:
 			set_style(Style::brace);
 			break;
+		case mint::Token::no_line_end_token:
+			set_style(Style::line_continuation);
+			print_highlighted("\\");
+			return true;
 		case mint::Token::comment_token:
 			// done in on_comment
 			return true;
@@ -284,7 +286,8 @@ protected:
 		regex_literal,
 		standard_symbol,
 		module_path,
-		brace
+		brace,
+		line_continuation,
 	};
 
 	void set_style(Style style) {
@@ -331,6 +334,9 @@ protected:
 		case Style::brace:
 			print_highlighted(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_MAGENTA));
 			break;
+		case Style::line_continuation:
+			print_highlighted(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_GREY));
+			break;
 		}
 	}
 
@@ -341,7 +347,7 @@ protected:
 				mint::Terminal::print(stdout, "\n");
 			}
 
-			auto amount_of_digits = [](std::size_t value) -> int {
+			const auto amount_of_digits = [](std::size_t value) -> int {
 				int amount = 1;
 				while (value /= mint::decimal_base) {
 					amount++;
@@ -370,27 +376,32 @@ protected:
 
 		const auto symbol = mint::Symbol(token);
 
-		auto location = resolve_path(context);
-		if (!location) {
-			return nullptr;
-		}
+		try {
+			auto location = resolve_path(context);
+			if (!location) {
+				return nullptr;
+			}
 
-		auto [pack, desc] = *location;
-		if (desc) {
-			if (const auto* reference = desc->find_member(symbol)) {
-				return reference;
+			auto [pack, desc] = *location;
+			if (desc) {
+				if (const auto* reference = desc->find_member(symbol)) {
+					return reference;
+				}
+				return nullptr;
 			}
-			return nullptr;
+			if (pack) {
+				if (const auto it = pack->symbols().find(symbol); it != pack->symbols().end()) {
+					return std::addressof(it->second);
+				}
+				return nullptr;
+			}
 		}
-		if (pack) {
-			if (auto it = pack->symbols().find(symbol); it != pack->symbols().end()) {
-				return std::addressof(it->second);
-			}
+		catch (...) {
 			return nullptr;
 		}
 
 		const mint::GlobalData& global_data = _global_data;
-		if (auto it = global_data.symbols().find(symbol); it != global_data.symbols().end()) {
+		if (const auto it = global_data.symbols().find(symbol); it != global_data.symbols().end()) {
 			return std::addressof(it->second);
 		}
 		return nullptr;
@@ -441,6 +452,8 @@ private:
 	std::size_t _current_line;
 	std::reference_wrapper<mint::GlobalData> _global_data;
 };
+
+}
 
 void print_highlighted(std::size_t from_line, std::size_t to_line, std::size_t current_line,
     mint::GlobalData& global_data, std::ifstream&& script) {

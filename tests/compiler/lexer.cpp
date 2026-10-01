@@ -8,17 +8,17 @@ TEST(lexer, next_token) {
 	mint::BufferStream stream("test test2+test3 + loadtest4 4.5 6..7 'with white space'");
 	mint::Lexer lexer(stream);
 
-	EXPECT_EQ("test", lexer.next_token());
-	EXPECT_EQ("test2", lexer.next_token());
-	EXPECT_EQ("+", lexer.next_token());
-	EXPECT_EQ("test3", lexer.next_token());
-	EXPECT_EQ("+", lexer.next_token());
-	EXPECT_EQ("loadtest4", lexer.next_token());
-	EXPECT_EQ("4.5", lexer.next_token());
-	EXPECT_EQ("6", lexer.next_token());
-	EXPECT_EQ("..", lexer.next_token());
-	EXPECT_EQ("7", lexer.next_token());
-	EXPECT_EQ("'with white space'", lexer.next_token());
+	EXPECT_EQ("test", lexer.next_token().first);
+	EXPECT_EQ("test2", lexer.next_token().first);
+	EXPECT_EQ("+", lexer.next_token().first);
+	EXPECT_EQ("test3", lexer.next_token().first);
+	EXPECT_EQ("+", lexer.next_token().first);
+	EXPECT_EQ("loadtest4", lexer.next_token().first);
+	EXPECT_EQ("4.5", lexer.next_token().first);
+	EXPECT_EQ("6", lexer.next_token().first);
+	EXPECT_EQ("..", lexer.next_token().first);
+	EXPECT_EQ("7", lexer.next_token().first);
+	EXPECT_EQ("'with white space'", lexer.next_token().first);
 }
 
 TEST(lexer, token_type) {
@@ -54,54 +54,57 @@ if defined symbol {
 
 	mint::Lexer lexer(stream);
 
-	ASSERT_EQ("\n", lexer.next_token());
+	ASSERT_EQ("/* comment */", lexer.next_token().first);
+	EXPECT_EQ(1, line_number);
+
+	ASSERT_EQ("\n", lexer.next_token().first);
 	EXPECT_EQ(2, line_number);
 
-	ASSERT_EQ("\n", lexer.next_token());
+	ASSERT_EQ("\n", lexer.next_token().first);
 	EXPECT_EQ(3, line_number);
 
-	ASSERT_EQ("load", lexer.next_token());
+	ASSERT_EQ("load", lexer.next_token().first);
 	EXPECT_EQ(3, line_number);
 
-	ASSERT_EQ("module", lexer.next_token());
+	ASSERT_EQ("module", lexer.next_token().first);
 	EXPECT_EQ(3, line_number);
 
-	ASSERT_EQ("\n", lexer.next_token());
+	ASSERT_EQ("\n", lexer.next_token().first);
 	EXPECT_EQ(4, line_number);
 
-	ASSERT_EQ("\n", lexer.next_token());
+	ASSERT_EQ("\n", lexer.next_token().first);
 	EXPECT_EQ(5, line_number);
 
-	ASSERT_EQ("if", lexer.next_token());
+	ASSERT_EQ("if", lexer.next_token().first);
 	EXPECT_EQ(5, line_number);
 
-	ASSERT_EQ("defined", lexer.next_token());
+	ASSERT_EQ("defined", lexer.next_token().first);
 	EXPECT_EQ(5, line_number);
 
-	ASSERT_EQ("symbol", lexer.next_token());
+	ASSERT_EQ("symbol", lexer.next_token().first);
 	EXPECT_EQ(5, line_number);
 
-	ASSERT_EQ("{", lexer.next_token());
+	ASSERT_EQ("{", lexer.next_token().first);
 	EXPECT_EQ(5, line_number);
 
-	ASSERT_EQ("\n", lexer.next_token());
+	ASSERT_EQ("\n", lexer.next_token().first);
 	EXPECT_EQ(6, line_number);
 
-	ASSERT_EQ("func", lexer.next_token());
+	ASSERT_EQ("func", lexer.next_token().first);
 	EXPECT_EQ(6, line_number);
 
-	ASSERT_EQ("(", lexer.next_token());
+	ASSERT_EQ("(", lexer.next_token().first);
 	EXPECT_EQ(6, line_number);
 
-	ASSERT_EQ(")", lexer.next_token());
+	ASSERT_EQ(")", lexer.next_token().first);
 	EXPECT_EQ(6, line_number);
 
-	ASSERT_EQ("\n", lexer.next_token());
+	ASSERT_EQ("\n", lexer.next_token().first);
 	EXPECT_EQ(7, line_number);
 
-	ASSERT_EQ("}", lexer.next_token());
+	ASSERT_EQ("}", lexer.next_token().first);
 	EXPECT_EQ(7, line_number);
 
-	ASSERT_EQ("\n", lexer.next_token());
+	ASSERT_EQ("\n", lexer.next_token().first);
 	EXPECT_EQ(8, line_number);
 }

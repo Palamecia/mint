@@ -25,34 +25,37 @@
 #include "mint/compiler/lexer.h"
 #include "mint/compiler/token.h"
 
+#include <cassert>
 #include <cctype>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
-#include <algorithm>
 #include <istream>
+#include <queue>
 #include <string>
+#include <string_view>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 using namespace mint;
 
-#define IS_OPERATOR_ALIAS(_token) \
-	(((_token) == "and") || ((_token) == "or") || ((_token) == "xor") || ((_token) == "not"))
+namespace {
 
-#define IS_COMMENT(_token) \
-	(((_token).find("/*", pos) != std::string::npos) || ((_token).find("//", pos) != std::string::npos) \
-	    || ((_token).find("#!", pos) != std::string::npos))
+constexpr bool is_operator_alias(std::string_view token) {
+	return ((token == "and") || (token == "or") || (token == "xor") || (token == "not"));
+}
 
 enum class State : std::uint8_t {
 	expect_start,
-	expect_comment,
 	expect_module,
 	expect_definition,
 	expect_value,
-	expect_operator
+	expect_operator,
 };
+
+}
 
 std::filesystem::path AbstractLexicalHandlerStream::path() const {
 	return {};
@@ -73,8 +76,8 @@ std::string AbstractLexicalHandlerStream::substr(std::string::size_type offset,
 	return _script.substr(offset, count);
 }
 
-char AbstractLexicalHandlerStream::operator[](std::string::size_type offset) const {
-	return _script[offset];
+char AbstractLexicalHandlerStream::at(std::string::size_type offset) const {
+	return _script.at(offset);
 }
 
 std::size_t AbstractLexicalHandlerStream::pos() const {
@@ -82,7 +85,7 @@ std::size_t AbstractLexicalHandlerStream::pos() const {
 }
 
 int AbstractLexicalHandlerStream::read_char() {
-	int c = get();
+	const auto c = get();
 	if (c != EOF) {
 		_script += static_cast<char>(c);
 	}
@@ -90,7 +93,7 @@ int AbstractLexicalHandlerStream::read_char() {
 }
 
 int AbstractLexicalHandlerStream::next_buffered_char() {
-	int c = get();
+	const auto c = get();
 	if (c != EOF) {
 		_script += static_cast<char>(c);
 	}
@@ -101,11 +104,11 @@ namespace {
 
 class LexicalHandlerStream : public AbstractLexicalHandlerStream {
 public:
+	explicit LexicalHandlerStream(std::istream& stream) :
+	    _stream(stream) {}
+
 	LexicalHandlerStream(const LexicalHandlerStream&) = delete;
 	LexicalHandlerStream(LexicalHandlerStream&&) = delete;
-
-	LexicalHandlerStream(std::istream& stream) :
-	    _stream(stream) {}
 
 	~LexicalHandlerStream() {}
 
@@ -129,154 +132,28 @@ private:
 	std::istream& _stream;
 };
 
-std::tuple<std::string::size_type, std::string> find_next_comment(AbstractLexicalHandlerStream& stream,
-    std::string::size_type offset) {
-	auto pos = std::min({stream.find("/*", offset), stream.find("//", offset), stream.find("#!", offset)});
-	if (pos != std::string::npos) {
-		return {pos, stream.substr(pos, 2)};
-	}
-	return {std::string::npos, {}};
-}
-
 }
 
 bool LexicalHandler::parse(AbstractLexicalHandlerStream& stream) {
 
-	std::vector<State> state = {State::expect_start};
-	std::vector<std::string> context;
-
-	std::string::size_type comment_offset = 0;
-	std::string comment;
+	auto pending_lines = std::queue<std::pair<std::size_t, std::string::size_type>>();
+	auto state = std::vector<State> {State::expect_start};
+	auto context = std::vector<std::string>();
 
 	auto lexer = Lexer(stream);
 	std::size_t pos = 0;
 
-	bool failed_on_new_line = false;
 	stream.set_new_line_callback([&](std::size_t line_number) {
-		if (failed_on_new_line) {
-			return;
-		}
-		const auto new_line_pos = stream.find("\n", pos);
-		while (pos && pos < new_line_pos) {
-			switch (state.back()) {
-			case State::expect_comment:
-				if (auto comment_end = stream.find("*/", pos);
-				    comment_end != std::string::npos && comment_end < new_line_pos) {
-					comment_end += 2;
-					comment += stream.substr(pos, comment_end - pos);
-					if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
-						failed_on_new_line = true;
-						return;
-					}
-					if (!on_comment_end(comment_end)) {
-						failed_on_new_line = true;
-						return;
-					}
-					if (!on_token(Token::comment_token, comment, comment_offset)) {
-						failed_on_new_line = true;
-						return;
-					}
-					pos = comment_end;
-					state.pop_back();
-				}
-				else if (auto comment_end = new_line_pos + 1; comment_end >= pos) {
-					comment += stream.substr(pos, comment_end - pos);
-					if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
-						failed_on_new_line = true;
-						return;
-					}
-					pos = comment_end;
-				}
-				break;
-			default:
-				if (auto [comment_pos, comment_token] = find_next_comment(stream, pos);
-				    comment_pos != std::string::npos && comment_pos < new_line_pos) {
-					if (pos != comment_pos) {
-						if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
-							failed_on_new_line = true;
-							return;
-						}
-						pos = comment_pos;
-					}
-					auto start = new_line_pos;
-					if (comment_token == "/*") {
-						auto comment_end = stream.find("*/", comment_pos);
-						if (comment_end != std::string::npos) {
-							comment_end += 2;
-							comment_offset = comment_pos;
-							comment = stream.substr(comment_pos, comment_end - comment_pos);
-							if (!on_comment_begin(comment_pos)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_comment(stream.substr(comment_pos, comment_end - comment_pos), comment_pos)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_comment_end(comment_end)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_token(Token::comment_token, comment, comment_offset)) {
-								failed_on_new_line = true;
-								return;
-							}
-							start = comment_end;
-						}
-						else {
-							comment_end = new_line_pos;
-							comment_end += 1;
-							comment_offset = comment_pos;
-							comment = stream.substr(pos, comment_end - pos);
-							if (!on_comment_begin(comment_pos)) {
-								failed_on_new_line = true;
-								return;
-							}
-							if (!on_comment(stream.substr(pos, comment_end - pos), comment_pos)) {
-								failed_on_new_line = true;
-								return;
-							}
-							state.emplace_back(State::expect_comment);
-							start = comment_end;
-						}
-						pos = start;
-					}
-					else if ((comment_token == "//") || (comment_token == "#!")) {
-						start = new_line_pos;
-						comment_offset = comment_pos;
-						comment = stream.substr(pos, start - pos);
-						if (!on_comment_begin(comment_pos)) {
-							failed_on_new_line = true;
-							return;
-						}
-						if (!on_comment(stream.substr(pos, start - pos), comment_pos)) {
-							failed_on_new_line = true;
-							return;
-						}
-						if (!on_comment_end(start)) {
-							failed_on_new_line = true;
-							return;
-						}
-						if (!on_token(Token::comment_token, comment, comment_offset)) {
-							failed_on_new_line = true;
-							return;
-						}
-						pos = start;
-					}
-				}
-				else if (pos != new_line_pos) {
-					if (!on_white_space(stream.substr(pos, new_line_pos - pos), pos)) {
-						failed_on_new_line = true;
-						return;
-					}
-					pos = new_line_pos;
-				}
-				break;
+		if (pending_lines.empty()) {
+			if (pos != 0) {
+				pending_lines.emplace(line_number, stream.find("\n", pos));
+			}
+			else {
+				pending_lines.emplace(line_number, 0);
 			}
 		}
-		if (!on_new_line(line_number, pos ? new_line_pos + 1 : 0)) {
-			failed_on_new_line = true;
-			return;
+		else {
+			pending_lines.emplace(line_number, stream.find("\n", pending_lines.back().second + 1));
 		}
 	});
 
@@ -286,25 +163,29 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream& stream) {
 
 	while (!stream.at_end()) {
 
-		std::string token = lexer.next_token();
-		auto token_type = token_from_local_id(Lexer::token_type(token));
+		auto [token, token_id] = lexer.next_token();
+		const auto token_type = mint::token_from_local_id(token_id);
 		auto start = stream.find(token, pos);
 		auto length = token.length();
 
-		if (failed_on_new_line) {
-			return false;
+		if (pos == 0 && !pending_lines.empty()) {
+			const auto [line_number, new_line_pos] = pending_lines.front();
+			pending_lines.pop();
+			if (!on_new_line(line_number, new_line_pos)) {
+				return false;
+			}
 		}
 
 		if (start == std::string::npos && token_type == Token::close_bracket_equal_token) {
 			std::size_t match_length = 0;
-			auto token_match = [&]() {
+			const auto token_match = [&] {
 				match_length = 1;
 				for (std::size_t i = start + 1; i < stream.pos(); ++i) {
 					++match_length;
-					if (stream[i] == '=') {
+					if (stream.at(i) == '=') {
 						return true;
 					}
-					if (!Lexer::is_white_space(stream[i])) {
+					if (!Lexer::is_white_space(stream.at(i))) {
 						return false;
 					}
 				}
@@ -321,128 +202,68 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream& stream) {
 		}
 
 		if (start != std::string::npos) {
-			do {
-				switch (state.back()) {
-				case State::expect_comment:
-					if (auto comment_end = stream.find("*/", pos);
-					    comment_end != std::string::npos && comment_end < start) {
-						comment_end += 2;
-						comment += stream.substr(pos, comment_end - pos);
-						if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
-							return false;
-						}
-						if (!on_comment_end(comment_end)) {
-							return false;
-						}
-						if (!on_token(Token::comment_token, comment, comment_offset)) {
-							failed_on_new_line = true;
-							return false;
-						}
-						state.pop_back();
-						pos = comment_end;
-					}
-					else if (auto comment_end = stream.find('\n', pos); comment_end >= pos) {
-						if (comment_end != std::string::npos) {
-							comment_end += 1;
-							comment += stream.substr(pos, comment_end - pos);
-							if (!on_comment(stream.substr(pos, comment_end - pos), pos)) {
-								return false;
-							}
-							pos = comment_end;
-						}
-						else {
-							comment_end = stream.pos();
-							comment += stream.substr(pos);
-							if (!on_comment(stream.substr(pos), pos)) {
-								return false;
-							}
-							pos = comment_end;
-						}
-					}
-					else if (start != pos) {
-						if (!on_white_space(stream.substr(pos, (start - pos)), pos)) {
-							return false;
-						}
-						pos = start;
-					}
-					break;
-				default:
-					if (auto [comment_pos, comment_token] = find_next_comment(stream, pos);
-					    (comment_pos >= pos) && (comment_pos <= start)) {
-						if (pos != comment_pos) {
-							if (!on_white_space(stream.substr(pos, comment_pos - pos), pos)) {
-								return false;
-							}
-							pos = comment_pos;
-						}
-						if (comment_token == "/*") {
-							auto comment_end = stream.find("*/", comment_pos);
-							if (comment_end != std::string::npos) {
-								comment_end += 2;
-								comment_offset = comment_pos;
-								comment = stream.substr(comment_pos, comment_end - comment_pos);
-								if (!on_comment_begin(comment_pos)) {
-									return false;
-								}
-								if (!on_comment(stream.substr(comment_pos, comment_end - comment_pos), comment_pos)) {
-									return false;
-								}
-								if (!on_comment_end(comment_end)) {
-									return false;
-								}
-								if (!on_token(Token::comment_token, comment, comment_offset)) {
-									failed_on_new_line = true;
-									return false;
-								}
-								pos = comment_end;
-							}
-							else {
-								comment_offset = comment_pos;
-								comment = stream.substr(pos);
-								if (!on_comment_begin(comment_pos)) {
-									return false;
-								}
-								if (!on_comment(stream.substr(pos), comment_pos)) {
-									return false;
-								}
-								state.emplace_back(State::expect_comment);
-								pos = stream.pos();
-							}
-						}
-						else if ((comment_token == "//") || (comment_token == "#!")) {
-							auto comment_end = std::min(start, stream.pos());
-							comment_offset = comment_pos;
-							comment = stream.substr(pos, comment_end - pos);
-							if (!on_comment_begin(comment_pos)) {
-								return false;
-							}
-							if (!on_comment(stream.substr(pos, comment_end - pos), comment_pos)) {
-								return false;
-							}
-							if (!on_comment_end(comment_end)) {
-								return false;
-							}
-							if (!on_token(Token::comment_token, comment, comment_offset)) {
-								failed_on_new_line = true;
-								return false;
-							}
-							pos = comment_end;
-						}
-						start = stream.find(token, pos);
-					}
-					else if (start != pos) {
-						if (!on_white_space(stream.substr(pos, (start - pos)), pos)) {
-							return false;
-						}
-						pos = start;
-					}
-					break;
-				}
+			if (start != pos && !on_white_space(stream.substr(pos, start - pos), pos)) {
+				return false;
 			}
-			while (pos < start);
-
+			pos = start;
 			switch (token_type) {
+			case Token::comment_token:
+				if (token.starts_with("/*")) {
+					if (!on_comment_begin(start)) {
+						return false;
+					}
+					std::string::size_type from = 0;
+					for (std::string::size_type pos = token.find('\n'); pos != std::string::npos;
+					    from = pos + 1, pos = token.find('\n', from)) {
+						if (!on_comment(token.substr(from, pos - from + 1), start + from)) {
+							return false;
+						}
+						const auto [line_number, new_line_pos] = pending_lines.front();
+						pending_lines.pop();
+						if (!on_new_line(line_number, new_line_pos)) {
+							return false;
+						}
+					}
+					if (!on_comment(token.substr(from, length - from), start + from)) {
+						return false;
+					}
+					if (token.ends_with("*/") && !on_comment_end(start + length)) {
+						return false;
+					}
+					if (!on_token(token_type, token, start)) {
+						return false;
+					}
+				}
+				else {
+					if (!on_comment_begin(start) || !on_comment(token, start) || !on_comment_end(start + length)
+					    || !on_token(token_type, token, start)) {
+						return false;
+					}
+				}
+				pos = start + length;
+				continue;
+			case Token::no_line_end_token:
+				if (!on_token(token_type, token, start)) {
+					return false;
+				}
+				{
+					const auto [line_number, new_line_pos] = pending_lines.front();
+					pending_lines.pop();
+					if (!on_new_line(line_number, new_line_pos)) {
+						return false;
+					}
+				}
+				pos = start + length;
+				break;
 			case Token::line_end_token:
+				if (token == "\n") {
+					const auto [line_number, new_line_pos] = pending_lines.front();
+					pending_lines.pop();
+					if (!on_new_line(line_number, new_line_pos)) {
+						return false;
+					}
+				}
+				[[fallthrough]];
 			case Token::file_end_token:
 				switch (state.back()) {
 				case State::expect_module:
@@ -591,12 +412,12 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream& stream) {
 					break;
 				default:
 					if (const std::string regex = lexer.read_regex();
-					    !regex.empty() && stream[start + regex.length() + 1] == '/') {
-						token += regex + lexer.next_token();
+					    !regex.empty() && stream.at(start + regex.length() + 1) == '/') {
+						token += regex + lexer.next_token().first;
 						length = token.length();
 
-						if (isalpha(stream[start + length])) {
-							token += lexer.next_token();
+						if (isalpha(stream.at(start + length))) {
+							token += lexer.next_token().first;
 							length = token.length();
 						}
 
@@ -675,7 +496,7 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream& stream) {
 					return false;
 				}
 				context.clear();
-				if ((IS_OPERATOR_ALIAS(token)) || (Lexer::is_operator(token))) {
+				if (is_operator_alias(token) || Lexer::is_operator(token)) {
 					state.back() = State::expect_value;
 				}
 				else {
@@ -687,18 +508,8 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream& stream) {
 				break;
 			}
 		}
-		else {
-			token = stream.substr(pos);
-			if (IS_COMMENT(token)) {
-				if (!on_comment(token, pos)) {
-					return false;
-				}
-			}
-			else {
-				if (!on_token(Token::symbol_token, token, start)) {
-					return false;
-				}
-			}
+		else if (!token.empty() && !on_token(Token::symbol_token, token, pos)) {
+			return false;
 		}
 
 		pos = start + length;
@@ -708,17 +519,15 @@ bool LexicalHandler::parse(AbstractLexicalHandlerStream& stream) {
 		return false;
 	}
 
-	if (pos != stream.pos()) {
-		if (!on_white_space(stream.substr(pos), pos)) {
-			return false;
-		}
+	if ((pos != stream.pos()) && (!on_white_space(stream.substr(pos), pos))) {
+		return false;
 	}
 
 	return on_script_end();
 }
 
 bool LexicalHandler::parse(std::istream& script) {
-	LexicalHandlerStream stream(script);
+	auto stream = LexicalHandlerStream(script);
 	return parse(stream);
 }
 

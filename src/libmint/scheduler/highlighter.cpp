@@ -72,7 +72,7 @@ bool Highlighter::on_script_end() {
 }
 
 bool Highlighter::on_symbol_token(const std::vector<std::string>& context, const std::string& token,
-    [[maybe_unused]] std::string::size_type offset) {
+    std::string::size_type /*offset*/) {
 	if (const auto* reference = find_defined_symbol(context, token)) {
 		switch (reference->data().format()) {
 		case Data::Format::none:
@@ -285,6 +285,9 @@ bool Highlighter::on_token(Token type, const std::string& token, std::string::si
 		}
 		_parenthesis_depth--;
 		break;
+	case Token::no_line_end_token:
+		set_style(Style::line_continuation);
+		break;
 	case Token::comment_token:
 		// done in on_comment
 		return true;
@@ -299,20 +302,16 @@ bool Highlighter::on_token(Token type, const std::string& token, std::string::si
 	return true;
 }
 
-bool Highlighter::on_white_space(const std::string& token, [[maybe_unused]] std::string::size_type offset) {
+bool Highlighter::on_white_space(const std::string& token, std::string::size_type /*offset*/) {
 	set_style(Style::text);
 	_output.append(token);
 	return true;
 }
 
-bool Highlighter::on_comment(const std::string& token, [[maybe_unused]] std::string::size_type offset) {
-	if (token.empty() || token.back() != '\n') {
-		set_style(Style::comment);
-		_output.append(token);
-	}
-	else {
-		set_style(Style::comment);
-		_output.append(token.substr(0, token.size() - 1));
+bool Highlighter::on_comment(const std::string& token, std::string::size_type /*offset*/) {
+	set_style(Style::comment);
+	_output.append(token.substr(0, token.rfind('\n')));
+	if (token.ends_with('\n')) {
 		set_style(Style::text);
 		_output.append("\n");
 	}
@@ -365,6 +364,9 @@ void Highlighter::set_style(Style style) {
 		break;
 	case Style::brace_match:
 		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_BOLD, MINT_TERM_FG_RED));
+		break;
+	case Style::line_continuation:
+		_output.append(MINT_TERM_OPT(MINT_TERM_RESET, MINT_TERM_FG_GREY));
 		break;
 	}
 }

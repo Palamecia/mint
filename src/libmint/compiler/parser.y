@@ -2712,14 +2712,18 @@ void parser::error(const std::string &msg) {
 	context.parse_error(msg);
 }
 
-int BuildContext::next_token(std::string *token) {
+int BuildContext::next_token(std::string* token) {
 
+	int type = parser::token::file_end_token;
 	if (_lexer.at_end()) {
-	    return parser::token::file_end_token;
+	    return type;
 	}
 
-	*token = _lexer.next_token();
-	return Lexer::token_type(*token);
+	std::tie(*token, type) = _lexer.next_token();
+	while (type == parser::token::comment_token || type == parser::token::no_line_end_token) {
+		std::tie(*token, type) = _lexer.next_token();
+	}
+	return type;
 }
 
 bool Compiler::build(DataStream& stream, ModuleInfo& node) {

@@ -70,7 +70,7 @@ private:
 		double_quote_string,
 		double_quote_string_escape_next,
 		breaking,
-		over
+		over,
 	};
 
 	std::string _buffer;

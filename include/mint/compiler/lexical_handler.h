@@ -46,7 +46,7 @@ public:
 	    std::string::size_type offset = 0) const noexcept;
 	[[nodiscard]] std::string substr(std::string::size_type offset = 0,
 	    std::string::size_type count = std::string::npos) const noexcept;
-	char operator[](std::string::size_type offset) const;
+	[[nodiscard]] char at(std::string::size_type offset) const;
 	[[nodiscard]] std::size_t pos() const;
 
 protected:
@@ -62,12 +62,12 @@ private:
 class MINT_EXPORT LexicalHandler {
 public:
 	LexicalHandler() = default;
-	LexicalHandler(LexicalHandler&&) = default;
-	LexicalHandler(const LexicalHandler&) = default;
+	LexicalHandler(const LexicalHandler&) = delete;
+	LexicalHandler(LexicalHandler&&) = delete;
 	virtual ~LexicalHandler() = default;
 
-	LexicalHandler& operator=(LexicalHandler&&) = default;
-	LexicalHandler& operator=(const LexicalHandler&) = default;
+	LexicalHandler& operator=(const LexicalHandler&) = delete;
+	LexicalHandler& operator=(LexicalHandler&&) = delete;
 
 	bool parse(AbstractLexicalHandlerStream& stream);
 	bool parse(std::istream& script);

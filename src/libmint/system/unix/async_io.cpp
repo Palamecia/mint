@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2026 Gauvain CHERY.
+ * Copyright (c) 2026 Gauvain CHÉRY.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -435,21 +435,21 @@ mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::millis
 		        struct io_uring_cqe* cqe = nullptr;
 
 		        const auto ret = timeout
-		                             .and_then([&](auto milliseconds) -> std::optional<int> {
+				                     .and_then([&](auto milliseconds) -> std::optional<int> {
 			                             const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(
 			                                 milliseconds);
 			                             auto timespec = __kernel_timespec {
 			                                 .tv_sec = seconds.count(),
 			                                 .tv_nsec = std::chrono::duration_cast<std::chrono::nanoseconds>(
 			                                     milliseconds - seconds)
-			                                     .count(),
+											     .count(),
 			                             };
 			                             return io_uring_wait_cqe_timeout(&context, &cqe, &timespec);
 		                             })
-		                             .or_else([&]() -> std::optional<int> {
+				                     .or_else([&]() -> std::optional<int> {
 			                             return io_uring_peek_cqe(&context, &cqe);
 		                             })
-		                             .value();
+				                     .value();
 
 		        if (ret < 0) {
 			        return nullptr;
@@ -486,7 +486,7 @@ mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::millis
 				                                                   return static_cast<int>(ms.count());
 			                                                   })
 			                                                   .value_or(-1)
-			                                             : 0);
+						                                 : 0);
 			        if (epoll_result < 0) {
 				        return nullptr;
 			        }

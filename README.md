@@ -1,10 +1,125 @@
-# Mint interpreter
+# 🍃 Mint Programming Language
 
-Mint is an interpreted scripting language.
+**Mint** is a modern, interpreted scripting language engineered to be **highly expressive, lazy by design, and natively asynchronous**—all while maintaining a **familiar, readable, and proven syntax**.
 
-## Build Instructions
+Mint eliminates boilerplate code, allowing you to seamlessly transition from **rapid, friction-free prototyping** to building **production-grade, robust, and bulletproof APIs**.
 
-On Linux:
+---
+
+## ✨ Key Features
+
+### 📈 Scalable Architecture: Prototype to Production
+
+Mint adapts to your workflow. You can start with zero-friction prototyping (implicit variables, dynamic typing) and progressively harden your codebase into a strict, secure API using `final`, `const`, and explicit variable bindings:
+
+```mn
+// 1. Rapid Prototyping Phase
+class AnalyticsPipeline {
+    dataset
+    def process(self) {
+        cleanData = self.dataset.clean()
+        cleanData += 42
+        return cleanData
+    }
+}
+
+// 2. Production-Ready API Refinement
+class AnalyticsPipeline {
+    - final dataset = []
+    final const def process(const self) {
+        let cleanData = self.dataset.clean()
+        cleanData += 42
+        return cleanData
+    }
+}
+```
+
+### ⚡ Expressive Lazy Evaluation
+
+Handle infinite data streams or transform complex datasets on the fly without heavy memory overhead. Mint's natural fusion of generators and the `yield` keyword turns pipeline manipulation into a single, elegant expression:
+
+```mn
+def streamSensorData(payloads) {
+    yield for let payload in payloads => switch typeof payload {
+        case 'telemetry' => sanitizeTelemetry(payload)
+        case 'heartbeat' => processHeartbeat(payload)
+        default          => handleUnknownPayload(payload)
+    }
+}
+```
+
+### 🌐 Fluent Native Asynchrony
+
+Break free from promise chains and verbose asynchronous loops. Mint natively unifies `async/await` mechanics with generator functions to stream asynchronous operations effortlessly:
+
+```mn
+async def listenToStream(networkServer) {
+    yield while let package = await networkServer.nextChunk() => if package.isSecure() => package.decrypt()
+}
+```
+
+---
+
+## 🚀 Language at a Glance
+
+Here is a look at Mint's clean object-oriented design, pattern matching, and destructured looping syntax:
+
+```mn
+#!/bin/mint
+
+enum LogLevel {
+    Debug
+    Critical
+}
+
+class SystemLogger {
+    def new(self, environment) {
+        self.environment = environment
+        return self
+    }
+
+    def formatLog(self, message, level = LogLevel.Debug) {
+        return switch level {
+            case is LogLevel.Debug    => '[%s] 🔧 Debug: %s' % (self.environment, message)
+            case is LogLevel.Critical => '[%s] 🚨 CRITICAL: %s' % (self.environment, message)
+        }
+    }
+
+    - environment = '' // Private class member
+}
+
+// Lazy generator producing dynamic strings
+def generateMockLogs(prefix, count) {
+    for let i in 1..count {
+        yield '%s event sequential ID: %d' % (prefix, i)
+    }
+}
+
+let logger = SystemLogger('Production')
+let metrics = { 'processed': 0, 'dropped': 0 }
+
+for let logMessage in generateMockLogs('CoreEngine', 5) {
+    if 'ID: 3' in logMessage {
+        metrics['dropped'] += 1
+        continue
+    }
+
+    let severity = logMessage.endsWith('5') ? LogLevel.Critical : LogLevel.Debug
+    print(logger.formatLog(logMessage, severity) + '\n')
+    metrics['processed'] += 1
+}
+
+// Destructuring an iterator (Hash/Dictionary keys and values)
+for let (metricName, countValue) in metrics {
+    print('%s events: %d\n' % (metricName, countValue))
+}
+```
+
+---
+
+## 📦 Compilation & Installation
+
+### 🐧 Linux
 
 ```shell
 cmake --preset=vcpkg
@@ -12,12 +127,9 @@ cmake --build build
 sudo cmake --install build
 ```
 
-This will install mint as `/bin/mint`.
+*Installs the executable as `/bin/mint`*.
 
-To build mint in release mode use `cmake --preset=vcpkg -DCMAKE_BUILD_TYPE=Release`.
-For more details about CMake see [`CMake documentation`](https://cmake.org/).
-
-On Windows:
+### 🪟 Windows
 
 ```bat
 cmake --preset=vcpkg
@@ -25,132 +137,19 @@ cmake --build build
 cmake --install build
 ```
 
-This will install mint as `C:\mint\bin\mint.exe`.
+*Installs the executable as `C:\mint\bin\mint.exe`*.
 
-To build mint in release mode use `cmake --preset=vcpkg -DCMAKE_BUILD_TYPE=Release`.
-For more details about CMake see [`CMake documentation`](https://cmake.org/).
+💡 *To build Mint in release mode, append `-DCMAKE_BUILD_TYPE=Release` to the initial setup command.*
 
-## First steps
+---
+## 💻 IDE Integration
 
-To create a "hello world" script create a new file named ``helloworld.mn``.
-Open it and write the following lines:
+Official packages are provided within this repository to add rich syntax highlighting for major editors. Expand the sections below to see the installation commands for your environment:
 
-```mn
-#!/bin/mint
-
-print('hello world !\n')
-```
-
-You can then run `mint helloworld.mn`.
-
-## What Mint looks like
-
-Here is a commented example that covers a few more core language features:
-
-```mn
-#!/bin/mint
-
-// Enums are simple named constants.
-enum Tone {
-    Friendly
-    Formal
-}
-
-// Define a class with one private member and a constructor.
-class Greeter {
-    def new(self, prefix) {
-        self.prefix = prefix
-        return self
-    }
-
-    // Methods receive the instance as their first parameter.
-    // Parameters can also have default values.
-    def greet(self, name, tone = Tone.Friendly) {
-        return switch tone {
-        case is Tone.Friendly => '%s, %s!' % (self.prefix, name)
-        case is Tone.Formal => 'Greetings, %s.' % name
-        }
-    }
-
-    // `-` makes the member private.
-    - prefix = ''
-}
-
-// Functions are introduced with `def`.
-// Using `yield` turns this into a generator function.
-def makeNames(prefix, count) {
-    // `1..count` is a range including `count`.
-    for let i in 1..count {
-        yield '%s #%d' % (prefix, i)
-    }
-}
-
-// Create an object by calling the class like a function.
-let greeter = Greeter('Hello')
-
-// Hashes store key/value pairs.
-let stats = {
-    'printed' : 0,
-    'skipped' : 0
-}
-
-// Generator functions return iterators, so they work naturally with `for`.
-for let name in makeNames('Mint', 5) {
-    // `in` can be used for containment checks.
-    if '3' in name {
-        stats['skipped'] += 1
-        continue
-    }
-
-    // Methods are called with `.`, and strings use `%` formatting.
-    let tone = name.endsWith('5') ? Tone.Formal : Tone.Friendly
-    print(greeter.greet(name, tone) + '\n')
-    stats['printed'] += 1
-}
-
-// A `for` loop can destructure iterator values into multiple variables.
-for let (key, value) in stats {
-    print('%s: %d\n' % (key, value))
-}
-```
-
-More informations can be found in the [wiki](https://github.com/Palamecia/mint/wiki) section.
-
-## IDE integration
-
-This repo provides packages to enable syntax highlighting and other features for several IDE.
-
-### Sublime Text
-
-This package provides:
-
-* Syntax highlighting
+<details>
+<summary><b>Visual Studio Code</b></summary>
 
 #### Linux
-
-To install run the following command:
-
-```shell
-cp -r ./share/subl ~/.config/sublime-text/Packages/Mint
-```
-
-#### Windows
-
-To install run the following command:
-
-```bat
-copy .\share\subl -destination "~\AppData\Roaming\Sublime Text\Packages\Mint" -recurse
-```
-
-### Visual Studio Code
-
-This package provides:
-
-* Syntax highlighting
-
-#### Linux
-
-To install run the following command:
 
 ```shell
 cp -r ./share/vscode ~/.vscode/extensions/mint
@@ -158,42 +157,62 @@ cp -r ./share/vscode ~/.vscode/extensions/mint
 
 #### Windows
 
-To install run the following command:
-
 ```bat
 copy .\share\vscode -destination ~\.vscode\extensions\mint -recurse
 ```
 
-### Qt Creator / Kate
+</details>
 
-This package provides:
-
-* Syntax highlighting
+<details>
+<summary><b>Sublime Text</b></summary>
 
 #### Linux
 
-To install for Qt Creator run the following command:
-
 ```shell
-cp -r ./share/kate/* ~/.config/QtProject/qtcreator/generic-highlighter/syntax
-```
-
-To install for Kate run the following command:
-
-```shell
-cp -r ./share/kate/* ~/.local/share/org.kde.syntax-highlighting/syntax
+cp -r ./share/subl ~/.config/sublime-text/Packages/Mint
 ```
 
 #### Windows
 
-To install for Qt Creator run the following command:
-
 ```bat
-copy .\share\kate\* -destination ~\AppData\Roaming\QtProject\qtcreator\generic-highlighter\syntax -recurse
+copy .\share\subl -destination "~\AppData\Roaming\Sublime Text\Packages\Mint" -recurse
 ```
 
-To install for Kate run the following command:
+</details>
 
-```bat
-copy .\share\kate\* -destination ~\AppData\Local\org.kde.syntax-highlighting\syntax -recurse
-```
+<details>
+<summary><b>Qt Creator / Kate</b></summary>
+
+#### Linux
+
+* **Qt Creator:**
+
+  ```shell
+  cp -r ./share/kate/* ~/.config/QtProject/qtcreator/generic-highlighter/syntax
+  ```
+
+* **Kate:**
+
+  ```shell
+  cp -r ./share/kate/* ~/.local/share/org.kde.syntax-highlighting/syntax
+  ```
+
+#### Windows
+
+* **Qt Creator:**
+
+  ```bat
+  copy .\share\kate\* -destination ~\AppData\Roaming\QtProject\qtcreator\generic-highlighter\syntax -recurse
+  ```
+
+* **Kate:**
+
+  ```bat
+  copy .\share\kate\* -destination ~\AppData\Local\org.kde.syntax-highlighting\syntax -recurse
+  ```
+
+</details>
+
+---
+
+*For deep structural deep-dives and full language reference guides, head over to the official [Mint Wiki](https://github.com/Palamecia/mint/wiki).*

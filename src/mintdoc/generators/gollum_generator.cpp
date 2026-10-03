@@ -720,8 +720,8 @@ void GollumGenerator::generate_script_module(FILE* file, const Dictionary& dicti
 					trace("enum", def.first, brief(dictionary, *instance.doc, &instance));
 
 					std::print(file, "{}", doc_from_mintdoc(dictionary, *instance.doc, &instance));
-					std::println(file, "| Constant | Value | Description |"
-					                   "|----------|-------|-------------|\n");
+					std::println(file, "| Constant | Value | Description |");
+					std::println(file, "|----------|-------|-------------|");
 
 					for (const Definition& definition : dictionary.enum_definitions(instance)) {
 						if (definition.type == Definition::constant_definition) {

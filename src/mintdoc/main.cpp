@@ -98,7 +98,7 @@ std::string module_path_to_string(const std::vector<std::string>& path, const st
 }
 
 void setup(Dictionary& dictionary, std::vector<std::string>& module_path, const std::filesystem::path& path) {
-	for (const auto& entry : std::filesystem::directory_iterator {path}) {
+	for (const auto& entry : std::filesystem::directory_iterator(path)) {
 		if (entry.is_directory()) {
 			dictionary.open_module_group(module_path_to_string(module_path, entry.path().stem().generic_string()));
 			module_path.push_back(entry.path().stem().generic_string());
@@ -114,8 +114,8 @@ void setup(Dictionary& dictionary, std::vector<std::string>& module_path, const 
 		}
 		else if (entry.path().extension() == ".mintdoc") {
 			const auto name = entry.path().stem().generic_string();
+			const auto file = std::ifstream(entry.path());
 			auto stream = std::stringstream();
-			auto file = std::ifstream(entry.path());
 			stream << file.rdbuf();
 			if (name == "module") {
 				dictionary.set_module_doc(std::move(stream).str());

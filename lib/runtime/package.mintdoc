@@ -1,4 +1,4 @@
-@package Network
+@package Runtime
 The `Runtime` package provides the coroutine scheduling and asynchronous
 operation primitives used to execute and coordinate Mint coroutines.
 

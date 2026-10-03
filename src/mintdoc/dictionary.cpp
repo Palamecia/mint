@@ -87,13 +87,13 @@ void Dictionary::set_module_doc(const std::string& doc) {
 		open_module("main");
 	}
 
-	constexpr std::string_view license_tag = "@license";
-	constexpr std::string_view module_tag = "@module";
+	constexpr auto license_tag = std::string_view("@license");
+	constexpr auto module_tag = std::string_view("@module");
 
-	if (auto license = doc.find(license_tag); license == std::string::npos) {
+	if (const auto license = doc.find(license_tag); license == std::string::npos) {
 		_module->doc = parse_doc(doc);
 	}
-	else if (auto module = doc.find(module_tag); module == std::string::npos) {
+	else if (const auto module = doc.find(module_tag); module == std::string::npos) {
 		_module->doc = parse_doc(doc.substr(0, license));
 	}
 	else {
@@ -108,7 +108,7 @@ void Dictionary::set_package_doc(const std::string& doc) {
 	auto end = std::string::npos;
 	auto stream = std::stringstream(doc);
 
-	constexpr std::string_view package_tag = "@package";
+	constexpr auto package_tag = std::string_view("@package");
 
 	for (auto begin = doc.find(package_tag); begin != std::string::npos; begin = end) {
 
@@ -119,7 +119,7 @@ void Dictionary::set_package_doc(const std::string& doc) {
 		begin = static_cast<decltype(begin)>(stream.tellg());
 		end = doc.find(package_tag, begin);
 
-		auto package = get_or_create_package(name);
+		const auto package = get_or_create_package(name);
 		package->doc = parse_doc(doc.substr(begin, end != std::string::npos ? end - begin : end));
 		_definitions.erase(name);
 		insert_definition(package);
@@ -134,14 +134,14 @@ void Dictionary::set_page_doc(const std::string& name, const std::string& doc) {
 }
 
 std::shared_ptr<Package> Dictionary::get_or_create_package(const std::string& name) const {
-	if (auto i = _packages.find(name); i != _packages.end()) {
+	if (const auto i = _packages.find(name); i != _packages.end()) {
 		return i->second;
 	}
 	return std::make_shared<Package>(name);
 }
 
 std::shared_ptr<Function> Dictionary::get_or_create_function(const std::string& name) const {
-	if (auto i = _module->definitions.find(name); i != _module->definitions.end()) {
+	if (const auto i = _module->definitions.find(name); i != _module->definitions.end()) {
 		switch (i->second->type) {
 		case Definition::function_definition:
 			return std::static_pointer_cast<Function>(i->second);
@@ -227,7 +227,7 @@ void Dictionary::generate(const std::filesystem::path& path) {
 }
 
 Module* Dictionary::find_definition_module(const std::string& symbol) const {
-	if (auto i = _definitions.find(symbol); i != _definitions.end()) {
+	if (const auto i = _definitions.find(symbol); i != _definitions.end()) {
 		return i->second;
 	}
 	return nullptr;
@@ -247,8 +247,8 @@ std::vector<std::reference_wrapper<const Definition>> Dictionary::package_defini
 	definitions.reserve(package.members.size());
 
 	for (const std::string& member : package.members) {
-		if (auto module = _definitions.find(member); module != _definitions.end()) {
-			if (auto def = module->second->definitions.find(member); def != module->second->definitions.end()) {
+		if (const auto module = _definitions.find(member); module != _definitions.end()) {
+			if (const auto def = module->second->definitions.find(member); def != module->second->definitions.end()) {
 				definitions.push_back(std::cref(*def->second));
 			}
 		}
@@ -261,10 +261,10 @@ std::vector<std::reference_wrapper<const Definition>> Dictionary::enum_definitio
 
 	std::vector<std::reference_wrapper<const Definition>> definitions;
 
-	if (auto module = _definitions.find(instance.name); module != _definitions.end()) {
+	if (const auto module = _definitions.find(instance.name); module != _definitions.end()) {
 		definitions.reserve(instance.members.size());
 		for (const std::string& member : instance.members) {
-			if (auto def = module->second->definitions.find(member); def != module->second->definitions.end()) {
+			if (const auto def = module->second->definitions.find(member); def != module->second->definitions.end()) {
 				definitions.push_back(std::cref(*def->second));
 			}
 		}
@@ -277,10 +277,10 @@ std::vector<std::reference_wrapper<const Definition>> Dictionary::class_definiti
 
 	std::vector<std::reference_wrapper<const Definition>> definitions;
 
-	if (auto module = _definitions.find(instance.name); module != _definitions.end()) {
+	if (const auto module = _definitions.find(instance.name); module != _definitions.end()) {
 		definitions.reserve(instance.members.size());
 		for (const std::string& member : instance.members) {
-			if (auto def = module->second->definitions.find(member); def != module->second->definitions.end()) {
+			if (const auto def = module->second->definitions.find(member); def != module->second->definitions.end()) {
 				definitions.push_back(std::cref(*def->second));
 			}
 		}

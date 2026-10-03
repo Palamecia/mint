@@ -17,6 +17,7 @@ Checks:
   - -readability-avoid-nested-conditional-operator
   - -readability-identifier-length
   - -readability-implicit-bool-conversion
+  - -readability-trivial-switch
   - -readability-uppercase-literal-suffix
 CheckOptions:
   readability-identifier-naming.ClassCase: CamelCase

@@ -273,8 +273,8 @@ public:
 
 		Mapping() = default;
 		Mapping(int signature, Signature&& handle);
-		Mapping(const std::pair<int, Signature>& mapping);
-		Mapping(const std::pair<int, FunctionHandle&>& mapping);
+		explicit Mapping(const std::pair<int, Signature>& mapping);
+		explicit Mapping(const std::pair<int, FunctionHandle&>& mapping);
 
 		bool operator==(const Mapping& other) const;
 		bool operator!=(const Mapping& other) const;
@@ -301,10 +301,10 @@ public:
 	};
 
 	Function();
-	Function(Mapping mapping);
+	explicit Function(Mapping mapping);
 	Function(int signature, Function::Signature&& handle);
-	Function(const std::pair<int, Function::Signature>& mapping);
-	Function(const std::pair<int, FunctionHandle&>& mapping);
+	explicit Function(const std::pair<int, Function::Signature>& mapping);
+	explicit Function(const std::pair<int, FunctionHandle&>& mapping);
 
 	[[nodiscard]] Format format() const override {
 		return Format::function;

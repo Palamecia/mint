@@ -214,6 +214,44 @@ mint::Reference mint_type_is_instance_of(mint::Cursor& /*cursor*/, const mint::R
 	return mint::create_boolean(false);
 }
 
+mint::Reference mint_type_is_derived_from(mint::Cursor& /*cursor*/, const mint::Reference& object,
+    const mint::Reference& type) {
+	if (object.data().format() == mint::Data::Format::object && type.data().format() == mint::Data::Format::object) {
+		return mint::create_boolean(
+		    type.data<mint::Object>().metadata.is_base_or_same(object.data<mint::Object>().metadata));
+	}
+	return mint::create_boolean(false);
+}
+
+mint::Reference mint_type_has_method(mint::Cursor& /*cursor*/, const mint::Reference& object,
+    const mint::Reference& method_name) {
+	if (object.data().format() == mint::Data::Format::object) {
+		if (const auto* info = object.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(method_name)));
+		    info && mint::is_instance_of(info->value, mint::Data::Format::function)) {
+			return mint::create_boolean(true);
+		}
+	}
+	return mint::create_boolean(false);
+}
+
+mint::Reference mint_type_has_method_with_signature(mint::Cursor& cursor, const mint::Reference& object,
+    const mint::Reference& method_name, const mint::Reference& signature) {
+	if (object.data().format() == mint::Data::Format::object) {
+		if (const auto* info = object.data<mint::Object>().metadata.find_member(mint::Symbol(to_string(method_name)));
+		    info && mint::is_instance_of(info->value, mint::Data::Format::function)) {
+			const auto signature_int = mint::to_integer<int>(cursor, signature);
+			const auto& mapping = info->value.data<mint::Function>().mapping;
+			if (mapping.find(signature_int) != mapping.end()) {
+				return mint::create_boolean(true);
+			}
+			if (const auto it = mapping.lower_bound(~signature_int); it != mapping.end() && ~(it->first) >= 0) {
+				return mint::create_boolean(true);
+			}
+		}
+	}
+	return mint::create_boolean(false);
+}
+
 }
 
 MINT_EXPORT_FUNCTION(mint_type_to_number, 1);
@@ -236,3 +274,6 @@ MINT_EXPORT_FUNCTION(mint_type_super, 1);
 MINT_EXPORT_FUNCTION(mint_type_is_base_of, 2);
 MINT_EXPORT_FUNCTION(mint_type_is_base_or_same, 2);
 MINT_EXPORT_FUNCTION(mint_type_is_instance_of, 2);
+MINT_EXPORT_FUNCTION(mint_type_is_derived_from, 2);
+MINT_EXPORT_FUNCTION(mint_type_has_method, 2);
+MINT_EXPORT_FUNCTION(mint_type_has_method_with_signature, 3);

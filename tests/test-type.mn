@@ -10,10 +10,10 @@ load mint.type
         self.expectEqual(true, __my_type__.isMemberPrivate('member'))
     }
 
-    const def testGetMebmerInfo(self) {
-        const info = self.getMemberInfo('testGetMebmerInfo')
+    const def testGetMemberInfo(self) {
+        const info = self.getMemberInfo('testGetMemberInfo')
         self.expectEqual('MemberInfo', typeof info)
-        self.expectEqual('testGetMebmerInfo', info.getName())
+        self.expectEqual('testGetMemberInfo', info.getName())
         self.expectEqual('TypeTest', typeof info.getOwner())
         self.expectEqual(true, info.isConst())
         self.expectEqual(true, info.isPublic())
@@ -379,5 +379,92 @@ load mint.type
         let other = foo.clone()
 
         self.expectIsSame(other.selfRef, other)
+    }
+
+    const def testIsDerivedFrom(self) {
+
+        class A {}
+        class B : A {}
+        class C : B {}
+
+        let a = A()
+        let b = B()
+        let c = C()
+
+        self.expectEqual(true, a.isDerivedFrom(A))
+        self.expectEqual(false, a.isDerivedFrom(B))
+        self.expectEqual(false, a.isDerivedFrom(C))
+
+        self.expectEqual(true, b.isDerivedFrom(A))
+        self.expectEqual(true, b.isDerivedFrom(B))
+        self.expectEqual(false, b.isDerivedFrom(C))
+
+        self.expectEqual(true, c.isDerivedFrom(A))
+        self.expectEqual(true, c.isDerivedFrom(B))
+        self.expectEqual(true, c.isDerivedFrom(C))
+    }
+
+    const def testHasMethod(self) {
+
+        class A {
+            def foo(self) {}
+        }
+
+        class B : A {
+            def bar(self) {}
+        }
+
+        let a = A()
+        let b = B()
+
+        self.expectEqual(true, a.hasMethod('foo'))
+        self.expectEqual(false, a.hasMethod('bar'))
+
+        self.expectEqual(true, b.hasMethod('foo'))
+        self.expectEqual(true, b.hasMethod('bar'))
+    }
+
+    const def testHasMethodWithSignature(self) {
+
+        class A {
+            def foo(self, x) {}
+        }
+
+        class B : A {
+            def bar(self, x, y) {}
+        }
+
+        let a = A()
+        let b = B()
+
+        self.expectEqual(true, a.hasMethod('foo', 2))
+        self.expectEqual(false, a.hasMethod('foo', 3))
+        self.expectEqual(false, a.hasMethod('bar', 3))
+
+        self.expectEqual(true, b.hasMethod('foo', 2))
+        self.expectEqual(false, b.hasMethod('foo', 3))
+        self.expectEqual(true, b.hasMethod('bar', 3))
+    }
+
+    const def testHasMethodWithVariadicSignature(self) {
+
+        class A {
+            def foo(self, x, ...) {}
+        }
+
+        class B : A {
+            def bar(self, x, y, ...) {}
+        }
+
+        let a = A()
+        let b = B()
+
+        self.expectEqual(true, a.hasMethod('foo', 2))
+        self.expectEqual(true, a.hasMethod('foo', 3))
+        self.expectEqual(false, a.hasMethod('bar', 3))
+
+        self.expectEqual(true, b.hasMethod('foo', 2))
+        self.expectEqual(true, b.hasMethod('foo', 3))
+        self.expectEqual(true, b.hasMethod('bar', 3))
     }
 }

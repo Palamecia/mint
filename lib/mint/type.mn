@@ -489,3 +489,24 @@
 @def [g_lib = lib('libmint-mint')] isInstanceOf(object, type) {
 	return g_lib.call('mint_type_is_instance_of', object, type)
 }
+
+/**
+ * Returns `true` if `object` use the class of `type` or a derived class; otherwise returns `false`.
+ */
+@def [g_lib = lib('libmint-mint')] isDerivedFrom(object, type) {
+	return g_lib.call('mint_type_is_derived_from', object, type)
+}
+
+/**
+ * Returns `true` if `object` has a method named `methodName`; otherwise returns `false`.
+ */
+@def [g_lib = lib('libmint-mint')] hasMethod(object, methodName) {
+	return g_lib.call('mint_type_has_method', object, methodName)
+}
+
+/**
+ * Returns `true` if `object` has a method named `methodName` with the specified `signature`; otherwise returns `false`.
+ */
+@def [g_lib = lib('libmint-mint')] hasMethod(object, methodName, signature) {
+	return g_lib.call('mint_type_has_method_with_signature', object, methodName, signature)
+}

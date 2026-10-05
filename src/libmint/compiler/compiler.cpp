@@ -22,6 +22,7 @@
  */
 
 #include "mint/compiler/compiler.h"
+#include "mint/compiler/build_tools.h"
 #include "mint/memory/builtin/library.h"
 #include "mint/memory/builtin/string.h"
 #include "mint/memory/builtin/regex.h"
@@ -31,11 +32,13 @@
 #include "mint/memory/data.h"
 #include "mint/memory/garbage_collector.h"
 #include "mint/memory/object.h"
+#include "mint/program/module.h"
+#include "mint/system/data_stream.h"
 #include "mint/system/plugin.h"
 #include "mint/system/string.h"
 #include "mint/system/error.h"
+#include "parser.h"
 #include <cctype>
-#include <cstddef>
 #include <exception>
 #include <iterator>
 #include <regex>
@@ -200,6 +203,18 @@ bool Compiler::is_printing() const {
 
 void Compiler::set_printing(bool enabled) {
 	_printing = enabled;
+}
+
+bool Compiler::build(DataStream& stream, ModuleInfo& node) {
+
+	auto context = BytecodeBuildContext(stream, *this, node);
+	auto parser = mint::parser(context);
+
+	if (is_printing()) {
+		context.force_printer();
+	}
+
+	return !parser.parse();
 }
 
 Data* Compiler::make_data(const std::string& token, DataHint hint) {

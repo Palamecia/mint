@@ -36,7 +36,7 @@
 namespace mint {
 
 struct Block {
-	Block(BuildContext::BlockType type);
+	explicit Block(BytecodeBuildContext::BlockType type);
 	Block(const Block&) = delete;
 	Block(Block&&) = delete;
 	~Block();
@@ -44,7 +44,7 @@ struct Block {
 	Block& operator=(const Block&) = delete;
 	Block& operator=(Block&&) = delete;
 
-	BuildContext::BlockType type;
+	BytecodeBuildContext::BlockType type;
 	Branch::ForwardNodeIndex* forward = nullptr;
 	Branch::BackwardNodeIndex* backward = nullptr;
 	std::unique_ptr<CatchContext> catch_context;

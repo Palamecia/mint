@@ -24,13 +24,15 @@
 #include "mint/compiler/lexer.h"
 #include "mint/compiler/token.h"
 #include "mint/system/data_stream.h"
-#include "parser.hpp"
+#include "parser.h"
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
 #include <map>
 #include <string>
 #include <utility>
+
+using namespace mint;
 
 const std::map<std::string, int> Lexer::keywords {
     {"and", parser::token::dbl_amp_token},

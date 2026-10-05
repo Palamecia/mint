@@ -1,15 +1,14 @@
 project(libmint)
 
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE) 
+
 find_package(BISON REQUIRED)
-add_custom_command(
-	OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/parser.hpp
-	DEPENDS compiler/parser.y
-	COMMAND ${BISON_EXECUTABLE}
-	ARGS -y ${CMAKE_CURRENT_SOURCE_DIR}/compiler/parser.y
-	     -o ${CMAKE_CURRENT_BINARY_DIR}/parser.hpp
-		 -L C++
-		 -v
-	COMMENT "Generating file ${CMAKE_CURRENT_BINARY_DIR}/parser.hpp"
+bison_target(
+	mint-libmint-parser
+	${CMAKE_CURRENT_SOURCE_DIR}/compiler/parser.y
+	${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
+	DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser.h
+	OPTIONS -L C++
 )
 
 find_package(ICU REQUIRED COMPONENTS uc i18n data)
@@ -58,17 +57,22 @@ PUBLIC
 	FILE_SET compiler TYPE HEADERS
 	BASE_DIRS ${MINT_INCLUDE_DIR}
 	FILES
+	${MINT_INCLUDE_DIR}/mint/compiler/build_context.h
 	${MINT_INCLUDE_DIR}/mint/compiler/build_tools.h
+	${MINT_INCLUDE_DIR}/mint/compiler/abstract_syntax_tree.h
 	${MINT_INCLUDE_DIR}/mint/compiler/compiler.h
 	${MINT_INCLUDE_DIR}/mint/compiler/lexical_handler.h
 	${MINT_INCLUDE_DIR}/mint/compiler/lexer.h
 	${MINT_INCLUDE_DIR}/mint/compiler/token.h
 PRIVATE
-	${CMAKE_CURRENT_BINARY_DIR}/parser.hpp
+	${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
+	${CMAKE_CURRENT_BINARY_DIR}/parser.h
 	compiler/block.cpp
 	compiler/block.h
 	compiler/branch.cpp
 	compiler/branch.h
+	compiler/abstract_syntax_tree.cpp
+	compiler/build_context.cpp
 	compiler/build_tools.cpp
 	compiler/case_table.cpp
 	compiler/case_table.h

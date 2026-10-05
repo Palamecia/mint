@@ -1,6 +1,7 @@
 #include "mint/program/class_register.h"
 #include "mint/program/module.h"
 #include "mint/program/symbol.h"
+#include "mint/compiler/abstract_syntax_tree.h"
 #include "mint/compiler/build_tools.h"
 #include "mint/compiler/compiler.h"
 #include "mint/memory/data.h"
@@ -32,7 +33,7 @@ TEST(build_tools, resolve_class_description) {
 
 	mint::BufferStream stream("");
 	mint::Compiler compiler(scheduler.program());
-	mint::BuildContext context(stream, compiler, scheduler.program().create_module(mint::Module::State::ready));
+	mint::BytecodeBuildContext context(stream, compiler, scheduler.program().create_module(mint::Module::State::ready));
 
 	context.start_class_description("A",
 	    mint::Reference::global | mint::Reference::const_address | mint::Reference::const_value);
@@ -79,4 +80,31 @@ TEST(build_tools, resolve_class_description) {
 	mint::ClassDescription* d_desc = scheduler.program().global_data().find_class_description("D");
 	ASSERT_NE(nullptr, d_desc);
 	EXPECT_THROW_WHAT(d_desc->generate(), mint::MintRuntimeError, "member 'mbr' is ambiguous for class 'D'");
+}
+
+TEST(build_tools, abstract_syntax_tree_builds_owned_expression_nodes) {
+	mint::BufferStream stream("");
+	mint::AbstractSyntaxTree tree;
+	mint::AbstractSyntaxTreeBuildContext context(stream, tree);
+
+	context.reduce_identifier("left");
+	context.reduce_number_literal("42");
+	context.reduce_addition_expression();
+	context.reduce_expression_statement();
+	context.reduce_module_stmt_list();
+
+	ASSERT_NE(nullptr, tree.root());
+	ASSERT_EQ(1, tree.root()->statements.size());
+	const auto* statement = dynamic_cast<const mint::ExpressionStatement*>(tree.root()->statements.front().get());
+	ASSERT_NE(nullptr, statement);
+	const auto* expression = dynamic_cast<const mint::BinaryExpression*>(statement->expression.get());
+	ASSERT_NE(nullptr, expression);
+	EXPECT_EQ("+", expression->op);
+	const auto* left = dynamic_cast<const mint::Identifier*>(expression->left.get());
+	ASSERT_NE(nullptr, left);
+	EXPECT_EQ("left", left->name);
+	const auto* right = dynamic_cast<const mint::Literal*>(expression->right.get());
+	ASSERT_NE(nullptr, right);
+	EXPECT_EQ(mint::Literal::Kind::number, right->kind);
+	EXPECT_EQ("42", right->value);
 }

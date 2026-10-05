@@ -26,17 +26,17 @@
 
 using namespace mint;
 
-Block::Block(BuildContext::BlockType type) :
+Block::Block(BytecodeBuildContext::BlockType type) :
     type(type) {}
 
 Block::~Block() {}
 
 bool Block::is_breakable() const {
 	switch (type) {
-	case BuildContext::BlockType::conditional_loop_type:
-	case BuildContext::BlockType::custom_range_loop_type:
-	case BuildContext::BlockType::range_loop_type:
-	case BuildContext::BlockType::switch_type:
+	case BytecodeBuildContext::BlockType::conditional_loop_type:
+	case BytecodeBuildContext::BlockType::custom_range_loop_type:
+	case BytecodeBuildContext::BlockType::range_loop_type:
+	case BytecodeBuildContext::BlockType::switch_type:
 		return true;
 	default:
 		break;
@@ -46,9 +46,9 @@ bool Block::is_breakable() const {
 
 bool Block::is_continuable() const {
 	switch (type) {
-	case BuildContext::BlockType::conditional_loop_type:
-	case BuildContext::BlockType::custom_range_loop_type:
-	case BuildContext::BlockType::range_loop_type:
+	case BytecodeBuildContext::BlockType::conditional_loop_type:
+	case BytecodeBuildContext::BlockType::custom_range_loop_type:
+	case BytecodeBuildContext::BlockType::range_loop_type:
 		return true;
 	default:
 		break;

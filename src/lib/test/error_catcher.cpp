@@ -51,10 +51,10 @@ mint::Reference mint_test_error_catcher_install(mint::FunctionHelper& helper) {
 
 	auto& cursor = helper.cursor();
 	auto& scheduler = helper.scheduler();
-	auto& runtime_error_class = helper.reference("Test").member("RuntimeError")->data<mint::Object>().metadata;
+	const auto& runtime_error_class = helper.reference("Test").member("RuntimeError")->data<mint::Object>().metadata;
 
-	return mint::create_c_object(cursor.program(),
-	    new ErrorCatcher {
+	return mint::create_c_object<ErrorCatcher>(cursor.program(),
+	    ErrorCatcher {
 	        .error_callbacks = mint::take_error_callbacks(),
 	        .on_error = mint::add_error_callback(
 	            [&cursor, &scheduler, &runtime_error_class](const std::string& message) {
@@ -65,9 +65,8 @@ mint::Reference mint_test_error_catcher_install(mint::FunctionHelper& helper) {
 }
 
 mint::Reference mint_test_error_catcher_remove(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	mint::remove_error_callback(d_ptr.data<mint::LibObject<ErrorCatcher>>().ptr->on_error);
-	mint::restore_error_callbacks(std::move(d_ptr.data<mint::LibObject<ErrorCatcher>>().ptr->error_callbacks));
-	delete d_ptr.data<mint::LibObject<ErrorCatcher>>().ptr;
+	mint::remove_error_callback(d_ptr.data<mint::LibObject<ErrorCatcher>>().value.on_error);
+	mint::restore_error_callbacks(std::move(d_ptr.data<mint::LibObject<ErrorCatcher>>().value.error_callbacks));
 	return {};
 }
 

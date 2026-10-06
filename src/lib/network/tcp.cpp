@@ -98,7 +98,7 @@ mint::Reference mint_tcp_socket_send(mint::FunctionHelper& helper, const mint::R
     const mint::Reference& buffer) {
 
 	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
-	std::vector<std::uint8_t>* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 	const auto io_status = helper.reference(mint_network::symbols::network)
 	                           .member(mint_network::symbols::socket)
 	                           .member(mint_network::symbols::io_status);
@@ -110,8 +110,8 @@ mint::Reference mint_tcp_socket_send(mint::FunctionHelper& helper, const mint::R
 #endif
 
 	mint::unlock_processor();
-	const auto bytes_transferred = send(socket_fd, reinterpret_cast<const char*>(buf->data()),
-	    static_cast<int>(buf->size()), flags);
+	const auto bytes_transferred = send(socket_fd, reinterpret_cast<const char*>(buf.data()),
+	    static_cast<int>(buf.size()), flags);
 	mint::lock_processor();
 
 	switch (bytes_transferred) {
@@ -153,14 +153,14 @@ mint::Reference mint_tcp_socket_send_async(mint::FunctionHelper& helper, mint::R
 #endif
 	public:
 		AsyncSendOperation(mint::FunctionHelper& helper, mint::Reference self, SOCKET socket_fd,
-		    std::vector<std::uint8_t>* buffer) :
+		    std::vector<std::uint8_t>& buffer) :
 		    mint::MintAsyncOperation(std::move(self), std::bit_cast<mint::handle_t>(socket_fd)),
 		    _cursor(helper.cursor()),
 		    _io_status(helper.reference(mint_network::symbols::network)
 		            .member(mint_network::symbols::socket)
 		            .member(mint_network::symbols::io_status)
 		            .get()),
-		    _buffer(*buffer) {}
+		    _buffer(buffer) {}
 
 		std::error_code start() override {
 
@@ -244,15 +244,14 @@ mint::Reference mint_tcp_socket_send_async(mint::FunctionHelper& helper, mint::R
 
 	return mint::create_async_operation(helper.cursor().program(),
 	    std::make_unique<AsyncSendOperation>(helper, std::move(self), std::bit_cast<SOCKET>(mint::to_handle(socket)),
-	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
-	        .release());
+	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value));
 }
 
 mint::Reference mint_tcp_socket_recv(mint::FunctionHelper& helper, const mint::Reference& socket,
     const mint::Reference& buffer) {
 
 	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
-	std::vector<std::uint8_t>* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 	const auto io_status = helper.reference(mint_network::symbols::network)
 	                           .member(mint_network::symbols::socket)
 	                           .member(mint_network::symbols::io_status);
@@ -302,7 +301,7 @@ mint::Reference mint_tcp_socket_recv(mint::FunctionHelper& helper, const mint::R
 	case 0:
 		return mint::create_iterator_from(helper.cursor(), io_status.member(mint_network::symbols::io_closed).share());
 	default:
-		buf->append_range(std::span(local_buffer.get(), bytes_transferred));
+		buf.append_range(std::span(local_buffer.get(), bytes_transferred));
 		return mint::create_iterator_from(helper.cursor(), io_status.member(mint_network::symbols::io_success).share());
 	}
 
@@ -314,14 +313,14 @@ mint::Reference mint_tcp_socket_recv_async(mint::FunctionHelper& helper, mint::R
 	class AsyncRecvOperation : public mint::MintAsyncOperation {
 		std::reference_wrapper<mint::Cursor> _cursor;
 		mint::Reference _io_status;
-		std::vector<std::uint8_t>* _buf;
+		std::vector<std::uint8_t>& _buf;
 		std::array<std::uint8_t, BUFSIZ> _local_buffer {};
 #ifdef MINT_ASYNC_BACKEND_IOCP
 		WSABUF _buffer_desc {};
 #endif
 	public:
 		AsyncRecvOperation(mint::FunctionHelper& helper, mint::Reference self, SOCKET socket_fd,
-		    std::vector<std::uint8_t>* buf) :
+		    std::vector<std::uint8_t>& buf) :
 		    mint::MintAsyncOperation(std::move(self), std::bit_cast<mint::handle_t>(socket_fd)),
 		    _cursor(helper.cursor()),
 		    _io_status(helper.reference(mint_network::symbols::network)
@@ -405,7 +404,7 @@ mint::Reference mint_tcp_socket_recv_async(mint::FunctionHelper& helper, mint::R
 				        mint_network::symbols::io_closed)));
 			}
 			else {
-				_buf->append_range(std::span(_local_buffer.data(), bytes_transferred));
+				_buf.append_range(std::span(_local_buffer.data(), bytes_transferred));
 				done(mint::create_iterator_from(_cursor,
 				    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 				        mint_network::symbols::io_success)));
@@ -415,15 +414,14 @@ mint::Reference mint_tcp_socket_recv_async(mint::FunctionHelper& helper, mint::R
 
 	return mint::create_async_operation(helper.cursor().program(),
 	    std::make_unique<AsyncRecvOperation>(helper, std::move(self), std::bit_cast<SOCKET>(mint::to_handle(socket)),
-	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
-	        .release());
+	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value));
 }
 
 mint::Reference mint_tcp_socket_recv_some(mint::FunctionHelper& helper, const mint::Reference& socket,
     const mint::Reference& buffer, const mint::Reference& count) {
 
 	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
-	std::vector<std::uint8_t>* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 	const auto io_status = helper.reference(mint_network::symbols::network)
 	                           .member(mint_network::symbols::socket)
 	                           .member(mint_network::symbols::io_status);
@@ -456,7 +454,7 @@ mint::Reference mint_tcp_socket_recv_some(mint::FunctionHelper& helper, const mi
 	case 0:
 		return mint::create_iterator_from(helper.cursor(), io_status.member(mint_network::symbols::io_closed).share());
 	default:
-		buf->append_range(std::span(local_buffer.get(), bytes_transferred));
+		buf.append_range(std::span(local_buffer.get(), bytes_transferred));
 		return mint::create_iterator_from(helper.cursor(), io_status.member(mint_network::symbols::io_success).share());
 	}
 
@@ -468,7 +466,7 @@ mint::Reference mint_tcp_socket_recv_some_async(mint::FunctionHelper& helper, mi
 	class AsyncRecvSomeOperation : public mint::MintAsyncOperation {
 		std::reference_wrapper<mint::Cursor> _cursor;
 		mint::Reference _io_status;
-		std::vector<std::uint8_t>* _buf;
+		std::vector<std::uint8_t>& _buf;
 		std::unique_ptr<std::uint8_t[]> _local_buffer;
 		socklen_t _local_buffer_length;
 #ifdef MINT_ASYNC_BACKEND_IOCP
@@ -476,7 +474,7 @@ mint::Reference mint_tcp_socket_recv_some_async(mint::FunctionHelper& helper, mi
 #endif
 	public:
 		AsyncRecvSomeOperation(mint::FunctionHelper& helper, mint::Reference self, SOCKET socket_fd,
-		    std::vector<std::uint8_t>* buf, socklen_t buffer_length) :
+		    std::vector<std::uint8_t>& buf, socklen_t buffer_length) :
 		    mint::MintAsyncOperation(std::move(self), std::bit_cast<mint::handle_t>(socket_fd)),
 		    _cursor(helper.cursor()),
 		    _io_status(helper.reference(mint_network::symbols::network)
@@ -563,7 +561,7 @@ mint::Reference mint_tcp_socket_recv_some_async(mint::FunctionHelper& helper, mi
 				        mint_network::symbols::io_closed)));
 			}
 			else {
-				_buf->append_range(std::span(_local_buffer.get(), bytes_transferred));
+				_buf.append_range(std::span(_local_buffer.get(), bytes_transferred));
 				done(mint::create_iterator_from(_cursor,
 				    mint::get_global_ignore_visibility(_io_status.data<mint::Object>(),
 				        mint_network::symbols::io_success)));
@@ -573,9 +571,8 @@ mint::Reference mint_tcp_socket_recv_some_async(mint::FunctionHelper& helper, mi
 
 	return mint::create_async_operation(helper.cursor().program(),
 	    std::make_unique<AsyncRecvSomeOperation>(helper, std::move(self), std::bit_cast<SOCKET>(mint::to_handle(socket)),
-	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr,
-	        mint::to_integer<socklen_t>(helper.cursor(), count))
-	        .release());
+	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value,
+	        mint::to_integer<socklen_t>(helper.cursor(), count)));
 }
 
 mint::Reference mint_tcp_socket_setup_options(mint::Cursor& /*cursor*/, const mint::Reference& tcp_socket_option) {

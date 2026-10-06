@@ -28,6 +28,7 @@
 #include "mint/memory/class.h"
 #include "mint/memory/memory_pool.h"
 #include "mint/memory/object.h"
+#include <utility>
 
 namespace mint {
 
@@ -44,7 +45,7 @@ public:
 
 template<typename Type>
 struct LibObjectMarker {
-	static void mark(Type* ptr) {}
+	static void mark(Type& value) {}
 };
 
 template<typename Type>
@@ -54,17 +55,13 @@ public:
 	using object_type = Type;
 
 	explicit LibObject(Program& program);
-	LibObject(Program& program, object_type* ptr);
 
-	object_type* ptr = nullptr;
+	template<typename... Args>
+	explicit LibObject(Program& program, Args&&... args);
 
-	void mark() override {
-		if (marked_bit()) {
-			return;
-		}
-		Object::mark();
-		LibObjectMarker<Type>::mark(ptr);
-	}
+	object_type value;
+
+	void mark() override;
 
 private:
 	static SystemPool<LibObject<Type>> g_pool;
@@ -75,9 +72,19 @@ LibObject<Type>::LibObject(Program& program) :
     Object(LibObjectClass::instance(program)) {}
 
 template<typename Type>
-LibObject<Type>::LibObject(Program& program, object_type* ptr) :
+template<typename... Args>
+LibObject<Type>::LibObject(Program& program, Args&&... args) :
     Object(LibObjectClass::instance(program)),
-    ptr(ptr) {}
+    value(std::forward<Args>(args)...) {}
+
+template<typename Type>
+inline void LibObject<Type>::mark() {
+	if (marked_bit()) {
+		return;
+	}
+	Object::mark();
+	LibObjectMarker<Type>::mark(value);
+}
 
 template<typename Type>
 SystemPool<LibObject<Type>> LibObject<Type>::g_pool;

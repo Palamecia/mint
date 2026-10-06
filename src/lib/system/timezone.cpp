@@ -98,7 +98,7 @@ template<class Duration, class TimePoint>
 std::chrono::zoned_time<Duration> to_zoned_time(mint::Cursor& cursor, const mint::Reference& zoneinfo,
     TimePoint time_point) {
 	if (mint::is_instance_of(zoneinfo, mint::Class::Metatype::libobject)) {
-		return std::chrono::zoned_time<Duration>(zoneinfo.data<mint::LibObject<const std::chrono::time_zone>>().ptr,
+		return std::chrono::zoned_time<Duration>(zoneinfo.data<mint::LibObject<const std::chrono::time_zone*>>().value,
 		    time_point);
 	}
 	if (mint::is_instance_of(zoneinfo, mint::Data::Format::number)) {
@@ -115,7 +115,8 @@ mint::Reference mint_timezone_locate(mint::FunctionHelper& helper, const mint::R
 	try {
 		const auto& tzdb = std::chrono::get_tzdb();
 		try {
-			return mint::create_c_object(helper.cursor().program(), tzdb.locate_zone(name_str));
+			return mint::create_c_object<const std::chrono::time_zone*>(helper.cursor().program(),
+			    tzdb.locate_zone(name_str));
 		}
 		catch (const std::runtime_error& error) {
 			return helper.scheduler()
@@ -133,7 +134,7 @@ mint::Reference mint_timezone_locate(mint::FunctionHelper& helper, const mint::R
 mint::Reference mint_timezone_get_name(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 	if (mint::is_instance_of(d_ptr, mint::Class::Metatype::libobject)) {
 		return mint::create_string(cursor.program(),
-		    d_ptr.data<mint::LibObject<const std::chrono::time_zone>>().ptr->name());
+		    d_ptr.data<mint::LibObject<const std::chrono::time_zone*>>().value->name());
 	}
 	if (mint::is_instance_of(d_ptr, mint::Data::Format::number)) {
 		const auto offset = to_offset(cursor, d_ptr);
@@ -148,8 +149,8 @@ mint::Reference mint_timezone_get_name(mint::Cursor& cursor, const mint::Referen
 mint::Reference mint_timezone_match(mint::Cursor& cursor, const mint::Reference& self, const mint::Reference& other) {
 	if (mint::is_instance_of(self, mint::Class::Metatype::libobject)
 	    && mint::is_instance_of(other, mint::Class::Metatype::libobject)) {
-		return mint::create_boolean(*self.data<mint::LibObject<const std::chrono::time_zone>>().ptr
-		                            == *other.data<mint::LibObject<const std::chrono::time_zone>>().ptr);
+		return mint::create_boolean(*self.data<mint::LibObject<const std::chrono::time_zone*>>().value
+		                            == *other.data<mint::LibObject<const std::chrono::time_zone*>>().value);
 	}
 	if (mint::is_instance_of(self, mint::Data::Format::number)
 	    && mint::is_instance_of(other, mint::Data::Format::number)) {
@@ -159,7 +160,7 @@ mint::Reference mint_timezone_match(mint::Cursor& cursor, const mint::Reference&
 }
 
 mint::Reference mint_timezone_current(mint::Cursor& cursor) {
-	return mint::create_c_object(cursor.program(), std::chrono::current_zone());
+	return mint::create_c_object<const std::chrono::time_zone*>(cursor.program(), std::chrono::current_zone());
 }
 
 mint::Reference mint_timezone_list(mint::Cursor& cursor) {
@@ -187,13 +188,13 @@ mint::Reference mint_timezone_seconds_since_epoch(mint::Cursor& cursor, const mi
 	if (mint::is_instance_of(zoneinfo, mint::Class::Metatype::libobject)) {
 #if defined(MINT_OS_MAC) && !defined(__cpp_lib_chrono_tzdb)
 		const auto date_time = std::chrono::zoned_time<std::chrono::seconds>(
-		    zoneinfo.data<mint::LibObject<const std::chrono::time_zone>>().ptr,
+		    zoneinfo.data<mint::LibObject<const std::chrono::time_zone*>>().value,
 		    date::local_time<std::chrono::seconds>(
 		        (std::chrono::local_days(date) + time.to_duration()).time_since_epoch()))
 		                           .get_sys_time();
 #else
 		const auto date_time = std::chrono::zoned_time<std::chrono::seconds>(
-		    zoneinfo.data<mint::LibObject<const std::chrono::time_zone>>().ptr,
+		    zoneinfo.data<mint::LibObject<const std::chrono::time_zone*>>().value,
 		    std::chrono::local_days(date) + time.to_duration())
 		                           .get_sys_time();
 #endif
@@ -227,13 +228,13 @@ mint::Reference mint_timezone_milliseconds_since_epoch(mint::Cursor& cursor, con
 	if (mint::is_instance_of(zoneinfo, mint::Class::Metatype::libobject)) {
 #if defined(MINT_OS_MAC) && !defined(__cpp_lib_chrono_tzdb)
 		const auto date_time = std::chrono::zoned_time<std::chrono::milliseconds>(
-		    zoneinfo.data<mint::LibObject<const std::chrono::time_zone>>().ptr,
+		    zoneinfo.data<mint::LibObject<const std::chrono::time_zone*>>().value,
 		    date::local_time<std::chrono::seconds>(std::chrono::duration_cast<std::chrono::seconds>(
 		        (std::chrono::local_days(date) + time.to_duration()).time_since_epoch())))
 		                           .get_sys_time();
 #else
 		const auto date_time = std::chrono::zoned_time<std::chrono::milliseconds>(
-		    zoneinfo.data<mint::LibObject<const std::chrono::time_zone>>().ptr,
+		    zoneinfo.data<mint::LibObject<const std::chrono::time_zone*>>().value,
 		    std::chrono::local_days(date) + time.to_duration())
 		                           .get_sys_time();
 #endif
@@ -252,7 +253,7 @@ mint::Reference mint_timezone_time_from_time_point(mint::Cursor& cursor, const m
     const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
-	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
+	    duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().value);
 
 	const auto days = std::chrono::floor<std::chrono::days>(zoned_time.get_local_time());
 #if defined(MINT_OS_MAC) && !defined(__cpp_lib_chrono_tzdb)
@@ -333,7 +334,7 @@ mint::Reference mint_timezone_week_day_from_time_point(mint::FunctionHelper& hel
     const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(helper.cursor(), zoneinfo,
-	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
+	    duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().value);
 
 #if defined(MINT_OS_MAC) && !defined(__cpp_lib_chrono_tzdb)
 	const auto weekday = std::chrono::weekday(std::chrono::local_days(std::chrono::duration_cast<std::chrono::days>(
@@ -401,7 +402,7 @@ mint::Reference mint_timezone_year_day_from_time_point(mint::Cursor& cursor, con
     const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
-	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
+	    duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().value);
 
 	const auto days = std::chrono::floor<std::chrono::days>(zoned_time.get_local_time()).time_since_epoch();
 	const auto day_of_year = (days
@@ -444,7 +445,7 @@ mint::Reference mint_timezone_is_dst_from_time_point(mint::Cursor& cursor, const
     const mint::Reference& duration) {
 
 	const auto zoned_time = to_zoned_time<std::chrono::milliseconds>(cursor, zoneinfo,
-	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
+	    duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().value);
 
 	return mint::create_boolean(zoned_time.get_info().save != std::chrono::minutes(0));
 }

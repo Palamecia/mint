@@ -44,9 +44,6 @@ package System {
 		const def new(self) {
 			self.timezone = System.TimeZone.current()
 			self.timePoint = System.Date.g_lib.call('mint_date_current_timepoint')
-			self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
-				g_lib.call('mint_date_delete', self)
-			}
 		}
 
 		/**
@@ -69,9 +66,6 @@ package System {
 			case 'number':
 				self.timezone = System.TimeZone.current()
 				self.timePoint = System.Date.g_lib.call('mint_date_seconds_to_timepoint', desc)
-				self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
-					g_lib.call('mint_date_delete', self)
-				}
 				return self
 			case 'string':
 				let (errno, timePoint, timezone) = System.Date.g_lib.call('mint_parse_iso_date', desc)
@@ -80,16 +74,10 @@ package System {
 				}
 				self.timezone = timezone.toTimeZone()
 				self.timePoint = timePoint
-				self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
-					g_lib.call('mint_date_delete', self)
-				}
 				return self
 			default:
 				self.timezone = System.TimeZone.current()
 				self.timePoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', desc.toNumber())
-				self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
-					g_lib.call('mint_date_delete', self)
-				}
 				return self
 			}
 		}
@@ -120,9 +108,6 @@ package System {
 				self.timezone = System.TimeZone.current()
 			}
 			self.timePoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
-			self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
-				g_lib.call('mint_date_delete', self)
-			}
 		}
 
 		/**
@@ -136,9 +121,6 @@ package System {
 			let self: System.Date = System.Date.allocate()
 			self.timezone = System.TimeZone.current()
 			self.timePoint = System.Date.g_lib.call('mint_date_seconds_to_timepoint', seconds)
-			self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
-				g_lib.call('mint_date_delete', self)
-			}
 			return self
 		}
 
@@ -154,9 +136,6 @@ package System {
 			let self: System.Date = System.Date.allocate()
 			self.timezone = System.TimeZone.current()
 			self.timePoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', milliseconds)
-			self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
-				g_lib.call('mint_date_delete', self)
-			}
 			return self
 		}
 

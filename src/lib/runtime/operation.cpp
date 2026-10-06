@@ -53,21 +53,14 @@ public:
 mint::Reference mint_operation_create(mint::Cursor& cursor, const mint::Reference& self,
     const mint::Reference& scheduler) {
 	return mint::create_async_operation(cursor.program(),
-	    std::make_unique<DefaultAsyncOperation>(self, *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr)
-	        .release());
-}
-
-mint::Reference mint_operation_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
-	delete self.data<mint::LibObject<mint::MintAsyncOperation>>().ptr;
-	return {};
+	    std::make_unique<DefaultAsyncOperation>(self, scheduler.data<mint::LibObject<mint::AsyncRuntime>>().value));
 }
 
 mint::Reference mint_operation_get(mint::Cursor& /*cursor*/, const mint::Reference& self) {
-	return self.data<mint::LibObject<mint::MintAsyncOperation>>().ptr->get();
+	return self.data<mint::LibObject<std::unique_ptr<mint::MintAsyncOperation>>>().value->get();
 }
 
 }
 
 MINT_EXPORT_FUNCTION(mint_operation_create, 2)
-MINT_EXPORT_FUNCTION(mint_operation_delete, 1)
 MINT_EXPORT_FUNCTION(mint_operation_get, 1)

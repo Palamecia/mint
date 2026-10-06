@@ -169,21 +169,21 @@ mint::Reference mint_pipe_read_some(mint::Cursor& cursor, const mint::Reference&
 
 	const auto bytes_count = mint::to_integer<std::size_t>(cursor, count);
 	const auto read_buffer = std::make_unique<std::uint8_t[]>(bytes_count);
-	auto* stream_buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& stream_buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 
 #ifdef MINT_OS_WINDOWS
 	const mint::handle_t h = to_handle(handle);
 	if (auto byte_received = DWORD();
 	    ReadFile(h, read_buffer.get(), static_cast<DWORD>(bytes_count), &byte_received, nullptr)) {
 		if (byte_received > 0) {
-			stream_buffer->append_range(std::span(read_buffer.get(), byte_received));
+			stream_buffer.append_range(std::span(read_buffer.get(), byte_received));
 		}
 	}
 #else
 	const auto fd = to_handle(handle);
 	if (const auto byte_received = read(fd, read_buffer.get(), bytes_count)) {
 		if (byte_received > 0) {
-			stream_buffer->append_range(std::span(read_buffer.get(), byte_received));
+			stream_buffer.append_range(std::span(read_buffer.get(), byte_received));
 		}
 	}
 #endif
@@ -193,7 +193,7 @@ mint::Reference mint_pipe_read_some(mint::Cursor& cursor, const mint::Reference&
 mint::Reference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& handle, const mint::Reference& stream) {
 
 	auto read_buffer = std::array<std::uint8_t, BUFSIZ>();
-	auto* stream_buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& stream_buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 
 #ifdef MINT_OS_WINDOWS
 	auto byte_received = DWORD();
@@ -204,7 +204,7 @@ mint::Reference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& 
 			break;
 		}
 
-		stream_buffer->append_range(std::span(read_buffer.data(), byte_received));
+		stream_buffer.append_range(std::span(read_buffer.data(), byte_received));
 	}
 #else
 	const auto fd = to_handle(handle);
@@ -214,7 +214,7 @@ mint::Reference mint_pipe_read(mint::Cursor& /*cursor*/, const mint::Reference& 
 			break;
 		}
 
-		stream_buffer->append_range(std::span(read_buffer.data(), byte_received));
+		stream_buffer.append_range(std::span(read_buffer.data(), byte_received));
 	}
 #endif
 	return {};
@@ -225,14 +225,14 @@ mint::Reference mint_pipe_write(mint::Cursor& /*cursor*/, const mint::Reference&
 #ifdef MINT_OS_WINDOWS
 	DWORD count = 0;
 	const mint::handle_t h = to_handle(handle);
-	auto* buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 
-	WriteFile(h, buffer->data(), static_cast<DWORD>(buffer->size()), &count, nullptr);
+	WriteFile(h, buffer.data(), static_cast<DWORD>(buffer.size()), &count, nullptr);
 #else
 	const auto fd = to_handle(handle);
-	auto* buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 
-	write(fd, buffer->data(), buffer->size());
+	write(fd, buffer.data(), buffer.size());
 #endif
 	return {};
 }

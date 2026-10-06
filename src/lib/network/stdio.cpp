@@ -99,14 +99,14 @@ mint::Reference mint_stdio_endpoint_to_handle(mint::Cursor& cursor, const mint::
 mint::Reference mint_stdio_socket_read_some(mint::Cursor& cursor, const mint::Reference& handle,
     const mint::Reference& stream, const mint::Reference& count) {
 
-	auto* buf = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buf = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 
 #ifdef MINT_OS_WINDOWS
 	auto bytes_read = DWORD();
 	const auto read_buffer_length = mint::to_integer<std::size_t>(cursor, count);
 	const auto read_buffer = std::make_unique<std::uint8_t[]>(read_buffer_length);
 	if (ReadFile(to_handle(handle), read_buffer.get(), static_cast<DWORD>(read_buffer_length), &bytes_read, nullptr)) {
-		buf->append_range(std::span(read_buffer.get(), bytes_read));
+		buf.append_range(std::span(read_buffer.get(), bytes_read));
 	}
 #else
 	const auto fd = to_handle(handle);
@@ -117,7 +117,7 @@ mint::Reference mint_stdio_socket_read_some(mint::Cursor& cursor, const mint::Re
 	const auto read_buffer_length = mint::to_integer<std::size_t>(cursor, count);
 	const auto read_buffer = std::make_unique<std::uint8_t[]>(read_buffer_length);
 	if (auto bytes_read = ::read(fd, read_buffer.get(), read_buffer_length)) {
-		buf->append_range(std::span(read_buffer.get(), bytes_read));
+		buf.append_range(std::span(read_buffer.get(), bytes_read));
 	}
 
 	fcntl(fd, F_SETFL, flags);
@@ -128,7 +128,7 @@ mint::Reference mint_stdio_socket_read_some(mint::Cursor& cursor, const mint::Re
 mint::Reference mint_stdio_socket_read(mint::Cursor& /*cursor*/, const mint::Reference& handle,
     const mint::Reference& stream) {
 
-	auto* buf = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buf = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 
 #ifdef MINT_OS_WINDOWS
 
@@ -136,7 +136,7 @@ mint::Reference mint_stdio_socket_read(mint::Cursor& /*cursor*/, const mint::Ref
 	while (PeekNamedPipe(to_handle(handle), nullptr, 0, nullptr, &bytes_read, nullptr) && bytes_read) {
 		const auto read_buffer = std::make_unique<std::uint8_t[]>(bytes_read);
 		if (ReadFile(to_handle(handle), read_buffer.get(), bytes_read, &bytes_read, nullptr)) {
-			buf->append_range(std::span(read_buffer.get(), bytes_read));
+			buf.append_range(std::span(read_buffer.get(), bytes_read));
 		}
 	}
 #else
@@ -151,7 +151,7 @@ mint::Reference mint_stdio_socket_read(mint::Cursor& /*cursor*/, const mint::Ref
 	while (::poll(&read_fd_set, 1, 0) == 1) {
 		auto read_buffer = std::array<std::uint8_t, BUFSIZ>();
 		if (auto bytes_read = ::read(read_fd_set.fd, read_buffer.data(), read_buffer.size())) {
-			buf->append_range(std::span(read_buffer.data(), bytes_read));
+			buf.append_range(std::span(read_buffer.data(), bytes_read));
 		}
 	}
 
@@ -163,13 +163,13 @@ mint::Reference mint_stdio_socket_read(mint::Cursor& /*cursor*/, const mint::Ref
 mint::Reference mint_stdio_socket_write(mint::Cursor& /*cursor*/, const mint::Reference& handle,
     const mint::Reference& stream) {
 
-	std::vector<std::uint8_t>* buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buffer = stream.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 
 #ifdef MINT_OS_WINDOWS
 	DWORD count = 0;
-	WriteFile(to_handle(handle), buffer->data(), static_cast<DWORD>(buffer->size()), &count, nullptr);
+	WriteFile(to_handle(handle), buffer.data(), static_cast<DWORD>(buffer.size()), &count, nullptr);
 #else
-	write(to_handle(handle), buffer->data(), buffer->size());
+	write(to_handle(handle), buffer.data(), buffer.size());
 #endif
 	return {};
 }

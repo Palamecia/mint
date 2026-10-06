@@ -259,9 +259,6 @@ load serializer.text-stream
 	 */
 	const def new(self) {
 		self.d_ptr = LexicalHandler.g_lib.call('mint_lexical_handler_new', self)
-		self.d_ptr.delete = def [g_lib = LexicalHandler.g_lib] (self) {
-			g_lib.call('mint_lexical_handler_delete', self)
-		}
 	}
 
 	/**

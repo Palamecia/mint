@@ -54,7 +54,7 @@ mint::Reference mint_get_member_info(mint::Cursor& cursor, const mint::Reference
     const mint::Reference& member) {
 	if (is_instance_of(object, mint::Data::Format::object)) {
 		if (const auto* infos = find_member_info(object.data<mint::Object>(), member)) {
-			return create_c_object(cursor.program(), infos);
+			return create_c_object<const mint::Class::MemberInfo&>(cursor.program(), *infos);
 		}
 	}
 	return {};
@@ -62,7 +62,7 @@ mint::Reference mint_get_member_info(mint::Cursor& cursor, const mint::Reference
 
 mint::Reference mint_function_name(mint::Cursor& cursor, const mint::Reference& infos) {
 	return mint::create_string(cursor.program(),
-	    get_member_name(*infos.data<mint::LibObject<const mint::Class::MemberInfo>>().ptr));
+	    get_member_name(infos.data<mint::LibObject<const mint::Class::MemberInfo&>>().value));
 }
 
 }
@@ -86,7 +86,7 @@ MINT_RAW_FUNCTION(mint_function_call, 4, cursor) {
 	cursor.stack().append_range(args.data<mint::Iterator>().ctx);
 
 	cursor.waiting_calls().emplace(std::move(func),
-	    member_info.data<mint::LibObject<const mint::Class::MemberInfo>>().ptr->owner);
+	    member_info.data<mint::LibObject<const mint::Class::MemberInfo&>>().value.owner);
 
 	call_member_operator(cursor, signature);
 }

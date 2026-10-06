@@ -130,31 +130,11 @@ std::tuple<sockaddr*, socklen_t> to_sockaddr(const mint::Reference& reference);
 void get_socket_option(SOCKET socket, int level, int option, void* value, socklen_t len);
 void set_socket_option(SOCKET socket, int level, int option, const void* value, socklen_t len);
 
-namespace internal {
-
-template<typename T>
-struct IsUniquePtr : std::false_type {};
-
-template<typename U, typename D>
-struct IsUniquePtr<std::unique_ptr<U, D>> : std::true_type {};
-
-template<typename T>
-inline constexpr bool is_unique_ptr_v = IsUniquePtr<T>::value;
-
-}
-
 template<typename opt_t>
 inline opt_t get_socket_option(SOCKET socket, int option) {
-	if constexpr (internal::is_unique_ptr_v<opt_t>) {
-		auto value = std::make_unique<typename opt_t::element_type>();
-		get_socket_option(socket, SOL_SOCKET, option, value.get(), sizeof(opt_t));
-		return value;
-	}
-	else {
-		auto value = opt_t();
-		get_socket_option(socket, SOL_SOCKET, option, &value, sizeof(opt_t));
-		return value;
-	}
+	auto value = opt_t();
+	get_socket_option(socket, SOL_SOCKET, option, &value, sizeof(opt_t));
+	return value;
 }
 
 template<typename opt_t>
@@ -169,16 +149,9 @@ inline void set_socket_option<std::nullptr_t>(SOCKET socket, int option, const s
 
 template<typename opt_t>
 inline opt_t get_socket_option(SOCKET socket, int level, int option) {
-	if constexpr (internal::is_unique_ptr_v<opt_t>) {
-		auto value = std::make_unique<typename opt_t::element_type>();
-		get_socket_option(socket, level, option, value.get(), sizeof(opt_t));
-		return value;
-	}
-	else {
-		auto value = opt_t();
-		get_socket_option(socket, level, option, &value, sizeof(opt_t));
-		return value;
-	}
+	auto value = opt_t();
+	get_socket_option(socket, level, option, &value, sizeof(opt_t));
+	return value;
 }
 
 template<typename opt_t>

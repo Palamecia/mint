@@ -74,50 +74,51 @@ mint::Reference mint_event_create(mint::Cursor& cursor) {
 #ifdef MINT_OS_WINDOWS
 
 	if (HANDLE handle = CreateEvent(nullptr, false, false, nullptr); handle != nullptr) {
-		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), new EventData {
-		                                                                                     .event =
-		                                                                                         {
-		                                                                                             .handle = handle,
-		                                                                                         },
-		                                                                                 }));
+		return mint_system::make_success(cursor,
+		    mint::create_c_object<EventData>(cursor.program(), EventData {
+		                                                           .event =
+		                                                               {
+		                                                                   .handle = handle,
+		                                                               },
+		                                                       }));
 	}
 	return mint_system::make_failure(cursor, mint::errno_from_last_error());
 
 #elifdef MINT_OS_LINUX
 
 	if (const int fd = eventfd(0, EFD_NONBLOCK); fd != -1) {
-		return mint_system::make_success(cursor,
-		    mint::create_c_object(cursor.program(), new EventData {
-		                                                .event =
-		                                                    {
-		                                                        .fd = fd,
-		                                                        .events = EPOLLIN,
-		                                                        .on_signal =
-		                                                            [](mint::poll_event_t& event) {
-			                                                            auto counter = uint64_t();
-			                                                            read(event.fd, &counter, sizeof(counter));
-		                                                            },
-		                                                    },
-		                                            }));
+		return mint_system::make_success(cursor, mint::create_c_object<EventData>(cursor.program(),
+		                                             EventData {
+		                                                 .event =
+		                                                     {
+		                                                         .fd = fd,
+		                                                         .events = EPOLLIN,
+		                                                         .on_signal =
+		                                                             [](mint::poll_event_t& event) {
+			                                                             auto counter = uint64_t();
+			                                                             read(event.fd, &counter, sizeof(counter));
+		                                                             },
+		                                                     },
+		                                             }));
 	}
 	return mint_system::make_failure(cursor, errno);
 
 #elifdef MINT_OS_FREE_BSD
 
 	if (const int fd = eventfd(0, EFD_NONBLOCK); fd != -1) {
-		return mint_system::make_success(cursor,
-		    mint::create_c_object(cursor.program(), new EventData {
-		                                                .event =
-		                                                    mint::poll_event_t {
-		                                                        .fd = fd,
-		                                                        .filter = EVFILT_READ,
-		                                                        .on_signal =
-		                                                            [](mint::poll_event_t& event) {
-			                                                            auto counter = uint64_t();
-			                                                            read(event.fd, &counter, sizeof(counter));
-		                                                            },
-		                                                    },
-		                                            }));
+		return mint_system::make_success(cursor, mint::create_c_object<EventData>(cursor.program(),
+		                                             EventData {
+		                                                 .event =
+		                                                     mint::poll_event_t {
+		                                                         .fd = fd,
+		                                                         .filter = EVFILT_READ,
+		                                                         .on_signal =
+		                                                             [](mint::poll_event_t& event) {
+			                                                             auto counter = uint64_t();
+			                                                             read(event.fd, &counter, sizeof(counter));
+		                                                             },
+		                                                     },
+		                                             }));
 	}
 	return mint_system::make_failure(cursor, errno);
 
@@ -125,20 +126,20 @@ mint::Reference mint_event_create(mint::Cursor& cursor) {
 	auto fds = std::to_array<int>({-1, -1});
 	if (pipe(fds.data()) == 0) {
 		if (set_nonblocking(fds.at(0)) && set_nonblocking(fds.at(1))) {
-			return mint_system::make_success(cursor,
-			    mint::create_c_object(cursor.program(), new EventData {
-			                                                .event =
-			                                                    {
-			                                                        .fd = fds.at(0),
-			                                                        .filter = EVFILT_READ,
-			                                                        .on_signal =
-			                                                            [](mint::poll_event_t& event) {
-				                                                            auto token = uint64_t();
-				                                                            read(event.fd, &token, sizeof(token));
-			                                                            },
-			                                                    },
-			                                                .write_fd = fds.at(1),
-			                                            }));
+			return mint_system::make_success(cursor, mint::create_c_object<EventData>(cursor.program(),
+			                                             EventData {
+			                                                 .event =
+			                                                     {
+			                                                         .fd = fds.at(0),
+			                                                         .filter = EVFILT_READ,
+			                                                         .on_signal =
+			                                                             [](mint::poll_event_t& event) {
+				                                                             auto token = uint64_t();
+				                                                             read(event.fd, &token, sizeof(token));
+			                                                             },
+			                                                     },
+			                                                 .write_fd = fds.at(1),
+			                                             }));
 		}
 		auto result = mint_system::make_failure(cursor, errno);
 		close(fds.at(0));
@@ -155,42 +156,42 @@ mint::Reference mint_event_create(mint::Cursor& cursor) {
 }
 
 mint::Reference mint_event_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	auto* event = d_ptr.data<mint::LibObject<EventData>>().ptr;
+	auto& event = d_ptr.data<mint::LibObject<EventData>>().value;
 #ifdef MINT_OS_WINDOWS
-	CloseHandle(event->event.handle);
+	CloseHandle(event.event.handle);
 #elifdef MINT_OS_MAC
-	close(event->event.fd);
-	close(event->write_fd);
+	close(event.event.fd);
+	close(event.write_fd);
 #elifdef MINT_OS_UNIX
-	close(event->event.fd);
+	close(event.event.fd);
 #endif
-	delete event;
 	return {};
 }
 
 mint::Reference mint_event_get_handle(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
-	return mint::create_handle(cursor.program(), d_ptr.data<mint::LibObject<EventData>>().ptr->event.handle);
+	return mint::create_handle(cursor.program(), d_ptr.data<mint::LibObject<EventData>>().value.event.handle);
 #elifdef MINT_OS_UNIX
-	return mint::create_handle(cursor.program(), d_ptr.data<mint::LibObject<EventData>>().ptr->event.fd);
+	return mint::create_handle(cursor.program(), d_ptr.data<mint::LibObject<EventData>>().value.event.fd);
 #endif
 }
 
 mint::Reference mint_event_get_poll_event(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	return mint::create_c_object(cursor.program(), &d_ptr.data<mint::LibObject<EventData>>().ptr->event);
+	return mint::create_c_object<mint::poll_event_t*>(cursor.program(),
+	    &d_ptr.data<mint::LibObject<EventData>>().value.event);
 }
 
 mint::Reference mint_event_is_set(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
 	return mint::create_boolean(
-	    WaitForSingleObject(d_ptr.data<mint::LibObject<EventData>>().ptr->event.handle, 0) == WAIT_OBJECT_0);
+	    WaitForSingleObject(d_ptr.data<mint::LibObject<EventData>>().value.event.handle, 0) == WAIT_OBJECT_0);
 #elifdef MINT_OS_MAC
 	std::uint64_t value = 0;
-	const auto fd = d_ptr.data<mint::LibObject<EventData>>().ptr->event.fd;
+	const auto fd = d_ptr.data<mint::LibObject<EventData>>().value.event.fd;
 	return mint::create_boolean(read(fd, &value, sizeof(value)) == sizeof(value));
 #else
 	std::uint64_t value = 0;
-	const auto fd = d_ptr.data<mint::LibObject<EventData>>().ptr->event.fd;
+	const auto fd = d_ptr.data<mint::LibObject<EventData>>().value.event.fd;
 	read(fd, &value, sizeof(value));
 	write(fd, &value, sizeof(value));
 	return mint::create_boolean(value);
@@ -199,28 +200,28 @@ mint::Reference mint_event_is_set(mint::Cursor& /*cursor*/, const mint::Referenc
 
 mint::Reference mint_event_set(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
-	return mint::create_boolean(SetEvent(d_ptr.data<mint::LibObject<EventData>>().ptr->event.handle));
+	return mint::create_boolean(SetEvent(d_ptr.data<mint::LibObject<EventData>>().value.event.handle));
 #elifdef MINT_OS_MAC
 	std::uint64_t value = 1;
-	auto* event = d_ptr.data<mint::LibObject<EventData>>().ptr;
-	return mint::create_boolean(write(event->write_fd, &value, sizeof(value)) == sizeof(value));
+	auto& event = d_ptr.data<mint::LibObject<EventData>>().value;
+	return mint::create_boolean(write(event.write_fd, &value, sizeof(value)) == sizeof(value));
 #else
 	std::uint64_t value = 1;
-	const auto fd = d_ptr.data<mint::LibObject<EventData>>().ptr->event.fd;
+	const auto fd = d_ptr.data<mint::LibObject<EventData>>().value.event.fd;
 	return mint::create_boolean(write(fd, &value, sizeof(value)) == sizeof(value));
 #endif
 }
 
 mint::Reference mint_event_clear(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
-	ResetEvent(d_ptr.data<mint::LibObject<EventData>>().ptr->event.handle);
+	ResetEvent(d_ptr.data<mint::LibObject<EventData>>().value.event.handle);
 #elifdef MINT_OS_MAC
 	std::uint64_t value = 0;
-	const auto fd = d_ptr.data<mint::LibObject<EventData>>().ptr->event.fd;
+	const auto fd = d_ptr.data<mint::LibObject<EventData>>().value.event.fd;
 	read(fd, &value, sizeof(value));
 #else
 	std::uint64_t value = 0;
-	const auto fd = d_ptr.data<mint::LibObject<EventData>>().ptr->event.fd;
+	const auto fd = d_ptr.data<mint::LibObject<EventData>>().value.event.fd;
 	read(fd, &value, sizeof(value));
 #endif
 	return {};
@@ -233,7 +234,7 @@ mint::Reference mint_event_wait(mint::Cursor& cursor, const mint::Reference& d_p
 	                          ? INFINITE
 	                          : mint::to_integer<DWORD>(cursor, timeout);
 
-	if (WaitForSingleObject(d_ptr.data<mint::LibObject<EventData>>().ptr->event.handle, time_ms) == WAIT_OBJECT_0) {
+	if (WaitForSingleObject(d_ptr.data<mint::LibObject<EventData>>().value.event.handle, time_ms) == WAIT_OBJECT_0) {
 		return mint::create_boolean(true);
 	}
 
@@ -241,7 +242,7 @@ mint::Reference mint_event_wait(mint::Cursor& cursor, const mint::Reference& d_p
 
 #elifdef MINT_OS_LINUX
 
-	auto* event = d_ptr.data<mint::LibObject<EventData>>().ptr;
+	auto& event = d_ptr.data<mint::LibObject<EventData>>().value;
 	const int timeout_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
 
 	int context = epoll_create1(EPOLL_CLOEXEC);
@@ -250,16 +251,16 @@ mint::Reference mint_event_wait(mint::Cursor& cursor, const mint::Reference& d_p
 	}
 
 	auto changelist = epoll_event {
-	    .events = event->event.events,
+	    .events = event.event.events,
 	    .data =
 	        {
-	            .fd = event->event.fd,
+	            .fd = event.event.fd,
 	        },
 	};
 
 	const auto ret = epoll_wait(context, &changelist, 1, timeout_ms);
 	if (ret > 0 && changelist.events & EPOLLIN) {
-		event->event.on_signal(event->event);
+		event.event.on_signal(event.event);
 	}
 
 	::close(context);
@@ -267,7 +268,7 @@ mint::Reference mint_event_wait(mint::Cursor& cursor, const mint::Reference& d_p
 
 #elifdef MINT_OS_UNIX
 
-	auto* event = d_ptr.data<mint::LibObject<EventData>>().ptr;
+	auto& event = d_ptr.data<mint::LibObject<EventData>>().value;
 	const auto timeout_ts = is_instance_of(timeout, mint::Data::Format::none)
 	                            ? std::nullopt
 	                            : std::optional<std::chrono::milliseconds>(to_integer<int>(cursor, timeout))
@@ -287,14 +288,14 @@ mint::Reference mint_event_wait(mint::Cursor& cursor, const mint::Reference& d_p
 	}
 
 	struct kevent changelist {
-	    .ident = static_cast<std::uintptr_t>(event->event.fd),
+	    .ident = static_cast<std::uintptr_t>(event.event.fd),
 	    .filter = EVFILT_READ,
 	};
 
 	struct kevent eventlist {};
 	const auto ret = kevent(context, &changelist, 1, &eventlist, 1, timeout_ts ? std::to_address(timeout_ts) : nullptr);
 	if (ret > 0) {
-		event->event.on_signal(event->event);
+		event.event.on_signal(event.event);
 	}
 
 	::close(context);

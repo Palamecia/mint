@@ -30,6 +30,7 @@
 #include "mint/scheduler/processor.h"
 
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <type_traits>
 
@@ -50,7 +51,7 @@ class AbstractMutex {
 public:
 	enum class Kind : std::uint8_t {
 		normal,
-		recursive
+		recursive,
 	};
 
 	AbstractMutex() = default;
@@ -116,20 +117,16 @@ AbstractMutex::Kind to_abstract_mutex_kind(mint::Cursor& cursor, const mint::Ref
 mint::Reference mint_mutex_create(mint::Cursor& cursor, const mint::Reference& kind) {
 	switch (to_abstract_mutex_kind(cursor, kind)) {
 	case AbstractMutex::Kind::normal:
-		return mint::create_c_object<AbstractMutex>(cursor.program(), new Mutex);
+		return mint::create_c_object<std::unique_ptr<AbstractMutex>>(cursor.program(), std::make_unique<Mutex>());
 	case AbstractMutex::Kind::recursive:
-		return mint::create_c_object<AbstractMutex>(cursor.program(), new RecursiveMutex);
+		return mint::create_c_object<std::unique_ptr<AbstractMutex>>(cursor.program(),
+		    std::make_unique<RecursiveMutex>());
 	}
 	return {};
 }
 
-mint::Reference mint_mutex_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
-	delete self.data<mint::LibObject<AbstractMutex>>().ptr;
-	return {};
-}
-
 mint::Reference mint_mutex_get_kind(mint::FunctionHelper& helper, const mint::Reference& self) {
-	switch (self.data<mint::LibObject<AbstractMutex>>().ptr->kind()) {
+	switch (self.data<mint::LibObject<std::unique_ptr<AbstractMutex>>>().value->kind()) {
 	case AbstractMutex::Kind::normal:
 		return helper.reference(symbols::system)
 		    .member(symbols::mutex)
@@ -149,24 +146,23 @@ mint::Reference mint_mutex_get_kind(mint::FunctionHelper& helper, const mint::Re
 mint::Reference mint_mutex_lock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
 	{
 		const auto _ = mint::ProcessorUnlocker();
-		self.data<mint::LibObject<AbstractMutex>>().ptr->lock();
+		self.data<mint::LibObject<std::unique_ptr<AbstractMutex>>>().value->lock();
 	}
 	return {};
 }
 
 mint::Reference mint_mutex_unlock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
-	self.data<mint::LibObject<AbstractMutex>>().ptr->unlock();
+	self.data<mint::LibObject<std::unique_ptr<AbstractMutex>>>().value->unlock();
 	return {};
 }
 
 mint::Reference mint_mutex_try_lock(mint::Cursor& /*cursor*/, const mint::Reference& self) {
-	return mint::create_boolean(self.data<mint::LibObject<AbstractMutex>>().ptr->try_lock());
+	return mint::create_boolean(self.data<mint::LibObject<std::unique_ptr<AbstractMutex>>>().value->try_lock());
 }
 
 }
 
 MINT_EXPORT_FUNCTION(mint_mutex_create, 1)
-MINT_EXPORT_FUNCTION(mint_mutex_delete, 1)
 MINT_EXPORT_FUNCTION(mint_mutex_get_kind, 1)
 MINT_EXPORT_FUNCTION(mint_mutex_lock, 1)
 MINT_EXPORT_FUNCTION(mint_mutex_unlock, 1)

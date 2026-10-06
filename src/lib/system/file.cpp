@@ -476,13 +476,13 @@ mint::Reference mint_file_at_end(mint::Cursor& cursor, const mint::Reference& d_
 mint::Reference mint_file_read(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& buffer) {
 
 	auto local_buffer = std::array<std::uint8_t, BUFSIZ>();
-	auto* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 	const auto fd = mint::to_integer<int>(cursor, d_ptr);
 
 	for (;;) {
 		const auto bytes_read = read(fd, local_buffer.data(), local_buffer.size());
 		if (bytes_read > 0) {
-			buf->append_range(std::span(local_buffer.data(), bytes_read));
+			buf.append_range(std::span(local_buffer.data(), bytes_read));
 		}
 		else if (bytes_read == 0) {
 			return mint::create_number(0);
@@ -498,13 +498,13 @@ mint::Reference mint_file_read_some(mint::Cursor& cursor, const mint::Reference&
 
 	const auto local_buffer_length = mint::to_integer<std::size_t>(cursor, count);
 	const auto local_buffer = std::make_unique<char[]>(local_buffer_length);
-	auto* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 	const auto fd = mint::to_integer<int>(cursor, d_ptr);
 
 	for (;;) {
 		const auto bytes_read = read(fd, local_buffer.get(), local_buffer_length);
 		if (bytes_read >= 0) {
-			buf->append_range(std::span(local_buffer.get(), bytes_read));
+			buf.append_range(std::span(local_buffer.get(), bytes_read));
 			return mint::create_number(0);
 		}
 		if (errno != EINTR) {
@@ -516,10 +516,10 @@ mint::Reference mint_file_read_some(mint::Cursor& cursor, const mint::Reference&
 mint::Reference mint_file_write(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& buffer) {
 
 	const auto fd = mint::to_integer<int>(cursor, d_ptr);
-	auto* buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& buf = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 
-	const auto bytes_transferred = write(fd, buf->data(), buf->size());
-	if (bytes_transferred < buf->size() && errno != 0) {
+	const auto bytes_transferred = write(fd, buf.data(), buf.size());
+	if (bytes_transferred < buf.size() && errno != 0) {
 		return mint_system::make_failure(cursor, errno);
 	}
 	return mint_system::make_success(cursor, mint::create_unsigned_number(bytes_transferred));
@@ -651,7 +651,7 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 		std::future<void> _future;
 		std::error_code _error;
 #endif
-		std::vector<std::uint8_t>* _buf;
+		std::vector<std::uint8_t>& _buf;
 		std::array<char, BUFSIZ> _local_buffer {};
 #ifdef MINT_ASYNC_BACKEND_IOCP
 		LARGE_INTEGER _pos {};
@@ -660,7 +660,7 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 #endif
 	public:
 		AsyncReadOperation(mint::Reference self, [[maybe_unused]] mint::AsyncRuntime& scheduler, mint::handle_t handle,
-		    std::vector<std::uint8_t>* buf) :
+		    std::vector<std::uint8_t>& buf) :
 		    mint::MintAsyncOperation(std::move(self), handle),
 #if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
 		    _scheduler(scheduler),
@@ -746,7 +746,7 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 					done(mint::create_number(error.value()));
 				}
 				else {
-					_buf->append_range(std::span(_local_buffer.data(), bytes_transferred));
+					_buf.append_range(std::span(_local_buffer.data(), bytes_transferred));
 					done(mint::create_number(0));
 				}
 			}
@@ -761,7 +761,7 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 				done(mint::create_number(mint::errno_from_last_error()));
 			}
 			else {
-				_buf->append_range(std::span(_local_buffer.data(), bytes_transferred));
+				_buf.append_range(std::span(_local_buffer.data(), bytes_transferred));
 				done(mint::create_number(0));
 			}
 #else
@@ -771,9 +771,9 @@ mint::Reference mint_file_read_async(mint::Cursor& cursor, mint::Reference& self
 	};
 
 	return mint::create_async_operation(cursor.program(),
-	    std::make_unique<AsyncReadOperation>(std::move(self), *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
-	        mint::to_handle(d_ptr), buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
-	        .release());
+	    std::make_unique<AsyncReadOperation>(std::move(self),
+	        scheduler.data<mint::LibObject<mint::AsyncRuntime>>().value, mint::to_handle(d_ptr),
+	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value));
 }
 
 mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
@@ -784,7 +784,7 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 		std::future<void> _future;
 		std::error_code _error;
 #endif
-		std::vector<std::uint8_t>* _buf;
+		std::vector<std::uint8_t>& _buf;
 		std::unique_ptr<char[]> _local_buffer;
 		std::size_t _buffer_length;
 #ifdef MINT_ASYNC_BACKEND_IOCP
@@ -794,7 +794,7 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 #endif
 	public:
 		AsyncReadSomeOperation(mint::Reference self, [[maybe_unused]] mint::AsyncRuntime& scheduler,
-		    mint::handle_t handle, std::vector<std::uint8_t>* buf, std::size_t count) :
+		    mint::handle_t handle, std::vector<std::uint8_t>& buf, std::size_t count) :
 		    mint::MintAsyncOperation(std::move(self), handle),
 #if defined(MINT_ASYNC_BACKEND_EPOLL) || defined(MINT_ASYNC_BACKEND_KQUEUE)
 		    _scheduler(scheduler),
@@ -882,7 +882,7 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 					done(mint::create_number(mint::errno_from_last_error()));
 				}
 				else {
-					_buf->append_range(std::span(_local_buffer.get(), bytes_transferred));
+					_buf.append_range(std::span(_local_buffer.get(), bytes_transferred));
 					done(mint::create_number(0));
 				}
 			}
@@ -897,7 +897,7 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 				done(mint::create_number(mint::errno_from_last_error()));
 			}
 			else {
-				_buf->append_range(std::span(_local_buffer.get(), bytes_transferred));
+				_buf.append_range(std::span(_local_buffer.get(), bytes_transferred));
 				done(mint::create_number(0));
 			}
 #else
@@ -908,9 +908,9 @@ mint::Reference mint_file_read_some_async(mint::Cursor& cursor, mint::Reference&
 
 	return mint::create_async_operation(cursor.program(),
 	    std::make_unique<AsyncReadSomeOperation>(std::move(self),
-	        *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr, mint::to_handle(d_ptr),
-	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr, mint::to_integer<std::size_t>(cursor, count))
-	        .release());
+	        scheduler.data<mint::LibObject<mint::AsyncRuntime>>().value, mint::to_handle(d_ptr),
+	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value,
+	        mint::to_integer<std::size_t>(cursor, count)));
 }
 
 mint::Reference mint_file_write_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
@@ -1006,9 +1006,8 @@ mint::Reference mint_file_write_async(mint::Cursor& cursor, mint::Reference& sel
 
 	return mint::create_async_operation(cursor.program(),
 	    std::make_unique<AsyncWriteOperation>(cursor, std::move(self),
-	        *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr, mint::to_handle(d_ptr),
-	        *buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
-	        .release());
+	        scheduler.data<mint::LibObject<mint::AsyncRuntime>>().value, mint::to_handle(d_ptr),
+	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value));
 }
 
 mint::Reference mint_file_flush_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
@@ -1045,7 +1044,7 @@ mint::Reference mint_file_flush_async(mint::Cursor& cursor, mint::Reference& sel
 			return {};
 		}
 
-		void complete(std::error_code error, std::size_t bytes_transferred) override {
+		void complete(std::error_code error, std::size_t /*bytes_transferred*/) override {
 			if (error) {
 				done(mint::create_number(error.value()));
 			}
@@ -1060,8 +1059,7 @@ mint::Reference mint_file_flush_async(mint::Cursor& cursor, mint::Reference& sel
 
 	return mint::create_async_operation(cursor.program(),
 	    std::make_unique<AsyncFlushOperation>(std::move(self),
-	        *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr, mint::to_handle(d_ptr))
-	        .release());
+	        scheduler.data<mint::LibObject<mint::AsyncRuntime>>().value, mint::to_handle(d_ptr)));
 }
 
 }

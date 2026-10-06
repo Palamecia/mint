@@ -131,9 +131,6 @@ package System {
 				raise Exception.SystemError(errno, self)
 			}
 			self.d_ptr = d_ptr
-			self.d_ptr.delete = def [g_lib = System.Locale.g_lib] (self) {
-				g_lib.call('mint_locale_delete', self)
-			}
 			return self
 		}
 	}

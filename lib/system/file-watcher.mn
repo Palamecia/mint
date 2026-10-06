@@ -108,7 +108,7 @@ package System {
 		}
 
 		/**
-		 * Returns the event's poll event as an instance of `mint::poll_event_t`.
+		 * Returns the event's poll event as an instance of `mint::poll_event_t*`.
 		 */
 		const def getPollEvent(const self) {
 			return System.FileWatcher.g_lib.call('mint_file_watcher_get_poll_event', self.d_ptr)

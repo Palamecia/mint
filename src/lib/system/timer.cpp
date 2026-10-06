@@ -33,6 +33,7 @@
 #include "mint/system/errno.h"
 
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cerrno>
 #include <cstdint>
@@ -73,7 +74,7 @@
 namespace {
 
 enum class ClockType : std::uint8_t {
-	monotonic
+	monotonic,
 };
 
 ClockType to_clock_type(mint::Cursor& cursor, const mint::Reference& value) {
@@ -90,8 +91,8 @@ struct TimerData {
 	dispatch_queue_t queue = nullptr;
 	dispatch_source_t source = nullptr;
 	int write_fd = -1;
-	bool periodic = false;
-	bool running = false;
+	std::atomic_bool periodic = false;
+	std::atomic_bool running = false;
 	bool suspended = true;
 #endif
 };
@@ -119,15 +120,15 @@ constexpr inline LONGLONG to_milliseconds = 10000LL;
 mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& clock_type) {
 #ifdef MINT_OS_WINDOWS
 
-	auto timer = std::make_unique<TimerData>(TimerData {
+	const auto timer = TimerData {
 	    .event =
 	        {
 	            .handle = CreateWaitableTimer(nullptr, false, nullptr),
 	        },
 	    .clock_type = to_clock_type(cursor, clock_type),
-	});
-	if (timer->event.handle != nullptr) {
-		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
+	};
+	if (timer.event.handle != nullptr) {
+		return mint_system::make_success(cursor, mint::create_c_object<TimerData>(cursor.program(), timer));
 	}
 	return mint_system::make_failure(cursor, mint::errno_from_last_error());
 
@@ -141,7 +142,7 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 		break;
 	}
 
-	auto timer = std::make_unique<TimerData>(TimerData {
+	const auto timer = TimerData {
 	    .event =
 	        {
 	            .fd = timerfd_create(clock_id, TFD_NONBLOCK),
@@ -152,9 +153,9 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 		                read(event.fd, &expirations, sizeof(expirations));
 	                },
 	        },
-	});
-	if (timer->event.fd != -1) {
-		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
+	};
+	if (timer.event.fd != -1) {
+		return mint_system::make_success(cursor, mint::create_c_object<TimerData>(cursor.program(), timer));
 	}
 	return mint_system::make_failure(cursor, errno);
 
@@ -168,7 +169,7 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 		break;
 	}
 
-	auto timer = std::make_unique<TimerData>(TimerData {
+	const auto timer = TimerData {
 	    .event =
 	        {
 	            .fd = timerfd_create(clock_id, TFD_NONBLOCK),
@@ -179,9 +180,9 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 		                read(event.fd, &expirations, sizeof(expirations));
 	                },
 	        },
-	});
-	if (timer->event.fd != -1) {
-		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
+	};
+	if (timer.event.fd != -1) {
+		return mint_system::make_success(cursor, mint::create_c_object<TimerData>(cursor.program(), timer));
 	}
 	return mint_system::make_failure(cursor, errno);
 
@@ -200,44 +201,44 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 		return result;
 	}
 
-	auto timer = std::make_unique<TimerData>(TimerData {
-	    .event {
-	        .fd = fds.at(0),
-	        .filter = EVFILT_READ,
-	        .on_signal =
-	            [](mint::poll_event_t& event) {
-		            auto token = uint64_t();
-		            read(event.fd, &token, sizeof(token));
-	            },
-	    },
-	    .write_fd = fds.at(1),
-	});
-	timer->queue = dispatch_queue_create("mint.timer",
+	auto d_ptr = mint::create_c_object<TimerData>(cursor.program());
+	auto& timer = d_ptr.data<mint::LibObject<TimerData>>().value;
+	timer.event = {
+	    .fd = fds.at(0),
+	    .filter = EVFILT_READ,
+	    .on_signal =
+	        [](mint::poll_event_t& event) {
+		        auto token = uint64_t();
+		        read(event.fd, &token, sizeof(token));
+	        },
+	};
+	timer.write_fd = fds.at(1);
+	timer.queue = dispatch_queue_create("mint.timer",
 	    dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INTERACTIVE, 0));
-	if (timer->queue == nullptr) {
+	if (timer.queue == nullptr) {
 		auto result = mint_system::make_failure(cursor, ENOMEM);
 		close(fds.at(0));
 		close(fds.at(1));
 		return result;
 	}
-	timer->source = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, timer->queue);
-	if (timer->source == nullptr) {
+	timer.source = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, timer.queue);
+	if (timer.source == nullptr) {
 		auto result = mint_system::make_failure(cursor, ENOMEM);
-		release_dispatch_object(timer->queue);
+		release_dispatch_object(timer.queue);
 		close(fds.at(0));
 		close(fds.at(1));
 		return result;
 	}
 
-	auto* timer_ptr = timer.get();
-	dispatch_source_set_event_handler(timer->source, ^{
+	auto* timer_ptr = &timer;
+	dispatch_source_set_event_handler(timer.source, ^{
 		constexpr uint64_t token = 1;
 		write(timer_ptr->write_fd, &token, sizeof(token));
 		if (!timer_ptr->periodic) {
 			timer_ptr->running = false;
 		}
 	});
-	return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
+	return mint_system::make_success(cursor, std::move(d_ptr));
 
 #else
 #error "Timer is not implemented for this platform"
@@ -246,56 +247,56 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 
 mint::Reference mint_timer_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
-	CloseHandle(d_ptr.data<mint::LibObject<TimerData>>().ptr->event.handle);
+	CloseHandle(d_ptr.data<mint::LibObject<TimerData>>().value.event.handle);
 #elifdef MINT_OS_MAC
-	auto* timer = d_ptr.data<mint::LibObject<TimerData>>().ptr;
-	if (timer->suspended) {
-		dispatch_resume(timer->source);
+	auto& timer = d_ptr.data<mint::LibObject<TimerData>>().value;
+	if (timer.suspended) {
+		dispatch_resume(timer.source);
 	}
-	dispatch_source_cancel(timer->source);
-	dispatch_sync(timer->queue, ^ {
+	dispatch_source_cancel(timer.source);
+	dispatch_sync(timer.queue, ^ {
 	              });
-	release_dispatch_object(timer->source);
-	release_dispatch_object(timer->queue);
-	close(timer->event.fd);
-	close(timer->write_fd);
+	release_dispatch_object(timer.source);
+	release_dispatch_object(timer.queue);
+	close(timer.event.fd);
+	close(timer.write_fd);
 #else
-	close(d_ptr.data<mint::LibObject<TimerData>>().ptr->event.fd);
+	close(d_ptr.data<mint::LibObject<TimerData>>().value.event.fd);
 #endif
-	delete d_ptr.data<mint::LibObject<TimerData>>().ptr;
 	return {};
 }
 
 mint::Reference mint_timer_get_handle(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
-	return mint::create_handle(cursor.program(), d_ptr.data<mint::LibObject<TimerData>>().ptr->event.handle);
+	return mint::create_handle(cursor.program(), d_ptr.data<mint::LibObject<TimerData>>().value.event.handle);
 #elifdef MINT_OS_UNIX
-	return mint::create_handle(cursor.program(), d_ptr.data<mint::LibObject<TimerData>>().ptr->event.fd);
+	return mint::create_handle(cursor.program(), d_ptr.data<mint::LibObject<TimerData>>().value.event.fd);
 #endif
 }
 
 mint::Reference mint_timer_get_poll_event(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	return mint::create_c_object(cursor.program(), &d_ptr.data<mint::LibObject<TimerData>>().ptr->event);
+	return mint::create_c_object<mint::poll_event_t*>(cursor.program(),
+	    &d_ptr.data<mint::LibObject<TimerData>>().value.event);
 }
 
 mint::Reference mint_timer_start(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& delay) {
 #ifdef MINT_OS_WINDOWS
 
-	auto* timer = d_ptr.data<mint::LibObject<TimerData>>().ptr;
+	auto& timer = d_ptr.data<mint::LibObject<TimerData>>().value;
 	const auto timer_spec = LARGE_INTEGER {
 	    .QuadPart = -(mint::to_integer<LONGLONG>(cursor, delay) * to_milliseconds),
 	};
 
-	if (SetWaitableTimer(timer->event.handle, &timer_spec, 0, nullptr, nullptr, 0)) {
-		timer->periodic = false;
-		timer->running = true;
+	if (SetWaitableTimer(timer.event.handle, &timer_spec, 0, nullptr, nullptr, 0)) {
+		timer.periodic = false;
+		timer.running = true;
 		return mint::create_boolean(true);
 	}
 
 	return mint::create_boolean(false);
 
 #elifdef MINT_OS_MAC
-	auto* timer = d_ptr.data<mint::LibObject<TimerData>>().ptr;
+	auto& timer = d_ptr.data<mint::LibObject<TimerData>>().value;
 	const auto delay_ms = to_signed_integer(cursor, delay);
 	if (delay_ms < 0) {
 		return mint::create_boolean(false);
@@ -304,17 +305,17 @@ mint::Reference mint_timer_start(mint::Cursor& cursor, const mint::Reference& d_
 	    .tv_sec = delay_ms / 1000,
 	    .tv_nsec = static_cast<long>((delay_ms % 1000) * NSEC_PER_MSEC),
 	};
-	dispatch_source_set_timer(timer->source, dispatch_walltime(&timer_spec, 0), DISPATCH_TIME_FOREVER, 0);
-	timer->periodic = false;
-	timer->running = true;
-	if (timer->suspended) {
-		dispatch_resume(timer->source);
-		timer->suspended = false;
+	dispatch_source_set_timer(timer.source, dispatch_walltime(&timer_spec, 0), DISPATCH_TIME_FOREVER, 0);
+	timer.periodic = false;
+	timer.running = true;
+	if (timer.suspended) {
+		dispatch_resume(timer.source);
+		timer.suspended = false;
 	}
 	return mint::create_boolean(true);
 #else
 
-	const auto fd = d_ptr.data<mint::LibObject<TimerData>>().ptr->event.fd;
+	const auto fd = d_ptr.data<mint::LibObject<TimerData>>().value.event.fd;
 	const std::intmax_t msec = to_signed_integer(cursor, delay);
 
 	const auto timer_spec = itimerspec {
@@ -339,23 +340,23 @@ mint::Reference mint_timer_start_periodic(mint::Cursor& cursor, const mint::Refe
     const mint::Reference& delay, const mint::Reference& period) {
 #ifdef MINT_OS_WINDOWS
 
-	auto* timer = d_ptr.data<mint::LibObject<TimerData>>().ptr;
+	auto& timer = d_ptr.data<mint::LibObject<TimerData>>().value;
 	const auto timer_spec = LARGE_INTEGER {
 	    .QuadPart = -(mint::to_integer<LONGLONG>(cursor, delay) * to_milliseconds),
 	};
 
 	const auto period_ms = mint::to_integer<LONG>(cursor, period);
 
-	if (SetWaitableTimer(timer->event.handle, &timer_spec, period_ms, nullptr, nullptr, 0)) {
-		timer->periodic = true;
-		timer->running = true;
+	if (SetWaitableTimer(timer.event.handle, &timer_spec, period_ms, nullptr, nullptr, 0)) {
+		timer.periodic = true;
+		timer.running = true;
 		return mint::create_boolean(true);
 	}
 
 	return mint::create_boolean(false);
 
 #elifdef MINT_OS_MAC
-	auto* timer = d_ptr.data<mint::LibObject<TimerData>>().ptr;
+	auto& timer = d_ptr.data<mint::LibObject<TimerData>>().value;
 	const auto delay_ms = to_signed_integer(cursor, delay);
 	const auto period_ms = to_signed_integer(cursor, period);
 	if (delay_ms < 0 || period_ms <= 0) {
@@ -365,16 +366,16 @@ mint::Reference mint_timer_start_periodic(mint::Cursor& cursor, const mint::Refe
 	    .tv_sec = delay_ms / 1000,
 	    .tv_nsec = static_cast<long>((delay_ms % 1000) * NSEC_PER_MSEC),
 	};
-	dispatch_source_set_timer(timer->source, dispatch_walltime(&timer_spec, 0), period_ms * NSEC_PER_MSEC, 0);
-	timer->periodic = true;
-	timer->running = true;
-	if (timer->suspended) {
-		dispatch_resume(timer->source);
-		timer->suspended = false;
+	dispatch_source_set_timer(timer.source, dispatch_walltime(&timer_spec, 0), period_ms * NSEC_PER_MSEC, 0);
+	timer.periodic = true;
+	timer.running = true;
+	if (timer.suspended) {
+		dispatch_resume(timer.source);
+		timer.suspended = false;
 	}
 	return mint::create_boolean(true);
 #else
-	const auto fd = d_ptr.data<mint::LibObject<TimerData>>().ptr->event.fd;
+	const auto fd = d_ptr.data<mint::LibObject<TimerData>>().value.event.fd;
 	const std::intmax_t delay_ms = to_signed_integer(cursor, delay);
 	const std::intmax_t period_ms = to_signed_integer(cursor, period);
 
@@ -398,21 +399,21 @@ mint::Reference mint_timer_start_periodic(mint::Cursor& cursor, const mint::Refe
 
 mint::Reference mint_timer_stop(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
-	mint::handle_t handle = d_ptr.data<mint::LibObject<TimerData>>().ptr->event.handle;
+	mint::handle_t handle = d_ptr.data<mint::LibObject<TimerData>>().value.event.handle;
 	if (CancelWaitableTimer(handle)) {
-		d_ptr.data<mint::LibObject<TimerData>>().ptr->running = false;
+		d_ptr.data<mint::LibObject<TimerData>>().value.running = false;
 	}
 #elifdef MINT_OS_MAC
-	auto* timer = d_ptr.data<mint::LibObject<TimerData>>().ptr;
-	dispatch_source_set_timer(timer->source, DISPATCH_TIME_FOREVER, DISPATCH_TIME_FOREVER, 0);
-	timer->running = false;
-	if (!timer->suspended) {
-		dispatch_suspend(timer->source);
-		timer->suspended = true;
+	auto& timer = d_ptr.data<mint::LibObject<TimerData>>().value;
+	dispatch_source_set_timer(timer.source, DISPATCH_TIME_FOREVER, DISPATCH_TIME_FOREVER, 0);
+	timer.running = false;
+	if (!timer.suspended) {
+		dispatch_suspend(timer.source);
+		timer.suspended = true;
 	}
 	return mint::create_boolean(true);
 #else
-	mint::handle_t fd = d_ptr.data<mint::LibObject<TimerData>>().ptr->event.fd;
+	mint::handle_t fd = d_ptr.data<mint::LibObject<TimerData>>().value.event.fd;
 
 	itimerspec timer_spec;
 	memset(&timer_spec, 0, sizeof(timer_spec));
@@ -425,21 +426,21 @@ mint::Reference mint_timer_stop(mint::Cursor& /*cursor*/, const mint::Reference&
 mint::Reference mint_timer_is_running(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
 
-	auto* timer = d_ptr.data<mint::LibObject<TimerData>>().ptr;
-	if (timer->running && !timer->periodic) {
-		if (WaitForSingleObject(timer->event.handle, 0) == WAIT_OBJECT_0) {
-			timer->running = false;
+	auto& timer = d_ptr.data<mint::LibObject<TimerData>>().value;
+	if (timer.running && !timer.periodic) {
+		if (WaitForSingleObject(timer.event.handle, 0) == WAIT_OBJECT_0) {
+			timer.running = false;
 		}
 	}
-	return mint::create_boolean(timer->running);
+	return mint::create_boolean(timer.running);
 
 #elifdef MINT_OS_MAC
 
-	return mint::create_boolean(d_ptr.data<mint::LibObject<TimerData>>().ptr->running);
+	return mint::create_boolean(d_ptr.data<mint::LibObject<TimerData>>().value.running);
 
 #elifdef MINT_OS_UNIX
 
-	auto fd = d_ptr.data<mint::LibObject<TimerData>>().ptr->event.fd;
+	auto fd = d_ptr.data<mint::LibObject<TimerData>>().value.event.fd;
 	auto timer_spec = itimerspec();
 	if (timerfd_gettime(fd, &timer_spec) == -1) {
 		return mint::create_boolean(false);
@@ -454,13 +455,13 @@ mint::Reference mint_timer_is_running(mint::Cursor& /*cursor*/, const mint::Refe
 
 mint::Reference mint_timer_clear(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
 #ifdef MINT_OS_WINDOWS
-	ResetEvent(d_ptr.data<mint::LibObject<TimerData>>().ptr->event.handle);
+	ResetEvent(d_ptr.data<mint::LibObject<TimerData>>().value.event.handle);
 #elifdef MINT_OS_MAC
-	mint::handle_t fd = d_ptr.data<mint::LibObject<TimerData>>().ptr->event.fd;
+	mint::handle_t fd = d_ptr.data<mint::LibObject<TimerData>>().value.event.fd;
 	std::uint64_t value = 0;
 	read(fd, &value, sizeof(value));
 #else
-	mint::handle_t fd = d_ptr.data<mint::LibObject<TimerData>>().ptr->event.fd;
+	mint::handle_t fd = d_ptr.data<mint::LibObject<TimerData>>().value.event.fd;
 	std::uint64_t value = 0;
 
 	read(fd, &value, sizeof(value));
@@ -472,7 +473,7 @@ mint::Reference mint_timer_wait(mint::Cursor& cursor, const mint::Reference& d_p
 
 #ifdef MINT_OS_WINDOWS
 
-	mint::handle_t handle = d_ptr.data<mint::LibObject<TimerData>>().ptr->event.handle;
+	mint::handle_t handle = d_ptr.data<mint::LibObject<TimerData>>().value.event.handle;
 	const DWORD time_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
 	                          ? INFINITE
 	                          : mint::to_integer<DWORD>(cursor, timeout);
@@ -486,7 +487,7 @@ mint::Reference mint_timer_wait(mint::Cursor& cursor, const mint::Reference& d_p
 
 #elifdef MINT_OS_LINUX
 
-	auto* timer = d_ptr.data<mint::LibObject<TimerData>>().ptr;
+	auto& timer = d_ptr.data<mint::LibObject<TimerData>>().value;
 	const int timeout_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
 
 	int context = epoll_create1(EPOLL_CLOEXEC);
@@ -495,16 +496,16 @@ mint::Reference mint_timer_wait(mint::Cursor& cursor, const mint::Reference& d_p
 	}
 
 	auto changelist = epoll_event {
-	    .events = timer->event.events,
+	    .events = timer.event.events,
 	    .data =
 	        {
-	            .fd = timer->event.fd,
+	            .fd = timer.event.fd,
 	        },
 	};
 
 	const auto ret = epoll_wait(context, &changelist, 1, timeout_ms);
 	if (ret > 0 && changelist.events & EPOLLIN) {
-		timer->event.on_signal(timer->event);
+		timer.event.on_signal(timer.event);
 	}
 
 	::close(context);
@@ -512,7 +513,7 @@ mint::Reference mint_timer_wait(mint::Cursor& cursor, const mint::Reference& d_p
 
 #elifdef MINT_OS_UNIX
 
-	auto* timer = d_ptr.data<mint::LibObject<TimerData>>().ptr;
+	auto& timer = d_ptr.data<mint::LibObject<TimerData>>().value;
 	const auto timeout_ts = is_instance_of(timeout, mint::Data::Format::none)
 	                            ? std::nullopt
 	                            : std::optional<std::chrono::milliseconds>(to_integer<int>(cursor, timeout))
@@ -532,14 +533,14 @@ mint::Reference mint_timer_wait(mint::Cursor& cursor, const mint::Reference& d_p
 	}
 
 	struct kevent changelist {
-	    .ident = static_cast<std::uintptr_t>(timer->event.fd),
+	    .ident = static_cast<std::uintptr_t>(timer.event.fd),
 	    .filter = EVFILT_READ,
 	};
 
 	struct kevent eventlist {};
 	const auto ret = kevent(context, &changelist, 1, &eventlist, 1, timeout_ts ? std::to_address(timeout_ts) : nullptr);
 	if (ret > 0) {
-		timer->event.on_signal(timer->event);
+		timer.event.on_signal(timer.event);
 	}
 
 	::close(context);
@@ -657,8 +658,7 @@ mint::Reference mint_timer_wait_async(mint::Cursor& cursor, mint::Reference& sel
 
 	return mint::create_async_operation(cursor.program(),
 	    std::make_unique<AsyncWaitOperation>(cursor, std::move(self),
-	        *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr, mint::to_handle(handle))
-	        .release());
+	        scheduler.data<mint::LibObject<mint::AsyncRuntime>>().value, mint::to_handle(handle)));
 }
 
 }

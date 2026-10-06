@@ -42,9 +42,6 @@ load mint.type
 			return value.toInt8() as int8
 		}
 		self.d_ptr = int8.g_lib.call('mint_int8_create', value)
-		self.d_ptr.delete = def [g_lib = int8.g_lib] (self) {
-			g_lib.call('mint_int8_delete', self)
-		}
 		return self
 	}
 
@@ -59,11 +56,7 @@ load mint.type
 	 * Returns the result of the `()` operator applied to `self`.
 	 */
 	const def ()(self) {
-		var other = int8.g_lib.call('mint_int8_call', self, other.toInt8())
-		other.d_ptr.delete = def [g_lib = int8.g_lib] (self) {
-			g_lib.call('mint_int8_delete', self)
-		}
-		return other
+		return int8.g_lib.call('mint_int8_call', self, other.toInt8())
 	}
 
 	/**
@@ -260,11 +253,7 @@ load mint.type
 	 * `index`.
 	 */
 	const def [](self, index) {
-		var other = int8.g_lib.call('mint_int8_subscript', self, index.toNumber())
-		other.d_ptr.delete = def [g_lib = int8.g_lib] (self) {
-			g_lib.call('mint_int8_delete', self)
-		}
-		return other
+		return int8.g_lib.call('mint_int8_subscript', self, index.toNumber())
 	}
 
 	/**
@@ -325,9 +314,6 @@ load mint.type
 			return value.toInt16() as int16
 		}
 		self.d_ptr = int16.g_lib.call('mint_int16_create', value)
-		self.d_ptr.delete = def [g_lib = int16.g_lib] (self) {
-			g_lib.call('mint_int16_delete', self)
-		}
 		return self
 	}
 
@@ -342,11 +328,7 @@ load mint.type
 	 * Returns the result of the `()` operator applied to `self`.
 	 */
 	const def ()(self) {
-		var other = int16.g_lib.call('mint_int16_call', self, other.toInt16())
-		other.d_ptr.delete = def [g_lib = int16.g_lib] (self) {
-			g_lib.call('mint_int16_delete', self)
-		}
-		return other
+		return int16.g_lib.call('mint_int16_call', self, other.toInt16())
 	}
 
 	/**
@@ -543,11 +525,7 @@ load mint.type
 	 * `index`.
 	 */
 	const def [](self, index) {
-		var other = int16.g_lib.call('mint_int16_subscript', self, index.toNumber())
-		other.d_ptr.delete = def [g_lib = int16.g_lib] (self) {
-			g_lib.call('mint_int16_delete', self)
-		}
-		return other
+		return int16.g_lib.call('mint_int16_subscript', self, index.toNumber())
 	}
 
 	/**
@@ -608,9 +586,6 @@ load mint.type
 			return value.toInt32() as int32
 		}
 		self.d_ptr = int32.g_lib.call('mint_int32_create', value)
-		self.d_ptr.delete = def [g_lib = int32.g_lib] (self) {
-			g_lib.call('mint_int32_delete', self)
-		}
 		return self
 	}
 
@@ -625,11 +600,7 @@ load mint.type
 	 * Returns the result of the `()` operator applied to `self`.
 	 */
 	const def ()(self) {
-		var other = int32.g_lib.call('mint_int32_call', self, other.toInt32())
-		other.d_ptr.delete = def [g_lib = int32.g_lib] (self) {
-			g_lib.call('mint_int32_delete', self)
-		}
-		return other
+		return int32.g_lib.call('mint_int32_call', self, other.toInt32())
 	}
 
 	/**
@@ -826,11 +797,7 @@ load mint.type
 	 * `index`.
 	 */
 	const def [](self, index) {
-		var other = int32.g_lib.call('mint_int32_subscript', self, index.toNumber())
-		other.d_ptr.delete = def [g_lib = int32.g_lib] (self) {
-			g_lib.call('mint_int32_delete', self)
-		}
-		return other
+		return int32.g_lib.call('mint_int32_subscript', self, index.toNumber())
 	}
 
 	/**
@@ -891,9 +858,6 @@ load mint.type
 			return value.toInt64() as int64
 		}
 		self.d_ptr = int64.g_lib.call('mint_int64_create', value)
-		self.d_ptr.delete = def [g_lib = int64.g_lib] (self) {
-			g_lib.call('mint_int64_delete', self)
-		}
 		return self
 	}
 
@@ -908,11 +872,7 @@ load mint.type
 	 * Returns the result of the `()` operator applied to `self`.
 	 */
 	const def ()(self) {
-		var other = int64.g_lib.call('mint_int64_call', self, other.toInt64())
-		other.d_ptr.delete = def [g_lib = int64.g_lib] (self) {
-			g_lib.call('mint_int64_delete', self)
-		}
-		return other
+		return int64.g_lib.call('mint_int64_call', self, other.toInt64())
 	}
 
 	/**
@@ -1109,11 +1069,7 @@ load mint.type
 	 * `index`.
 	 */
 	const def [](self, index) {
-		var other = int64.g_lib.call('mint_int64_subscript', self, index.toNumber())
-		other.d_ptr.delete = def [g_lib = int64.g_lib] (self) {
-			g_lib.call('mint_int64_delete', self)
-		}
-		return other
+		return int64.g_lib.call('mint_int64_subscript', self, index.toNumber())
 	}
 
 	/**
@@ -1174,9 +1130,6 @@ load mint.type
 			return value.toUInt8() as uint8
 		}
 		self.d_ptr = uint8.g_lib.call('mint_uint8_create', value)
-		self.d_ptr.delete = def [g_lib = uint8.g_lib] (self) {
-			g_lib.call('mint_uint8_delete', self)
-		}
 		return self
 	}
 
@@ -1191,11 +1144,7 @@ load mint.type
 	 * Returns the result of the `()` operator applied to `self`.
 	 */
 	const def ()(self) {
-		var other = uint8.g_lib.call('mint_uint8_call', self, other.toUInt8())
-		other.d_ptr.delete = def [g_lib = uint8.g_lib] (self) {
-			g_lib.call('mint_uint8_delete', self)
-		}
-		return other
+		return uint8.g_lib.call('mint_uint8_call', self, other.toUInt8())
 	}
 
 	/**
@@ -1385,11 +1334,7 @@ load mint.type
 	 * `index`.
 	 */
 	const def [](self, index) {
-		var other = uint8.g_lib.call('mint_uint8_subscript', self, index.toNumber())
-		other.d_ptr.delete = def [g_lib = uint8.g_lib] (self) {
-			g_lib.call('mint_uint8_delete', self)
-		}
-		return other
+		return uint8.g_lib.call('mint_uint8_subscript', self, index.toNumber())
 	}
 
 	/**
@@ -1450,9 +1395,6 @@ load mint.type
 			return value.toUInt16() as uint16
 		}
 		self.d_ptr = uint16.g_lib.call('mint_uint16_create', value)
-		self.d_ptr.delete = def [g_lib = uint16.g_lib] (self) {
-			g_lib.call('mint_uint16_delete', self)
-		}
 		return self
 	}
 
@@ -1467,11 +1409,7 @@ load mint.type
 	 * Returns the result of the `()` operator applied to `self`.
 	 */
 	const def ()(self) {
-		var other = uint16.g_lib.call('mint_uint16_call', self, other.toUInt16())
-		other.d_ptr.delete = def [g_lib = uint16.g_lib] (self) {
-			g_lib.call('mint_uint16_delete', self)
-		}
-		return other
+		return uint16.g_lib.call('mint_uint16_call', self, other.toUInt16())
 	}
 
 	/**
@@ -1661,11 +1599,7 @@ load mint.type
 	 * `index`.
 	 */
 	const def [](self, index) {
-		var other = uint16.g_lib.call('mint_uint16_subscript', self, index.toNumber())
-		other.d_ptr.delete = def [g_lib = uint16.g_lib] (self) {
-			g_lib.call('mint_uint16_delete', self)
-		}
-		return other
+		return uint16.g_lib.call('mint_uint16_subscript', self, index.toNumber())
 	}
 
 	/**
@@ -1726,9 +1660,6 @@ load mint.type
 			return value.toUInt32() as uint32
 		}
 		self.d_ptr = uint32.g_lib.call('mint_uint32_create', value)
-		self.d_ptr.delete = def [g_lib = uint32.g_lib] (self) {
-			g_lib.call('mint_uint32_delete', self)
-		}
 		return self
 	}
 
@@ -1743,11 +1674,7 @@ load mint.type
 	 * Returns the result of the `()` operator applied to `self`.
 	 */
 	const def ()(self) {
-		var other = uint32.g_lib.call('mint_uint32_call', self, other.toUInt32())
-		other.d_ptr.delete = def [g_lib = uint32.g_lib] (self) {
-			g_lib.call('mint_uint32_delete', self)
-		}
-		return other
+		return uint32.g_lib.call('mint_uint32_call', self, other.toUInt32())
 	}
 
 	/**
@@ -1937,11 +1864,7 @@ load mint.type
 	 * `index`.
 	 */
 	const def [](self, index) {
-		var other = uint32.g_lib.call('mint_uint32_subscript', self, index.toNumber())
-		other.d_ptr.delete = def [g_lib = uint32.g_lib] (self) {
-			g_lib.call('mint_uint32_delete', self)
-		}
-		return other
+		return uint32.g_lib.call('mint_uint32_subscript', self, index.toNumber())
 	}
 
 	/**
@@ -2002,9 +1925,6 @@ load mint.type
 			return value.toUInt64() as uint64
 		}
 		self.d_ptr = uint64.g_lib.call('mint_uint64_create', value)
-		self.d_ptr.delete = def [g_lib = uint64.g_lib] (self) {
-			g_lib.call('mint_uint64_delete', self)
-		}
 		return self
 	}
 
@@ -2019,11 +1939,7 @@ load mint.type
 	 * Returns the result of the `()` operator applied to `self`.
 	 */
 	const def ()(self) {
-		var other = uint64.g_lib.call('mint_uint64_call', self, other.toUInt64())
-		other.d_ptr.delete = def [g_lib = uint64.g_lib] (self) {
-			g_lib.call('mint_uint64_delete', self)
-		}
-		return other
+		return uint64.g_lib.call('mint_uint64_call', self, other.toUInt64())
 	}
 
 	/**
@@ -2213,11 +2129,7 @@ load mint.type
 	 * `index`.
 	 */
 	const def [](self, index) {
-		var other = uint64.g_lib.call('mint_uint64_subscript', self, index.toNumber())
-		other.d_ptr.delete = def [g_lib = uint64.g_lib] (self) {
-			g_lib.call('mint_uint64_delete', self)
-		}
-		return other
+		return uint64.g_lib.call('mint_uint64_subscript', self, index.toNumber())
 	}
 
 	/**

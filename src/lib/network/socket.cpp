@@ -238,7 +238,7 @@ mint::Reference mint_network::create_socket(mint::Program& program, SOCKET socke
 }
 
 std::tuple<sockaddr*, socklen_t> mint_network::to_sockaddr(const mint::Reference& reference) {
-	switch (auto* address = reference.data<mint::LibObject<sockaddr>>().ptr; address->sa_family) {
+	switch (auto* address = reference.data<mint::LibObject<sockaddr*>>().value; address->sa_family) {
 	case AF_INET:
 		return {address, static_cast<socklen_t>(sizeof(sockaddr_in))};
 	case AF_INET6:
@@ -629,8 +629,8 @@ mint::Reference mint_socket_get_option_linger(mint::Cursor& cursor, const mint::
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = mint::to_integer<int>(cursor, option);
-		auto option_value = mint_network::get_socket_option<std::unique_ptr<linger>>(socket_fd, option_id);
-		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), option_value.release()));
+		return mint_network::make_success(cursor, mint::create_c_object<linger>(cursor.program(),
+		                                              mint_network::get_socket_option<linger>(socket_fd, option_id)));
 	}
 	catch (const std::system_error& error) {
 		return mint_network::make_failure(cursor, error.code().value());
@@ -643,8 +643,8 @@ mint::Reference mint_socket_set_option_linger(mint::Cursor& cursor, const mint::
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
-		const auto* option_value = value.data<mint::LibObject<linger>>().ptr;
-		mint_network::set_socket_option(socket_fd, option_id, *option_value);
+		const auto& option_value = value.data<mint::LibObject<linger>>().value;
+		mint_network::set_socket_option(socket_fd, option_id, option_value);
 	}
 	catch (const std::system_error& error) {
 		return mint::create_number(error.code().value());
@@ -658,8 +658,8 @@ mint::Reference mint_socket_get_option_timeval(mint::Cursor& cursor, const mint:
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = mint::to_integer<int>(cursor, option);
-		auto option_value = mint_network::get_socket_option<std::unique_ptr<timeval>>(socket_fd, option_id);
-		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), option_value.release()));
+		return mint_network::make_success(cursor, mint::create_c_object<timeval>(cursor.program(),
+		                                              mint_network::get_socket_option<timeval>(socket_fd, option_id)));
 	}
 	catch (const std::system_error& error) {
 		return mint_network::make_failure(cursor, error.code().value());
@@ -672,8 +672,8 @@ mint::Reference mint_socket_set_option_timeval(mint::Cursor& cursor, const mint:
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = mint::to_integer<int>(cursor, option);
-		const auto* option_value = value.data<mint::LibObject<timeval>>().ptr;
-		mint_network::set_socket_option(socket_fd, option_id, *option_value);
+		const auto& option_value = value.data<mint::LibObject<timeval>>().value;
+		mint_network::set_socket_option(socket_fd, option_id, option_value);
 	}
 	catch (const std::system_error& error) {
 		return mint::create_number(error.code().value());
@@ -908,7 +908,7 @@ mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, mint::Re
 
 		return mint_network::make_success(helper.cursor(),
 		    mint::create_async_operation(helper.cursor().program(),
-		        std::make_unique<AsyncConnectOperation>(helper, std::move(self), socket_fd, target, length).release()));
+		        std::make_unique<AsyncConnectOperation>(helper, std::move(self), socket_fd, target, length)));
 	}
 	catch (const std::system_error& error) {
 		return mint_network::make_failure(helper.cursor(), error.code().value());
@@ -1042,67 +1042,58 @@ mint::Reference mint_socket_strerror(mint::Cursor& cursor, const mint::Reference
 
 mint::Reference mint_socket_linger_create(mint::Cursor& cursor, const mint::Reference& enabled,
     const mint::Reference& linger_time) {
-	return mint::create_c_object(cursor.program(), new linger {
-	                                                   .l_onoff = to_boolean(enabled),
-	                                                   .l_linger = to_integer<u_short>(cursor, linger_time),
-	                                               });
-}
-
-mint::Reference mint_socket_linger_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	delete d_ptr.data<mint::LibObject<linger>>().ptr;
-	return {};
+	return mint::create_c_object<linger>(cursor.program(), linger {
+	                                                           .l_onoff = to_boolean(enabled),
+	                                                           .l_linger = to_integer<u_short>(cursor, linger_time),
+	                                                       });
 }
 
 mint::Reference mint_socket_linger_get_onoff(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return mint::create_boolean(d_ptr.data<mint::LibObject<linger>>().ptr->l_onoff);
+	return mint::create_boolean(d_ptr.data<mint::LibObject<linger>>().value.l_onoff);
 }
 
 mint::Reference mint_socket_linger_set_onoff(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr,
     const mint::Reference& enabled) {
-	d_ptr.data<mint::LibObject<linger>>().ptr->l_onoff = to_boolean(enabled);
+	d_ptr.data<mint::LibObject<linger>>().value.l_onoff = to_boolean(enabled);
 	return {};
 }
 
 mint::Reference mint_socket_linger_get_linger(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return mint::create_signed_number(d_ptr.data<mint::LibObject<linger>>().ptr->l_linger);
+	return mint::create_signed_number(d_ptr.data<mint::LibObject<linger>>().value.l_linger);
 }
 
 mint::Reference mint_socket_linger_set_linger(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& linger_time) {
-	d_ptr.data<mint::LibObject<linger>>().ptr->l_linger = to_integer<u_short>(cursor, linger_time);
+	d_ptr.data<mint::LibObject<linger>>().value.l_linger = to_integer<u_short>(cursor, linger_time);
 	return {};
 }
 
 mint::Reference mint_socket_timeval_create(mint::Cursor& cursor, const mint::Reference& sec,
     const mint::Reference& usec) {
-	return mint::create_c_object(cursor.program(), new timeval {
-	                                                   .tv_sec = to_integer<decltype(timeval::tv_sec)>(cursor, sec),
-	                                                   .tv_usec = to_integer<decltype(timeval::tv_usec)>(cursor, usec),
-	                                               });
-}
-
-mint::Reference mint_socket_timeval_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	delete d_ptr.data<mint::LibObject<timeval>>().ptr;
-	return {};
+	return mint::create_c_object<timeval>(cursor.program(),
+	    timeval {
+	        .tv_sec = to_integer<decltype(timeval::tv_sec)>(cursor, sec),
+	        .tv_usec = to_integer<decltype(timeval::tv_usec)>(cursor, usec),
+	    });
 }
 
 mint::Reference mint_socket_timeval_get_sec(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return mint::create_signed_number(d_ptr.data<mint::LibObject<timeval>>().ptr->tv_sec);
+	return mint::create_signed_number(d_ptr.data<mint::LibObject<timeval>>().value.tv_sec);
 }
 
 mint::Reference mint_socket_timeval_set_sec(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& sec) {
-	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_sec = to_integer<decltype(timeval::tv_sec)>(cursor, sec);
+	d_ptr.data<mint::LibObject<timeval>>().value.tv_sec = to_integer<decltype(timeval::tv_sec)>(cursor, sec);
 	return {};
 }
 
 mint::Reference mint_socket_timeval_get_usec(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return mint::create_signed_number(d_ptr.data<mint::LibObject<timeval>>().ptr->tv_usec);
+	return mint::create_signed_number(d_ptr.data<mint::LibObject<timeval>>().value.tv_usec);
 }
 
 mint::Reference mint_socket_timeval_set_usec(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& usec) {
-	d_ptr.data<mint::LibObject<timeval>>().ptr->tv_usec = to_integer<decltype(timeval::tv_usec)>(cursor, usec);
+	d_ptr.data<mint::LibObject<timeval>>().value.tv_usec = to_integer<decltype(timeval::tv_usec)>(cursor, usec);
 	return {};
 }
 
@@ -1130,14 +1121,12 @@ MINT_EXPORT_FUNCTION(mint_socket_get_error, 1);
 MINT_EXPORT_FUNCTION(mint_socket_strerror, 1);
 
 MINT_EXPORT_FUNCTION(mint_socket_linger_create, 2);
-MINT_EXPORT_FUNCTION(mint_socket_linger_delete, 1);
 MINT_EXPORT_FUNCTION(mint_socket_linger_get_onoff, 1);
 MINT_EXPORT_FUNCTION(mint_socket_linger_set_onoff, 2);
 MINT_EXPORT_FUNCTION(mint_socket_linger_get_linger, 1);
 MINT_EXPORT_FUNCTION(mint_socket_linger_set_linger, 2);
 
 MINT_EXPORT_FUNCTION(mint_socket_timeval_create, 2);
-MINT_EXPORT_FUNCTION(mint_socket_timeval_delete, 1);
 MINT_EXPORT_FUNCTION(mint_socket_timeval_get_sec, 1);
 MINT_EXPORT_FUNCTION(mint_socket_timeval_set_sec, 2);
 MINT_EXPORT_FUNCTION(mint_socket_timeval_get_usec, 1);

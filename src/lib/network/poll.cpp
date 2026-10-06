@@ -213,8 +213,8 @@ bool poll(std::vector<PollFd>& fdset, int timeout) {
 
 mint::Reference mint_pollfd_new(mint::Cursor& cursor, const mint::Reference& socket) {
 	const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
-	return mint::create_c_object(cursor.program(),
-	    new PollFd {
+	return mint::create_c_object<PollFd>(cursor.program(),
+	    PollFd {
 	        .fd = socket_fd,
 	        .events = 0,
 	        .revents = 0,
@@ -228,36 +228,35 @@ mint::Reference mint_pollfd_new(mint::Cursor& cursor, const mint::Reference& soc
 
 mint::Reference mint_pollfd_delete(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
 #ifdef MINT_OS_WINDOWS
-	WSACloseEvent(fd.data<mint::LibObject<PollFd>>().ptr->handle);
+	WSACloseEvent(fd.data<mint::LibObject<PollFd>>().value.handle);
 #endif
-	delete fd.data<mint::LibObject<PollFd>>().ptr;
 	return {};
 }
 
 mint::Reference mint_set_events(mint::Cursor& cursor, const mint::Reference& fd, const mint::Reference& events) {
-	fd.data<mint::LibObject<PollFd>>().ptr->events = mint::to_integer<PollFd::Event>(cursor, events);
+	fd.data<mint::LibObject<PollFd>>().value.events = mint::to_integer<PollFd::Event>(cursor, events);
 	return {};
 }
 
 mint::Reference mint_get_events(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
-	return mint::create_number(fd.data<mint::LibObject<PollFd>>().ptr->events);
+	return mint::create_number(fd.data<mint::LibObject<PollFd>>().value.events);
 }
 
 mint::Reference mint_get_revents(mint::Cursor& /*cursor*/, const mint::Reference& fd) {
-	return mint::create_number(fd.data<mint::LibObject<PollFd>>().ptr->revents);
+	return mint::create_number(fd.data<mint::LibObject<PollFd>>().value.revents);
 }
 
 mint::Reference mint_poll(mint::Cursor& cursor, const mint::Reference& handles, const mint::Reference& timeout) {
 
 	auto fdset = std::vector(std::from_range,
 	    std::views::transform(handles.data<mint::Array>().values, [](const auto& fd) {
-		    return *fd.template data<mint::LibObject<PollFd>>().ptr;
+		    return fd.template data<mint::LibObject<PollFd>>().value;
 	    }));
 
 	try {
 		const auto result = poll(fdset, mint::to_integer<int>(cursor, timeout));
 		for (const auto& [fd, poll_fd] : std::views::zip(handles.data<mint::Array>().values, fdset)) {
-			fd.data<mint::LibObject<PollFd>>().ptr->revents = poll_fd.revents;
+			fd.data<mint::LibObject<PollFd>>().value.revents = poll_fd.revents;
 		}
 		return mint_network::make_success(cursor, mint::create_boolean(result));
 	}

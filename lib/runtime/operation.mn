@@ -71,9 +71,6 @@ package Runtime {
 		final const def start(self, scheduler, coroutine) {
 			self.coroutine = coroutine
 			self.d_ptr = self.setup(scheduler)
-			self.d_ptr.delete = def [g_lib = Runtime.Operation.g_lib](self) {
-				g_lib.call('mint_operation_delete', self)
-			}
 		}
 
 		/**

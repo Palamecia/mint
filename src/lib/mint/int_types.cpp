@@ -60,51 +60,45 @@ class FixedInt {
 public:
 	FixedInt() = delete;
 
-	static number_t* create(mint::Cursor& cursor, mint::Reference& value) {
-
+	static number_t create(mint::Cursor& cursor, mint::Reference& value) {
 		switch (value.data().format()) {
 		case mint::Data::Format::none:
 		case mint::Data::Format::null:
-			return new number_t(0);
+			return number_t(0);
 		case mint::Data::Format::number:
 		case mint::Data::Format::boolean:
-			return new number_t(to_integer<number_t>(cursor, value));
+			return number_t(to_integer<number_t>(cursor, value));
 		case mint::Data::Format::object:
 			switch (value.data<mint::Object>().metadata.metatype()) {
 			case mint::Class::Metatype::string:
-				return new number_t(mint::to_integer<number_t>(to_string(value)));
+				return number_t(mint::to_integer<number_t>(to_string(value)));
 			case mint::Class::Metatype::object:
 				if (mint::is_instance_of(value, symbols::int8)) {
-					return new number_t(
-					    static_cast<number_t>(*get_d_ptr(value).data<mint::LibObject<std::int8_t>>().ptr));
+					return number_t(static_cast<number_t>(get_d_ptr(value).data<mint::LibObject<std::int8_t>>().value));
 				}
 				if (mint::is_instance_of(value, symbols::int16)) {
-					return new number_t(
-					    static_cast<number_t>(*get_d_ptr(value).data<mint::LibObject<std::int16_t>>().ptr));
+					return number_t(static_cast<number_t>(get_d_ptr(value).data<mint::LibObject<std::int16_t>>().value));
 				}
 				if (mint::is_instance_of(value, symbols::int32)) {
-					return new number_t(
-					    static_cast<number_t>(*get_d_ptr(value).data<mint::LibObject<std::int32_t>>().ptr));
+					return number_t(static_cast<number_t>(get_d_ptr(value).data<mint::LibObject<std::int32_t>>().value));
 				}
 				if (mint::is_instance_of(value, symbols::int64)) {
-					return new number_t(
-					    static_cast<number_t>(*get_d_ptr(value).data<mint::LibObject<std::int64_t>>().ptr));
+					return number_t(static_cast<number_t>(get_d_ptr(value).data<mint::LibObject<std::int64_t>>().value));
 				}
 				if (mint::is_instance_of(value, symbols::uint8)) {
-					return new number_t(
-					    static_cast<number_t>(*get_d_ptr(value).data<mint::LibObject<std::uint8_t>>().ptr));
+					return number_t(static_cast<number_t>(get_d_ptr(value).data<mint::LibObject<std::uint8_t>>().value));
 				}
 				if (mint::is_instance_of(value, symbols::uint16)) {
-					return new number_t(
-					    static_cast<number_t>(*get_d_ptr(value).data<mint::LibObject<std::uint16_t>>().ptr));
+					return number_t(
+					    static_cast<number_t>(get_d_ptr(value).data<mint::LibObject<std::uint16_t>>().value));
 				}
 				if (mint::is_instance_of(value, symbols::uint32)) {
-					return new number_t(
-					    static_cast<number_t>(*get_d_ptr(value).data<mint::LibObject<std::uint32_t>>().ptr));
+					return number_t(
+					    static_cast<number_t>(get_d_ptr(value).data<mint::LibObject<std::uint32_t>>().value));
 				}
 				if (mint::is_instance_of(value, symbols::uint64)) {
-					return new number_t(
-					    static_cast<number_t>(*get_d_ptr(value).data<mint::LibObject<std::uint64_t>>().ptr));
+					return number_t(
+					    static_cast<number_t>(get_d_ptr(value).data<mint::LibObject<std::uint64_t>>().value));
 				}
 				mint::error("no valid conversion from {} to {}", type_name(value), name());
 				break;
@@ -116,41 +110,39 @@ public:
 		default:
 			mint::error("no valid conversion from {} to {}", type_name(value), name());
 		}
-
-		return nullptr;
 	}
 
 	static mint::Reference&& copy_operator(mint::Reference&& value, const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		data = *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		data = get_d_ptr(other).data<mint::LibObject<number_t>>().value;
 		return std::move(value);
 	}
 
 	static mint::Reference call_operator(mint::Program& program, const mint::Reference& value) {
-		return mint::create_c_object(program, new number_t(*get_d_ptr(value).data<mint::LibObject<number_t>>().ptr));
+		return mint::create_c_object<number_t>(program, get_d_ptr(value).data<mint::LibObject<number_t>>().value);
 	}
 
 	static mint::Reference&& add_operator(mint::Reference&& value, const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		data += *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		data += get_d_ptr(other).data<mint::LibObject<number_t>>().value;
 		return std::move(value);
 	}
 
 	static mint::Reference&& sub_operator(mint::Reference&& value, const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		data -= *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		data -= get_d_ptr(other).data<mint::LibObject<number_t>>().value;
 		return std::move(value);
 	}
 
 	static mint::Reference&& mul_operator(mint::Reference&& value, const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		data *= *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		data *= get_d_ptr(other).data<mint::LibObject<number_t>>().value;
 		return std::move(value);
 	}
 
 	static mint::Reference&& div_operator(mint::Reference&& value, const mint::Reference& other) {
-		if (number_t divider = *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr) {
-			number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
+		if (number_t divider = get_d_ptr(other).data<mint::LibObject<number_t>>().value) {
+			number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
 			data /= divider;
 		}
 		else {
@@ -160,14 +152,14 @@ public:
 	}
 
 	static mint::Reference&& pow_operator(mint::Reference&& value, const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		data = static_cast<number_t>(pow(data, *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr));
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		data = static_cast<number_t>(pow(data, get_d_ptr(other).data<mint::LibObject<number_t>>().value));
 		return std::move(value);
 	}
 
 	static mint::Reference&& mod_operator(mint::Reference&& value, const mint::Reference& other) {
-		if (number_t divider = *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr) {
-			number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
+		if (number_t divider = get_d_ptr(other).data<mint::LibObject<number_t>>().value) {
+			number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
 			data %= divider;
 		}
 		else {
@@ -177,82 +169,82 @@ public:
 	}
 
 	static mint::Reference eq_operator(mint::Reference& value, const mint::Reference& other) {
-		const number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		return mint::create_boolean(data == *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr);
+		const number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		return mint::create_boolean(data == get_d_ptr(other).data<mint::LibObject<number_t>>().value);
 	}
 
 	static mint::Reference ne_operator(mint::Reference& value, const mint::Reference& other) {
-		const number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		return mint::create_boolean(data != *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr);
+		const number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		return mint::create_boolean(data != get_d_ptr(other).data<mint::LibObject<number_t>>().value);
 	}
 
 	static mint::Reference lt_operator(mint::Reference& value, const mint::Reference& other) {
-		const number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		return mint::create_boolean(data < *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr);
+		const number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		return mint::create_boolean(data < get_d_ptr(other).data<mint::LibObject<number_t>>().value);
 	}
 
 	static mint::Reference gt_operator(mint::Reference& value, const mint::Reference& other) {
-		const number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		return mint::create_boolean(data > *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr);
+		const number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		return mint::create_boolean(data > get_d_ptr(other).data<mint::LibObject<number_t>>().value);
 	}
 
 	static mint::Reference le_operator(mint::Reference& value, const mint::Reference& other) {
-		const number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		return mint::create_boolean(data <= *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr);
+		const number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		return mint::create_boolean(data <= get_d_ptr(other).data<mint::LibObject<number_t>>().value);
 	}
 
 	static mint::Reference ge_operator(mint::Reference& value, const mint::Reference& other) {
-		const number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		return mint::create_boolean(data >= *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr);
+		const number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		return mint::create_boolean(data >= get_d_ptr(other).data<mint::LibObject<number_t>>().value);
 	}
 
 	static mint::Reference&& and_operator(mint::Reference&& value, mint::Reference&& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
 		return data ? std::move(other) : std::move(value);
 	}
 
 	static mint::Reference&& or_operator(mint::Reference&& value, mint::Reference&& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
 		return data ? std::move(value) : std::move(other);
 	}
 
 	static mint::Reference&& band_operator(mint::Reference&& value, const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		data &= *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		data &= get_d_ptr(other).data<mint::LibObject<number_t>>().value;
 		return std::move(value);
 	}
 
 	static mint::Reference&& bor_operator(mint::Reference&& value, const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		data |= *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		data |= get_d_ptr(other).data<mint::LibObject<number_t>>().value;
 		return std::move(value);
 	}
 
 	static mint::Reference&& xor_operator(mint::Reference&& value, const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		data ^= *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		data ^= get_d_ptr(other).data<mint::LibObject<number_t>>().value;
 		return std::move(value);
 	}
 
 	static mint::Reference&& inc_operator(mint::Reference&& value) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
 		++data;
 		return std::move(value);
 	}
 
 	static mint::Reference&& dec_operator(mint::Reference&& value) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
 		--data;
 		return std::move(value);
 	}
 
 	static mint::Reference not_operator(mint::Reference& value) {
-		const number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
+		const number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
 		return mint::create_boolean(!data);
 	}
 
 	static mint::Reference&& compl_operator(mint::Reference&& value) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
 		data = ~data;
 		return std::move(value);
 	}
@@ -262,68 +254,67 @@ public:
 	}
 
 	static mint::Reference&& neg_operator(mint::Reference&& value) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
 		data = -data;
 		return std::move(value);
 	}
 
 	static mint::Reference&& shift_left_operator(mint::Reference&& value, const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		data = data << *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		data = data << get_d_ptr(other).data<mint::LibObject<number_t>>().value;
 		return std::move(value);
 	}
 
 	static mint::Reference&& shift_right_operator(mint::Reference&& value, const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		data = data >> *get_d_ptr(other).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		data = data >> get_d_ptr(other).data<mint::LibObject<number_t>>().value;
 		return std::move(value);
 	}
 
 	static mint::Reference inclusive_range_operator(mint::Program& program, mint::Reference& value,
 	    const mint::Reference& other) {
 		return mint::create_iterator(mint::from_inclusive_range, program,
-		    mint::to_number(*get_d_ptr(value).data<mint::LibObject<number_t>>().ptr),
-		    mint::to_number(*get_d_ptr(other).data<mint::LibObject<number_t>>().ptr));
+		    mint::to_number(get_d_ptr(value).data<mint::LibObject<number_t>>().value),
+		    mint::to_number(get_d_ptr(other).data<mint::LibObject<number_t>>().value));
 	}
 
 	static mint::Reference exclusive_range_operator(mint::Program& program, mint::Reference& value,
 	    const mint::Reference& other) {
 		return mint::create_iterator(mint::from_exclusive_range, program,
-		    mint::to_number(*get_d_ptr(value).data<mint::LibObject<number_t>>().ptr),
-		    mint::to_number(*get_d_ptr(other).data<mint::LibObject<number_t>>().ptr));
+		    mint::to_number(get_d_ptr(value).data<mint::LibObject<number_t>>().value),
+		    mint::to_number(get_d_ptr(other).data<mint::LibObject<number_t>>().value));
 	}
 
 	static mint::Reference subscript_operator(mint::Program& program, mint::Reference& value, std::intmax_t index) {
-		const number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
-		return mint::create_c_object(program,
-		    new number_t(
-		        number_t(data / static_cast<number_t>(std::pow(static_cast<std::intmax_t>(mint::decimal_base), index))
-		                 % mint::decimal_base)));
+		const number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
+		return mint::create_c_object<number_t>(program,
+		    number_t(data / static_cast<number_t>(std::pow(static_cast<std::intmax_t>(mint::decimal_base), index))
+		             % mint::decimal_base));
 	}
 
 	static mint::Reference&& subscript_move_operator(mint::Reference&& value, std::intmax_t index,
 	    const mint::Reference& other) {
-		number_t& data = *get_d_ptr(value).data<mint::LibObject<number_t>>().ptr;
+		number_t& data = get_d_ptr(value).data<mint::LibObject<number_t>>().value;
 		data -= static_cast<number_t>(
 		            number_t(
 		                data / static_cast<number_t>(std::pow(static_cast<std::intmax_t>(mint::decimal_base), index)))
 		            % mint::decimal_base)
 		        * static_cast<number_t>(std::pow(static_cast<std::intmax_t>(mint::decimal_base), index));
-		data += number_t(*get_d_ptr(other).data<mint::LibObject<number_t>>().ptr
+		data += number_t(get_d_ptr(other).data<mint::LibObject<number_t>>().value
 		                 * static_cast<number_t>(std::pow(static_cast<std::intmax_t>(mint::decimal_base), index)));
 		return std::move(value);
 	}
 
 	static mint::Reference to_number(mint::Reference& value) {
-		return mint::create_number(*get_d_ptr(value).data<mint::LibObject<number_t>>().ptr);
+		return mint::create_number(get_d_ptr(value).data<mint::LibObject<number_t>>().value);
 	}
 
 private:
 	static std::string_view name();
 
 	static mint::Reference get_d_ptr(const mint::Reference& reference) {
-		auto& object = reference.data<mint::Object>();
-		if (auto* member = object.metadata.find_member(symbols::d_ptr)) {
+		const auto& object = reference.data<mint::Object>();
+		if (const auto* member = object.metadata.find_member(symbols::d_ptr)) {
 			return mint::Class::MemberInfo::get(*member, object);
 		}
 		return {};
@@ -336,12 +327,7 @@ std::string_view FixedInt<std::int8_t>::name() {
 }
 
 mint::Reference mint_int8_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.program(), FixedInt<std::int8_t>::create(cursor, value));
-}
-
-mint::Reference mint_int8_delete(mint::Cursor& /*cursor*/, mint::Reference& value) {
-	delete value.data<mint::LibObject<std::int8_t>>().ptr;
-	return {};
+	return mint::create_c_object<std::int8_t>(cursor.program(), FixedInt<std::int8_t>::create(cursor, value));
 }
 
 mint::Reference mint_int8_copy(mint::Cursor& /*cursor*/, mint::Reference& target, const mint::Reference& source) {
@@ -480,12 +466,7 @@ std::string_view FixedInt<std::int16_t>::name() {
 }
 
 mint::Reference mint_int16_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.program(), FixedInt<std::int16_t>::create(cursor, value));
-}
-
-mint::Reference mint_int16_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
-	delete value.data<mint::LibObject<std::int16_t>>().ptr;
-	return {};
+	return mint::create_c_object<std::int16_t>(cursor.program(), FixedInt<std::int16_t>::create(cursor, value));
 }
 
 mint::Reference mint_int16_copy(mint::Cursor& /*cursor*/, mint::Reference& target, const mint::Reference& source) {
@@ -624,12 +605,7 @@ std::string_view FixedInt<std::int32_t>::name() {
 }
 
 mint::Reference mint_int32_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.program(), FixedInt<std::int32_t>::create(cursor, value));
-}
-
-mint::Reference mint_int32_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
-	delete value.data<mint::LibObject<std::int32_t>>().ptr;
-	return {};
+	return mint::create_c_object<std::int32_t>(cursor.program(), FixedInt<std::int32_t>::create(cursor, value));
 }
 
 mint::Reference mint_int32_copy(mint::Cursor& /*cursor*/, mint::Reference& target, const mint::Reference& source) {
@@ -768,12 +744,7 @@ std::string_view FixedInt<std::int64_t>::name() {
 }
 
 mint::Reference mint_int64_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.program(), FixedInt<std::int64_t>::create(cursor, value));
-}
-
-mint::Reference mint_int64_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
-	delete value.data<mint::LibObject<std::int64_t>>().ptr;
-	return {};
+	return mint::create_c_object<std::int64_t>(cursor.program(), FixedInt<std::int64_t>::create(cursor, value));
 }
 
 mint::Reference mint_int64_copy(mint::Cursor& /*cursor*/, mint::Reference& target, const mint::Reference& source) {
@@ -912,12 +883,7 @@ std::string_view FixedInt<std::uint8_t>::name() {
 }
 
 mint::Reference mint_uint8_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.program(), FixedInt<std::uint8_t>::create(cursor, value));
-}
-
-mint::Reference mint_uint8_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
-	delete value.data<mint::LibObject<std::uint8_t>>().ptr;
-	return {};
+	return mint::create_c_object<std::uint8_t>(cursor.program(), FixedInt<std::uint8_t>::create(cursor, value));
 }
 
 mint::Reference mint_uint8_copy(mint::Cursor& /*cursor*/, mint::Reference& target, const mint::Reference& source) {
@@ -1052,12 +1018,7 @@ std::string_view FixedInt<std::uint16_t>::name() {
 }
 
 mint::Reference mint_uint16_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.program(), FixedInt<std::uint16_t>::create(cursor, value));
-}
-
-mint::Reference mint_uint16_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
-	delete value.data<mint::LibObject<std::uint16_t>>().ptr;
-	return {};
+	return mint::create_c_object<std::uint16_t>(cursor.program(), FixedInt<std::uint16_t>::create(cursor, value));
 }
 
 mint::Reference mint_uint16_copy(mint::Cursor& /*cursor*/, mint::Reference& target, const mint::Reference& source) {
@@ -1192,12 +1153,7 @@ std::string_view FixedInt<std::uint32_t>::name() {
 }
 
 mint::Reference mint_uint32_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.program(), FixedInt<std::uint32_t>::create(cursor, value));
-}
-
-mint::Reference mint_uint32_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
-	delete value.data<mint::LibObject<std::uint32_t>>().ptr;
-	return {};
+	return mint::create_c_object<std::uint32_t>(cursor.program(), FixedInt<std::uint32_t>::create(cursor, value));
 }
 
 mint::Reference mint_uint32_copy(mint::Cursor& /*cursor*/, mint::Reference& target, const mint::Reference& source) {
@@ -1332,12 +1288,7 @@ std::string_view FixedInt<std::uint64_t>::name() {
 }
 
 mint::Reference mint_uint64_create(mint::Cursor& cursor, mint::Reference& value) {
-	return mint::create_c_object(cursor.program(), FixedInt<std::uint64_t>::create(cursor, value));
-}
-
-mint::Reference mint_uint64_delete(mint::Cursor& /*cursor*/, const mint::Reference& value) {
-	delete value.data<mint::LibObject<std::uint64_t>>().ptr;
-	return {};
+	return mint::create_c_object<std::uint64_t>(cursor.program(), FixedInt<std::uint64_t>::create(cursor, value));
 }
 
 mint::Reference mint_uint64_copy(mint::Cursor& /*cursor*/, mint::Reference& target, const mint::Reference& source) {
@@ -1469,7 +1420,6 @@ mint::Reference mint_uint64_to_number(mint::Cursor& /*cursor*/, mint::Reference&
 }
 
 MINT_EXPORT_FUNCTION(mint_int8_create, 1);
-MINT_EXPORT_FUNCTION(mint_int8_delete, 1);
 MINT_EXPORT_FUNCTION(mint_int8_copy, 2);
 MINT_EXPORT_FUNCTION(mint_int8_call, 1);
 MINT_EXPORT_FUNCTION(mint_int8_add, 2);
@@ -1504,7 +1454,6 @@ MINT_EXPORT_FUNCTION(mint_int8_subscript_move, 3);
 MINT_EXPORT_FUNCTION(mint_int8_to_number, 1);
 
 MINT_EXPORT_FUNCTION(mint_int16_create, 1);
-MINT_EXPORT_FUNCTION(mint_int16_delete, 1);
 MINT_EXPORT_FUNCTION(mint_int16_copy, 2);
 MINT_EXPORT_FUNCTION(mint_int16_call, 1);
 MINT_EXPORT_FUNCTION(mint_int16_add, 2);
@@ -1539,7 +1488,6 @@ MINT_EXPORT_FUNCTION(mint_int16_subscript_move, 3);
 MINT_EXPORT_FUNCTION(mint_int16_to_number, 1);
 
 MINT_EXPORT_FUNCTION(mint_int32_create, 1);
-MINT_EXPORT_FUNCTION(mint_int32_delete, 1);
 MINT_EXPORT_FUNCTION(mint_int32_copy, 2);
 MINT_EXPORT_FUNCTION(mint_int32_call, 1);
 MINT_EXPORT_FUNCTION(mint_int32_add, 2);
@@ -1574,7 +1522,6 @@ MINT_EXPORT_FUNCTION(mint_int32_subscript_move, 3);
 MINT_EXPORT_FUNCTION(mint_int32_to_number, 1);
 
 MINT_EXPORT_FUNCTION(mint_int64_create, 1);
-MINT_EXPORT_FUNCTION(mint_int64_delete, 1);
 MINT_EXPORT_FUNCTION(mint_int64_copy, 2);
 MINT_EXPORT_FUNCTION(mint_int64_call, 1);
 MINT_EXPORT_FUNCTION(mint_int64_add, 2);
@@ -1609,7 +1556,6 @@ MINT_EXPORT_FUNCTION(mint_int64_subscript_move, 3);
 MINT_EXPORT_FUNCTION(mint_int64_to_number, 1);
 
 MINT_EXPORT_FUNCTION(mint_uint8_create, 1);
-MINT_EXPORT_FUNCTION(mint_uint8_delete, 1);
 MINT_EXPORT_FUNCTION(mint_uint8_copy, 2);
 MINT_EXPORT_FUNCTION(mint_uint8_call, 1);
 MINT_EXPORT_FUNCTION(mint_uint8_add, 2);
@@ -1643,7 +1589,6 @@ MINT_EXPORT_FUNCTION(mint_uint8_subscript_move, 3);
 MINT_EXPORT_FUNCTION(mint_uint8_to_number, 1);
 
 MINT_EXPORT_FUNCTION(mint_uint16_create, 1);
-MINT_EXPORT_FUNCTION(mint_uint16_delete, 1);
 MINT_EXPORT_FUNCTION(mint_uint16_copy, 2);
 MINT_EXPORT_FUNCTION(mint_uint16_call, 1);
 MINT_EXPORT_FUNCTION(mint_uint16_add, 2);
@@ -1677,7 +1622,6 @@ MINT_EXPORT_FUNCTION(mint_uint16_subscript_move, 3);
 MINT_EXPORT_FUNCTION(mint_uint16_to_number, 1);
 
 MINT_EXPORT_FUNCTION(mint_uint32_create, 1);
-MINT_EXPORT_FUNCTION(mint_uint32_delete, 1);
 MINT_EXPORT_FUNCTION(mint_uint32_copy, 2);
 MINT_EXPORT_FUNCTION(mint_uint32_call, 1);
 MINT_EXPORT_FUNCTION(mint_uint32_add, 2);
@@ -1711,7 +1655,6 @@ MINT_EXPORT_FUNCTION(mint_uint32_subscript_move, 3);
 MINT_EXPORT_FUNCTION(mint_uint32_to_number, 1);
 
 MINT_EXPORT_FUNCTION(mint_uint64_create, 1);
-MINT_EXPORT_FUNCTION(mint_uint64_delete, 1);
 MINT_EXPORT_FUNCTION(mint_uint64_copy, 2);
 MINT_EXPORT_FUNCTION(mint_uint64_call, 1);
 MINT_EXPORT_FUNCTION(mint_uint64_add, 2);

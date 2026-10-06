@@ -52,7 +52,6 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <type_traits>
 #include <utility>
 
 using namespace mint;
@@ -300,37 +299,38 @@ Reference mint::create_iterator_over(Cursor& cursor, Reference&& ref) {
 
 #ifdef MINT_OS_WINDOWS
 Reference mint::create_handle(Program& program, mint::handle_t handle) {
-	Reference ref = make_reference<LibObject<std::remove_pointer_t<mint::handle_t>>>(create_flags, program, handle);
-	ref.data<LibObject<std::remove_pointer_t<mint::handle_t>>>().construct();
+	Reference ref = make_reference<LibObject<mint::handle_t>>(create_flags, program, handle);
+	ref.data<LibObject<mint::handle_t>>().construct();
 	return ref;
 }
 
 mint::handle_t mint::to_handle(const Reference& reference) {
-	return reference.data<LibObject<std::remove_pointer_t<HANDLE>>>().ptr;
+	return reference.data<LibObject<mint::handle_t>>().value;
 }
 
 mint::handle_t* mint::to_handle_ptr(const Reference& reference) {
-	return &reference.data<LibObject<std::remove_pointer_t<HANDLE>>>().ptr;
+	return &reference.data<LibObject<mint::handle_t>>().value;
 }
 #else
 Reference mint::create_handle(Program& program, mint::handle_t handle) {
-	Reference ref = make_reference<LibObject<void>>(create_flags, program, reinterpret_cast<void*>(handle));
-	ref.data<LibObject<void>>().construct();
+	Reference ref = make_reference<LibObject<mint::handle_t>>(create_flags, program, handle);
+	ref.data<LibObject<mint::handle_t>>().construct();
 	return ref;
 }
 
 mint::handle_t mint::to_handle(const Reference& reference) {
-	return static_cast<handle_t>(std::bit_cast<intptr_t>(reference.data<LibObject<void>>().ptr));
+	return reference.data<LibObject<mint::handle_t>>().value;
 }
 
 mint::handle_t* mint::to_handle_ptr(const Reference& reference) {
-	return std::bit_cast<handle_t*>(&reference.data<LibObject<void>>().ptr);
+	return &reference.data<LibObject<mint::handle_t>>().value;
 }
 #endif
 
-Reference mint::create_async_operation(Program& program, MintAsyncOperation* operation) {
-	Reference ref = make_reference<LibObject<MintAsyncOperation>>(create_flags, program, operation);
-	ref.data<LibObject<MintAsyncOperation>>().construct();
+Reference mint::create_async_operation(Program& program, std::unique_ptr<MintAsyncOperation> operation) {
+	Reference ref = make_reference<LibObject<std::unique_ptr<MintAsyncOperation>>>(create_flags, program,
+	    std::move(operation));
+	ref.data<LibObject<std::unique_ptr<MintAsyncOperation>>>().construct();
 	return ref;
 }
 
@@ -348,9 +348,9 @@ Reference mint::get_member_ignore_visibility(Program& program, const Reference& 
 
 	case Data::Format::object:
 		{
-			auto& object = reference.data<Object>();
+			const auto& object = reference.data<Object>();
 
-			if (auto* info = object.metadata.find_member(member)) {
+			if (const auto* info = object.metadata.find_member(member)) {
 				if (is_object(object)) {
 					return Class::MemberInfo::get(*info, object);
 				}

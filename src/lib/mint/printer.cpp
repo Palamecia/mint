@@ -31,8 +31,8 @@ namespace {
 
 mint::Reference mint_printer_write(mint::Cursor& /*cursor*/, const mint::Reference& object,
     const mint::Reference& data) {
-	mint::Printer* printer = object.data<mint::LibObject<mint::Printer>>().ptr;
-	printer->print(data);
+	mint::Printer& printer = object.data<mint::LibObject<mint::Printer&>>().value;
+	printer.print(data);
 	return {};
 }
 
@@ -43,8 +43,8 @@ MINT_RAW_FUNCTION(mint_printer_current_handle, 0, cursor) {
 	cursor.exit_call();
 	cursor.exit_call();
 
-	if (mint::Printer* printer = cursor.printer()) {
-		cursor.stack().emplace_back(mint::create_c_object(cursor.program(), printer));
+	if (auto* printer = cursor.printer()) {
+		cursor.stack().emplace_back(mint::create_c_object<mint::Printer&>(cursor.program(), *printer));
 	}
 	else {
 		cursor.stack().emplace_back(mint::create_none());

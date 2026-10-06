@@ -50,6 +50,7 @@
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <memory>
 #include <optional>
 #include <regex>
 #include <span>
@@ -260,8 +261,8 @@ protected:
 template<>
 class LibObjectMarker<MintAsyncOperation> {
 public:
-	static void mark(MintAsyncOperation* ptr) {
-		ptr->mark();
+	static void mark(MintAsyncOperation& value) {
+		value.mark();
 	}
 };
 
@@ -318,9 +319,9 @@ Reference create_iterator_from(Cursor& cursor, Items... items) {
 	return ref;
 }
 
-template<class Type>
-Reference create_c_object(Program& program, Type* object) {
-	Reference ref = make_reference<LibObject<Type>>(create_flags, program, object);
+template<class Type, typename... Args>
+Reference create_c_object(Program& program, Args&&... args) {
+	Reference ref = make_reference<LibObject<Type>>(create_flags, program, std::forward<Args>(args)...);
 	ref.data<LibObject<Type>>().construct();
 	return ref;
 }
@@ -329,7 +330,7 @@ MINT_EXPORT Reference create_handle(Program& program, handle_t handle);
 MINT_EXPORT handle_t to_handle(const Reference& reference);
 MINT_EXPORT handle_t* to_handle_ptr(const Reference& reference);
 
-MINT_EXPORT Reference create_async_operation(Program& program, MintAsyncOperation* operation);
+MINT_EXPORT Reference create_async_operation(Program& program, std::unique_ptr<MintAsyncOperation> operation);
 
 // ...
 

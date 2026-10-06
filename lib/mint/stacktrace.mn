@@ -34,9 +34,6 @@
      */
     const def new(self, moduleId, moduleName, lineNumber) {
         self.d_ptr = StackFrame.g_lib.call('mint_stack_frame_from_id', moduleId, moduleName, lineNumber)
-        self.d_ptr.delete = def [g_lib = Exception.StackFrame.g_lib] (self) {
-            g_lib.call('mint_stack_frame_delete', self)
-        }
     }
 
     /**
@@ -44,9 +41,6 @@
      */
     const def new(self, moduleName, lineNumber) {
         self.d_ptr = StackFrame.g_lib.call('mint_stack_frame_from_name', moduleName, lineNumber)
-        self.d_ptr.delete = def [g_lib = Exception.StackFrame.g_lib] (self) {
-            g_lib.call('mint_stack_frame_delete', self)
-        }
     }
 
     /**

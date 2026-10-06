@@ -34,35 +34,31 @@
 #include "mint/system/async_io.h"
 #include <cassert>
 #include <chrono>
+#include <memory>
 #include <utility>
 
 namespace {
 
 mint::Reference mint_scheduler_new(mint::Cursor& cursor) {
-	return mint::create_c_object(cursor.program(), new mint::AsyncRuntime());
-}
-
-mint::Reference mint_scheduler_delete(mint::Cursor& /*cursor*/, const mint::Reference& scheduler) {
-	delete scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr;
-	return {};
+	return mint::create_c_object<mint::AsyncRuntime>(cursor.program());
 }
 
 mint::Reference mint_scheduler_watch(mint::Cursor& /*cursor*/, const mint::Reference& scheduler,
     const mint::Reference& handle) {
 	return mint::create_number(
-	    scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr->register_handle(mint::to_handle(handle)).value());
+	    scheduler.data<mint::LibObject<mint::AsyncRuntime>>().value.register_handle(mint::to_handle(handle)).value());
 }
 
 mint::Reference mint_scheduler_submit(mint::Cursor& /*cursor*/, const mint::Reference& scheduler,
     const mint::Reference& handle) {
-	return mint::create_boolean(scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr->submit(
-	    *handle.data<mint::LibObject<mint::MintAsyncOperation>>().ptr));
+	return mint::create_boolean(scheduler.data<mint::LibObject<mint::AsyncRuntime>>().value.submit(
+	    *handle.data<mint::LibObject<std::unique_ptr<mint::MintAsyncOperation>>>().value));
 }
 
 mint::Reference mint_scheduler_cancel(mint::Cursor& /*cursor*/, const mint::Reference& scheduler,
     const mint::Reference& handle) {
-	return mint::create_boolean(scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr->cancel(
-	    *handle.data<mint::LibObject<mint::MintAsyncOperation>>().ptr));
+	return mint::create_boolean(scheduler.data<mint::LibObject<mint::AsyncRuntime>>().value.cancel(
+	    *handle.data<mint::LibObject<std::unique_ptr<mint::MintAsyncOperation>>>().value));
 }
 
 mint::Reference mint_scheduler_poll(mint::Cursor& cursor, const mint::Reference& scheduler,
@@ -70,7 +66,7 @@ mint::Reference mint_scheduler_poll(mint::Cursor& cursor, const mint::Reference&
 	{
 		const auto _ = mint::ProcessorUnlocker();
 		if (const auto* operation = dynamic_cast<mint::MintAsyncOperation*>(
-		        scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr->poll(
+		        scheduler.data<mint::LibObject<mint::AsyncRuntime>>().value.poll(
 		            std::chrono::milliseconds(mint::to_integer<std::chrono::milliseconds::rep>(cursor, timeout))))) {
 			return mint::create_iterator_from(cursor, operation->self(), operation->get());
 		}
@@ -82,7 +78,7 @@ mint::Reference mint_scheduler_poll(mint::Cursor& cursor, const mint::Reference&
 
 MINT_RAW_FUNCTION(mint_scheduler_spawn, 1, cursor) {
 
-	auto coroutine = cursor.stack().back();
+	const auto coroutine = cursor.stack().back();
 	cursor.stack().pop_back();
 
 	if (mint::is_instance_of(coroutine, mint::Data::Format::coroutine)) {
@@ -107,7 +103,7 @@ MINT_RAW_FUNCTION(mint_scheduler_current_coroutine, 0, cursor) {
 
 MINT_RAW_FUNCTION(mint_scheduler_suspend, 1, cursor) {
 
-	auto coroutine = std::move(cursor.stack().back());
+	const auto coroutine = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
 	cursor.exit_call();
 
@@ -118,10 +114,10 @@ MINT_RAW_FUNCTION(mint_scheduler_suspend, 1, cursor) {
 
 MINT_RAW_FUNCTION(mint_scheduler_raise, 2, cursor) {
 
-	auto error = std::move(cursor.stack().back());
+	const auto error = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
 
-	auto coroutine = std::move(cursor.stack().back());
+	const auto coroutine = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
 	// cursor.exit_call();
 
@@ -140,7 +136,7 @@ MINT_RAW_FUNCTION(mint_scheduler_raise, 2, cursor) {
 
 MINT_RAW_FUNCTION(mint_scheduler_resume, 1, cursor) {
 
-	auto coroutine = std::move(cursor.stack().back());
+	const auto coroutine = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
 
 	assert(mint::is_instance_of(coroutine, mint::Data::Format::coroutine));
@@ -148,7 +144,6 @@ MINT_RAW_FUNCTION(mint_scheduler_resume, 1, cursor) {
 }
 
 MINT_EXPORT_FUNCTION(mint_scheduler_new, 0);
-MINT_EXPORT_FUNCTION(mint_scheduler_delete, 1);
 MINT_EXPORT_FUNCTION(mint_scheduler_watch, 2);
 MINT_EXPORT_FUNCTION(mint_scheduler_submit, 2);
 MINT_EXPORT_FUNCTION(mint_scheduler_cancel, 2);

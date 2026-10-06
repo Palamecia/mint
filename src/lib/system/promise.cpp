@@ -61,8 +61,8 @@ mint::Reference mint_promise_start_member(mint::FunctionHelper& helper, const mi
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_member_operator(*thread_cursor, signature);
-	return mint::create_c_object(helper.cursor().program(),
-	    new std::future<mint::Reference>(scheduler.create_async_thread(std::move(thread_cursor))));
+	return mint::create_c_object<std::future<mint::Reference>>(helper.cursor().program(),
+	    scheduler.create_async_thread(std::move(thread_cursor)));
 }
 
 mint::Reference mint_promise_start(mint::FunctionHelper& helper, const mint::Reference& func,
@@ -76,8 +76,8 @@ mint::Reference mint_promise_start(mint::FunctionHelper& helper, const mint::Ref
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_operator(*thread_cursor, signature);
-	return create_c_object(helper.cursor().program(),
-	    new std::future<mint::Reference>(scheduler.create_async_thread(std::move(thread_cursor))));
+	return create_c_object<std::future<mint::Reference>>(helper.cursor().program(),
+	    scheduler.create_async_thread(std::move(thread_cursor)));
 }
 
 mint::Reference mint_promise_spawn(mint::FunctionHelper& helper, const mint::Reference& coroutine) {
@@ -92,19 +92,14 @@ mint::Reference mint_promise_spawn(mint::FunctionHelper& helper, const mint::Ref
 		thread_cursor->stack().emplace_back(coroutine);
 	}
 
-	return create_c_object(helper.cursor().program(),
-	    new std::future<mint::Reference>(scheduler.create_async_thread(std::move(thread_cursor))));
-}
-
-mint::Reference mint_promise_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	delete d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr;
-	return {};
+	return create_c_object<std::future<mint::Reference>>(helper.cursor().program(),
+	    scheduler.create_async_thread(std::move(thread_cursor)));
 }
 
 mint::Reference mint_promise_wait_for(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& time) {
-	if (const auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
+	if (const auto& promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().value; promise.valid()) {
 		const auto _ = mint::ProcessorUnlocker();
-		switch (promise->wait_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)))) {
+		switch (promise.wait_for(std::chrono::milliseconds(mint::to_signed_integer(cursor, time)))) {
 		case std::future_status::deferred:
 		case std::future_status::timeout:
 			return mint::create_boolean(false);
@@ -116,19 +111,19 @@ mint::Reference mint_promise_wait_for(mint::Cursor& cursor, const mint::Referenc
 }
 
 mint::Reference mint_promise_wait(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	if (const auto* promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr; promise->valid()) {
+	if (const auto& promise = d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().value; promise.valid()) {
 		const auto _ = mint::ProcessorUnlocker();
-		promise->wait();
+		promise.wait();
 	}
 	return {};
 }
 
 mint::Reference mint_promise_is_valid(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return mint::create_boolean(d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr->valid());
+	return mint::create_boolean(d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().value.valid());
 }
 
 mint::Reference mint_promise_get(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().ptr->get();
+	return d_ptr.data<mint::LibObject<std::future<mint::Reference>>>().value.get();
 }
 
 }
@@ -136,7 +131,6 @@ mint::Reference mint_promise_get(mint::Cursor& /*cursor*/, const mint::Reference
 MINT_EXPORT_FUNCTION(mint_promise_start_member, 3)
 MINT_EXPORT_FUNCTION(mint_promise_start, 2)
 MINT_EXPORT_FUNCTION(mint_promise_spawn, 1)
-MINT_EXPORT_FUNCTION(mint_promise_delete, 1)
 MINT_EXPORT_FUNCTION(mint_promise_wait_for, 2)
 MINT_EXPORT_FUNCTION(mint_promise_wait, 1)
 MINT_EXPORT_FUNCTION(mint_promise_is_valid, 1)

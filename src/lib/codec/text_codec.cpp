@@ -40,7 +40,7 @@ namespace {
 mint::Reference mint_text_codec_decode(mint::Cursor& cursor, const mint::Reference& buffer, const mint::Reference& pos) {
 
 	const auto offset = mint::to_integer<std::size_t>(cursor, pos);
-	auto bytes = std::span(*buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr).subspan(offset);
+	auto bytes = std::span(buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value).subspan(offset);
 	auto decoded = std::string();
 
 	if (bytes.empty()) {
@@ -66,7 +66,7 @@ mint::Reference mint_text_codec_decode(mint::Cursor& cursor, const mint::Referen
 mint::Reference mint_text_codec_encode(mint::Cursor& cursor, const mint::Reference& str, const mint::Reference& buffer,
     const mint::Reference& pos) {
 
-	auto* output = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr;
+	auto& output = buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().value;
 	const auto input_string = mint::to_string(str);
 	const auto offset = mint::utf8_code_point_index_to_byte_index(input_string,
 	    mint::to_integer<std::size_t>(cursor, pos));
@@ -79,7 +79,7 @@ mint::Reference mint_text_codec_encode(mint::Cursor& cursor, const mint::Referen
 			pos.data<mint::Number>().value = mint::to_number(offset + bytes_pos);
 			return mint::create_number(1);
 		}
-		output->append_range(input_view.substr(bytes_pos, length));
+		output.append_range(input_view.substr(bytes_pos, length));
 		bytes_pos += length;
 	}
 

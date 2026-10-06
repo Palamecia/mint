@@ -7,9 +7,6 @@ load mint.operator
 		
 		library = lib('libmint-mint')
 		libobject = library.call('mint_int8_create', 0)
-		libobject.delete = def [library] (self) {
-			library.call('mint_int8_delete', self)
-		}
 
 		self._testPackage = Test
 		self._testFunction = def {}

@@ -88,9 +88,6 @@ package Network {
 			switch typeof data {
 			case 'libobject':
 				self.d_ptr = data
-				self.d_ptr.delete = def [g_lib = Network.SocketLinger.g_lib] (self) {
-					g_lib.call('mint_socket_linger_delete', self)
-				}
 				return self
 			default:
 				raise Exception.ValueError('data must be a valid socket linger value', data)
@@ -109,9 +106,6 @@ package Network {
 		 */
 		const def new(self, const enable, const linger_time) {
 			self.d_ptr = Network.SocketLinger.g_lib.call('mint_socket_linger_create', enable, linger_time)
-			self.d_ptr.delete = def [g_lib = Network.SocketLinger.g_lib] (self) {
-				g_lib.call('mint_socket_linger_delete', self)
-			}
 		}
 
 		/**
@@ -176,9 +170,6 @@ package Network {
 			switch typeof data {
 			case 'libobject':
 				self.d_ptr = data
-				self.d_ptr.delete = def [g_lib = Network.SocketTime.g_lib] (self) {
-					g_lib.call('mint_socket_timeval_delete', self)
-				}
 				return self
 			default:
 				raise Exception.ValueError('data must be a valid socket time value', data)
@@ -194,9 +185,6 @@ package Network {
 		 */
 		const def new(self, const sec, const usec) {
 			self.d_ptr = Network.SocketTime.g_lib.call('mint_socket_timeval_create', sec, usec)
-			self.d_ptr.delete = def [g_lib = Network.SocketTime.g_lib] (self) {
-                g_lib.call('mint_socket_timeval_delete', self)
-            }
 		}
 
 		/**

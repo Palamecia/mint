@@ -65,9 +65,6 @@ package System {
 		 */
 		const def new(self, kind = System.Mutex.Kind.Normal) {
 			self.d_ptr = System.Mutex.g_lib.call('mint_mutex_create', kind)
-			self.d_ptr.delete = def [g_lib = System.Mutex.g_lib] (self) {
-				g_lib.call('mint_mutex_delete', self)
-			}
 		}
 
 		/**
@@ -330,7 +327,6 @@ package System {
 		- final const def attach(self, d_ptr) {
 		    d_ptr.delete = def [g_lib = System.Promise.g_lib] (self) {
 		        g_lib.call('mint_promise_wait', self)
-		        g_lib.call('mint_promise_delete', self)
 		    }
 		    self.d_ptr = d_ptr
 		}

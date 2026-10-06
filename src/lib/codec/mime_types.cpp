@@ -113,8 +113,8 @@ std::string mime_type_from_data(const void* buffer, std::size_t length) {
 
 mint::Reference mint_mime_type_from_buffer(mint::Cursor& cursor, const mint::Reference& data) {
 	return mint::create_string(cursor.program(),
-	    mime_type_from_data(data.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->data(),
-	        data.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr->size()));
+	    mime_type_from_data(data.data<mint::LibObject<std::vector<std::uint8_t>>>().value.data(),
+	        data.data<mint::LibObject<std::vector<std::uint8_t>>>().value.size()));
 }
 
 mint::Reference mint_mime_type_from_string(mint::Cursor& cursor, const mint::Reference& data) {

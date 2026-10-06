@@ -80,7 +80,7 @@ TEST(file_printer, print_libobject) {
 	ASSERT_NE(-1, fd);
 
 	{
-		const auto object = mint::create_c_object(scheduler.program(), reinterpret_cast<int*>(0x7357));
+		const auto object = mint::create_c_object<int>(scheduler.program(), 42);
 		auto printer = mint::FilePrinter(fd);
 		printer.print(object);
 	}

@@ -41,9 +41,6 @@ package Serializer {
 	 */
 	const def new(self) {
 		self.d_ptr = Serializer.DataStream.g_lib.call('mint_data_stream_create_buffer')
-		self.d_ptr.delete = def [g_lib = Serializer.DataStream.g_lib] (self) {
-			g_lib.call('mint_data_stream_delete_buffer', self)
-		}
 	}
 
 	/**
@@ -64,9 +61,6 @@ package Serializer {
 			return other.toDataStream() as Serializer.DataStream
 		}
 		self.d_ptr = Serializer.DataStream.g_lib.call('mint_data_stream_create_buffer')
-		self.d_ptr.delete = def [g_lib = Serializer.DataStream.g_lib] (self) {
-			g_lib.call('mint_data_stream_delete_buffer', self)
-		}
 		self.write(other)
 		return self
 	}

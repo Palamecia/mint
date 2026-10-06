@@ -63,8 +63,7 @@ mint::Reference mint_locale_list(mint::Cursor& cursor) {
 
 mint::Reference mint_locale_current(mint::Cursor& cursor) {
 	try {
-		auto locale = std::make_unique<mint_system::LocaleData>();
-		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), locale.release()));
+		return mint_system::make_success(cursor, mint::create_c_object<mint_system::LocaleData>(cursor.program()));
 	}
 	catch (const std::system_error& error) {
 		return mint_system::make_failure(cursor, error.code().value());
@@ -73,17 +72,12 @@ mint::Reference mint_locale_current(mint::Cursor& cursor) {
 
 mint::Reference mint_locale_create(mint::Cursor& cursor, const mint::Reference& name) {
 	try {
-		auto locale = std::make_unique<mint_system::LocaleData>(mint::to_string(name));
-		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), locale.release()));
+		return mint_system::make_success(cursor,
+		    mint::create_c_object<mint_system::LocaleData>(cursor.program(), mint::to_string(name)));
 	}
 	catch (const std::system_error& error) {
 		return mint_system::make_failure(cursor, error.code().value());
 	}
-}
-
-mint::Reference mint_locale_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	delete d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr;
-	return {};
 }
 
 mint::Reference mint_locale_abbreviated_day_name(mint::Cursor& cursor, const mint::Reference& d_ptr,
@@ -91,7 +85,7 @@ mint::Reference mint_locale_abbreviated_day_name(mint::Cursor& cursor, const min
 	try {
 		return mint_system::make_success(cursor,
 		    mint::create_string(cursor.program(),
-		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->abbreviated_day_name(
+		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.abbreviated_day_name(
 		            mint::to_integer<int>(cursor, day))));
 	}
 	catch (const std::system_error& error) {
@@ -102,7 +96,7 @@ mint::Reference mint_locale_abbreviated_day_name(mint::Cursor& cursor, const min
 mint::Reference mint_locale_day_name(mint::Cursor& cursor, const mint::Reference& d_ptr, const mint::Reference& day) {
 	try {
 		return mint_system::make_success(cursor,
-		    mint::create_string(cursor.program(), d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->day_name(
+		    mint::create_string(cursor.program(), d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.day_name(
 		                                              mint::to_integer<int>(cursor, day))));
 	}
 	catch (const std::system_error& error) {
@@ -115,7 +109,7 @@ mint::Reference mint_locale_abbreviated_month_name(mint::Cursor& cursor, const m
 	try {
 		return mint_system::make_success(cursor,
 		    mint::create_string(cursor.program(),
-		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->abbreviated_month_name(
+		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.abbreviated_month_name(
 		            mint::to_integer<int>(cursor, month))));
 	}
 	catch (const std::system_error& error) {
@@ -127,8 +121,9 @@ mint::Reference mint_locale_month_name(mint::Cursor& cursor, const mint::Referen
     const mint::Reference& month) {
 	try {
 		return mint_system::make_success(cursor,
-		    mint::create_string(cursor.program(), d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->month_name(
-		                                              mint::to_integer<int>(cursor, month))));
+		    mint::create_string(cursor.program(),
+		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.month_name(
+		            mint::to_integer<int>(cursor, month))));
 	}
 	catch (const std::system_error& error) {
 		return mint_system::make_failure(cursor, error.code().value());
@@ -139,7 +134,7 @@ mint::Reference mint_locale_am_name(mint::Cursor& cursor, const mint::Reference&
 	try {
 		return mint_system::make_success(cursor,
 		    mint::create_string(cursor.program(),
-		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->am_name()));
+		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.am_name()));
 	}
 	catch (const std::system_error& error) {
 		return mint_system::make_failure(cursor, error.code().value());
@@ -150,7 +145,7 @@ mint::Reference mint_locale_pm_name(mint::Cursor& cursor, const mint::Reference&
 	try {
 		return mint_system::make_success(cursor,
 		    mint::create_string(cursor.program(),
-		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->pm_name()));
+		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.pm_name()));
 	}
 	catch (const std::system_error& error) {
 		return mint_system::make_failure(cursor, error.code().value());
@@ -161,7 +156,7 @@ mint::Reference mint_locale_date_format(mint::Cursor& cursor, const mint::Refere
 	try {
 		return mint_system::make_success(cursor,
 		    mint::create_string(cursor.program(),
-		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->date_format()));
+		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.date_format()));
 	}
 	catch (const std::system_error& error) {
 		return mint_system::make_failure(cursor, error.code().value());
@@ -172,7 +167,7 @@ mint::Reference mint_locale_time_format(mint::Cursor& cursor, const mint::Refere
 	try {
 		return mint_system::make_success(cursor,
 		    mint::create_string(cursor.program(),
-		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->time_format()));
+		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.time_format()));
 	}
 	catch (const std::system_error& error) {
 		return mint_system::make_failure(cursor, error.code().value());
@@ -183,7 +178,7 @@ mint::Reference mint_locale_date_time_format(mint::Cursor& cursor, const mint::R
 	try {
 		return mint_system::make_success(cursor,
 		    mint::create_string(cursor.program(),
-		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->date_time_format()));
+		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.date_time_format()));
 	}
 	catch (const std::system_error& error) {
 		return mint_system::make_failure(cursor, error.code().value());
@@ -194,7 +189,7 @@ mint::Reference mint_locale_decimal_point(mint::Cursor& cursor, const mint::Refe
 	try {
 		return mint_system::make_success(cursor,
 		    mint::create_string(cursor.program(),
-		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->decimal_point()));
+		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.decimal_point()));
 	}
 	catch (const std::system_error& error) {
 		return mint_system::make_failure(cursor, error.code().value());
@@ -205,7 +200,7 @@ mint::Reference mint_locale_thousands_separator(mint::Cursor& cursor, const mint
 	try {
 		return mint_system::make_success(cursor,
 		    mint::create_string(cursor.program(),
-		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().ptr->thousands_separator()));
+		        d_ptr.data<mint::LibObject<mint_system::LocaleData>>().value.thousands_separator()));
 	}
 	catch (const std::system_error& error) {
 		return mint_system::make_failure(cursor, error.code().value());
@@ -218,7 +213,6 @@ MINT_EXPORT_FUNCTION(mint_locale_set_current_name, 1);
 MINT_EXPORT_FUNCTION(mint_locale_list, 0);
 MINT_EXPORT_FUNCTION(mint_locale_current, 0);
 MINT_EXPORT_FUNCTION(mint_locale_create, 1);
-MINT_EXPORT_FUNCTION(mint_locale_delete, 1);
 MINT_EXPORT_FUNCTION(mint_locale_abbreviated_day_name, 2);
 MINT_EXPORT_FUNCTION(mint_locale_day_name, 2);
 MINT_EXPORT_FUNCTION(mint_locale_abbreviated_month_name, 2);

@@ -48,9 +48,6 @@ package System {
 		 */
 		const def new(self) {
 			self.d_ptr = System.Terminal.g_lib.call('mint_terminal_new')
-			self.d_ptr.delete = def [g_lib = System.Terminal.g_lib] (self) {
-				g_lib.call('mint_terminal_delete', self)
-			}
 		}
 
 		/**

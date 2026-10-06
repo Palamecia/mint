@@ -112,12 +112,7 @@ std::size_t write_to_term(FILE* stream, const std::string& data) {
 }
 
 mint::Reference mint_terminal_new(mint::Cursor& cursor) {
-	return mint::create_c_object(cursor.program(), new mint::Terminal);
-}
-
-mint::Reference mint_terminal_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
-	delete self.data<mint::LibObject<mint::Terminal>>().ptr;
-	return {};
+	return mint::create_c_object<mint::Terminal>(cursor.program());
 }
 
 mint::Reference mint_terminal_get_width(mint::Cursor& /*cursor*/) {
@@ -171,23 +166,23 @@ mint::Reference mint_terminal_set_prompt(mint::FunctionHelper& helper, const min
     mint::Reference& function) {
 
 	struct Callback {
-		Callback(mint::Scheduler& scheduler, mint::Reference&& function) :
+		Callback(mint::Scheduler& scheduler, mint::Reference function) :
 		    _scheduler(scheduler),
-		    _function(std::make_shared<mint::RootReference>(std::move(function))) {}
+		    _function(std::move(function)) {}
 
 		std::string operator()(std::size_t row_number) {
-			if (has_signature(*_function, 1)) {
-				return to_string(_scheduler.get().invoke(*_function, mint::create_unsigned_number(row_number)));
+			if (has_signature(_function, 1)) {
+				return to_string(_scheduler.get().invoke(_function, mint::create_unsigned_number(row_number)));
 			}
-			return to_string(*_function);
+			return to_string(_function);
 		}
 
 	private:
 		std::reference_wrapper<mint::Scheduler> _scheduler;
-		std::shared_ptr<mint::RootReference> _function;
+		mint::RootReference _function;
 	};
 
-	self.data<mint::LibObject<mint::Terminal>>().ptr->set_prompt(Callback(helper.scheduler(), std::move(function)));
+	self.data<mint::LibObject<mint::Terminal>>().value.set_prompt(Callback(helper.scheduler(), std::move(function)));
 	return {};
 }
 
@@ -195,21 +190,22 @@ mint::Reference mint_terminal_set_highlighter(mint::FunctionHelper& helper, cons
     mint::Reference& function) {
 
 	struct Callback {
-		Callback(mint::Scheduler& scheduler, mint::Reference&& function) :
+		Callback(mint::Scheduler& scheduler, mint::Reference function) :
 		    _scheduler(scheduler),
-		    _function(std::make_shared<mint::RootReference>(std::move(function))) {}
+		    _function(std::move(function)) {}
 
 		std::string operator()(std::string_view str, std::string_view::size_type pos) {
-			return to_string(_scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().program(), str),
+			return to_string(_scheduler.get().invoke(_function, mint::create_string(_scheduler.get().program(), str),
 			    mint::create_unsigned_number(pos)));
 		}
 
 	private:
 		std::reference_wrapper<mint::Scheduler> _scheduler;
-		std::shared_ptr<mint::RootReference> _function;
+		mint::RootReference _function;
 	};
 
-	self.data<mint::LibObject<mint::Terminal>>().ptr->set_highlighter(Callback(helper.scheduler(), std::move(function)));
+	self.data<mint::LibObject<mint::Terminal>>().value.set_highlighter(
+	    Callback(helper.scheduler(), std::move(function)));
 	return {};
 }
 
@@ -217,13 +213,13 @@ mint::Reference mint_terminal_set_completion_generator(mint::FunctionHelper& hel
     mint::Reference& function) {
 
 	struct Callback {
-		Callback(mint::Scheduler& scheduler, mint::Reference&& function) :
+		Callback(mint::Scheduler& scheduler, mint::Reference function) :
 		    _scheduler(scheduler),
-		    _function(std::make_shared<mint::RootReference>(std::move(function))) {}
+		    _function(std::move(function)) {}
 
 		std::optional<std::vector<mint::Completion>> operator()(std::string_view str, std::string_view::size_type pos) {
-			const auto result = _scheduler.get().invoke(*_function,
-			    mint::create_string(_scheduler.get().program(), str), mint::create_unsigned_number(pos));
+			const auto result = _scheduler.get().invoke(_function, mint::create_string(_scheduler.get().program(), str),
+			    mint::create_unsigned_number(pos));
 			if (mint::is_instance_of(result, mint::Data::Format::none)) {
 				return std::nullopt;
 			}
@@ -245,10 +241,10 @@ mint::Reference mint_terminal_set_completion_generator(mint::FunctionHelper& hel
 
 	private:
 		std::reference_wrapper<mint::Scheduler> _scheduler;
-		std::shared_ptr<mint::RootReference> _function;
+		mint::RootReference _function;
 	};
 
-	self.data<mint::LibObject<mint::Terminal>>().ptr->set_completion_generator(
+	self.data<mint::LibObject<mint::Terminal>>().value.set_completion_generator(
 	    Callback(helper.scheduler(), std::move(function)));
 	return {};
 }
@@ -259,15 +255,15 @@ mint::Reference mint_terminal_set_brace_matcher(mint::FunctionHelper& helper, co
 	if (has_signature(function, 2)) {
 
 		struct Callback {
-			Callback(mint::Scheduler& scheduler, mint::Reference&& function) :
+			Callback(mint::Scheduler& scheduler, mint::Reference function) :
 			    _scheduler(scheduler),
-			    _function(std::make_shared<mint::RootReference>(std::move(function))) {}
+			    _function(std::move(function)) {}
 
 			std::pair<std::string_view::size_type, bool> operator()(std::string_view str,
 			    std::string_view::size_type pos) {
 				auto& cursor = mint::Scheduler::current_process()->cursor();
 				const auto result = mint::create_iterator_over(cursor,
-				    _scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().program(), str),
+				    _scheduler.get().invoke(_function, mint::create_string(_scheduler.get().program(), str),
 				        mint::create_unsigned_number(pos)));
 				const auto offset = to_integer<std::string_view::size_type>(mint::Scheduler::current_process()->cursor(),
 				    mint::iterator_next(cursor, result.data<mint::Iterator>())
@@ -278,20 +274,20 @@ mint::Reference mint_terminal_set_brace_matcher(mint::FunctionHelper& helper, co
 			}
 		private:
 			std::reference_wrapper<mint::Scheduler> _scheduler;
-			std::shared_ptr<mint::RootReference> _function;
+			mint::RootReference _function;
 		};
 
-		self.data<mint::LibObject<mint::Terminal>>().ptr->set_brace_matcher(
+		self.data<mint::LibObject<mint::Terminal>>().value.set_brace_matcher(
 		    Callback(helper.scheduler(), std::move(function)));
 	}
 	else {
-		self.data<mint::LibObject<mint::Terminal>>().ptr->set_auto_braces(to_string(function));
+		self.data<mint::LibObject<mint::Terminal>>().value.set_auto_braces(to_string(function));
 	}
 	return {};
 }
 
 mint::Reference mint_terminal_edit_line(mint::Cursor& cursor, const mint::Reference& self) {
-	if (auto input = self.data<mint::LibObject<mint::Terminal>>().ptr->read_line()) {
+	if (auto input = self.data<mint::LibObject<mint::Terminal>>().value.read_line()) {
 		return mint::create_string(cursor.program(), *input);
 	}
 	return {};
@@ -345,7 +341,7 @@ mint::Reference mint_terminal_write(mint::Cursor& cursor, const mint::Reference&
 		if (is_instance_of(data, symbols::data_stream)) {
 			return mint_system::make_success(cursor,
 			    mint::create_unsigned_number(
-			        write_to_term(stdout, *get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)));
+			        write_to_term(stdout, get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().value)));
 		}
 		return mint_system::make_success(cursor, mint::create_unsigned_number(write_to_term(stdout, to_string(data))));
 	}
@@ -359,7 +355,7 @@ mint::Reference mint_terminal_write_error(mint::Cursor& cursor, const mint::Refe
 		if (is_instance_of(data, symbols::data_stream)) {
 			return mint_system::make_success(cursor,
 			    mint::create_unsigned_number(
-			        write_to_term(stderr, *get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)));
+			        write_to_term(stderr, get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().value)));
 		}
 		return mint_system::make_success(cursor, mint::create_unsigned_number(write_to_term(stderr, to_string(data))));
 	}
@@ -413,7 +409,6 @@ mint::Reference mint_terminal_clear_line(mint::Cursor& /*cursor*/) {
 }
 
 MINT_EXPORT_FUNCTION(mint_terminal_new, 0)
-MINT_EXPORT_FUNCTION(mint_terminal_delete, 1)
 MINT_EXPORT_FUNCTION(mint_terminal_get_width, 0)
 MINT_EXPORT_FUNCTION(mint_terminal_get_height, 0)
 MINT_EXPORT_FUNCTION(mint_terminal_get_cursor_row, 0)

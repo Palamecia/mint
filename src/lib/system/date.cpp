@@ -760,15 +760,14 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 }
 
 mint::Reference mint_date_current_timepoint(mint::Cursor& cursor) {
-	return mint::create_c_object(cursor.program(),
-	    new std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
-	        std::chrono::system_clock::now().time_since_epoch())));
+	return mint::create_c_object<std::chrono::sys_time<std::chrono::milliseconds>>(cursor.program(),
+	    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()));
 }
 
 mint::Reference mint_date_set_current(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
 
 	const auto time_point = std::chrono::sys_time(
-	    *duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr);
+	    duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().value);
 
 #ifdef MINT_OS_WINDOWS
 
@@ -813,14 +812,9 @@ mint::Reference mint_date_set_current(mint::Cursor& /*cursor*/, const mint::Refe
 	return {};
 }
 
-mint::Reference mint_date_delete(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
-	delete duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr;
-	return {};
-}
-
 mint::Reference mint_date_set_seconds(mint::Cursor& cursor, const mint::Reference& duration,
     const mint::Reference& value) {
-	*duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr =
+	duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().value =
 	    std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
 	        std::chrono::seconds(to_integer<std::chrono::seconds::rep>(cursor, value))));
 	return {};
@@ -828,19 +822,19 @@ mint::Reference mint_date_set_seconds(mint::Cursor& cursor, const mint::Referenc
 
 mint::Reference mint_date_timepoint_to_seconds(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
 	return mint::create_signed_number(std::chrono::duration_cast<std::chrono::seconds>(
-	    duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr->time_since_epoch())
+	    duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().value.time_since_epoch())
 	        .count());
 }
 
 mint::Reference mint_date_seconds_to_timepoint(mint::Cursor& cursor, const mint::Reference& value) {
-	return mint::create_c_object(cursor.program(),
-	    new std::chrono::sys_time<std::chrono::milliseconds>(std::chrono::duration_cast<std::chrono::milliseconds>(
-	        std::chrono::seconds(to_integer<std::chrono::seconds::rep>(cursor, value)))));
+	return mint::create_c_object<std::chrono::sys_time<std::chrono::milliseconds>>(cursor.program(),
+	    std::chrono::duration_cast<std::chrono::milliseconds>(
+	        std::chrono::seconds(to_integer<std::chrono::seconds::rep>(cursor, value))));
 }
 
 mint::Reference mint_date_set_milliseconds(mint::Cursor& cursor, const mint::Reference& duration,
-    mint::Reference& value) {
-	*duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr =
+    const mint::Reference& value) {
+	duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().value =
 	    std::chrono::sys_time<std::chrono::milliseconds>(
 	        std::chrono::milliseconds(to_integer<std::chrono::milliseconds::rep>(cursor, value)));
 	return {};
@@ -848,27 +842,26 @@ mint::Reference mint_date_set_milliseconds(mint::Cursor& cursor, const mint::Ref
 
 mint::Reference mint_date_timepoint_to_milliseconds(mint::Cursor& /*cursor*/, const mint::Reference& duration) {
 	return mint::create_signed_number(duration.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>()
-	        .ptr->time_since_epoch()
+	        .value.time_since_epoch()
 	        .count());
 }
 
 mint::Reference mint_date_milliseconds_to_timepoint(mint::Cursor& cursor, const mint::Reference& value) {
-	return mint::create_c_object(cursor.program(),
-	    new std::chrono::sys_time<std::chrono::milliseconds>(
-	        std::chrono::milliseconds(to_integer<std::chrono::milliseconds::rep>(cursor, value))));
+	return mint::create_c_object<std::chrono::sys_time<std::chrono::milliseconds>>(cursor.program(),
+	    std::chrono::milliseconds(to_integer<std::chrono::milliseconds::rep>(cursor, value)));
 }
 
 mint::Reference mint_date_equals(mint::Cursor& /*cursor*/, const mint::Reference& self, const mint::Reference& other) {
 	return mint::create_boolean(
-	    (*self.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr)
-	    == (*other.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().ptr));
+	    self.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().value
+	    == other.data<mint::LibObject<std::chrono::sys_time<std::chrono::milliseconds>>>().value);
 }
 
 mint::Reference mint_parse_iso_date(mint::Cursor& cursor, const mint::Reference& date) {
 	try {
 		const auto [timezone, timepoint] = parse_iso_date(mint::to_string(date));
 		return mint_system::make_success(cursor,
-		    mint::create_c_object(cursor.program(), new std::chrono::sys_time<std::chrono::milliseconds>(timepoint)),
+		    mint::create_c_object<std::chrono::sys_time<std::chrono::milliseconds>>(cursor.program(), timepoint),
 		    mint::create_string(cursor.program(), timezone));
 	}
 	catch (const std::system_error& error) {
@@ -892,7 +885,6 @@ mint::Reference mint_date_days_in_month(mint::Cursor& cursor, const mint::Refere
 
 MINT_EXPORT_FUNCTION(mint_date_current_timepoint, 0);
 MINT_EXPORT_FUNCTION(mint_date_set_current, 1);
-MINT_EXPORT_FUNCTION(mint_date_delete, 1);
 MINT_EXPORT_FUNCTION(mint_date_set_seconds, 2);
 MINT_EXPORT_FUNCTION(mint_date_timepoint_to_seconds, 1);
 MINT_EXPORT_FUNCTION(mint_date_seconds_to_timepoint, 1);

@@ -45,6 +45,7 @@
 #include <string>
 #include <system_error>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #ifdef MINT_OS_WINDOWS
@@ -137,19 +138,20 @@ void CALLBACK file_watcher_notification_callback(DWORD error_code, DWORD bytes_t
 
 mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Reference& path,
     const mint::Reference& flags) {
-	auto watcher = std::make_unique<FileWatcherData>();
+	auto d_ptr = mint::create_c_object<FileWatcherData>(cursor.program());
+	auto& watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().value;
 	const auto fail = [&cursor, &watcher](int error_code) {
 #ifdef MINT_OS_WINDOWS
-		if (watcher->directory_handle != INVALID_HANDLE_VALUE) {
-			CloseHandle(watcher->directory_handle);
+		if (watcher.directory_handle != INVALID_HANDLE_VALUE) {
+			CloseHandle(watcher.directory_handle);
 		}
-		if (watcher->event.handle != nullptr && watcher->event.handle != INVALID_HANDLE_VALUE
-		    && watcher->event.handle != watcher->directory_handle) {
-			CloseHandle(watcher->event.handle);
+		if (watcher.event.handle != nullptr && watcher.event.handle != INVALID_HANDLE_VALUE
+		    && watcher.event.handle != watcher.directory_handle) {
+			CloseHandle(watcher.event.handle);
 		}
 #else
-		if (watcher->event.fd != -1) {
-			close(watcher->event.fd);
+		if (watcher.event.fd != -1) {
+			close(watcher.event.fd);
 		}
 #endif
 		return mint_system::make_failure(cursor, error_code);
@@ -157,13 +159,13 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 #ifdef MINT_OS_WINDOWS
 
 	if (to_changes(cursor, flags) & Changes::name) {
-		watcher->notify_filter |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
+		watcher.notify_filter |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
 	}
 	if (to_changes(cursor, flags) & Changes::data) {
-		watcher->notify_filter |= FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE;
+		watcher.notify_filter |= FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE;
 	}
 	if (to_changes(cursor, flags) & Changes::attributes) {
-		watcher->notify_filter |= FILE_NOTIFY_CHANGE_ATTRIBUTES;
+		watcher.notify_filter |= FILE_NOTIFY_CHANGE_ATTRIBUTES;
 	}
 
 	bool is_directory_watch = false;
@@ -175,25 +177,25 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 	}
 	else {
 		dir_to_open = path_to_watch.parent_path();
-		watcher->target_name = path_to_watch.filename().generic_wstring();
+		watcher.target_name = path_to_watch.filename().generic_wstring();
 		is_directory_watch = false;
 	}
 
-	watcher->directory_handle = CreateFileW(dir_to_open.generic_wstring().c_str(), FILE_LIST_DIRECTORY,
+	watcher.directory_handle = CreateFileW(dir_to_open.generic_wstring().c_str(), FILE_LIST_DIRECTORY,
 	    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
 	    FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, nullptr);
 
-	if (watcher->directory_handle == INVALID_HANDLE_VALUE) {
+	if (watcher.directory_handle == INVALID_HANDLE_VALUE) {
 		return fail(mint::errno_from_last_error());
 	}
 
 	auto bytes_returned = DWORD();
 	if (is_directory_watch) {
-		watcher->overlapped.hEvent = watcher->directory_handle;
+		watcher.overlapped.hEvent = watcher.directory_handle;
 
-		const auto success = ReadDirectoryChangesW(watcher->directory_handle, watcher->buffer.data(),
-		    static_cast<DWORD>(watcher->buffer.size()), false, watcher->notify_filter, &bytes_returned,
-		    &watcher->overlapped, &file_watcher_notification_callback);
+		const auto success = ReadDirectoryChangesW(watcher.directory_handle, watcher.buffer.data(),
+		    static_cast<DWORD>(watcher.buffer.size()), false, watcher.notify_filter, &bytes_returned,
+		    &watcher.overlapped, &file_watcher_notification_callback);
 
 		if (!success) {
 			const auto error_code = GetLastError();
@@ -202,14 +204,14 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 			}
 		}
 
-		watcher->event.handle = watcher->directory_handle;
+		watcher.event.handle = watcher.directory_handle;
 	}
 	else {
-		watcher->overlapped.hEvent = nullptr;
+		watcher.overlapped.hEvent = nullptr;
 
-		const auto success = ReadDirectoryChangesW(watcher->directory_handle, watcher->buffer.data(),
-		    static_cast<DWORD>(watcher->buffer.size()), false, watcher->notify_filter, &bytes_returned,
-		    &watcher->overlapped, &file_watcher_notification_callback);
+		const auto success = ReadDirectoryChangesW(watcher.directory_handle, watcher.buffer.data(),
+		    static_cast<DWORD>(watcher.buffer.size()), false, watcher.notify_filter, &bytes_returned,
+		    &watcher.overlapped, &file_watcher_notification_callback);
 
 		if (!success) {
 			const auto error_code = GetLastError();
@@ -217,17 +219,17 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 				return fail(mint::errno_from_error_code(std::error_code(error_code, std::system_category())));
 			}
 		}
-		watcher->event.handle = CreateEvent(nullptr, false, false, nullptr);
-		if (watcher->event.handle == nullptr) {
+		watcher.event.handle = CreateEvent(nullptr, false, false, nullptr);
+		if (watcher.event.handle == nullptr) {
 			return fail(mint::errno_from_last_error());
 		}
 	}
 
-	return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), watcher.release()));
+	return mint_system::make_success(cursor, std::move(d_ptr));
 
 #elifdef MINT_OS_LINUX
 
-	watcher = std::make_unique<FileWatcherData>(FileWatcherData {
+	watcher = FileWatcherData {
 	    .event =
 	        {
 	            .fd = inotify_init1(IN_NONBLOCK),
@@ -241,8 +243,8 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 		                }
 	                },
 	        },
-	});
-	if (watcher->event.fd == -1) {
+	};
+	if (watcher.event.fd == -1) {
 		return fail(errno);
 	}
 
@@ -259,15 +261,15 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 	if (to_changes(cursor, flags) & Changes::attributes) {
 		watch_flags |= IN_ATTRIB;
 	}
-	if (inotify_add_watch(watcher->event.fd, to_string(path).c_str(), watch_flags) == -1) {
+	if (inotify_add_watch(watcher.event.fd, to_string(path).c_str(), watch_flags) == -1) {
 		return fail(errno);
 	}
 
-	return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), watcher.release()));
+	return mint_system::make_success(cursor, std::move(d_ptr));
 
 #elifdef MINT_OS_UNIX
 
-	watcher = std::make_unique<FileWatcherData>(FileWatcherData {
+	watcher = FileWatcherData {
 	    .event =
 	        {
 #ifdef MINT_OS_MACOS
@@ -278,68 +280,67 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 	            .filter = EVFILT_VNODE,
 	            .flags = EV_ONESHOT,
 	        },
-	});
-	if (watcher->event.fd == -1) {
+	};
+	if (watcher.event.fd == -1) {
 		return fail(errno);
 	}
 
 	if (to_changes(cursor, flags) & Changes::name) {
-		watcher->event.fflags |= NOTE_RENAME;
+		watcher.event.fflags |= NOTE_RENAME;
 	}
 	if (to_changes(cursor, flags) & Changes::data) {
-		watcher->event.fflags |= NOTE_WRITE | NOTE_DELETE;
+		watcher.event.fflags |= NOTE_WRITE | NOTE_DELETE;
 	}
 	if (to_changes(cursor, flags) & Changes::attributes) {
-		watcher->event.fflags |= NOTE_ATTRIB;
+		watcher.event.fflags |= NOTE_ATTRIB;
 	}
 
-	return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), watcher.release()));
+	return mint_system::make_success(cursor, std::move(d_ptr));
 #endif
 	return fail(EIO);
 }
 
 mint::Reference mint_file_watcher_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	auto* watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().ptr;
+	auto& watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().value;
 #ifdef MINT_OS_WINDOWS
-	CancelIoEx(watcher->directory_handle, &watcher->overlapped);
-	WaitForSingleObjectEx(watcher->directory_handle, 0, true);
-	if (watcher->directory_handle != watcher->event.handle) {
-		CloseHandle(watcher->directory_handle);
+	CancelIoEx(watcher.directory_handle, &watcher.overlapped);
+	WaitForSingleObjectEx(watcher.directory_handle, 0, true);
+	if (watcher.directory_handle != watcher.event.handle) {
+		CloseHandle(watcher.directory_handle);
 	}
-	CloseHandle(watcher->event.handle);
+	CloseHandle(watcher.event.handle);
 #else
-	close(watcher->event.fd);
+	close(watcher.event.fd);
 #endif
-	delete watcher;
 	return {};
 }
 
 mint::Reference mint_file_watcher_get_handle(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	const auto* watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().ptr;
+	const auto& watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().value;
 #ifdef MINT_OS_WINDOWS
-	return mint::create_handle(cursor.program(), watcher->event.handle);
+	return mint::create_handle(cursor.program(), watcher.event.handle);
 #else
-	return mint::create_handle(cursor.program(), watcher->event.fd);
+	return mint::create_handle(cursor.program(), watcher.event.fd);
 #endif
 }
 
 mint::Reference mint_file_watcher_get_poll_event(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	return mint::create_c_object(cursor.program(), &d_ptr.data<mint::LibObject<FileWatcherData>>().ptr->event);
+	return mint::create_c_object<mint::poll_event_t*>(cursor.program(),
+	    &d_ptr.data<mint::LibObject<FileWatcherData>>().value.event);
 }
 
 mint::Reference mint_file_watcher_wait(mint::Cursor& cursor, const mint::Reference& d_ptr,
     const mint::Reference& timeout) {
 
-	auto* watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().ptr;
-
 #ifdef MINT_OS_WINDOWS
 
+	const auto& watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().value;
 	const DWORD timeout_ms = mint::is_instance_of(timeout, mint::Data::Format::none)
 	                             ? INFINITE
 	                             : mint::to_integer<DWORD>(cursor, timeout);
 
-	if (WaitForSingleObject(watcher->event.handle, timeout_ms) == WAIT_OBJECT_0) {
-		ResetEvent(watcher->event.handle);
+	if (WaitForSingleObject(watcher.event.handle, timeout_ms) == WAIT_OBJECT_0) {
+		ResetEvent(watcher.event.handle);
 		return mint::create_boolean(true);
 	}
 
@@ -347,6 +348,7 @@ mint::Reference mint_file_watcher_wait(mint::Cursor& cursor, const mint::Referen
 
 #elifdef MINT_OS_LINUX
 
+	auto& watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().value;
 	const int timeout_ms = is_instance_of(timeout, mint::Data::Format::none) ? -1 : to_integer<int>(cursor, timeout);
 
 	const auto context = epoll_create1(EPOLL_CLOEXEC);
@@ -355,16 +357,16 @@ mint::Reference mint_file_watcher_wait(mint::Cursor& cursor, const mint::Referen
 	}
 
 	auto changelist = epoll_event {
-	    .events = watcher->event.events,
+	    .events = watcher.event.events,
 	    .data =
 	        {
-	            .fd = watcher->event.fd,
+	            .fd = watcher.event.fd,
 	        },
 	};
 
 	const auto ret = epoll_wait(context, &changelist, 1, timeout_ms);
 	if (ret > 0 && changelist.events & EPOLLIN) {
-		watcher->event.on_signal(watcher->event);
+		watcher.event.on_signal(watcher.event);
 	}
 
 	::close(context);
@@ -372,6 +374,7 @@ mint::Reference mint_file_watcher_wait(mint::Cursor& cursor, const mint::Referen
 
 #elifdef MINT_OS_UNIX
 
+	const auto& watcher = d_ptr.data<mint::LibObject<FileWatcherData>>().value;
 	const auto timeout_ts = is_instance_of(timeout, mint::Data::Format::none)
 	                            ? std::nullopt
 	                            : std::optional<std::chrono::milliseconds>(mint::to_integer<int>(cursor, timeout))
@@ -391,10 +394,10 @@ mint::Reference mint_file_watcher_wait(mint::Cursor& cursor, const mint::Referen
 	}
 
 	struct kevent changelist {
-	    .ident = static_cast<std::uintptr_t>(watcher->event.fd),
-	    .filter = watcher->event.filter,
-	    .flags = watcher->event.flags,
-	    .fflags = watcher->event.fflags,
+	    .ident = static_cast<std::uintptr_t>(watcher.event.fd),
+	    .filter = watcher.event.filter,
+	    .flags = watcher.event.flags,
+	    .fflags = watcher.event.fflags,
 	};
 
 	struct kevent eventlist {};

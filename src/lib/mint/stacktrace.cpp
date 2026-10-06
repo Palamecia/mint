@@ -41,53 +41,48 @@ namespace {
 
 mint::Reference mint_stack_frame_from_id(mint::Cursor& cursor, const mint::Reference& module_id,
     const mint::Reference& module_name, const mint::Reference& line_number) {
-	return mint::create_c_object(cursor.program(),
-	    new mint::LineInfo(mint::to_integer<mint::Module::Id>(cursor, module_id), mint::to_string(module_name),
-	        mint::to_integer<std::size_t>(cursor, line_number)));
+	return mint::create_c_object<mint::LineInfo>(cursor.program(),
+	    mint::to_integer<mint::Module::Id>(cursor, module_id), mint::to_string(module_name),
+	    mint::to_integer<std::size_t>(cursor, line_number));
 }
 
 mint::Reference mint_stack_frame_from_name(mint::Cursor& cursor, const mint::Reference& module_name,
     const mint::Reference& line_number) {
-	return mint::create_c_object(cursor.program(), new mint::LineInfo(cursor.program(), mint::to_string(module_name),
-	                                                   mint::to_integer<std::size_t>(cursor, line_number)));
-}
-
-mint::Reference mint_stack_frame_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	delete d_ptr.data<mint::LibObject<mint::LineInfo>>().ptr;
-	return {};
+	return mint::create_c_object<mint::LineInfo>(cursor.program(), cursor.program(), mint::to_string(module_name),
+	    mint::to_integer<std::size_t>(cursor, line_number));
 }
 
 mint::Reference mint_stack_frame_get_module_id(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return mint::create_unsigned_number(d_ptr.data<mint::LibObject<mint::LineInfo>>().ptr->module_id());
+	return mint::create_unsigned_number(d_ptr.data<mint::LibObject<mint::LineInfo>>().value.module_id());
 }
 
 mint::Reference mint_stack_frame_get_module_name(mint::Cursor& cursor, const mint::Reference& d_ptr) {
-	return mint::create_string(cursor.program(), d_ptr.data<mint::LibObject<mint::LineInfo>>().ptr->module_name());
+	return mint::create_string(cursor.program(), d_ptr.data<mint::LibObject<mint::LineInfo>>().value.module_name());
 }
 
 mint::Reference mint_stack_frame_line_number(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
-	return mint::create_unsigned_number(d_ptr.data<mint::LibObject<mint::LineInfo>>().ptr->line_number());
+	return mint::create_unsigned_number(d_ptr.data<mint::LibObject<mint::LineInfo>>().value.line_number());
 }
 
 mint::Reference mint_stack_frame_source_line(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 	return mint::create_string(cursor.program(),
-	    mint::get_module_line(d_ptr.data<mint::LibObject<mint::LineInfo>>().ptr->module_name(),
-	        d_ptr.data<mint::LibObject<mint::LineInfo>>().ptr->line_number()));
+	    mint::get_module_line(d_ptr.data<mint::LibObject<mint::LineInfo>>().value.module_name(),
+	        d_ptr.data<mint::LibObject<mint::LineInfo>>().value.line_number()));
 }
 
 mint::Reference mint_stack_frame_to_string(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 	return mint::create_string(cursor.program(),
-	    d_ptr.data<mint::LibObject<mint::LineInfo>>().ptr->to_string(cursor.program()));
+	    d_ptr.data<mint::LibObject<mint::LineInfo>>().value.to_string(cursor.program()));
 }
 
 mint::Reference mint_stack_frame_get_system_path(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 	return mint::create_string(cursor.program(),
-	    d_ptr.data<mint::LibObject<mint::LineInfo>>().ptr->system_path().generic_string());
+	    d_ptr.data<mint::LibObject<mint::LineInfo>>().value.system_path().generic_string());
 }
 
 mint::Reference mint_stack_frame_get_system_file_name(mint::Cursor& cursor, const mint::Reference& d_ptr) {
 	return mint::create_string(cursor.program(),
-	    d_ptr.data<mint::LibObject<mint::LineInfo>>().ptr->system_file_name().generic_string());
+	    d_ptr.data<mint::LibObject<mint::LineInfo>>().value.system_file_name().generic_string());
 }
 
 }
@@ -131,7 +126,6 @@ MINT_RAW_FUNCTION(mint_lang_stacktrace, 1, cursor) {
 
 MINT_EXPORT_FUNCTION(mint_stack_frame_from_id, 3)
 MINT_EXPORT_FUNCTION(mint_stack_frame_from_name, 2)
-MINT_EXPORT_FUNCTION(mint_stack_frame_delete, 1)
 MINT_EXPORT_FUNCTION(mint_stack_frame_get_module_id, 1)
 MINT_EXPORT_FUNCTION(mint_stack_frame_get_module_name, 1)
 MINT_EXPORT_FUNCTION(mint_stack_frame_line_number, 1)

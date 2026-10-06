@@ -183,22 +183,16 @@ private:
 };
 
 mint::Reference mint_lexical_handler_new(mint::FunctionHelper& helper, const mint::Reference& self) {
-	return mint::create_c_object(helper.cursor().program(), new MintLexicalHandler(helper.scheduler(), self));
-}
-
-mint::Reference mint_lexical_handler_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
-	delete self.data<mint::LibObject<MintLexicalHandler>>().ptr;
-	return {};
+	return mint::create_c_object<MintLexicalHandler>(helper.cursor().program(), helper.scheduler(), self);
 }
 
 mint::Reference mint_lexical_handler_parse(mint::FunctionHelper& helper, const mint::Reference& self,
     const mint::Reference& stream) {
 	auto handler_stream = LexicalHandlerStream(helper.scheduler(), stream);
-	return mint::create_boolean(self.data<mint::LibObject<MintLexicalHandler>>().ptr->parse(handler_stream));
+	return mint::create_boolean(self.data<mint::LibObject<MintLexicalHandler>>().value.parse(handler_stream));
 }
 
 }
 
 MINT_EXPORT_FUNCTION(mint_lexical_handler_new, 1);
-MINT_EXPORT_FUNCTION(mint_lexical_handler_delete, 1);
 MINT_EXPORT_FUNCTION(mint_lexical_handler_parse, 2);

@@ -221,33 +221,33 @@ mint::Reference mint_lang_get_types(mint::Cursor& cursor) {
 	return result;
 }
 
-mint::Reference mint_at_exit(mint::FunctionHelper& helper, const mint::Reference& callback) {
+mint::Reference mint_at_exit(mint::FunctionHelper& helper, mint::Reference& callback) {
 
 	struct Callback {
-		Callback(mint::Scheduler& scheduler, const mint::Reference& function) :
+		Callback(mint::Scheduler& scheduler, mint::Reference function) :
 		    _scheduler(scheduler),
-		    _function(std::make_shared<mint::RootReference>(function)) {}
+		    _function(std::move(function)) {}
 
 		void operator()(int status) {
-			_scheduler.get().invoke(*_function, mint::create_number(status));
+			_scheduler.get().invoke(_function, mint::create_number(status));
 		}
 
 	private:
 		std::reference_wrapper<mint::Scheduler> _scheduler;
-		std::shared_ptr<mint::RootReference> _function;
+		mint::RootReference _function;
 	};
 
 	mint::Scheduler& scheduler = helper.scheduler();
-	scheduler.add_exit_callback(Callback(scheduler, callback));
+	scheduler.add_exit_callback(Callback(scheduler, std::move(callback)));
 	return {};
 }
 
-mint::Reference mint_at_error(mint::FunctionHelper& helper, const mint::Reference& callback) {
+mint::Reference mint_at_error(mint::FunctionHelper& helper, mint::Reference& callback) {
 
 	struct Callback {
-		Callback(mint::Scheduler& scheduler, const mint::Reference& function) :
+		Callback(mint::Scheduler& scheduler, mint::Reference function) :
 		    _scheduler(scheduler),
-		    _function(std::make_shared<mint::RootReference>(function)) {}
+		    _function(std::move(function)) {}
 
 		void operator()(const std::string& message) {
 			mint::Reference stacktrace = mint::create_array(_scheduler.get().program());
@@ -262,16 +262,16 @@ mint::Reference mint_at_error(mint::FunctionHelper& helper, const mint::Referenc
 					}
 				}
 			}
-			_scheduler.get().invoke(*_function, mint::create_string(_scheduler.get().program(), message),
+			_scheduler.get().invoke(_function, mint::create_string(_scheduler.get().program(), message),
 			    std::move(stacktrace));
 		}
 
 	private:
 		std::reference_wrapper<mint::Scheduler> _scheduler;
-		std::shared_ptr<mint::RootReference> _function;
+		mint::RootReference _function;
 	};
 
-	mint::add_error_callback(Callback(helper.scheduler(), callback));
+	mint::add_error_callback(Callback(helper.scheduler(), std::move(callback)));
 	return {};
 }
 

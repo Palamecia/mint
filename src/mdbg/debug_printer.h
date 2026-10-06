@@ -53,6 +53,8 @@ public:
 	DebugPrinter& operator=(DebugPrinter&&) = delete;
 
 	void print(const mint::Reference& reference) override;
+
+	void mark() override;
 };
 
 std::string reference_value(const mint::Reference& reference);

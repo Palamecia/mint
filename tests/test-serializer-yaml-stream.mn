@@ -8,7 +8,7 @@ load serializer.yaml-stream
 - banana 
 - carrot 
 ...')
-		self.expectEqual(['apple', 'banana', 'carrot'], s.read().data())
+		self.expectEqual(s.read().data(), ['apple', 'banana', 'carrot'])
 	}
 
 	const def testNestedSequences(self) {
@@ -18,7 +18,7 @@ load serializer.yaml-stream
  - bar 
  - baz 
 ...')
-		self.expectEqual([['foo', 'bar', 'baz']], s.read().data())
+		self.expectEqual(s.read().data(), [['foo', 'bar', 'baz']])
 	}
 
 	const def testMixedSequences(self) {
@@ -31,7 +31,7 @@ load serializer.yaml-stream
 - banana 
 - carrot 
 ...')
-		self.expectEqual(['apple', ['foo', 'bar', 'x123'], 'banana', 'carrot'], s.read().data())
+		self.expectEqual(s.read().data(), ['apple', ['foo', 'bar', 'x123'], 'banana', 'carrot'])
 	}
 
 	const def testDeeplyNestedSequences(self) {
@@ -41,7 +41,7 @@ load serializer.yaml-stream
   - uno 
   - dos 
 ...')
-		self.expectEqual([[['uno', 'dos']]], s.read().data())
+		self.expectEqual(s.read().data(), [[['uno', 'dos']]])
 	}
 
 	const def testSimpleMapping(self) {
@@ -49,7 +49,7 @@ load serializer.yaml-stream
 foo: whatever 
 bar: stuff 
 ...')
-		self.expectEqual({ 'foo' : 'whatever', 'bar' : 'stuff' }, s.read().data())
+		self.expectEqual(s.read().data(), { 'foo' : 'whatever', 'bar' : 'stuff' })
 	}
 
 	const def testSequenceInMapping(self) {
@@ -59,7 +59,7 @@ bar:
  - uno 
  - dos 
 ...')
-		self.expectEqual({ 'foo' : 'whatever', 'bar' : [ 'uno', 'dos' ] }, s.read().data())
+		self.expectEqual(s.read().data(), { 'foo' : 'whatever', 'bar' : [ 'uno', 'dos' ] })
 	}
 
 	const def testNestedMappings(self) {
@@ -70,14 +70,14 @@ bar:
  name: steve 
  sport: baseball 
 ...')
-		self.expectEqual({
+		self.expectEqual(s.read().data(), {
 			'foo' : 'whatever',  
   			'bar' : { 
 				'fruit' : 'apple',  
 				'name' : 'steve', 
 				'sport' : 'baseball' 
 	   		} 
-		}, s.read().data())
+		})
 	}
 
 	const def testMixedMapping(self) {
@@ -94,7 +94,7 @@ bar:
    perl: papers 
    ruby: scissorses 
 ...')
-		self.expectEqual({
+		self.expectEqual(s.read().data() , {
 			'foo' : 'whatever',  
 	  		'bar' : [ 
 	    		{ 
@@ -109,7 +109,7 @@ bar:
 	        		'ruby' : 'scissorses' 
 	    		} 
 	  		] 
-		} , s.read().data())
+		})
 	}
 
 	const def testMappingInSequenceShortcut(self) {
@@ -117,7 +117,7 @@ bar:
 - work on YAML.mn: 
    - work on Store 
 ...')
-		self.expectEqual([ { 'work on YAML.mn' : ['work on Store'] } ], s.read().data())
+		self.expectEqual(s.read().data(), [ { 'work on YAML.mn' : ['work on Store'] } ])
 	}
 
 	const def testSequenceInMappingShortcut(self) {
@@ -127,7 +127,7 @@ allow:
 - '%.sourceforge.net'
 - '%.freepan.org'
 ...")
-		self.expectEqual({ 'allow' : [ 'localhost', '%.sourceforge.net', '%.freepan.org' ] }, s.read().data())
+		self.expectEqual(s.read().data(), { 'allow' : [ 'localhost', '%.sourceforge.net', '%.freepan.org' ] })
 	}
 
 	const def testMergekey(self) {
@@ -138,27 +138,27 @@ mapping:
   <<:
     age: 38
 ...')
-		self.expectEqual({
+		self.expectEqual(s.read().data(), {
 			'mapping' : {
 				'name' : 'Joe',
     			'job' : 'Accountant',
     			'age' : 38
   			}
-		}, s.read().data())
+		})
 	}
 
 	const def testSimpleInlineArray(self) {
 		var s = Serializer.YamlStream('---
 seq: [ a, b, c ]
 ...')
-		self.expectEqual({ 'seq' : [ 'a', 'b', 'c' ] }, s.read().data())
+		self.expectEqual(s.read().data(), { 'seq' : [ 'a', 'b', 'c' ] })
 	}
 
 	const def testSimpleInlineHash(self) {
 		var s = Serializer.YamlStream('---
 hash: { name: Steve, foo: bar }
 ...')
-		self.expectEqual({ 'hash' : { 'name' : 'Steve', 'foo' : 'bar' } }, s.read().data())
+		self.expectEqual(s.read().data(), { 'hash' : { 'name' : 'Steve', 'foo' : 'bar' } })
 	}
 
 	const def testMultiLineInlineCollections(self) {
@@ -171,7 +171,7 @@ websites: { YAML: yaml.org,
             Python: python.org, 
             Perl: use.perl.org }
 ...')
-		self.expectEqual({
+		self.expectEqual(s.read().data(), {
 			'languages' : [ 'Ruby', 'Perl', 'Python' ], 
   			'websites' : { 
 				'YAML' : 'yaml.org', 
@@ -179,19 +179,19 @@ websites: { YAML: yaml.org,
 	    		'Python' : 'python.org', 
 	    		'Perl' : 'use.perl.org'  
   			} 
-		}, s.read().data())
+		})
 	}
 
 	const def testCommasInValues(self) {
 		var s = Serializer.YamlStream('---
 attendances: [ 45,123, 70,000, 17,222 ]
 ...')
-		self.expectEqual({ 'attendances' : [ 45123, 70000, 17222 ] }, s.read().data())
+		self.expectEqual(s.read().data(), { 'attendances' : [ 45123, 70000, 17222 ] })
 	}
 
 	const def testStrings(self) {
 		var s = Serializer.YamlStream('--- String')
-		self.expectEqual('String', s.read().data())
+		self.expectEqual(s.read().data(), 'String')
 	}
 
 	const def testStringCharacters(self) {
@@ -203,14 +203,14 @@ attendances: [ 45,123, 70,000, 17,222 ]
 - No, I mean, \"And what about Yaml?\" 
 - Oh, oh yeah. Uh.. Yaml for Ruby. 
 ...")
-		self.expectEqual([ 
+		self.expectEqual(s.read().data(), [
 			"What's Yaml?", 
 			"It's for writing data structures in plain text.", 
 			"And?", 
 			"And what? That's not good enough for you?", 
 			"No, I mean, \"And what about Yaml?\"", 
 			"Oh, oh yeah. Uh.. Yaml for Ruby." 
-		], s.read().data())
+		])
 	}
 
 	const def testIndicatorsInStrings(self) {
@@ -219,11 +219,11 @@ the colon followed by space is an indicator: but is a string:right here
 same for the pound sign: here we have it#in a string 
 the comma can, honestly, be used in most cases: [ but not in, inline collections ]
 ...')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'the colon followed by space is an indicator' : 'but is a string:right here', 
 			'same for the pound sign' : 'here we have it#in a string', 
 			'the comma can, honestly, be used in most cases' : [ 'but not in', 'inline collections' ] 
-		}, s.read().data())
+		})
 	}
 
 	const def testForcingStrings(self) {
@@ -231,12 +231,12 @@ the comma can, honestly, be used in most cases: [ but not in, inline collections
 date string: !str 2001-08-01 
 number string: !str 192 
 ...')
-		self.expectEqual({ 
+		self.expectEqual(data = s.read().data(), {
 			'date string' : '2001-08-01', 
 			'number string' : '192' 
-		}, data = s.read().data())
-		self.expectEqual('string', typeof data['date string'])
-		self.expectEqual('string', typeof data['number string'])
+		})
+		self.expectEqual(typeof data['date string'], 'string')
+		self.expectEqual(typeof data['number string'], 'string')
 	}
 
 	const def testSingleQuotedStrings(self) {
@@ -245,20 +245,20 @@ all my favorite symbols: '#:!/%.)'
 a few i hate: '&(*' 
 why do i hate them?: 'it''s very hard to explain' 
 ...")
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'all my favorite symbols' : '#:!/%.)', 
 			'a few i hate' : '&(*', 
 			'why do i hate them?' : 'it\'s very hard to explain' 
-		}, s.read().data())
+		})
 	}
 
 	const def testDoubleQuotedStrings(self) {
 		var s = Serializer.YamlStream('---
 i know where i want my line breaks: "one here\\nand another here\\n"
 ...')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'i know where i want my line breaks' : "one here\nand another here\n" 
-		}, s.read().data())
+		})
 	}
 
 	const def testMultiLineQuotedStrings(self) {
@@ -267,9 +267,9 @@ i want a long string: "so i\'m going to
   let it go on and on to other lines
   until i end it with a quote."
 ...')
-		self.expectEqual({
+		self.expectEqual(s.read().data(), {
 			'i want a long string' : "so i'm going to " + "let it go on and on to other lines " + "until i end it with a quote." 
-		}, s.read().data())
+		})
 	}
 
 	const def testPlainScalars(self) {
@@ -284,14 +284,14 @@ i want a long string: "so i\'m going to
 - This would impair my skiing ability somewhat for the
   duration, as can be imagined.
 ...")
-		self.expectEqual([
+		self.expectEqual(s.read().data(), [
 			"My little toe is broken in two places;", 
 			"I'm crazy to have skied this way;", 
 			"I'm not the craziest he's seen, since there was always " + "the German guy who skied for 3 hours on a broken shin " +  "bone (just below the kneecap);", 
 			"Nevertheless, second place is respectable, and he doesn't " +  "recommend going for the record;", 
 			"He's going to put my foot in plaster for a month;", 
 			"This would impair my skiing ability somewhat for the duration, " + "as can be imagined."
-		], s.read().data())
+		])
 	}
 
 	const def testNull(self) {
@@ -300,11 +300,11 @@ name: Mr. Show
 hosted by: Bob and David 
 date of next season: ~ 
 ...')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'name' : 'Mr. Show', 
 			'hosted by' : 'Bob and David', 
 			'date of next season' : null
-		}, s.read().data())
+		})
 	}
 
 	const def testBoolean(self) {
@@ -312,10 +312,10 @@ date of next season: ~
 Is Gus a Liar?: true
 Do I rely on Gus for Sustenance?: false
 ...')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'Is Gus a Liar?' : true, 
 			'Do I rely on Gus for Sustenance?' : false 
-		}, s.read().data())
+		})
 	}
 
 	const def testIntegers(self) {
@@ -325,12 +325,12 @@ simple: 12
 one-thousand: 1,000 
 negative one-thousand: -1,000 
 ...')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'zero' : 0, 
 			'simple' : 12, 
 			'one-thousand' : 1000, 
 			'negative one-thousand' : -1000 
-		}, s.read().data())
+		})
 	}
 
 	const def testIntegersAsMapKeys(self) {
@@ -339,11 +339,11 @@ negative one-thousand: -1,000
 2: two 
 3: three 
 ...')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			1 : 'one', 
 			2 : 'two', 
 			3 : 'three' 
-		}, s.read().data())
+		})
 	}
 
 	const def testFloats(self) {
@@ -352,11 +352,11 @@ a simple float: 2.00
 larger float: 1,000.09 
 scientific notation: 1.00009e+3
 ...')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'a simple float' : 2.0, 
 			'larger float' : 1000.09, 
 			'scientific notation' : 1.00009e+3
-		}, s.read().data())
+		})
 	}
 
 	const def testTime(self) {
@@ -364,15 +364,15 @@ scientific notation: 1.00009e+3
 iso8601: 2001-12-14t21:59:43.10-05:00 
 space seperated: 2001-12-14 21:59:43.10 -05:00
 ...')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'iso8601' : System.Date(2001, 12, 14, 21, 59, 43, 10, "-05:00"), 
 			'space seperated' : System.Date(2001, 12, 14, 21, 59, 43, 10, "-05:00") 
-		}, s.read().data())
+		})
 	}
 
 	const def testDate(self) {
 		var s = Serializer.YamlStream('--- 1976-07-31')
-		self.expectEqual(System.Date(1976, 07, 31), s.read().data())
+		self.expectEqual(s.read().data(), System.Date(1976, 07, 31))
 	}
 
 	const def testSingleEndingNewline(self) {
@@ -381,7 +381,7 @@ this: |
     Foo
     Bar
 ...')
-		self.expectEqual({ 'this' : "Foo\nBar\n" }, s.read().data())
+		self.expectEqual(s.read().data(), { 'this' : "Foo\nBar\n" })
 	}
 
 	const def testThePlusIndicator(self) {
@@ -395,11 +395,11 @@ preserving: |+
 
 dummy: value
 ...')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'normal' : "extra new lines not kept\n", 
 			'preserving' : "extra new lines are kept\n\n\n", 
 			'dummy' : 'value' 
-		}, s.read().data())
+		})
 	}
 
 	const def testThreeTrailingNewlinesInLiterals(self) {
@@ -425,14 +425,14 @@ kept: |+
 
 same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
 ...')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'clipped' : "This has one newline.\n", 
 			'same as "clipped" above' : "This has one newline.\n", 
 			'stripped' : 'This has no newline.', 
 			'same as "stripped" above' : 'This has no newline.', 
 			'kept' : "This has four newlines.\n\n\n\n", 
 			'same as "kept" above' : "This has four newlines.\n\n\n\n"
-		}, s.read().data())
+		})
 	}
 
 	const def testExtraTrailingNewlinesWithSpaces(self) {
@@ -445,10 +445,10 @@ kept: |+
     Foo
 
     ')
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'this' : "Foo\n\n    \n",  
 			'kept' : "Foo\n\n    \n"
-		}, s.read().data())
+		})
 	}
 
 	const def testFoldedBlockInSequence(self) {
@@ -461,12 +461,12 @@ kept: |+
     hmm
 - dog
 ...")
-		self.expectEqual([ 
+		self.expectEqual(s.read().data(), [
 			'apple',  
 			'banana',  
 			"can't you see the beauty of yaml? hmm\n", 
 			'dog' 
-		], s.read().data())
+		])
 	}
 
 	const def testFoldedBlockAsMappingValue(self) {
@@ -477,10 +477,10 @@ quote: >
     by a knee injury.
 source: espn
 ...")
-		self.expectEqual({  
+		self.expectEqual(s.read().data(), {
 			'quote' : "Mark McGwire's year was crippled by a knee injury.\n", 
 			'source' : 'espn' 
-		}, s.read().data())
+		})
 	}
 
 	const def testThreeTrailingNewlinesInFoldedBlocks(self) {
@@ -506,14 +506,14 @@ kept: >+
 
 same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
 ...')
-		self.expectEqual({  
+		self.expectEqual(s.read().data(), {
 			'clipped' : "This has one newline.\n", 
 			'same as "clipped" above' : "This has one newline.\n", 
 			'stripped' : 'This has no newline.', 
 			'same as "stripped" above' : 'This has no newline.', 
 			'kept' : "This has four newlines.\n\n\n\n", 
 			'same as "kept" above' : "This has four newlines.\n\n\n\n" 
-		}, s.read().data())
+		})
 	}
 
 	const def testSimpleAliasExample(self) {
@@ -527,7 +527,7 @@ same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
 
 		showell = 'Steve'
 
-		self.expectEqual([ showell, 'Clark', 'Brian', 'Oren', showell ], s.read().data())
+		self.expectEqual(s.read().data(), [ showell, 'Clark', 'Brian', 'Oren', showell ])
 	}
 
 	const def testAliasOfMapping(self) {
@@ -541,11 +541,11 @@ same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
 
 		hello = { 'Meat' : 'pork', 'Starch' : 'potato' } 
 
-		self.expectEqual([  
+		self.expectEqual(s.read().data(), [
 			hello,  
 			'banana', 
 			hello 
-		], s.read().data())
+		])
 	}
 
 	const def testTrailingDocumentSeparator(self) {
@@ -556,8 +556,8 @@ same as "kept" above: "This has four newlines.\\n\\n\\n\\n"
 more: stuff
 ...')
 
-		self.expectEqual([ { 'foo' : 1, 'bar' : 2 } ], s.read().data())
-		self.expectEqual({ 'more' : 'stuff' }, s.read().data())
+		self.expectEqual(s.read().data(), [ { 'foo' : 1, 'bar' : 2 } ])
+		self.expectEqual(s.read().data(), { 'more' : 'stuff' })
 	}
 
 	const def testYamlHeader(self) {
@@ -566,8 +566,8 @@ foo: 1
 bar: 2 
 ...')
 
-		self.expectEqual('Serializer.YamlDirective', typeof s.read())
-		self.expectEqual({ 'foo' : 1, 'bar' : 2 }, s.read().data())
+		self.expectEqual(typeof s.read(), 'Serializer.YamlDirective')
+		self.expectEqual(s.read().data(), { 'foo' : 1, 'bar' : 2 })
 	}
 
 	const def testRedHerringDocumentSeparator(self) {
@@ -576,7 +576,7 @@ foo: |
     ---
 ...')
 
-		self.expectEqual({ 'foo' : "---\n" }, s.read().data())
+		self.expectEqual(s.read().data(), { 'foo' : "---\n" })
 	}
 
 	const def testMultipleDocumentSeparatorsInBlock(self) {
@@ -590,9 +590,9 @@ bar: |
     fooness
 ...')
 
-		self.expectEqual({ 
+		self.expectEqual(s.read().data(), {
 			'foo' : "---\nfoo: bar\n---\nyo: baz\n", 
 			'bar' : "fooness\n" 
-		}, s.read().data())
+		})
 	}
 }

@@ -56,3 +56,9 @@ mint::Reference EvalResultPrinter::result() {
 
 	return reference;
 }
+
+void EvalResultPrinter::mark() {
+	for (const auto& result : _results) {
+		result.data().mark();
+	}
+}

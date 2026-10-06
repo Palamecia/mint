@@ -24,16 +24,16 @@
 #ifndef BRANCH_H
 #define BRANCH_H
 
-#include "mint/program/class_register.h"
+#include "mint/compiler/compiler.h"
 #include "mint/program/node.h"
 #include "mint/program/module.h"
 
+#include <cassert>
 #include <cstddef>
-#include <unordered_set>
 #include <functional>
+#include <memory>
+#include <unordered_map>
 #include <optional>
-#include <deque>
-#include <list>
 #include <utility>
 #include <vector>
 
@@ -44,16 +44,16 @@ class BuildContext;
 
 class Branch {
 public:
-	using ForwardNodeIndex = std::list<std::size_t>;
+	using ForwardNodeIndex = std::vector<std::size_t>;
 	using BackwardNodeIndex = std::size_t;
 
 	Branch() = default;
-	Branch(const Branch&) = default;
-	Branch(Branch&&) = default;
+	Branch(const Branch&) = delete;
+	Branch(Branch&&) noexcept = default;
 	virtual ~Branch() = default;
 
-	Branch& operator=(const Branch&) = default;
-	Branch& operator=(Branch&&) = default;
+	Branch& operator=(const Branch&) = delete;
+	Branch& operator=(Branch&&) noexcept = default;
 
 	virtual void push_node(const Node& node) = 0;
 	virtual void push_nodes(const std::vector<Node>& nodes) = 0;
@@ -70,45 +70,59 @@ public:
 	void commit_line();
 
 	void start_jump_forward();
+	void start_jump_forward(ForwardNodeIndex& forward);
 	void shift_jump_forward();
 	void resolve_jump_forward();
+	void resolve_jump_forward(ForwardNodeIndex& forward);
 	[[nodiscard]] inline ForwardNodeIndex* next_jump_forward();
 	[[nodiscard]] inline ForwardNodeIndex* start_empty_jump_forward();
 
 	void start_jump_backward();
-	void resolve_jump_backward();
+	void push_jump_backward(BackwardNodeIndex& backward);
 	void shift_jump_backward();
+	void resolve_jump_backward();
 	[[nodiscard]] inline BackwardNodeIndex* next_jump_backward();
+	void track_offset(std::size_t& offset);
 
 protected:
 	std::size_t resolve_labels_offset(Branch& parent);
-	void insert_label(std::size_t offset);
+	void insert_label(std::size_t offset, ForwardNodeIndex* forward = nullptr, BackwardNodeIndex* backward = nullptr);
 
 	void forward_jumps(Branch& parent, std::size_t offset);
 
 private:
-	std::optional<std::function<void()>> _pending_new_line;
-	std::deque<ForwardNodeIndex> _jump_forward;
-	std::deque<BackwardNodeIndex> _jump_backward;
-	std::unordered_set<std::size_t> _labels;
+	std::optional<std::size_t> _pending_new_line;
+
+	std::vector<std::unique_ptr<BackwardNodeIndex>> _jump_backward;
+	std::vector<std::unique_ptr<ForwardNodeIndex>> _jump_forward;
+
+	struct Label {
+		ForwardNodeIndex* forward = nullptr;
+		BackwardNodeIndex* backward = nullptr;
+	};
+
+	std::unordered_map<std::size_t, Label> _labels;
+	std::vector<std::size_t*> _offset_relocations;
 };
 
 Branch::ForwardNodeIndex* Branch::next_jump_forward() {
-	return &_jump_forward.back();
+	assert(!_jump_forward.empty());
+	return _jump_forward.back().get();
 }
 
 Branch::ForwardNodeIndex* Branch::start_empty_jump_forward() {
-	_jump_forward.emplace_back();
-	return &_jump_forward.back();
+	_jump_forward.emplace_back(std::make_unique<ForwardNodeIndex>());
+	return _jump_forward.back().get();
 }
 
 Branch::BackwardNodeIndex* Branch::next_jump_backward() {
-	return &_jump_backward.back();
+	assert(!_jump_backward.empty());
+	return _jump_backward.back().get();
 }
 
 class MainBranch : public Branch {
 public:
-	MainBranch(Program& program, ModuleInfo& data);
+	explicit MainBranch(Compiler& compiler);
 
 	void push_node(const Node& node) override;
 	void push_nodes(const std::vector<Node>& nodes) override;
@@ -125,8 +139,7 @@ private:
 #ifdef MINT_BUILD_TYPE_DEBUG
 	std::size_t _offset;
 #endif
-	std::reference_wrapper<Program> _program;
-	std::reference_wrapper<ModuleInfo> _data;
+	std::reference_wrapper<Compiler> _compiler;
 };
 
 class SubBranch : public Branch {

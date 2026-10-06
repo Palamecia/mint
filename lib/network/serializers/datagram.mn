@@ -36,18 +36,9 @@ package Network {
 	@class Datagram {
 		/**
 		 * Creates a new datagram for the data given by the `data` parameter.
-		 * If this parameter is an instance of {Network.Datagram}, this object
-		 * is returned as the new instance; otherwise the object is used for
-		 * the data to be sent using the datagram.
 		 */
 		const def new(self, data) {
-			switch typeof data {
-			case 'Network.Datagram':
-				return data
-			default:
-				self.buffer = Serializer.DataStream(data)
-				return self
-			}
+			self.buffer = Serializer.DataStream(data)
 		}
 
 		/**
@@ -57,7 +48,19 @@ package Network {
 		const def new(self, data, endpoint) {
 			self.buffer = Serializer.DataStream(data)
 			self.endpoint = endpoint
-			return self
+		}
+
+		/**
+		 * Returns an instance of {Network.Datagram} from `data`.
+		 * 
+		 * If `data` is an instance of {Network.Datagram}, this instance is returned; otherwise an new
+		 * instance is created from it.
+		 */
+		@const def from(data) -> Network.Datagram {
+			if typeof data === 'Network.Datagram' {
+				return data
+			}
+			return Network.Datagram(data)
 		}
 
 		/**
@@ -98,7 +101,6 @@ package Network {
 		 */
 		const def new(self) {
 			self.datagramQueue = Container.Queue()
-			return self
 		}
 
 		/**
@@ -106,7 +108,7 @@ package Network {
 		 */
 		const def appendMessage(self, datagram) {
 			if defined datagram {
-				self.datagramQueue.push(Network.Datagram(datagram))
+				self.datagramQueue.push(Network.Datagram.from(datagram))
 			}
 		}
 
@@ -200,7 +202,6 @@ package Network {
 		 */
 		const def new(self) {
 			self.datagramQueue = Container.Queue()
-			return self
 		}
 
 		/**
@@ -208,7 +209,7 @@ package Network {
 		 */
 		const def appendMessage(self, datagram) {
 			if defined datagram {
-				self.datagramQueue.push(Network.Datagram(datagram))
+				self.datagramQueue.push(Network.Datagram.from(datagram))
 			}
 		}
 

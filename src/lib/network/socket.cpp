@@ -475,7 +475,8 @@ mint::Reference mint_socket_setup_options(mint::Cursor& /*cursor*/, const mint::
 #define BIND_SO_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = SO_##_option
 #define BIND_SO_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef SO_BROADCAST
 	BIND_SO_VALUE(socket_option, BROADCAST);
@@ -567,21 +568,15 @@ mint::Reference mint_socket_setup_options(mint::Cursor& /*cursor*/, const mint::
 
 mint::Reference mint_socket_get_option_number(mint::Cursor& cursor, const mint::Reference& socket,
     const mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = mint::to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<int>(socket_fd, option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(option_value));
+		return mint_network::make_success(cursor, mint::create_number(option_value));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_socket_set_option_number(mint::Cursor& cursor, const mint::Reference& socket,
@@ -602,22 +597,15 @@ mint::Reference mint_socket_set_option_number(mint::Cursor& cursor, const mint::
 
 mint::Reference mint_socket_get_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
     const mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = mint::to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<mint_network::sockopt_bool>(socket_fd, option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_boolean(option_value != mint_network::sockopt_false));
+		return mint_network::make_success(cursor, mint::create_boolean(option_value != mint_network::sockopt_false));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_socket_set_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
@@ -638,22 +626,15 @@ mint::Reference mint_socket_set_option_boolean(mint::Cursor& cursor, const mint:
 
 mint::Reference mint_socket_get_option_linger(mint::Cursor& cursor, const mint::Reference& socket,
     const mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = mint::to_integer<int>(cursor, option);
 		auto option_value = mint_network::get_socket_option<std::unique_ptr<linger>>(socket_fd, option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_c_object(cursor.program(), option_value.release()));
+		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), option_value.release()));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_socket_set_option_linger(mint::Cursor& cursor, const mint::Reference& socket,
@@ -674,22 +655,15 @@ mint::Reference mint_socket_set_option_linger(mint::Cursor& cursor, const mint::
 
 mint::Reference mint_socket_get_option_timeval(mint::Cursor& cursor, const mint::Reference& socket,
     const mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = mint::to_integer<int>(cursor, option);
 		auto option_value = mint_network::get_socket_option<std::unique_ptr<timeval>>(socket_fd, option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_c_object(cursor.program(), option_value.release()));
+		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), option_value.release()));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_socket_set_option_timeval(mint::Cursor& cursor, const mint::Reference& socket,
@@ -766,7 +740,7 @@ mint::Reference mint_socket_connect(mint::FunctionHelper& helper, const mint::Re
 	return {};
 }
 
-mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mint::Reference& self,
+mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, mint::Reference self,
     const mint::Reference& socket, const mint::Reference& endpoint) {
 
 	class AsyncConnectOperation : public mint::MintAsyncOperation {
@@ -932,12 +906,12 @@ mint::Reference mint_socket_connect_async(mint::FunctionHelper& helper, const mi
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto [target, length] = mint_network::to_sockaddr(endpoint);
 
-		return mint::create_iterator_from(helper.cursor(), mint::create_number(0),
+		return mint_network::make_success(helper.cursor(),
 		    mint::create_async_operation(helper.cursor().program(),
-		        new AsyncConnectOperation(helper, std::move(self), socket_fd, target, length)));
+		        std::make_unique<AsyncConnectOperation>(helper, std::move(self), socket_fd, target, length).release()));
 	}
 	catch (const std::system_error& error) {
-		return mint::create_iterator_from(helper.cursor(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(helper.cursor(), error.code().value());
 	}
 }
 

@@ -667,12 +667,12 @@ void DapDebugger::on_variables(const DapRequestMessage& request, const JsonObjec
 	if (const auto* thread = debugger.find_thread(thread_id)) {
 		auto variables = JsonArray();
 		if (const mint::SymbolTable* symbols = thread->symbols(frame_index)) {
-			if (mint::Object* object = variables_reference.object) {
+			if (const auto* object = variables_reference.object) {
 				for (auto [symbol, member] : object->metadata.members()) {
-					if (member.get().offset == mint::Class::MemberInfo::invalid_offset) {
+					if (member.offset == mint::Class::MemberInfo::invalid_offset) {
 						continue;
 					}
-					const auto& reference = mint::Class::MemberInfo::get(member.get(), *object);
+					const auto& reference = mint::Class::MemberInfo::get(member, *object);
 					if (is_instance_of(reference, mint::Data::Format::object)
 					    && !reference.data<mint::Object>().metadata.slots().empty()) {
 						variables.push_back(JsonObject {

@@ -22,11 +22,13 @@
  */
 
 #include "mint/memory/builtin/regex.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
+#include "mint/program/module.h"
 #include "mint/program/program.h"
 #include "mint/program/cursor.h"
 #include "mint/memory/reference.h"
@@ -59,6 +61,39 @@ Reference match_to_iterator(Cursor& cursor, const std::string& str, const std::s
 	return result;
 }
 
+ClassDescription make_description() {
+	auto description = ClassDescription(Module::invalid_id, "regex");
+	description.create_method(get_operator_symbol(Class::copy_operator), BuiltinTypeKind::regex)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::regex})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::regex_match_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::regex})
+	    .add_parameter({.name = "str"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::regex_unmatch_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::regex})
+	    .add_parameter({.name = "str"})
+	    .set_required_parameter_count(2);
+	description.create_method("match", make_union(BuiltinTypeKind::iterator, PrimitiveTypeKind::none))
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::regex})
+	    .add_parameter({.name = "str"})
+	    .set_required_parameter_count(2);
+	description.create_method("search", make_union(BuiltinTypeKind::iterator, PrimitiveTypeKind::none))
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::regex})
+	    .add_parameter({.name = "str"})
+	    .set_required_parameter_count(2);
+	description.create_method("getFlags", BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::regex})
+	    .set_required_parameter_count(1);
+	return description;
+}
+
+}
+
+ClassDescription& mint::RegexClass::description() {
+	static auto g_description = make_description();
+	return g_description;
 }
 
 RegexClass& RegexClass::instance(Program& program) {
@@ -91,7 +126,7 @@ Regex& Regex::operator=(const Regex& other) {
 }
 
 RegexClass::RegexClass(Program& program) :
-    Class(program.global_data(), "regex", Class::Metatype::regex) {
+    Class(program.global_data(), description(), Class::Metatype::regex) {
 
 	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);

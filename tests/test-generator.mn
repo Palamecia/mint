@@ -36,13 +36,35 @@ load test.case
     }
 
     const def testNestedGenerator(self) {
-        self.expectEqual([1, 3, 5, 7, 9], [for let i in 0..10 => if i % 2 => i])
+        self.expectEqual([for let i in 0..10 => if i % 2 => i], [1, 3, 5, 7, 9])
         self.expect(self.iteratorEqual, ('a', 'b', 'c', 'd', 'e'), for let i in 0..5 => switch i {
             case 0 => 'a'
             case 1 => 'b'
             case 2 => 'c'
             case 3 => 'd'
             case 4 => 'e'
+        })
+    }
+
+    const def testBreakFromSwitchInGenerator(self) {
+        self.expect(self.iteratorEqual, (0, 1, 2, 3, 4, 5), for let i in 0..5 {
+            switch i {
+            case 2:
+                break
+            }
+            yield i
+        })
+    }
+
+    const def testBreakFromNestedSwitchInGenerator(self) {
+        self.expect(self.iteratorEqual, (0, 1, 2, 3, 4, 5), for let i in 0..5 {
+            switch i {
+            case 2:
+                if true {
+                    break
+                }
+            }
+            yield i
         })
     }
 
@@ -55,7 +77,7 @@ load test.case
 
         let result = [...g]
 
-        self.expectEqual([11, 22, 23], result)
+        self.expectEqual(result, [11, 22, 23])
     }
 
     const def testLazyExecution(self) {
@@ -67,13 +89,13 @@ load test.case
             yield i
         }
 
-        self.expectEqual(1, counter)
+        self.expectEqual(counter, 1)
 
         let first = g.next()
-        self.expectEqual(2, counter)
+        self.expectEqual(counter, 2)
 
         [...g]
-        self.expectEqual(4, counter)
+        self.expectEqual(counter, 4)
     }
 
     const def testReturnGenerator(self) {
@@ -121,7 +143,7 @@ load test.case
                 default => 'no'
             }
         }
-        self.expectEqual('ok', gen())
+        self.expectEqual(gen(), 'ok')
     }
 
     const def testRaiseBeforeFirstYield(self) {
@@ -133,7 +155,7 @@ load test.case
             for let x in gen() {}
             self.fail()
         } catch error {
-            self.expectEqual("boom", error)
+            self.expectEqual(error, "boom")
         }
     }
 
@@ -149,9 +171,9 @@ load test.case
             }
             self.fail()
         } catch error {
-            self.expectEqual("boom", error)
+            self.expectEqual(error, "boom")
         }
-        self.expectEqual([1], values)
+        self.expectEqual(values, [1])
     }
 
     const def testCatchInsideGenerator(self) {
@@ -166,7 +188,7 @@ load test.case
         for let x in gen() {
             result.push(x)
         }
-        self.expectEqual(["handled"], result)
+        self.expectEqual(result, ["handled"])
     }
 
     const def testRaiseInsideLoopInGenerator(self) {
@@ -185,9 +207,9 @@ load test.case
             }
             self.fail()
         } catch error {
-            self.expectEqual("bad", error)
+            self.expectEqual(error, "bad")
         }
-        self.expectEqual([1], values)
+        self.expectEqual(values, [1])
     }
 
     const def testCatchOutsideGenerator(self) {
@@ -203,7 +225,7 @@ load test.case
         } catch error {
             values.push("caught")
         }
-        self.expectEqual([1, "caught"], values)
+        self.expectEqual(values, [1, "caught"])
     }
 
     const def testNestedGeneratorRaise(self) {
@@ -223,7 +245,7 @@ load test.case
             }
             self.fail()
         }
-        self.expectEqual([1], values)
+        self.expectEqual(values, [1])
     }
 
     const def testRaiseAfterYieldInTryBlock(self) {
@@ -239,7 +261,7 @@ load test.case
         for let x in gen() {
             result.push(x)
         }
-        self.expectEqual([1,2], result)
+        self.expectEqual(result, [1,2])
     }
 
     const def testYieldInsideCatchAfterSuspension(self) {
@@ -256,7 +278,7 @@ load test.case
         for let x in gen() {
             result.push(x)
         }
-        self.expectEqual([1,2,3], result)
+        self.expectEqual(result, [1,2,3])
     }
 
     const def testRaiseInsideGeneratorExpression(self) {
@@ -273,7 +295,7 @@ load test.case
             }
             self.fail()
         }
-        self.expectEqual([1], values)
+        self.expectEqual(values, [1])
     }
 
     const def testRaiseInDeeplyNestedControlFlow(self) {
@@ -295,7 +317,7 @@ load test.case
             }
             self.fail()
         }
-        self.expectEqual([1], values)
+        self.expectEqual(values, [1])
     }
 
     const def testGeneratorCleanupAfterException(self) {
@@ -313,7 +335,7 @@ load test.case
             for let x in gen() {}
             self.fail()
         }
-        self.expectEqual(42, flag)
+        self.expectEqual(flag, 42)
     }
 
     const def testMostImportantDiagnostic(self) {
@@ -330,7 +352,7 @@ load test.case
         for let v in gen() {
             result.push(v)
         }
-        self.expectEqual([10,11], result)
+        self.expectEqual(result, [10,11])
     }
 
     const def testGeneratorCatchesItsOwnException(self) {
@@ -350,7 +372,7 @@ load test.case
         } catch error {
             result.push("caller")
         }
-        self.expectEqual([1,2], result)
+        self.expectEqual(result, [1,2])
     }
 
     const def testGeneratorDoesNotCatch(self) {
@@ -366,7 +388,7 @@ load test.case
         } catch error {
             result.push("caller")
         }
-        self.expectEqual([1,"caller"], result)
+        self.expectEqual(result, [1,"caller"])
     }
 
     const def testGeneratorCatchesThenReraises(self) {
@@ -387,7 +409,7 @@ load test.case
         } catch error {
             result.push("caller")
         }
-        self.expectEqual([1,2,"caller"], result)
+        self.expectEqual(result, [1,2,"caller"])
     }
 
     const def testCallerHasTryInsideLoopBody(self) {
@@ -405,7 +427,7 @@ load test.case
                 }
             }
         }
-        self.expectEqual([1], result)
+        self.expectEqual(result, [1])
     }
 
     const def testCallerHasTryWrappingEachNext(self) {
@@ -421,7 +443,7 @@ load test.case
         } catch error {
             result.push("caught")
         }
-        self.expectEqual([1,"caught"], result)
+        self.expectEqual(result, [1,"caught"])
     }
 
     const def testBothHaveNestedTryCatch(self) {
@@ -445,7 +467,7 @@ load test.case
         } catch error {
             result.push("caller")
         }
-        self.expectEqual([1,2], result)
+        self.expectEqual(result, [1,2])
     }
 
     const def testGeneratorHasOuterCatchCallerAlsoHasCatch(self) {
@@ -465,7 +487,7 @@ load test.case
         } catch error {
             result.push(error)
         }
-        self.expectEqual([1,"rethrow"], result)
+        self.expectEqual(result, [1,"rethrow"])
     }
 
     const def testExceptionAfterFinalYield(self) {
@@ -482,7 +504,7 @@ load test.case
         } catch error {
             result.push("caller")
         }
-        self.expectEqual([1, none], result)
+        self.expectEqual(result, [1, none])
     }
 
     const def testGeneratorSuspendedInsideTry(self) {
@@ -503,7 +525,7 @@ load test.case
         } catch error {
             result.push("caller")
         }
-        self.expectEqual([1,2,3], result)
+        self.expectEqual(result, [1,2,3])
     }
 
     const def testTheRealRuntimeKiller(self) {
@@ -526,7 +548,7 @@ load test.case
         } catch error {
             result.push(error)
         }
-        self.expectEqual([1,2,"caller_error"], result)
+        self.expectEqual(result, [1,2,"caller_error"])
     }
 
 	- @def iteratorEqual(expected, result) {

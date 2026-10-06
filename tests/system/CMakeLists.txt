@@ -11,6 +11,7 @@ PRIVATE
 	file_stream.cpp
 	filesystem.cpp
 	plugin.cpp
+	string.cpp
 	terminal.cpp
 	utf8.cpp
 )

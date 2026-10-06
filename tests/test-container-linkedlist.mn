@@ -4,60 +4,60 @@ load container.linked-list
 @class LinkedListTest : Test.Case {
 	const def testCreate(self) {
 		lst = Container.LinkedList([0, 7, 3, 5, 7])
-		self.expectEqual('Container.LinkedList', typeof lst)
-		self.expectEqual([0, 7, 3, 5, 7], lst.data())
-		self.expectEqual([0, 7, 3, 5, 7], lst.toArray())
+		self.expectEqual(typeof lst, 'Container.LinkedList')
+		self.expectEqual(lst.data(), [0, 7, 3, 5, 7])
+		self.expectEqual(lst.toArray(), [0, 7, 3, 5, 7])
 	}
 
 	const def testFirst(self) {
 		lst = Container.LinkedList([0, 7, 3, 5, 7])
-		self.expectEqual(0, lst.first())
+		self.expectEqual(lst.first(), 0)
 		lst.removeFirst()
-		self.expectEqual(7, lst.first())
+		self.expectEqual(lst.first(), 7)
 		node = lst.firstNode()
-		self.expectEqual(7, node.getValue())
-		self.expectIsSame(none, node.getPrevious())
-		self.expectIsNotSame(none, node.getNext())
-		self.expectEqual([7, 3, 5, 7], lst.toArray())
+		self.expectEqual(node.getValue(), 7)
+		self.expectIsSame(node.getPrevious(), none)
+		self.expectIsNotSame(node.getNext(), none)
+		self.expectEqual(lst.toArray(), [7, 3, 5, 7])
 	}
 
 	const def testLast(self) {
 		lst = Container.LinkedList([0, 7, 3, 5, 7])
-		self.expectEqual(7, lst.last())
+		self.expectEqual(lst.last(), 7)
 		lst.removeLast()
-		self.expectEqual(5, lst.last())
+		self.expectEqual(lst.last(), 5)
 		node = lst.lastNode()
-		self.expectEqual(5, node.getValue())
-		self.expectIsNotSame(none, node.getPrevious())
-		self.expectIsSame(none, node.getNext())
-		self.expectEqual([0, 7, 3, 5], lst.toArray())
+		self.expectEqual(node.getValue(), 5)
+		self.expectIsNotSame(node.getPrevious(), none)
+		self.expectIsSame(node.getNext(), none)
+		self.expectEqual(lst.toArray(), [0, 7, 3, 5])
 	}
 
 	const def testEach(self) {
 		%values = [0, 7, 3, 5, 7]
 		lst = Container.LinkedList(values)
-		self.expectEqual(true, lst.in(5))
-		self.expectEqual(false, lst.in(8))
-		self.expectEqual(true, lst.contains(5))
-		self.expectEqual(false, lst.contains(8))
-		self.expectEqual(2, lst.count(7))
-		self.expectEqual(1, lst.count(5))
-		self.expectEqual(0, lst.count(8))
+		self.expectEqual(lst.in(5), true)
+		self.expectEqual(lst.in(8), false)
+		self.expectEqual(lst.contains(5), true)
+		self.expectEqual(lst.contains(8), false)
+		self.expectEqual(lst.count(7), 2)
+		self.expectEqual(lst.count(5), 1)
+		self.expectEqual(lst.count(8), 0)
 		lst.each(def [self, values, i = 0] (value) {
-			self.expectEqual(values[i++], value, 'with i = %d' % i)
+			self.expectEqual(value, values[i++], 'with i = %d' % i)
 		})
 		i = 0
 		for value in lst {
-			self.expectEqual(values[i++], value, 'with i = %d' % i)
+			self.expectEqual(value, values[i++], 'with i = %d' % i)
 		}
 	}
 
 	const def testSize(self) {
 		lst = Container.LinkedList([0, 7, 3, 5, 7])
-		self.expectEqual(false, lst.isEmpty())
-		self.expectEqual(5, lst.size())
+		self.expectEqual(lst.isEmpty(), false)
+		self.expectEqual(lst.size(), 5)
 		lst.clear()
-		self.expectEqual(true, lst.isEmpty())
-		self.expectEqual(0, lst.size())
+		self.expectEqual(lst.isEmpty(), true)
+		self.expectEqual(lst.size(), 0)
 	}
 }

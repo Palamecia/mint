@@ -1,0 +1,563 @@
+/**
+ * Copyright (c) 2026 Gauvain CHÉRY.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to
+ * deal in the Software without restriction, including without limitation the
+ * rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ * sell copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+ * IN THE SOFTWARE.
+ */
+
+#ifndef MINT_COMPILER_DESCRIPTIONS_H
+#define MINT_COMPILER_DESCRIPTIONS_H
+
+#include "mint/compiler/type_annotation.h"
+#include "mint/config.h"
+#include "mint/memory/reference.h"
+#include "mint/program/symbol.h"
+#include "symbol_scope.h"
+#include <cstddef>
+#include <memory>
+#include <optional>
+#include <ranges>
+#include <span>
+#include <type_traits>
+#include <unordered_set>
+#include <variant>
+#include <vector>
+
+#ifdef MINT_OS_MAC
+#include "mint/generator.h"
+#else
+#include <generator>
+#endif
+
+namespace mint {
+
+class Class;
+class ClassBuilder;
+class ClassDescription;
+class GlobalData;
+class PackageData;
+class Program;
+
+struct MemberDescriptionEntry;
+struct ClassDescriptionEntry;
+
+using ModuleId = std::size_t;
+
+struct MINT_EXPORT VariableDescription {
+	Symbol name;
+	Reference::Flags flags = Reference::default_flags;
+	std::variant<TypeAnnotation, PackageDefinition, ClassDefinition, FunctionDefinition> content;
+
+	[[nodiscard]] bool is_alias() const;
+	[[nodiscard]] bool is_variable() const;
+	[[nodiscard]] bool is_function() const;
+	[[nodiscard]] bool is_package() const;
+	[[nodiscard]] bool is_class() const;
+
+	[[nodiscard]] TypeAnnotation get_type() const;
+	[[nodiscard]] SymbolDefinition target_definition() const;
+	[[nodiscard]] SymbolDefinition locate(const Symbol& symbol) const;
+};
+
+struct MINT_EXPORT ParameterDescription {
+	Symbol name;
+	TypeAnnotation type;
+	Reference::Flags flags = Reference::default_flags;
+};
+
+class MINT_EXPORT FunctionDescription : public SymbolScope {
+	std::optional<Symbol> _name;
+	TypeAnnotation _return_type;
+	Reference::Flags _flags = Reference::default_flags;
+	bool _variadic: 1 = false;
+	bool _returns_self: 1 = false;
+	std::size_t _required_parameter_count = 0;
+	std::vector<ParameterDescription> _parameters;
+	std::vector<std::unique_ptr<ClassDescription>> _classes;
+	std::vector<std::unique_ptr<FunctionDescription>> _functions;
+	std::vector<std::unique_ptr<VariableDescription>> _variables;
+
+	ModuleId _module_id;
+public:
+	FunctionDescription(ModuleId module_id, TypeAnnotation return_type, Reference::Flags flags,
+	    SymbolScope* owner = nullptr);
+	FunctionDescription(ModuleId module_id, Symbol name, TypeAnnotation return_type, Reference::Flags flags,
+	    SymbolScope* owner = nullptr);
+	FunctionDescription(const FunctionDescription&) = delete;
+	FunctionDescription(FunctionDescription&&) noexcept;
+	~FunctionDescription() override;
+
+	FunctionDescription& operator=(const FunctionDescription&) = delete;
+	FunctionDescription& operator=(FunctionDescription&&) noexcept;
+
+	[[nodiscard]] Symbol get_name() const;
+	[[nodiscard]] SymbolPath get_path() const;
+	[[nodiscard]] ModuleId get_module_id() const;
+	[[nodiscard]] TypeAnnotation get_return_type() const;
+	[[nodiscard]] Reference::Flags get_flags() const;
+
+	[[nodiscard]] bool is_root_scope() const override;
+	[[nodiscard]] auto* get_owner_package(this auto&& self);
+	[[nodiscard]] auto* get_owner_class(this auto&& self);
+
+	[[nodiscard]] std::span<const ParameterDescription> parameters() const;
+	[[nodiscard]] const ParameterDescription* find_parameter(const Symbol& name) const;
+	FunctionDescription& add_parameter(ParameterDescription parameters);
+
+	[[nodiscard]] std::size_t get_required_parameter_count() const;
+	FunctionDescription& set_required_parameter_count(std::size_t count);
+
+	[[nodiscard]] bool is_variadic() const;
+	FunctionDescription& set_variadic(bool variadic);
+
+	[[nodiscard]] bool returns_self() const;
+	FunctionDescription& set_returns_self(bool enabled);
+
+	[[nodiscard]] auto classes() const;
+	[[nodiscard]] const ClassDescription* find_class(const Symbol& name) const;
+	[[nodiscard]] const ClassDescription* find_any_class(const Symbol& name) const;
+	ClassDescription& create_class(Symbol name, Reference::Flags flags);
+
+	[[nodiscard]] auto functions() const;
+	[[nodiscard]] FunctionDefinition find_function(const Symbol& name) const;
+	[[nodiscard]] FunctionDefinition find_any_function(const Symbol& name) const;
+	FunctionDescription& create_function(Symbol name, TypeAnnotation return_type, Reference::Flags flags);
+	FunctionDescription& create_function(TypeAnnotation return_type, Reference::Flags flags);
+
+	[[nodiscard]] auto variables() const;
+	[[nodiscard]] const VariableDescription* find_variable(const Symbol& name) const;
+	VariableDescription& create_variable(std::unique_ptr<VariableDescription>&& variable);
+	VariableDescription& create_variable(Symbol name, TypeAnnotation type, Reference::Flags flags);
+	VariableDescription& update_variable(const VariableDescription& variable, TypeAnnotation type);
+	VariableDescription& update_variable(const VariableDescription& variable, const PackageDescription& value);
+	VariableDescription& update_variable(const VariableDescription& variable, const ClassDescription& value);
+	VariableDescription& update_variable(const VariableDescription& variable, const FunctionDefinition& value);
+	VariableDescription& update_variable(const VariableDescription& variable, const VariableDescription& other);
+
+	[[nodiscard]] SymbolDefinition locate(const Symbol& symbol) const override;
+	using SymbolScope::locate;
+
+	void cleanup_memory() override;
+	void cleanup_metadata() override;
+};
+
+struct MINT_EXPORT MemberDescriptionEntry {
+	using Description = std::variant<VariableDescription, FunctionDescription>;
+
+	Description description;
+	const Reference* value = nullptr;
+
+	[[nodiscard]] Symbol get_name() const;
+	[[nodiscard]] Reference::Flags get_flags() const;
+
+	[[nodiscard]] bool is_attribute() const {
+		return std::holds_alternative<VariableDescription>(description);
+	}
+
+	[[nodiscard]] bool is_method() const {
+		return std::holds_alternative<FunctionDescription>(description);
+	}
+};
+
+#ifdef __cpp_lib_generator
+using MemberDescriptionEntryGenerator = std::generator<const MemberDescriptionEntry&>;
+#else
+using MemberDescriptionEntryGenerator = mint::generator<const MemberDescriptionEntry&>;
+#endif
+
+class MINT_EXPORT ClassDescription : public SymbolScope {
+	Symbol _name;
+	std::vector<SymbolPath> _bases;
+	Reference::Flags _flags = Reference::default_flags;
+	std::vector<std::unique_ptr<MemberDescriptionEntry>> _members;
+	std::vector<std::unique_ptr<ClassDescription>> _classes;
+
+	ModuleId _module_id;
+	mutable std::unique_ptr<Class> _metadata;
+public:
+	ClassDescription(ModuleId module_id, Symbol name, Reference::Flags flags, SymbolScope* owner = nullptr);
+	ClassDescription(ModuleId module_id, Symbol name, SymbolScope* owner = nullptr);
+	ClassDescription(const ClassDescription&) = delete;
+	ClassDescription(ClassDescription&&) noexcept;
+	~ClassDescription() override;
+
+	ClassDescription& operator=(const ClassDescription&) = delete;
+	ClassDescription& operator=(ClassDescription&&) noexcept;
+
+	[[nodiscard]] Symbol get_name() const;
+	[[nodiscard]] SymbolPath get_path() const;
+	[[nodiscard]] ModuleId get_module_id() const;
+	[[nodiscard]] Reference::Flags get_flags() const;
+
+	[[nodiscard]] bool is_root_scope() const override;
+	[[nodiscard]] auto* get_owner_package(this auto&& self);
+	[[nodiscard]] auto* get_owner_class(this auto&& self);
+
+	[[nodiscard]] auto base_classes() const;
+	[[nodiscard]] std::span<const SymbolPath> bases() const;
+	[[nodiscard]] bool is_same(const SymbolPath& other) const;
+	[[nodiscard]] bool is_derived_from(const SymbolPath& other) const;
+	void add_base(const SymbolPath& base);
+
+	[[nodiscard]] auto classes() const;
+	[[nodiscard]] const ClassDescription* find_class(const Symbol& name) const;
+	ClassDescription& create_class(Symbol name, Reference::Flags flags);
+
+	[[nodiscard]] auto members() const;
+	[[nodiscard]] auto all_members() const -> MemberDescriptionEntryGenerator;
+	[[nodiscard]] bool has_member(const Symbol& name) const;
+	[[nodiscard]] bool has_any_member(const Symbol& name) const;
+	[[nodiscard]] const MemberDescriptionEntry* find_member(const Symbol& name) const;
+	[[nodiscard]] const MemberDescriptionEntry* find_any_member(const Symbol& name) const;
+	[[nodiscard]] const VariableDescription* find_attribute(const Symbol& name) const;
+	[[nodiscard]] const VariableDescription* find_any_attribute(const Symbol& name) const;
+	[[nodiscard]] FunctionDefinition find_method(const Symbol& name) const;
+	[[nodiscard]] FunctionDefinition find_any_method(const Symbol& name) const;
+	VariableDescription& create_attribute(Symbol name, TypeAnnotation type,
+	    Reference::Flags flags = Reference::default_flags, const Reference* value = nullptr);
+	FunctionDescription& create_method(Symbol name, TypeAnnotation return_type,
+	    Reference::Flags flags = Reference::default_flags, const Reference* value = nullptr);
+
+	Class& generate(const ClassBuilder& builder) const;
+
+	[[nodiscard]] SymbolDefinition locate(const Symbol& symbol) const override;
+	using SymbolScope::locate;
+
+	void cleanup_memory() override;
+	void cleanup_metadata() override;
+};
+
+class MINT_EXPORT PackageDescription : public SymbolScope {
+	Symbol _name;
+	std::unique_ptr<PackageData> _data;
+	std::vector<std::unique_ptr<ClassDescription>> _classes;
+	std::vector<std::unique_ptr<FunctionDescription>> _functions;
+	std::vector<std::unique_ptr<VariableDescription>> _variables;
+	std::vector<std::unique_ptr<PackageDescription>> _packages;
+public:
+	PackageDescription(Program& program, Symbol name, PackageDescription* owner = nullptr);
+	PackageDescription(const PackageDescription&) = delete;
+	PackageDescription(PackageDescription&&) noexcept;
+	~PackageDescription() override;
+
+	PackageDescription& operator=(const PackageDescription&) = delete;
+	PackageDescription& operator=(PackageDescription&&) noexcept;
+
+	[[nodiscard]] Symbol get_name() const;
+	[[nodiscard]] SymbolPath get_path() const;
+	[[nodiscard]] virtual bool is_global_data() const;
+
+	[[nodiscard]] bool is_root_scope() const override;
+	[[nodiscard]] auto* get_owner_package(this auto&& self);
+
+	[[nodiscard]] auto packages() const;
+	[[nodiscard]] const PackageDescription* find_package(const Symbol& name) const;
+	[[nodiscard]] const PackageDescription* find_any_package(const Symbol& name) const;
+	PackageDescription& get_or_create_package(Program& program, const Symbol& name);
+
+	[[nodiscard]] auto classes() const;
+	[[nodiscard]] const ClassDescription* find_class(const Symbol& name) const;
+	[[nodiscard]] const ClassDescription* find_any_class(const Symbol& name) const;
+	ClassDescription& create_class(ModuleId module_id, Symbol name, Reference::Flags flags);
+
+	[[nodiscard]] auto functions() const;
+	[[nodiscard]] FunctionDefinition find_function(const Symbol& name) const;
+	[[nodiscard]] FunctionDefinition find_any_function(const Symbol& name) const;
+	FunctionDescription& create_function(ModuleId module_id, Symbol name, TypeAnnotation return_type,
+	    Reference::Flags flags);
+	FunctionDescription& create_function(ModuleId module_id, TypeAnnotation return_type, Reference::Flags flags);
+
+	[[nodiscard]] auto variables() const;
+	[[nodiscard]] const VariableDescription* find_variable(const Symbol& name) const;
+	VariableDescription& create_variable(std::unique_ptr<VariableDescription>&& variable);
+	VariableDescription& create_variable(Symbol name, TypeAnnotation type, Reference::Flags flags);
+	VariableDescription& update_variable(const VariableDescription& variable, TypeAnnotation type);
+	VariableDescription& update_variable(const VariableDescription& variable, const PackageDescription& value);
+	VariableDescription& update_variable(const VariableDescription& variable, const ClassDescription& value);
+	VariableDescription& update_variable(const VariableDescription& variable, const FunctionDefinition& value);
+	VariableDescription& update_variable(const VariableDescription& variable, const VariableDescription& other);
+
+	[[nodiscard]] PackageData& data() const;
+
+	[[nodiscard]] SymbolDefinition locate(const Symbol& symbol) const override;
+	using SymbolScope::locate;
+
+	void cleanup_memory() override;
+	void cleanup_metadata() override;
+
+protected:
+	PackageDescription(std::unique_ptr<PackageData>&& data, Symbol name, PackageDescription* owner = nullptr);
+};
+
+class GlobalDataDescription final : public PackageDescription {
+public:
+	explicit GlobalDataDescription(Program& program);
+
+	[[nodiscard]] bool is_root_scope() const final;
+	[[nodiscard]] bool is_global_data() const final;
+	[[nodiscard]] GlobalData& global_data() const;
+
+	[[nodiscard]] ClassDescription& builtin(BuiltinTypeKind type);
+};
+
+class MINT_EXPORT ModuleDescription : public SymbolScope {
+	SymbolPath _path;
+	ModuleId _module_id;
+	std::vector<std::unique_ptr<ClassDescription>> _classes;
+	std::vector<std::unique_ptr<FunctionDescription>> _functions;
+	std::vector<std::unique_ptr<VariableDescription>> _variables;
+public:
+	ModuleDescription(ModuleId module_id, SymbolPath path);
+	ModuleDescription(const ModuleDescription&) = delete;
+	ModuleDescription(ModuleDescription&&) noexcept;
+	~ModuleDescription() override;
+
+	ModuleDescription& operator=(const ModuleDescription&) = delete;
+	ModuleDescription& operator=(ModuleDescription&&) noexcept;
+
+	[[nodiscard]] Symbol get_name() const;
+	[[nodiscard]] SymbolPath get_path() const;
+	[[nodiscard]] ModuleId get_module_id() const;
+
+	[[nodiscard]] bool is_root_scope() const override;
+
+	[[nodiscard]] auto classes() const;
+	[[nodiscard]] const ClassDescription* find_class(const Symbol& name) const;
+	[[nodiscard]] const ClassDescription* find_any_class(const Symbol& name) const;
+	ClassDescription& create_class(Symbol name, Reference::Flags flags);
+
+	[[nodiscard]] auto functions() const;
+	[[nodiscard]] FunctionDefinition find_function(const Symbol& name) const;
+	[[nodiscard]] FunctionDefinition find_any_function(const Symbol& name) const;
+	FunctionDescription& create_function(Symbol name, TypeAnnotation return_type, Reference::Flags flags);
+	FunctionDescription& create_function(TypeAnnotation return_type, Reference::Flags flags);
+
+	[[nodiscard]] auto variables() const;
+	[[nodiscard]] const VariableDescription* find_variable(const Symbol& name) const;
+	VariableDescription& create_variable(std::unique_ptr<VariableDescription>&& variable);
+	VariableDescription& create_variable(Symbol name, TypeAnnotation type, Reference::Flags flags);
+	VariableDescription& update_variable(const VariableDescription& variable, TypeAnnotation type);
+	VariableDescription& update_variable(const VariableDescription& variable, const PackageDescription& value);
+	VariableDescription& update_variable(const VariableDescription& variable, const ClassDescription& value);
+	VariableDescription& update_variable(const VariableDescription& variable, const FunctionDefinition& value);
+	VariableDescription& update_variable(const VariableDescription& variable, const VariableDescription& other);
+
+	[[nodiscard]] SymbolDefinition locate(const Symbol& symbol) const override;
+	using SymbolScope::locate;
+
+	void cleanup_memory() override;
+	void cleanup_metadata() override;
+};
+
+inline bool VariableDescription::is_alias() const {
+	return !std::holds_alternative<TypeAnnotation>(content);
+}
+
+inline bool VariableDescription::is_variable() const {
+	return std::holds_alternative<TypeAnnotation>(content);
+}
+
+inline bool VariableDescription::is_function() const {
+	return std::holds_alternative<FunctionDefinition>(content);
+}
+
+inline bool VariableDescription::is_package() const {
+	return std::holds_alternative<PackageDefinition>(content);
+}
+
+inline bool VariableDescription::is_class() const {
+	return std::holds_alternative<ClassDefinition>(content);
+}
+
+inline bool mint::FunctionDescription::is_root_scope() const {
+	return true;
+}
+
+inline auto* FunctionDescription::get_owner_package(this auto&& self) {
+
+	constexpr bool is_const = std::is_const_v<std::remove_reference_t<decltype(self)>>;
+	using package_t = std::conditional_t<is_const, const PackageDescription, PackageDescription>;
+	using class_t = std::conditional_t<is_const, const ClassDescription, ClassDescription>;
+
+	auto* scope = self.get_owner_scope();
+
+	if (auto* package = dynamic_cast<package_t*>(scope)) {
+		return package;
+	}
+
+	if (auto* owner = dynamic_cast<class_t*>(scope)) {
+		return owner->get_owner_package();
+	}
+
+	return static_cast<package_t*>(nullptr);
+}
+
+inline auto* FunctionDescription::get_owner_class(this auto&& self) {
+	constexpr bool is_const = std::is_const_v<std::remove_reference_t<decltype(self)>>;
+	using class_t = std::conditional_t<is_const, const ClassDescription, ClassDescription>;
+	return dynamic_cast<class_t*>(self.get_owner_scope());
+}
+
+inline auto FunctionDescription::classes() const {
+	return std::views::transform(_classes, [](const auto& entry) -> const ClassDescription& {
+		return *entry;
+	});
+}
+
+inline auto FunctionDescription::functions() const {
+	return std::views::transform(_functions, [](const auto& function) -> const FunctionDescription& {
+		return *function;
+	});
+}
+
+inline auto FunctionDescription::variables() const {
+	return std::views::transform(_variables, [](const auto& variable) -> const VariableDescription& {
+		return *variable;
+	});
+}
+
+inline bool ClassDescription::is_root_scope() const {
+	return false;
+}
+
+inline auto* ClassDescription::get_owner_package(this auto&& self) {
+
+	constexpr bool is_const = std::is_const_v<std::remove_reference_t<decltype(self)>>;
+	using package_t = std::conditional_t<is_const, const PackageDescription, PackageDescription>;
+	using class_t = std::conditional_t<is_const, const ClassDescription, ClassDescription>;
+
+	auto* scope = self.get_owner_scope();
+
+	if (auto* package = dynamic_cast<package_t*>(scope)) {
+		return package;
+	}
+
+	if (auto* owner = dynamic_cast<class_t*>(scope)) {
+		return owner->get_owner_package();
+	}
+
+	return static_cast<package_t*>(nullptr);
+}
+
+inline auto* ClassDescription::get_owner_class(this auto&& self) {
+	constexpr bool is_const = std::is_const_v<std::remove_reference_t<decltype(self)>>;
+	using class_t = std::conditional_t<is_const, const ClassDescription, ClassDescription>;
+	return dynamic_cast<class_t*>(self.get_owner_scope());
+}
+
+inline auto ClassDescription::base_classes() const {
+	return _bases | std::views::transform([&](const auto& base) {
+		return get_root_scope().locate(base);
+	}) | std::views::filter([](const auto& definition) {
+		return std::holds_alternative<ClassDefinition>(definition);
+	}) | std::views::transform([](const auto& definition) -> const ClassDescription& {
+		return std::get<ClassDefinition>(definition).get();
+	});
+}
+
+inline auto ClassDescription::classes() const {
+	return std::views::transform(_classes, [](const auto& entry) -> const ClassDescription& {
+		return *entry;
+	});
+}
+
+inline auto ClassDescription::members() const {
+	return std::views::transform(_members, [](const auto& entry) -> const MemberDescriptionEntry& {
+		return *entry;
+	});
+}
+
+inline MemberDescriptionEntryGenerator ClassDescription::all_members() const {
+	auto local_and_descendant_names = std::unordered_set<Symbol>();
+	for (const auto& member : members()) {
+		local_and_descendant_names.emplace(member.get_name());
+		co_yield member;
+	}
+	for (const auto& base : base_classes()) {
+		for (const auto& base_member : base.all_members()) {
+			if (!local_and_descendant_names.contains(base_member.get_name())) {
+				co_yield base_member;
+			}
+		}
+	}
+}
+
+inline bool PackageDescription::is_root_scope() const {
+	return false;
+}
+
+inline auto* PackageDescription::get_owner_package(this auto&& self) {
+	constexpr bool is_const = std::is_const_v<std::remove_reference_t<decltype(self)>>;
+	using package_t = std::conditional_t<is_const, const PackageDescription, PackageDescription>;
+	return dynamic_cast<package_t*>(self.get_owner_scope());
+}
+
+inline auto PackageDescription::packages() const {
+	return std::views::transform(_packages, [](const auto& package) -> const PackageDescription& {
+		return *package;
+	});
+}
+
+inline auto PackageDescription::classes() const {
+	return std::views::transform(_classes, [](const auto& entry) -> const ClassDescription& {
+		return *entry;
+	});
+}
+
+inline auto PackageDescription::functions() const {
+	return std::views::transform(_functions, [](const auto& function) -> const FunctionDescription& {
+		return *function;
+	});
+}
+
+inline auto PackageDescription::variables() const {
+	return std::views::transform(_variables, [](const auto& variable) -> const VariableDescription& {
+		return *variable;
+	});
+}
+
+inline bool GlobalDataDescription::is_root_scope() const {
+	return true;
+}
+
+inline bool ModuleDescription::is_root_scope() const {
+	return true;
+}
+
+inline auto ModuleDescription::classes() const {
+	return std::views::transform(_classes, [](const auto& entry) -> const ClassDescription& {
+		return *entry;
+	});
+}
+
+inline auto ModuleDescription::functions() const {
+	return std::views::transform(_functions, [](const auto& function) -> const FunctionDescription& {
+		return *function;
+	});
+}
+
+inline auto ModuleDescription::variables() const {
+	return std::views::transform(_variables, [](const auto& variable) -> const VariableDescription& {
+		return *variable;
+	});
+}
+
+}
+
+#endif // MINT_COMPILER_DESCRIPTIONS_H

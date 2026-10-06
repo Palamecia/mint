@@ -35,7 +35,7 @@ package Serializer {
  * This class provides an interface for reading and writing raw data. It is mean
  * to be used by any code that perform low level operations.
  */
-@class DataStream {
+@final class DataStream {
 	/**
 	 * Creates a new empty stream.
 	 */
@@ -44,7 +44,6 @@ package Serializer {
 		self.d_ptr.delete = def [g_lib = Serializer.DataStream.g_lib] (self) {
 			g_lib.call('mint_data_stream_delete_buffer', self)
 		}
-		return self
 	}
 
 	/**
@@ -57,12 +56,12 @@ package Serializer {
 	 * create the returned value; otherwise `other` is sent to the {@see write}
 	 * method to insert data in the stream.
 	 */
-	const def new(self, other) {
-		if typeof other == 'Serializer.DataStream' {
+	const def new(self, other) -> Serializer.DataStream {
+		if typeof other === 'Serializer.DataStream' {
 			return other
 		}
 		if defined other.toDataStream {
-			return other.toDataStream()
+			return other.toDataStream() as Serializer.DataStream
 		}
 		self.d_ptr = Serializer.DataStream.g_lib.call('mint_data_stream_create_buffer')
 		self.d_ptr.delete = def [g_lib = Serializer.DataStream.g_lib] (self) {
@@ -76,8 +75,8 @@ package Serializer {
 	 * Creates a new stream containing the `count` first bytes from the `bytes` string. If `count` is more than the
 	 * amount of bytes in the string, extra zero bytes are appended.
 	 */
-	@const def fromUtf8Bytes(bytes, count) {
-		let self = Serializer.DataStream()
+	@const def fromUtf8Bytes(bytes, count) -> Serializer.DataStream {
+		let self: Serializer.DataStream = Serializer.DataStream()
 		Serializer.DataStream.g_lib.call('mint_data_stream_from_utf8_bytes', self.d_ptr, bytes, count)
 		return self
 	}
@@ -86,8 +85,8 @@ package Serializer {
 	 * Creates a new stream containing the `count` bytes from the `bytes` string starting from the byte at position
 	 * `from`. If `count` is more than the amount of bytes in the string, extra zero bytes are appended.
 	 */
-	@const def fromUtf8Bytes(bytes, from, count) {
-		let self = Serializer.DataStream()
+	@const def fromUtf8Bytes(bytes, from, count) -> Serializer.DataStream {
+		let self: Serializer.DataStream = Serializer.DataStream()
 		Serializer.DataStream.g_lib.call('mint_data_stream_from_utf8_bytes_from', self.d_ptr, bytes, from, count)
 		return self
 	}
@@ -96,80 +95,80 @@ package Serializer {
 	 * Returns `true` if the stream contains at least `count` {int8}; otherwise
 	 * returns `false`.
 	 */
-	const def containsInt8(const self, count = 1) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_int8', self.d_ptr, count)
+	const def containsInt8(const self, count = 1) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_int8', self.d_ptr, count)
 	}
 
 	/**
 	 * Returns `true` if the stream contains at least `count` {int16}; otherwise
 	 * returns `false`.
 	 */
-	const def containsInt16(const self, count = 1) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_int16', self.d_ptr, count)
+	const def containsInt16(const self, count = 1) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_int16', self.d_ptr, count)
 	}
 
 	/**
 	 * Returns `true` if the stream contains at least `count` {int32}; otherwise
 	 * returns `false`.
 	 */
-	const def containsInt32(const self, count = 1) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_int32', self.d_ptr, count)
+	const def containsInt32(const self, count = 1) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_int32', self.d_ptr, count)
 	}
 
 	/**
 	 * Returns `true` if the stream contains at least `count` {int64}; otherwise
 	 * returns `false`.
 	 */
-	const def containsInt64(const self, count = 1) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_int64', self.d_ptr, count)
+	const def containsInt64(const self, count = 1) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_int64', self.d_ptr, count)
 	}
 
 	/**
 	 * Returns `true` if the stream contains at least `count` {uint8}; otherwise
 	 * returns `false`.
 	 */
-	const def containsUInt8(const self, count = 1) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_uint8', self.d_ptr, count)
+	const def containsUInt8(const self, count = 1) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_uint8', self.d_ptr, count)
 	}
 
 	/**
 	 * Returns `true` if the stream contains at least `count` {uint16}; otherwise
 	 * returns `false`.
 	 */
-	const def containsUInt16(const self, count = 1) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_uint16', self.d_ptr, count)
+	const def containsUInt16(const self, count = 1) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_uint16', self.d_ptr, count)
 	}
 
 	/**
 	 * Returns `true` if the stream contains at least `count` {uint32}; otherwise
 	 * returns `false`.
 	 */
-	const def containsUInt32(const self, count = 1) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_uint32', self.d_ptr, count)
+	const def containsUInt32(const self, count = 1) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_uint32', self.d_ptr, count)
 	}
 
 	/**
 	 * Returns `true` if the stream contains at least `count` {uint64}; otherwise
 	 * returns `false`.
 	 */
-	const def containsUInt64(const self, count = 1) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_uint64', self.d_ptr, count)
+	const def containsUInt64(const self, count = 1) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_uint64', self.d_ptr, count)
 	}
 
 	/**
 	 * Returns `true` if the stream contains at least `count` numbers; otherwise
 	 * returns `false`.
 	 */
-	const def containsNumber(const self, count = 1) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_number', self.d_ptr, count)
+	const def containsNumber(const self, count = 1) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_number', self.d_ptr, count)
 	}
 
 	/**
 	 * Returns `true` if the stream contains at least one boolean; otherwise
 	 * returns `false`.
 	 */
-	const def containsBoolean(const self) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_boolean', self.d_ptr)
+	const def containsBoolean(const self) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_boolean', self.d_ptr)
 	}
 
 	/**
@@ -177,8 +176,8 @@ package Serializer {
 	 * returns `false`. A string is detected if the stream contains a byte with
 	 * the value `0`.
 	 */
-	const def containsString(const self) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_contains_string', self.d_ptr)
+	const def containsString(const self) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_contains_string', self.d_ptr)
 	}
 
 	/**
@@ -186,9 +185,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getInt8(const self) {
+	const def getInt8(const self) -> int8? {
 		if self.containsInt8() {
-			var data = int8()
+			var data: int8 = int8()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -199,9 +198,9 @@ package Serializer {
 	 * stream. If the stream does not contains enough data, `none` is returned
 	 * instead. The read cursor is not modified.
 	 */
-	const def getInt8(const self, count) {
+	const def getInt8(const self, count) -> array? {
 		if self.containsInt8(count) {
-			var data = [for let i in 0...count => int8()]
+			var data: array = [for let i in 0...count => int8()]
 			Serializer.DataStream.g_lib.call('mint_data_stream_get_array', self.d_ptr, data, count)
 			return data
 		}
@@ -212,9 +211,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getInt16(const self) {
+	const def getInt16(const self) -> int16? {
 		if self.containsInt16() {
-			var data = int16()
+			var data: int16 = int16()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -225,9 +224,9 @@ package Serializer {
 	 * stream. If the stream does not contains enough data, `none` is returned
 	 * instead. The read cursor is not modified.
 	 */
-	const def getInt16(const self, count) {
+	const def getInt16(const self, count) -> array? {
 		if self.containsInt16(count) {
-			var data = [for let i in 0...count => int16()]
+			var data: array = [for let i in 0...count => int16()]
 			Serializer.DataStream.g_lib.call('mint_data_stream_get_array', self.d_ptr, data, count)
 			return data
 		}
@@ -238,9 +237,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getInt32(const self) {
+	const def getInt32(const self) -> int32? {
 		if self.containsInt32() {
-			var data = int32()
+			var data: int32 = int32()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -251,9 +250,9 @@ package Serializer {
 	 * stream. If the stream does not contains enough data, `none` is returned
 	 * instead. The read cursor is not modified.
 	 */
-	const def getInt32(const self, count) {
+	const def getInt32(const self, count) -> array? {
 		if self.containsInt32(count) {
-			var data = [for let i in 0...count => int32()]
+			var data: array = [for let i in 0...count => int32()]
 			Serializer.DataStream.g_lib.call('mint_data_stream_get_array', self.d_ptr, data, count)
 			return data
 		}
@@ -264,9 +263,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getInt64(const self) {
+	const def getInt64(const self) -> int64? {
 		if self.containsInt64() {
-			var data = int64()
+			var data: int64 = int64()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -277,9 +276,9 @@ package Serializer {
 	 * stream. If the stream does not contains enough data, `none` is returned
 	 * instead. The read cursor is not modified.
 	 */
-	const def getInt64(const self, count) {
+	const def getInt64(const self, count) -> array? {
 		if self.containsInt64(count) {
-			var data = [for let i in 0...count => int64()]
+			var data: array = [for let i in 0...count => int64()]
 			Serializer.DataStream.g_lib.call('mint_data_stream_get_array', self.d_ptr, data, count)
 			return data
 		}
@@ -290,9 +289,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getUInt8(const self) {
+	const def getUInt8(const self) -> uint8? {
 		if self.containsUInt8() {
-			var data = uint8()
+			var data: uint8 = uint8()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -303,9 +302,9 @@ package Serializer {
 	 * stream. If the stream does not contains enough data, `none` is returned
 	 * instead. The read cursor is not modified.
 	 */
-	const def getUInt8(const self, count) {
+	const def getUInt8(const self, count) -> array? {
 		if self.containsUInt8(count) {
-			var data = [for let i in 0...count => uint8()]
+			var data: array = [for let i in 0...count => uint8()]
 			Serializer.DataStream.g_lib.call('mint_data_stream_get_array', self.d_ptr, data, count)
 			return data
 		}
@@ -316,9 +315,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getUInt16(const self) {
+	const def getUInt16(const self) -> uint16? {
 		if self.containsUInt16() {
-			var data = uint16()
+			var data: uint16 = uint16()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -329,9 +328,9 @@ package Serializer {
 	 * stream. If the stream does not contains enough data, `none` is returned
 	 * instead. The read cursor is not modified.
 	 */
-	const def getUInt16(const self, count) {
+	const def getUInt16(const self, count) -> array? {
 		if self.containsUInt16(count) {
-			var data = [for let i in 0...count => uint16()]
+			var data: array = [for let i in 0...count => uint16()]
 			Serializer.DataStream.g_lib.call('mint_data_stream_get_array', self.d_ptr, data, count)
 			return data
 		}
@@ -342,9 +341,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getUInt32(const self) {
+	const def getUInt32(const self) -> uint32? {
 		if self.containsUInt32() {
-			var data = uint32()
+			var data: uint32 = uint32()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -355,9 +354,9 @@ package Serializer {
 	 * stream. If the stream does not contains enough data, `none` is returned
 	 * instead. The read cursor is not modified.
 	 */
-	const def getUInt32(const self, count) {
+	const def getUInt32(const self, count) -> array? {
 		if self.containsUInt32(count) {
-			var data = [for let i in 0...count => uint32()]
+			var data: array = [for let i in 0...count => uint32()]
 			Serializer.DataStream.g_lib.call('mint_data_stream_get_array', self.d_ptr, data, count)
 			return data
 		}
@@ -368,9 +367,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getUInt64(const self) {
+	const def getUInt64(const self) -> uint64? {
 		if self.containsUInt64() {
-			var data = uint64()
+			var data: uint64 = uint64()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -381,9 +380,9 @@ package Serializer {
 	 * stream. If the stream does not contains enough data, `none` is returned
 	 * instead. The read cursor is not modified.
 	 */
-	const def getUInt64(const self, count) {
+	const def getUInt64(const self, count) -> array? {
 		if self.containsUInt64(count) {
-			var data = [for let i in 0...count => uint64()]
+			var data: array = [for let i in 0...count => uint64()]
 			Serializer.DataStream.g_lib.call('mint_data_stream_get_array', self.d_ptr, data, count)
 			return data
 		}
@@ -394,9 +393,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getNumber(const self) {
+	const def getNumber(const self) -> number? {
 		if self.containsNumber() {
-			var data = number()
+			var data: number = number()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -407,9 +406,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getBoolean(const self) {
+	const def getBoolean(const self) -> boolean? {
 		if self.containsBoolean() {
-			var data = boolean()
+			var data: boolean = boolean()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -420,9 +419,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead. The read cursor is not
 	 * modified.
 	 */
-	const def getString(const self) {
+	const def getString(const self) -> string? {
 		if self.containsString() {
-			var data = string()
+			var data: string = string()
 			Serializer.DataStream.g_lib.call('mint_data_stream_get', self.d_ptr, data)
 			return data
 		}
@@ -435,13 +434,13 @@ package Serializer {
 	 * constructed string ends at the first byte of value `0` found or where no
 	 * more data is available. The read cursor is not modified.
 	 */
-	const def getString(const self, from, length = none) {
+	const def getString(const self, from, length = none) -> string? {
 		const maxLength = self.size()
 		if not defined length {
 			length = maxLength - from
 		}
 		if (from + length) <= maxLength {
-			return Serializer.DataStream.g_lib.call('mint_data_stream_get_substr', self.d_ptr, from, length)
+			return Serializer.DataStream.g_lib.callAsString('mint_data_stream_get_substr', self.d_ptr, from, length)
 		}
 	}
 
@@ -449,8 +448,8 @@ package Serializer {
 	 * Returns at most `count` bytes from the stream as an instance of {Serializer.DataStream}. The read cursor is not
 	 * modified.
 	 */
-	const def getSome(const self, count) {
-		let buffer = Serializer.DataStream()
+	const def getSome(const self, count) -> Serializer.DataStream {
+		let buffer: Serializer.DataStream = Serializer.DataStream()
 		Serializer.DataStream.g_lib.call('mint_data_stream_get_some', self.d_ptr, buffer.d_ptr, count)
 		return buffer
 	}
@@ -459,8 +458,8 @@ package Serializer {
 	 * Returns at most `count` bytes from the stream starting from the `from` byte after the read cursor as an instance
 	 * of {Serializer.DataStream}. The read cursor is not modified.
 	 */
-	const def getSome(const self, from, count) {
-		let buffer = Serializer.DataStream()
+	const def getSome(const self, from, count) -> Serializer.DataStream {
+		let buffer: Serializer.DataStream = Serializer.DataStream()
 		Serializer.DataStream.g_lib.call('mint_data_stream_get_some_from', self.d_ptr, buffer.d_ptr, from, count)
 		return buffer
 	}
@@ -469,8 +468,8 @@ package Serializer {
 	 * Creates a new stream containing the data of `data` decoded from Base64.
 	 * Returns `none` if `data` is not a valid Base64 string.
 	 */
-	@const def fromBase64(data) {
-		var self = Serializer.DataStream()
+	@const def fromBase64(data) -> Serializer.DataStream? {
+		var self: Serializer.DataStream = Serializer.DataStream()
 		if Serializer.DataStream.g_lib.call('mint_data_stream_write_base64', self.d_ptr, data) {
 			return self
 		}
@@ -480,8 +479,8 @@ package Serializer {
 	 * Creates a new stream containing the data of `data` decoded from Base64Url.
 	 * Returns `none` if `data` is not a valid Base64Url string.
 	 */
-	@const def fromBase64Url(data) {
-		var self = Serializer.DataStream()
+	@const def fromBase64Url(data) -> Serializer.DataStream? {
+		var self: Serializer.DataStream = Serializer.DataStream()
 		if Serializer.DataStream.g_lib.call('mint_data_stream_write_base64url', self.d_ptr, data) {
 			return self
 		}
@@ -491,16 +490,16 @@ package Serializer {
 	 * Returns a string containing the Base64 representation of the following
 	 * bytes in the stream. 
 	 */
-	const def toBase64(const self) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_to_base64', self.d_ptr)
+	const def toBase64(const self) -> string {
+		return Serializer.DataStream.g_lib.callAsString('mint_data_stream_to_base64', self.d_ptr)
 	}
 
 	/**
 	 * Returns a string containing the Base64Url representation of the following
 	 * bytes in the stream. 
 	 */
-	const def toBase64Url(const self) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_to_base64url', self.d_ptr)
+	const def toBase64Url(const self) -> string {
+		return Serializer.DataStream.g_lib.callAsString('mint_data_stream_to_base64url', self.d_ptr)
 	}
 
 	/**
@@ -509,9 +508,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readInt8(self) {
+	const def readInt8(self) -> int8? {
 		if self.containsInt8() {
-			var data = int8()
+			var data: int8 = int8()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -523,9 +522,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readInt16(self) {
+	const def readInt16(self) -> int16? {
 		if self.containsInt16() {
-			var data = int16()
+			var data: int16 = int16()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -537,9 +536,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readInt32(self) {
+	const def readInt32(self) -> int32? {
 		if self.containsInt32() {
-			var data = int32()
+			var data: int32 = int32()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -551,9 +550,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readInt64(self) {
+	const def readInt64(self) -> int64?  {
 		if self.containsInt64() {
-			var data = int64()
+			var data: int64 = int64()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -565,9 +564,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readUInt8(self) {
+	const def readUInt8(self) -> uint8? {
 		if self.containsUInt8() {
-			var data = uint8()
+			var data: uint8 = uint8()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -579,9 +578,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readUInt16(self) {
+	const def readUInt16(self) -> uint16? {
 		if self.containsUInt16() {
-			var data = uint16()
+			var data: uint16 = uint16()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -593,9 +592,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readUInt32(self) {
+	const def readUInt32(self) -> uint32? {
 		if self.containsUInt32() {
-			var data = uint32()
+			var data: uint32 = uint32()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -607,9 +606,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readUInt64(self) {
+	const def readUInt64(self) -> uint64? {
 		if self.containsUInt64() {
-			var data = uint64()
+			var data: uint64 = uint64()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -621,9 +620,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readNumber(self) {
+	const def readNumber(self) -> number? {
 		if self.containsNumber() {
-			var data = number()
+			var data: number = number()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -635,9 +634,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readBoolean(self) {
+	const def readBoolean(self) -> boolean? {
 		if self.containsBoolean() {
-			var data = boolean()
+			var data: boolean = boolean()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -649,9 +648,9 @@ package Serializer {
 	 * contains enough data, `none` is returned instead and the read cursor
 	 * is not modified.
 	 */
-	const def readString(self) {
+	const def readString(self) -> string? {
 		if self.containsString() {
-			var data = string()
+			var data: string = string()
 			Serializer.DataStream.g_lib.call('mint_data_stream_read', self.d_ptr, data)
 			return data
 		}
@@ -661,8 +660,8 @@ package Serializer {
 	 * Returns at most `count` bytes from the stream as an instance of {Serializer.DataStream}. The read cursor is moved
 	 * to the next byte right after the data.
 	 */
-	const def readSome(self, count) {
-		let buffer = Serializer.DataStream()
+	const def readSome(self, count) -> Serializer.DataStream {
+		let buffer: Serializer.DataStream = Serializer.DataStream()
 		Serializer.DataStream.g_lib.call('mint_data_stream_read_some', self.d_ptr, buffer.d_ptr, count)
 		return buffer
 	}
@@ -671,7 +670,7 @@ package Serializer {
 	 * Returns this stream. This method is provided to allow the use of the stream in a context where a stream is
 	 * expected, but no data is needed to be read from it.
 	 */
-	const def read(self) {
+	const def read(self) -> Serializer.DataStream {
 		return self
 	}
 
@@ -696,16 +695,16 @@ package Serializer {
 	/**
 	 * Returns the amount of remaining bytes after the read cursor.
 	 */
-	const def size(const self) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_size', self.d_ptr)
+	const def size(const self) -> number {
+		return Serializer.DataStream.g_lib.callAsNumber('mint_data_stream_size', self.d_ptr)
 	}
 
 	/**
 	 * Returns `true` if the stream has no more data to read; otherwise returns
 	 * `false`.
 	 */
-	const def isEmpty(const self) {
-		return Serializer.DataStream.g_lib.call('mint_data_stream_empty', self.d_ptr)
+	const def isEmpty(const self) -> boolean {
+		return Serializer.DataStream.g_lib.callAsBoolean('mint_data_stream_empty', self.d_ptr)
 	}
 
 	/**
@@ -722,7 +721,7 @@ package Serializer {
 	 * or `none`; otherwise the data is cast to string to get inserted in the
 	 * stream.
 	 */
-	const def <<(self, data) {
+	const def <<(self, data) -> Serializer.DataStream {
 		self.write(data)
 		return self
 	}
@@ -735,7 +734,7 @@ package Serializer {
 	 * corresponding read function is used; otherwise the stream is passed to
 	 * the constructor of the type to get the data to store in `data`.
 	 */
-	const def >>(self, data) {
+	const def >>(self, data) -> Serializer.DataStream {
 		switch typeof data {
 		case 'int8':
 			data := self.readInt8()
@@ -779,10 +778,25 @@ package Serializer {
 	}
 
 	/// Global library handle
-	- @const g_lib = lib('libmint-serializer')
+	- @const g_lib: library = lib('libmint-serializer')
 	
 	/// Object data
 	- final d_ptr = null
 }
 
+}
+
+/**
+ * Converts `self` to {Serializer.DataStream}. If `value` is already a {Serializer.DataStream}, the object is returned;
+ * otherwise, if it provides a `toDataStream` method, the result of the method call is returned; otherwise, a new object
+ * is created.
+ */
+@const def toDataStream(self) -> Serializer.DataStream {
+	if typeof self === 'Serializer.DataStream' {
+		return self
+	}
+	if defined self.toDataStream {
+		return self.toDataStream() as Serializer.DataStream
+	}
+	return Serializer.DataStream(self)
 }

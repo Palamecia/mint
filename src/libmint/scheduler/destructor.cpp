@@ -22,6 +22,7 @@
  */
 
 #include "mint/scheduler/destructor.h"
+#include "mint/memory/data.h"
 #include "mint/memory/garbage_collector.h"
 #include "mint/memory/reference.h"
 #include "mint/scheduler/process.h"

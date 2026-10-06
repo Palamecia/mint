@@ -43,17 +43,14 @@ package System {
 		 */
 		const def new(self) {
 			self.timezone = System.TimeZone.current()
-			self.timepoint = System.Date.g_lib.call('mint_date_current_timepoint')
-			self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+			self.timePoint = System.Date.g_lib.call('mint_date_current_timepoint')
+			self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
 				g_lib.call('mint_date_delete', self)
 			}
-			return self
 		}
 
 		/**
 		 * Creates a new instance for the date and time described by `desc`.
-		 * 
-		 * If `desc` is an instance of {System.Date}, this instance is returned.
 		 * 
 		 * If `desc` is a number, it is used as an unix timestamp to get the date
 		 * and time (i.e. the amount of seconds since 1970-01-01T00:00:00Z). The
@@ -63,46 +60,34 @@ package System {
 		 * date and time. The {System.TimeZone} is selected from the informations
 		 * provided by the string or is UTC if not specified.
 		 * 
-		 * If `desc` provides a `toDate` method, this method is used to create
-		 * the returned value; otherwise `desc` is cast to number to get an unix
-		 * timestamp.
+		 * Otherwise `desc` is cast to number to get an unix timestamp.
+		 * 
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def new(self, desc) {
 			switch typeof desc {
 			case 'number':
-				self.timepoint = System.Date.g_lib.call('mint_date_seconds_to_timepoint', desc)
-				self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+				self.timezone = System.TimeZone.current()
+				self.timePoint = System.Date.g_lib.call('mint_date_seconds_to_timepoint', desc)
+				self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
 					g_lib.call('mint_date_delete', self)
 				}
-				self.timezone = System.TimeZone.current()
 				return self
-
 			case 'string':
-				var (timepoint, timezone) = System.Date.g_lib.call('mint_parse_iso_date', desc)
-				if self.timepoint = timepoint {
-					self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
-						g_lib.call('mint_date_delete', self)
-					}
-					self.timezone = System.TimeZone(timezone)
-					return self
+				let (errno, timePoint, timezone) = System.Date.g_lib.call('mint_parse_iso_date', desc)
+				if errno {
+					raise Exception.SystemError(errno, self)
 				}
-				break
-
-			case 'System.Date':
-				return desc
-
-			case 'System.Date.Internal':
-				self.timepoint = desc.timepoint
-				self.timezone = desc.timezone
+				self.timezone = timezone.toTimeZone()
+				self.timePoint = timePoint
+				self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
+					g_lib.call('mint_date_delete', self)
+				}
 				return self
-
 			default:
-				if defined desc.toDate {
-					return desc.toDate()
-				}
 				self.timezone = System.TimeZone.current()
-				self.timepoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', number(desc))
-				self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+				self.timePoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', desc.toNumber())
+				self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
 					g_lib.call('mint_date_delete', self)
 				}
 				return self
@@ -125,19 +110,18 @@ package System {
 		 * described by the `timezone` parameter. The current {System.TimeZone}
 		 * is used if the parameter is not provided. This instance is also used
 		 * by the object.
+		 * 
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def new(self, year, month, day, h = 0, min = 0, sec = 0, ms = 0, timezone = none) {
 			if defined timezone {
-				self.timezone = System.TimeZone(timezone)
+				self.timezone = timezone.toTimeZone()
 			} else {
 				self.timezone = System.TimeZone.current()
 			}
-			if defined self.timezone {
-				self.timepoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
-				self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
-					g_lib.call('mint_date_delete', self)
-				}
-				return self
+			self.timePoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
+			self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
+				g_lib.call('mint_date_delete', self)
 			}
 		}
 
@@ -148,12 +132,14 @@ package System {
 		 * timestamp to get the date and time (i.e. the amount of seconds since
 		 * 1970-01-01T00:00:00Z). The current {System.TimeZone} is used.
 		 */
-		@const def fromSecondsSinceEpoch(seconds) {
-			let timepoint = System.Date.g_lib.call('mint_date_seconds_to_timepoint', seconds)
-			timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+		@const def fromSecondsSinceEpoch(seconds) -> System.Date {
+			let self: System.Date = System.Date.allocate()
+			self.timezone = System.TimeZone.current()
+			self.timePoint = System.Date.g_lib.call('mint_date_seconds_to_timepoint', seconds)
+			self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
 				g_lib.call('mint_date_delete', self)
 			}
-			return System.Date(System.Date.Internal(timepoint))
+			return self
 		}
 
 		/**
@@ -164,12 +150,14 @@ package System {
 		 * of milliseconds since 1970-01-01T00:00:00.000Z). The current
 		 * {System.TimeZone} is used.
 		 */
-		@const def fromMillisecondsSinceEpoch(milliseconds) {
-			let timepoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', milliseconds)
-			timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+		@const def fromMillisecondsSinceEpoch(milliseconds) -> System.Date {
+			let self: System.Date = System.Date.allocate()
+			self.timezone = System.TimeZone.current()
+			self.timePoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', milliseconds)
+			self.timePoint.delete = def [g_lib = System.Date.g_lib] (self) {
 				g_lib.call('mint_date_delete', self)
 			}
-			return System.Date(System.Date.Internal(timepoint))
+			return self
 		}
 
 		/// Global instance of {System.Date} for epoch (1970-01-01T00:00:00Z).
@@ -178,18 +166,17 @@ package System {
 		/**
 		 * Returns the current date and time as an instance of {System.Date}.
 		 */
-		@const def current() {
+		@const def current() -> System.Date {
 			return System.Date()
 		}
 
 		/**
 		 * Sets the system's current date and time to `date`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		@const def setCurrent(date) {
-			var date = System.Date(date)
-			if var errno = System.Date.g_lib.call('mint_date_set_current', date.to_std_chrono_time_point()) {
+			if let errno = System.Date.g_lib.call('mint_date_set_current', date.toDate().to_std_chrono_time_point()) {
 				raise Exception.SystemError(errno, date)
 			}
 		}
@@ -224,17 +211,17 @@ package System {
 		 */
 		const def setYear(self, year) {
 			var (_, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
+			System.Date.g_lib.call('mint_date_set_milliseconds', self.timePoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
 		}
 
 		/**
-		 * Returns a new instance of {System.Date} containing a date `nyears`
-		 * years later than the date of this object (or earlier if `nyears` is
+		 * Returns a new instance of {System.Date} containing a date `nYears`
+		 * years later than the date of this object (or earlier if `nYears` is
 		 * negative).
 		 */
-		const def addYears(self, nyears) {
+		const def addYears(self, nYears) {
 			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			return System.Date(year + nyears, month, day, h, min, sec, ms, self.timezone)
+			return System.Date(year + nYears, month, day, h, min, sec, ms, self.timezone)
 		}
 
 		/**
@@ -266,26 +253,26 @@ package System {
 		 */
 		const def setMonth(self, month) {
 			var (year, _, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
+			System.Date.g_lib.call('mint_date_set_milliseconds', self.timePoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
 		}
 
 		/**
-		 * Returns a new instance of {System.Date} containing a date `nmonths`
-		 * months later than the date of this object (or earlier if `nmonths` is
+		 * Returns a new instance of {System.Date} containing a date `nMonths`
+		 * months later than the date of this object (or earlier if `nMonths` is
 		 * negative).
 		 */
-		const def addMonths(self, nmonths) {
+		const def addMonths(self, nMonths) {
 			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			if nmonths < 0 {
-				while nmonths++ != 0 {
+			if nMonths < 0 {
+				while nMonths++ != 0 {
 					if --month == 0 {
 						month = 12
 						--year
 					}
 				}
 			} else {
-				year += ((month - 1) + nmonths) / 12
-				month = (((month - 1) + nmonths) % 12) + 1
+				year += ((month - 1) + nMonths) / 12
+				month = (((month - 1) + nMonths) % 12) + 1
 			}
 			return System.Date(year, month, day, h, min, sec, ms, self.timezone)
 		}
@@ -331,17 +318,17 @@ package System {
 		const def getWeekNumber(const self) {
 
 			var year = self.getYear
-		    var yday = self.getYearDay()
-		    var wday = self.getWeekDay() + 1
-		    var week = (yday - wday + 10) / 7
+		    var yDay = self.getYearDay()
+		    var wDay = self.getWeekDay() + 1
+		    var week = (yDay - wDay + 10) / 7
 
 		    if (week == 0) {
 		        // last week of previous year
 		        --year
-		        week = (yday + 365 + (System.Date.isLeap(year) ? 1 : 0) - wday + 10) / 7
+		        week = (yDay + 365 + (System.Date.isLeap(year) ? 1 : 0) - wDay + 10) / 7
 		    } elif (week == 53) {
 		        // maybe first week of next year
-		        w = (yday - 365 - (System.Date.isLeap(year) ? 1 : 0) - wday + 10) / 7
+		        w = (yDay - 365 - (System.Date.isLeap(year) ? 1 : 0) - wDay + 10) / 7
 		        if (w > 0) {
 		            ++year
 		            week = w
@@ -382,18 +369,18 @@ package System {
 		 */
 		const def setDay(self, day) {
 			var (year, month, _, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
+			System.Date.g_lib.call('mint_date_set_milliseconds', self.timePoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
 		}
 
 		/**
-		 * Returns a new instance of {System.Date} containing a date `ndays`
-		 * later than the date of this object (or earlier if `ndays` is
+		 * Returns a new instance of {System.Date} containing a date `nDays`
+		 * later than the date of this object (or earlier if `nDays` is
 		 * negative).
 		 */
-		const def addDays(self, ndays) {
+		const def addDays(self, nDays) {
 			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			if ndays < 0 {
-				while ndays++ != 0 {
+			if nDays < 0 {
+				while nDays++ != 0 {
 					if --day == 0 {
 						if --month = 0 {
 							month = 12
@@ -404,7 +391,7 @@ package System {
 				}
 			} else {
 				var max_day = System.Date.daysIn(year, month)
-				while ndays-- != 0 {
+				while nDays-- != 0 {
 					if ++day > max_day {
 						if ++month > 12 {
 							month = 1
@@ -431,20 +418,20 @@ package System {
 		 */
 		const def setHours(self, hours) {
 			var (year, month, day, _, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, hours, min, sec, ms))
+			System.Date.g_lib.call('mint_date_set_milliseconds', self.timePoint, self.timezone.millisecondsSinceEpoch(year, month, day, hours, min, sec, ms))
 		}
 
 		/**
-		 * Returns a new instance of {System.Date} containing a date `nhours`
-		 * hours later than the date of this object (or earlier if `nhours` is
+		 * Returns a new instance of {System.Date} containing a date `nHours`
+		 * hours later than the date of this object (or earlier if `nHours` is
 		 * negative).
 		 */
-		const def addHours(self, nhours) {
+		const def addHours(self, nHours) {
 			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			var ndays = (h + nhours) / 24
-			h = (h + nhours) % 24
-			if ndays < 0 {
-				while ndays++ != 0 {
+			var nDays = (h + nHours) / 24
+			h = (h + nHours) % 24
+			if nDays < 0 {
+				while nDays++ != 0 {
 					if --day == 0 {
 						if --month = 0 {
 							month = 12
@@ -455,7 +442,7 @@ package System {
 				}
 			} else {
 				var max_day = System.Date.daysIn(year, month)
-				while ndays-- != 0 {
+				while nDays-- != 0 {
 					if ++day > max_day {
 						if ++month > 12 {
 							month = 1
@@ -482,22 +469,22 @@ package System {
 		 */
 		const def setMinutes(self, minutes) {
 			var (year, month, day, h, _, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, minutes, sec, ms))
+			System.Date.g_lib.call('mint_date_set_milliseconds', self.timePoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, minutes, sec, ms))
 		}
 
 		/**
-		 * Returns a new instance of {System.Date} containing a date `nminutes`
-		 * minutes later than the date of this object (or earlier if `nminutes`
+		 * Returns a new instance of {System.Date} containing a date `nMinutes`
+		 * minutes later than the date of this object (or earlier if `nMinutes`
 		 * is negative).
 		 */
-		const def addMinutes(self, nminutes) {
+		const def addMinutes(self, nMinutes) {
 			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			var nhours = (min + nminutes) / 60
-			min = (min + nminutes) % 60
-			var ndays = (h + nhours) / 24
-			h = (h + nhours) % 24
-			if ndays < 0 {
-				while ndays++ != 0 {
+			var nHours = (min + nMinutes) / 60
+			min = (min + nMinutes) % 60
+			var nDays = (h + nHours) / 24
+			h = (h + nHours) % 24
+			if nDays < 0 {
+				while nDays++ != 0 {
 					if --day == 0 {
 						if --month = 0 {
 							month = 12
@@ -508,7 +495,7 @@ package System {
 				}
 			} else {
 				var max_day = System.Date.daysIn(year, month)
-				while ndays-- != 0 {
+				while nDays-- != 0 {
 					if ++day > max_day {
 						if ++month > 12 {
 							month = 1
@@ -535,24 +522,24 @@ package System {
 		 */
 		const def setSeconds(self, seconds) {
 			var (year, month, day, h, min, _, ms) = self.timezone.timeFromMilliseconds(self)
-			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, seconds, ms))
+			System.Date.g_lib.call('mint_date_set_milliseconds', self.timePoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, seconds, ms))
 		}
 
 		/**
-		 * Returns a new instance of {System.Date} containing a date `nseconds`
-		 * seconds later than the date of this object (or earlier if `nseconds`
+		 * Returns a new instance of {System.Date} containing a date `nSeconds`
+		 * seconds later than the date of this object (or earlier if `nSeconds`
 		 * is negative).
 		 */
-		const def addSeconds(self, nseconds) {
+		const def addSeconds(self, nSeconds) {
 			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			var nminutes = (sec + nseconds) / 60
-			sec = (sec + nseconds) % 60
-			var nhours = (min + nminutes) / 60
-			min = (min + nminutes) % 60
-			var ndays = (h + nhours) / 24
-			h = (h + nhours) % 24
-			if ndays < 0 {
-				while ndays++ != 0 {
+			var nMinutes = (sec + nSeconds) / 60
+			sec = (sec + nSeconds) % 60
+			var nHours = (min + nMinutes) / 60
+			min = (min + nMinutes) % 60
+			var nDays = (h + nHours) / 24
+			h = (h + nHours) % 24
+			if nDays < 0 {
+				while nDays++ != 0 {
 					if --day == 0 {
 						if --month = 0 {
 							month = 12
@@ -563,7 +550,7 @@ package System {
 				}
 			} else {
 				var max_day = System.Date.daysIn(year, month)
-				while ndays-- != 0 {
+				while nDays-- != 0 {
 					if ++day > max_day {
 						if ++month > 12 {
 							month = 1
@@ -590,26 +577,26 @@ package System {
 		 */
 		const def setMilliseconds(self, milliseconds) {
 			var (year, month, day, h, min, sec) = self.timezone.timeFromMilliseconds(self)
-			System.Date.g_lib.call('mint_date_set_milliseconds', self.timepoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, milliseconds))
+			System.Date.g_lib.call('mint_date_set_milliseconds', self.timePoint, self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, milliseconds))
 		}
 
 		/**
 		 * Returns a new instance of {System.Date} containing a date
-		 * `nmilliseconds` milliseconds later than the date of this object (or
-		 * earlier if `nmilliseconds` is negative).
+		 * `nMilliseconds` milliseconds later than the date of this object (or
+		 * earlier if `nMilliseconds` is negative).
 		 */
-		const def addMilliseconds(self, nmilliseconds) {
+		const def addMilliseconds(self, nMilliseconds) {
 			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			var nseconds = (ms + nmilliseconds) / 1000
-			ms = (ms + nmilliseconds) % 1000
-			var nminutes = (sec + nseconds) / 60
-			sec = (sec + nseconds) % 60
-			var nhours = (min + nminutes) / 60
-			min = (min + nminutes) % 60
-			var ndays = (h + nhours) / 24
-			h = (h + nhours) % 24
-			if ndays < 0 {
-				while ndays++ != 0 {
+			var nSeconds = (ms + nMilliseconds) / 1000
+			ms = (ms + nMilliseconds) % 1000
+			var nMinutes = (sec + nSeconds) / 60
+			sec = (sec + nSeconds) % 60
+			var nHours = (min + nMinutes) / 60
+			min = (min + nMinutes) % 60
+			var nDays = (h + nHours) / 24
+			h = (h + nHours) % 24
+			if nDays < 0 {
+				while nDays++ != 0 {
 					if --day == 0 {
 						if --month = 0 {
 							month = 12
@@ -620,7 +607,7 @@ package System {
 				}
 			} else {
 				var max_day = System.Date.daysIn(year, month)
-				while ndays-- != 0 {
+				while nDays-- != 0 {
 					if ++day > max_day {
 						if ++month > 12 {
 							month = 1
@@ -642,7 +629,7 @@ package System {
 		}
 
 		/**
-		 * Sets the time zone used in this date to `timezone`. The timepoint of
+		 * Sets the time zone used in this date to `timezone`. The time point of
 		 * this date will remain unchanged but the date and time informations
 		 * will be converted using the new time zone.
 		 */
@@ -652,10 +639,10 @@ package System {
 
 		/**
 		 * Returns the date and time as the number of milliseconds that have
-		 * passed since poch (1970-01-01T00:00:00.000Z).
+		 * passed since epoch (1970-01-01T00:00:00.000Z).
 		 */
 		const def toNumber(const self) {
-			return System.Date.g_lib.call('mint_date_timepoint_to_milliseconds', self.timepoint)
+			return System.Date.g_lib.call('mint_date_timepoint_to_milliseconds', self.timePoint)
 		}
 
 		/**
@@ -727,7 +714,7 @@ package System {
 			}
 			var str = ''
 			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			for (var c = format.in(), not c.isEmpty(), c.next()) {
+			for (let c = format.in(), not c.isEmpty(), c.next()) {
 				if '%' == c.value() {
 					if c.next() {
 						switch c.value() {
@@ -813,26 +800,23 @@ package System {
 		 * since epoch (1970-01-01T00:00:00Z).
 		 */
 		const def toSeconds(const self) {
-			return System.Date.g_lib.call('mint_date_timepoint_to_seconds', self.timepoint)
+			return System.Date.g_lib.call('mint_date_timepoint_to_seconds', self.timePoint)
 		}
 
 		/**
 		 * Returns the date and time as the number of milliseconds that have
-		 * passed since poch (1970-01-01T00:00:00.000Z).
+		 * passed since epoch (1970-01-01T00:00:00.000Z).
 		 */
 		const def toMilliseconds(const self) {
-			return System.Date.g_lib.call('mint_date_timepoint_to_milliseconds', self.timepoint)
+			return System.Date.g_lib.call('mint_date_timepoint_to_milliseconds', self.timePoint)
 		}
 
 		/**
 		 * Returns `true` if the date described by `other` and this object are
 		 * the same time point; otherwise returns `false`.
 		 */
-		const def ==(const self, const other) {
-			if var date = System.Date(other) {
-				return System.Date.g_lib.call('mint_date_equals', self.timepoint, date.timepoint)
-			}
-			return false
+		final const def ==(const self, const other) {
+			return System.Date.g_lib.call('mint_date_equals', self.timePoint, other.toDate().timePoint)
 		}
 
 		/**
@@ -840,50 +824,35 @@ package System {
 		 * the same time point; otherwise returns `true`.
 		 */
 		const def !=(const self, const other) {
-			if var date = System.Date(other) {
-				return not System.Date.g_lib.call('mint_date_equals', self.timepoint, date.timepoint)
-			}
-			return true
+			return not System.Date.g_lib.call('mint_date_equals', self.timePoint, other.toDate().timePoint)
 		}
 
 		/**
 		 * Returns `true` if this date is earlier than the date described by `other`; otherwise returns `false`.
 		 */
 		const def <(const self, const other) {
-			if var date = System.Date(other) {
-				return self.toNumber() < date.toNumber()
-			}
-			return false
+			return self.toNumber() < other.toDate().toNumber()
 		}
 
 		/**
 		 * Returns `true` if this date is later than the date described by `other`; otherwise returns `false`.
 		 */
 		const def >(const self, const other) {
-			if var date = System.Date(other) {
-				return self.toNumber() > date.toNumber()
-			}
-			return false
+			return self.toNumber() > other.toDate().toNumber()
 		}
 
 		/**
 		 * Returns `true` if this date is earlier than or equal to the date described by `other`; otherwise returns `false`.
 		 */
 		const def <=(const self, const other) {
-			if var date = System.Date(other) {
-				return self.toNumber() <= date.toNumber()
-			}
-			return false
+			return self.toNumber() <= other.toDate().toNumber()
 		}
 
 		/**
 		 * Returns `true` if this date is later than or equal to the date described by `other`; otherwise returns `false`.
 		 */
 		const def >=(const self, const other) {
-			if var date = System.Date(other) {
-				return self.toNumber() >= date.toNumber()
-			}
-			return false
+			return self.toNumber() >= other.toDate().toNumber()
 		}
 
 		/**
@@ -891,39 +860,32 @@ package System {
 		 * instance.
 		 */
 		final const def to_std_chrono_time_point(const self) {
-			return self.timepoint
-		}
-
-		/**
-		 * This class provides a convenience interface to create instances of
-		 * {System.Date} internally.
-		 */
-		- class Internal {
-			/**
-			 * Creates a new instance of internal data.
-			 */
-			def new(self, timepoint, timezone = System.TimeZone.current()) {
-				self.timepoint = timepoint
-				self.timezone = timezone
-				return self
-			}
-
-			/// Internal time point to pass to the {System.Date} instance.
-			final timepoint = null
-
-			/// Internal time zone to pass to the {System.Date} instance.
-			final timezone = null
+			return self.timePoint
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 		
 		/// Internal time point.
-		- final timepoint = null
+		- final timePoint = null
 
 		/// Internal time zone.
 		- final timezone = null
 	}
 
 	System.Date.epoch = System.Date('1970-01-01T00:00:00Z')
+}
+
+/**
+ * Converts `self` to {System.Date}. If `value` is already a {System.Date}, the object is returned; otherwise, if it
+ * provides a `toDate` method, the result of the method call is returned; otherwise, a new object is created.
+ */
+@const def toDate(self) -> System.Date {
+	if typeof self === 'System.Date' {
+		return self
+	}
+	if defined self.toDate {
+		return self.toDate() as System.Date
+	}
+	return System.Date(self)
 }

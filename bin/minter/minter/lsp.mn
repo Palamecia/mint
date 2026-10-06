@@ -32,10 +32,12 @@ load network.endpoints.stdio
 load network.endpoints.ip
 load network.sockets.stdio
 load network.sockets.tcp
+load runtime.scheduler
 load system.terminal
 load system.process
 load system.thread
 load system.os
+load system.timer
 load container.set
 load mint.function
 load mint.range
@@ -58,11 +60,11 @@ load minter.config
 	 * Creates a new language server. The `stream` parameter must implement the
 	 * stream interface (read and write) and will be used to send end receive
 	 * messages. If the `checkParentProcess` is set to `true`, the server will
-	 * be closed if the parent process is stoped. If the `consumer` parameter
+	 * be closed if the parent process is stopped. If the `consumer` parameter
 	 * is not `none`, the given object will be called to send responses instead
 	 * of the `stream` write method.
 	 */
-	const def new(self, stream, checkParentProcess = false, consumer = none) {
+	const def new(self, stream, checkParentProcess: boolean = false, consumer = none) {
 
 		self.checkParentProcess = checkParentProcess
 		self.jsonRpcStream = stream
@@ -81,19 +83,26 @@ load minter.config
 				return self.jsonRpcStream.write(message)
 			}
 		}
-
-		return self
 	}
 
 	/**
 	 * Entry point for the server.
 	 */
 	const def start(self) {
+		self.scheduler = Runtime.Scheduler()
+		self.scheduler.spawn(self.run())
+		self.scheduler.run()
+	}
+
+	/**
+	 * Server main loop.
+	 */
+	- const async def run(self) {
 		self.running = true
 		while self.running {
 			try {
 				if let message = self.jsonRpcStream.read() {
-					self.consume(message)
+					await self.consume(message)
 				}
 			} catch error {
 				logger.error("Failed to read from stream: %s", error.toString())
@@ -108,11 +117,11 @@ load minter.config
 	/**
 	 * Consume a JSON RPC message from the client.
 	 * Args:
-	 * message (dict): The JSON RPC message sent by the client
+	 * message (hash): The JSON RPC message sent by the client
 	 */
-	const def consume(self, message) {
+	const async def consume(self, message) {
 
-		const JsonRpcVersion = '2.0'
+		const JsonRpcVersion: string = '2.0'
 
 		if 'jsonrpc' not in message or message['jsonrpc'] != JsonRpcVersion {
 			logger.warning("Unknown message type %s", message.toString())
@@ -122,7 +131,7 @@ load minter.config
 		if 'id' not in message {
 			try {
 				logger.debug("Handling notification from client %s", message.toString())
-				self.onRpcNotification(message['method'], message.get('params'))
+				await self.onRpcNotification(message['method'], message.get('params'))
 			} catch error {
 				logger.error("Failed to handle notification %s", message['method'])
 				logger.error(error.toString())
@@ -130,7 +139,7 @@ load minter.config
 		} elif 'method' not in message {
 			try {
 				logger.debug("Handling response from client %s", message.toString())
-				self.onRpcResponse(message['id'], message.get('result'), message.get('error'))
+				await self.onRpcResponse(message['id'], message.get('result'), message.get('error'))
 			} catch error {
 				logger.error("Failed to handle request %s", message['id'])
 				logger.error(error.toString())
@@ -138,7 +147,7 @@ load minter.config
 		} else {
 			try {
 				logger.debug("Handling request from client %s", message.toString())
-				var result = self.onRpcRequest(message['id'], message['method'], message.get('params'))
+				var result = await self.onRpcRequest(message['id'], message['method'], message.get('params'))
 				self.jsonRpcEndpoint({
 					"jsonrpc": JsonRpcVersion,
 					"result": result,
@@ -156,7 +165,7 @@ load minter.config
 		}
 	}
 
-	var def onRpcNotification(self, method, params) {
+	const async def onRpcNotification(self, method, params) {
 		if self.shutdown and method != 'exit' {
 			// exit is the only allowed method during shutdown
 			logger.debug("Ignoring non-exit method during shutdown: %s", method)
@@ -171,13 +180,10 @@ load minter.config
 			}
 			raise Network.JsonRpc.MethodNotFound(method)
 		}
-		self.${callMethod}(params)
+		await self.${callMethod}(params)
 	}
 
-	/**
-	 * Override getitem to fallback through multiple dispatchers.
-	 */
-	var def onRpcRequest(self, id, method, params) {
+	const async def onRpcRequest(self, id, method, params) {
 		if self.shutdown and method != 'exit' {
 			// exit is the only allowed method during shutdown
 			logger.debug("Ignoring non-exit method during shutdown: %s", method)
@@ -188,10 +194,10 @@ load minter.config
 		if callMethod not in membersof self {
 			raise Network.JsonRpc.MethodNotFound(method)
 		}
-		return self.${callMethod}(params)
+		return await self.${callMethod}(params)
 	}
 
-	var def onRpcResponse(self, id, result, error) {
+	const async def onRpcResponse(self, id, result, error) {
 
 	}
 
@@ -201,7 +207,7 @@ load minter.config
 			return self.workspaces[uri]
 		}
 
-		let url = System.Url(uri)
+		let url = uri.toUrl()
 		let targetPath = none
 		if not defined url {
 			if defined uri and not uri.isEmpty() {
@@ -240,7 +246,7 @@ load minter.config
 	/**
 	 * Returns `data` converted into an instance of `Network.JsonRpc.Message`.
 	 */
-	- const def toMessage(self, data) {
+	- const def toMessage(self, data) -> Network.JsonRpc.Message {
 		switch typeof data {
 		case 'Network.JsonRpc.Message':
 			return data
@@ -251,7 +257,7 @@ load minter.config
 		}
 	}
 
-	const def capabilities(self, rootUri) {
+	const def capabilities(self, rootUri) -> hash? {
 		if let workspace = self.getWorkspaceFromUrl(rootUri) {
 			return {
 				'codeActionProvider': self.hasCapability('onCodeActions', workspace),
@@ -303,7 +309,7 @@ load minter.config
 		}
 	}
 
-	- const def rpc_initialize(self, params) {
+	- const async def rpc_initialize(self, params) {
 
 		var processId = params.get('processId')
 		var rootUri = params.get('rootUri')
@@ -363,37 +369,39 @@ load minter.config
 		}
 	}
 
-	- const def rpc_initialized(self, params) {
+	- const async def rpc_initialized(self, params) {
 		for var workspace in self.workspaces.values() {
 			self.hook('onInitialized', workspace.getRootPath())
 		}
 	}
 
-	- const def rpc___setTrace(self, params) {
+	- const async def rpc___setTrace(self, params) {
 		self.traceValue = params.get('value', 'off')
 		logger.debug('Trace value set to %s', self.traceValue)
 	}
 
-	- const def rpc___cancelRequest(self, params) {
+	- const async def rpc___cancelRequest(self, params) {
 		logger.debug('Cancel request received for %s', params.get('id'))
 	}
 
-	- const def rpc_completion_item__resolve(self, params) {
+	- const async def rpc_completion_item__resolve(self, params) {
 		var completionItem = params.get('completionItem', {})
 		var docUri = completionItem.get('data', {}).get('docUri')
 		return self.hook('onCompletionItemResolve', docUri, completionItem)
 	}
 
-	- const def rpc_textDocument_didClose(self, params) {
+	- const async def rpc_textDocument_didClose(self, params) {
 		var textDocument = params['textDocument']
+		self.cancelPendingLint(textDocument['uri'])
 		if let workspace = self.getWorkspaceFromUrl(textDocument['uri']) {
 			workspace.publishDiagnostics(textDocument['uri'], [])
 			workspace.removeDocument(textDocument['uri'])
 		}
 	}
 
-	- const def rpc_textDocument_didOpen(self, params) {
+	- const async def rpc_textDocument_didOpen(self, params) {
 		var textDocument = params['textDocument']
+		self.cancelPendingLint(textDocument['uri'])
 		if let workspace = self.getWorkspaceFromUrl(textDocument['uri']) {
 			workspace.createDocument(textDocument['uri'], textDocument['text'], textDocument.get('version'))
 		}
@@ -401,36 +409,37 @@ load minter.config
 		self.lint(textDocument['uri'], true)
 	}
 
-	- const def rpc_textDocument_didChange(self, params) {
+	- const async def rpc_textDocument_didChange(self, params) {
 		var contentChanges = params['contentChanges']
 		var textDocument = params['textDocument']
 		if let workspace = self.getWorkspaceFromUrl(textDocument['uri']) {
-			for change in contentChanges {
-				workspace.updateDocument(textDocument['uri'], change, version=textDocument.get('version'))
+			for let change in contentChanges {
+				workspace.updateDocument(textDocument['uri'], change, textDocument.get('version'))
 			}
 		}
-		self.lint(textDocument['uri'], false)
+		self.scheduleLint(textDocument['uri'])
 	}
 
-	- const def rpc_textDocument_didSave(self, params) {
+	- const async def rpc_textDocument_didSave(self, params) {
 		var textDocument = params['textDocument']
+		self.cancelPendingLint(textDocument['uri'])
+		self.hook("onDocumentDidSave", textDocument['uri'])
 		self.lint(textDocument['uri'], true)
-		return self.hook("onDocumentDidSave", textDocument['uri'])
 	}
 
-	- const def rpc_textDocument_codeAction(self, params) {
+	- const async def rpc_textDocument_codeAction(self, params) {
 		var textDocument = params['textDocument']
 		var range = params['range']
 		var context = params['context']
 		return self.flatten(self.hook('onCodeActions', textDocument['uri'], range, context))
 	}
 
-	- const def rpc_textDocument_codeLens(self, params) {
+	- const async def rpc_textDocument_codeLens(self, params) {
 		var textDocument = params['textDocument']
 		return self.flatten(self.hook('onCodeLens', textDocument['uri']))
 	}
 
-	- const def rpc_textDocument_completion(self, params) {
+	- const async def rpc_textDocument_completion(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		return {
@@ -439,62 +448,62 @@ load minter.config
 		}
 	}
 
-	- const def rpc_textDocument_definition(self, params) {
+	- const async def rpc_textDocument_definition(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		return self.flatten(self.hook('onDefinitions', textDocument['uri'], position))
 	}
 
-	- const def rpc_textDocument_documentHighlight(self, params) {
+	- const async def rpc_textDocument_documentHighlight(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
-		return self.flatten(self.hook('onDocumentHighlight', textDocument['uri'], position)) or None
+		return self.flatten(self.hook('onDocumentHighlight', textDocument['uri'], position))
 	}
 
-        - const def rpc_textDocument_hover(self, params) {
-                var textDocument = params['textDocument']
-                var position = params['position']
-                if let hovers = self.hook('onHover', textDocument['uri'], position) {
-                        for let hover in hovers {
-                                if defined hover {
-                                        return hover
-                                }
-                        }
-                }
-                return {'contents': ''}
-        }
+	- const async def rpc_textDocument_hover(self, params) {
+			var textDocument = params['textDocument']
+			var position = params['position']
+			if let hovers = self.hook('onHover', textDocument['uri'], position) {
+					for let hover in hovers {
+							if defined hover {
+									return hover
+							}
+					}
+			}
+			return {'contents': ''}
+	}
 
-	- const def rpc_textDocument_documentSymbol(self, params) {
+	- const async def rpc_textDocument_documentSymbol(self, params) {
 		var textDocument = params['textDocument']
 		return self.flatten(self.hook('onDocumentSymbols', textDocument['uri']))
 	}
 
-	- const def rpc_textDocument_formatting(self, params) {
+	- const async def rpc_textDocument_formatting(self, params) {
 		var textDocument = params['textDocument']
 		var options = params['options']
 		return self.hook('onFormatDocument', textDocument['uri'], options)
 	}
 
-	- const def rpc_textDocument_rename(self, params) {
+	- const async def rpc_textDocument_rename(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		var newName = params['newName']
 		return self.hook('onRename', textDocument['uri'], position, newName)
 	}
 
-	- const def rpc_textDocument_foldingRange(self, params) {
+	- const async def rpc_textDocument_foldingRange(self, params) {
 		var textDocument = params['textDocument']
 		return self.flatten(self.hook('onFoldingRange', textDocument['uri']))
 	}
 
-	- const def rpc_textDocument_rangeFormatting(self, params) {
+	- const async def rpc_textDocument_rangeFormatting(self, params) {
 		var textDocument = params['textDocument']
 		var range = params['range']
 		var options = params['options']
 		return self.hook('onFormatRange', textDocument['uri'], range, options)
 	}
 
-	- const def rpc_textDocument_references(self, params) {
+	- const async def rpc_textDocument_references(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		var context = params['context']
@@ -502,13 +511,13 @@ load minter.config
 		return self.flatten(self.hook('onReferences', textDocument['uri'], position, includeDeclaration))
 	}
 
-	- const def rpc_textDocument_signatureHelp(self, params) {
+	- const async def rpc_textDocument_signatureHelp(self, params) {
 		var textDocument = params['textDocument']
 		var position = params['position']
 		return self.hook('onSignatureHelp', textDocument['uri'], position)
 	}
 
-	- const def rpc_workspace__didChangeConfiguration(self, params) {
+	- const async def rpc_workspace__didChangeConfiguration(self, params) {
 		var settings = params['settings']
 		if defined self.config {
 			self.config.update((settings or {}).get('minter', {}))
@@ -516,12 +525,12 @@ load minter.config
 		for var workspace in self.workspaces.values() {
 			workspace.updateConfig(settings)
 			for docUri in workspace.documents {
-				self.lint(docUri, is_saved=False)
+				self.lint(docUri, false)
 			}
 		}
 	}
 
-	- const def rpc_workspace__didChangeWorkspaceFolders(self, params) {
+	- const async def rpc_workspace__didChangeWorkspaceFolders(self, params) {
 		var event = params['event']
 		if not defined event {
 			return none
@@ -557,7 +566,7 @@ load minter.config
 				if uri == workspace.getRootUri()?.toString() {
 					return true
 				}
-				var removedPath = System.Url(uri)?.toFile()?.getAbsolutePath()
+				var removedPath = uri?.toUrl()?.toFile()?.getAbsolutePath()
 				return defined removedPath and removedPath == workspace.getRootPath()
 			}
 			return false
@@ -595,7 +604,7 @@ load minter.config
 		}
 	}
 
-	- const def rpc_workspace__didChangeWatchedFiles(self, params) {
+	- const async def rpc_workspace__didChangeWatchedFiles(self, params) {
 		var changes = params.get('changes')
 		var changedMintFiles = Container.Set()
 		var configChanged = false
@@ -619,19 +628,19 @@ load minter.config
 			for let docUri in workspace.getDocuments() {
 				// Changes in docUri are already handled by rpc_textDocument_did_save
 				if docUri not in changedMintFiles {
-					self.lint(docUri, is_saved=False)
+					self.lint(docUri, false)
 				}
 			}
 		}
 	}
 
-	- const def rpc_workspace__executeCommand(self, params) {
+	- const async def rpc_workspace__executeCommand(self, params) {
 		var command = params['command']
 		var arguments = params['arguments']
 		return self.hook('onExecuteCommand', command, arguments)
 	}
 
-	- const def rpc_shutdown(self, params) {
+	- const async def rpc_shutdown(self, params) {
 		for workspace in self.workspaces.values() {
 			workspace.close()
 		}
@@ -639,7 +648,7 @@ load minter.config
 		return null
 	}
 
-	- const def rpc_exit(self, params) {
+	- const async def rpc_exit(self, params) {
 		self.running = false
 	}
 
@@ -662,9 +671,6 @@ load minter.config
 		}
 	}
 
-	/**
-	 * Since we're debounced, the document may no longer be open
-	 */
 	- const def lint(self, docUri, isSaved) {
 		if var workspace = self.getWorkspaceFromUrl(docUri) {
 			if docUri in workspace.getDocuments() {
@@ -673,16 +679,54 @@ load minter.config
 		}
 	}
 
+	- const def scheduleLint(self, docUri) {
+		if docUri in self.pendingLints {
+			self.pendingLints[docUri]['generation']++
+			return none
+		}
+
+		let pending = {
+			'generation': 1,
+			'timer': System.AsyncTimer(self.scheduler)
+		}
+		self.pendingLints[docUri] = pending
+		self.scheduler.spawn(self.debounceLint(docUri, pending))
+	}
+
+	- const def cancelPendingLint(self, docUri) {
+		if docUri in self.pendingLints {
+			self.pendingLints.remove(docUri)
+		}
+	}
+
+	- const async def debounceLint(self, docUri, pending) {
+		while docUri in self.pendingLints and self.pendingLints[docUri] is pending {
+			let generation = pending['generation']
+			await pending['timer'].wait(300)
+
+			if docUri not in self.pendingLints or self.pendingLints[docUri] is not pending {
+				return none
+			}
+			if pending['generation'] == generation {
+				self.pendingLints.remove(docUri)
+				self.lint(docUri, false)
+				return none
+			}
+		}
+	}
+
 	- @const def flatten(results) {
 		return [for let list in results => for let item in list => item]
 	}
 
-	- final watchingThread = none
+	- final scheduler: Runtime.Scheduler? = none
+	- final pendingLints = {}
+	- final watchingThread: System.Thread? = none
 	- final workspaces = {}
 	- final uriWorkspaceMapper = {}
 
-	- final checkParentProcess = false
-	- final jsonRpcEndpoint = null
+	- final checkParentProcess: boolean = false
+	- final jsonRpcEndpoint: function? = none
 	- final jsonRpcStream = null
 	- final shutdown = false
 	- final running = false
@@ -695,7 +739,7 @@ load minter.config
  * `port`. If the `checkParentProcess` is set to `true`, the server will automatically
  * be closed if its parent process is closed.
  */
-@def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = MintLspServer) {
+@def startTcpLangServer(address: string, port: number, checkParentProcess: boolean, MintLspServerClass = MintLspServer) {
 
 	const shutdownServer = def (checkParentProcess, server) {
 		if checkParentProcess {
@@ -708,11 +752,10 @@ load minter.config
 
 	// Construct a custom wrapper class around the user's MintLspServerClass
 	const WrapperClass = type(typeof MintLspServerClass + 'Handler', [Network.JsonRpc.RequestHandler], {
-		'new': def [MintLspServerClass, checkParentProcess] (self, endpoint) {
-			if self = Network.JsonRpc.RequestHandler.new(self, endpoint) {
-				self.delegate = MintLspServerClass(self, checkParentProcess)
-				return self
-			}
+		'new': def [MintLspServerClass, checkParentProcess] (self, endpoint, configuration) {
+			Network.JsonRpc.RequestHandler.new(self as Network.JsonRpc.RequestHandler, endpoint, configuration)
+			self.delegate = MintLspServerClass(self, checkParentProcess)
+			return self
 		},
 		'onOpen': def (self, channel) {
 			try {
@@ -738,21 +781,14 @@ load minter.config
 		private('delegate'): null
 	})
 
-	var scheduler = Runtime.Scheduler()
-	var endpoint = Network.TcpIp(scheduler, address, port)
-	endpoint.setSocketOption(Network.SocketOption.REUSEADDR, true)
+	let socket: Network.TcpSocket = Network.TcpSocket()
+	socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
 
-	var server = Network.JsonRpc.Server(endpoint, WrapperClass)
-
-	try {
-		server.watch()
-		server.listen()
-		logger.info('Serving %s on (%s, %s)', typeof MintLspServerClass, address, port)
-		scheduler.run()
-	}
-
-	logger.info('Shutting down')
-	server.close()
+	let channel: Network.JsonRpc.Server = Network.JsonRpc.Server(socket, WrapperClass)
+	channel.listen(Network.IpEndpoint = Network.IpEndpoint(address, port))
+	logger.info('Serving %s on (%s, %s)', typeof MintLspServerClass, address, port)
+	let server = MintLspServerClass(channel, checkParentProcess)
+	server.start()
 }
 
 /**
@@ -761,7 +797,7 @@ load minter.config
  * `checkParentProcess` is set to `true`, the server will automatically be closed if
  * its parent process is closed.
  */
-@def startWSLangServer(port, checkParentProcess, MintLspServerClass = MintLspServer) {
+@def startWSLangServer(port: number, checkParentProcess: boolean, MintLspServerClass = MintLspServer) {
 	
 }
 
@@ -771,13 +807,13 @@ load minter.config
  * set to `true`, the server will automatically be closed if its parent process is
  * closed.
  */
-@def startIOLangServer(checkParentProcess, MintLspServerClass = MintLspServer) {
+@def startIOLangServer(checkParentProcess: boolean, MintLspServerClass = MintLspServer) {
 	logger.info('Starting %s IO language server', typeof MintLspServerClass)
 	logger.debug("Creating Network.StdioSocket")
-	let socket = Network.StdioSocket()
+	let socket: Network.StdioSocket = Network.StdioSocket()
 	socket.bind(Network.StdioEndpoint(System.stdin, System.stdout))
 	logger.debug("Creating Channel")
-	let channel = Network.Channel(socket, Network.JsonRpc.Serializer)
+	let channel: Network.Channel = Network.Channel(socket, Network.JsonRpc.Serializer)
 	if not channel {
 		logger.error("Failed to create Channel")
 		return none

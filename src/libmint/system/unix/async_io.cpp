@@ -252,7 +252,7 @@ mint::AsyncRuntime::AsyncRuntime() {
 	}
 #endif
 #ifdef MINT_ASYNC_BACKEND_EPOLL
-	if (auto context = epoll_create1(EPOLL_CLOEXEC); context >= 0) {
+	if (const auto context = epoll_create1(EPOLL_CLOEXEC); context >= 0) {
 		_context = EPollContext {
 		    .fd = context,
 		};
@@ -365,7 +365,7 @@ bool mint::AsyncRuntime::cancel(AsyncOperation& operation) {
 	                            [this, &operation](io_uring&) -> bool {
 		                            const auto _ = std::scoped_lock(_mutex);
 
-		                            if (auto it = _operations.find(&operation); it != _operations.end()) {
+		                            if (const auto it = _operations.find(&operation); it != _operations.end()) {
 			                            _operations.erase(it);
 			                            return true;
 		                            }
@@ -377,7 +377,7 @@ bool mint::AsyncRuntime::cancel(AsyncOperation& operation) {
 	                            [this, &operation](EPollContext& context) -> bool {
 		                            const auto _ = std::scoped_lock(_mutex);
 
-		                            if (auto it = _operations.find(&operation); it != _operations.end()) {
+		                            if (const auto it = _operations.find(&operation); it != _operations.end()) {
 			                            epoll_ctl(context.fd, EPOLL_CTL_DEL, operation.get_handle(), nullptr);
 			                            _operations.erase(it);
 			                            return true;
@@ -495,7 +495,7 @@ mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::millis
 		        }
 		        const auto _ = std::scoped_lock(_mutex);
 		        if (context.event_count != 0) {
-			        auto& event = context.events.at(context.event_index++);
+			        const auto& event = context.events.at(context.event_index++);
 			        auto* operation = static_cast<AsyncOperation*>(event.data.ptr);
 			        auto* op = std::get_if<EPollOperation>(operation);
 			        if (const auto it = _operations.find(operation); it != _operations.end()) {
@@ -526,7 +526,7 @@ mint::AsyncOperation* mint::AsyncRuntime::poll(std::optional<std::chrono::millis
 		        if (!context.ready_operations.empty()) {
 			        auto* operation = context.ready_operations.front();
 			        context.ready_operations.pop_front();
-			        auto* op = std::get_if<EPollOperation>(operation);
+			        const auto* op = std::get_if<EPollOperation>(operation);
 			        if (const auto it = _operations.find(operation); it != _operations.end()) {
 				        _operations.erase(it);
 				        operation->complete({}, static_cast<std::size_t>(op->result));

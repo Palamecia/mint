@@ -4,10 +4,10 @@ load serializer.json-stream
 @class TestJsonStream : Test.Case {
 	const def testReadObject(self) {
 		var s = Serializer.JsonStream('{"a": 0, "b": 1, "c": 3}')
-		self.expectEqual({"a": 0, "b": 1, "c": 3}, s.read())
+		self.expectEqual(s.read(), {"a": 0, "b": 1, "c": 3})
 	}
 	const def testNegativeValue(self) {
 		var s = Serializer.JsonStream('[-1]')
-		self.expectEqual([-1], s.read())
+		self.expectEqual(s.read(), [-1])
 	}
 }

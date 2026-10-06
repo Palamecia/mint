@@ -24,6 +24,7 @@
 #ifndef MINT_MEMORY_BUILTIN_STRING_H
 #define MINT_MEMORY_BUILTIN_STRING_H
 
+#include "mint/compiler/descriptions.h"
 #include "mint/config.h"
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
@@ -38,6 +39,8 @@ class Program;
 class MINT_EXPORT StringClass : public Class {
 public:
 	explicit StringClass(Program& program);
+
+	static ClassDescription& description();
 	static StringClass& instance(Program& program);
 };
 

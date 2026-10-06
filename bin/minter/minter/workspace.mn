@@ -34,16 +34,16 @@ load mint.type
 
 @class MintLspWorkspace {
 
-    @const PublishDiagnostics = 'textDocument/publishDiagnostics'
-    @const Progress = '$/progress'
-    @const ApplyEdit = 'workspace/applyEdit'
-    @const ShowMessage = 'window/showMessage'
+    @const PublishDiagnostics: string = 'textDocument/publishDiagnostics'
+    @const Progress: string = '$/progress'
+    @const ApplyEdit: string = 'workspace/applyEdit'
+    @const ShowMessage: string = 'window/showMessage'
 
     class Document {
 
         const def new(self, uri, workspace, source = none, version = none, local = true, extra_sys_path = none) {
             self.version = version
-            var uriObject = System.Url(uri)
+            var uriObject = uri.toUrl()
             if not defined uriObject and defined uri and not uri.isEmpty() {
                 uriObject = System.Url.fromFilePath(uri)
             }
@@ -58,7 +58,6 @@ load mint.type
             self.source = source
             self._extra_sys_path = (extra_sys_path or [])
             self._lock = System.Mutex(System.Mutex.Kind.Recursive)
-            return self
         }
 
         const def setVersion(self, version) {
@@ -73,7 +72,7 @@ load mint.type
             return self.path
         }
 
-        const def toString(self) {
+        const def toString(const self) -> string {
             return self.uri.toString()
         }
 
@@ -202,10 +201,9 @@ load mint.type
     const def new(self, rootUri, endpoint, config = none) {
         self._config = config
         self.endpoint = endpoint
-        self.rootUri = System.Url(rootUri)
+        self.rootUri = rootUri.toUrl()
         self.rootUriScheme = self.rootUri ? self.rootUri.getScheme() : null
         self.rootPath = self.rootUri ? self.rootUri.toFile().getPath() : rootUri
-        return self
     }
 
     const def getConfig(const self) {
@@ -344,7 +342,7 @@ load mint.type
     }
 
     - const def makeDocument(self, docUrl, source = none, version = none) {
-        var path = System.Url(docUrl)?.toFile()?.getAbsolutePath()
+        var path = docUrl?.toUrl()?.toFile()?.getAbsolutePath()
         return MintLspWorkspace.Document(docUrl, self, source, version, self.sourceRoots(path))
     }
 

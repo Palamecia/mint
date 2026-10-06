@@ -26,6 +26,7 @@
  */
 
 load serializer.data-stream
+load exception.system
 
 package System {
 	/**
@@ -38,13 +39,15 @@ package System {
 		/**
 		 * Creates a new pipe. The created pipe is empty.
 		 * 
-		 * If no pipe can be created, `none` is returned.
+		 * Raises {Exception.SystemError} if no pipe can be created.
 		 */
 		const def new(self) {
-			(self.eventHandleRead, self.eventHandleWrite) := System.Pipe.g_lib.call('mint_pipe_create')
-			if defined self.eventHandleRead and defined self.eventHandleWrite {
-				return self
+			let (errno, eventHandleRead, eventHandleWrite) = System.Pipe.g_lib.call('mint_pipe_create')
+			if errno {
+				raise Exception.SystemError(errno, self)
 			}
+			self.eventHandleRead = eventHandleRead
+			self.eventHandleWrite = eventHandleWrite
 		}
 
 		/**
@@ -138,7 +141,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Internal read handle.
 		- final eventHandleRead = none

@@ -41,6 +41,8 @@ class Cursor;
 class MINT_EXPORT ArrayClass : public Class {
 public:
 	explicit ArrayClass(Program& program);
+
+	static ClassDescription& description();
 	static ArrayClass& instance(Program& program);
 };
 

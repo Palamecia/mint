@@ -24,19 +24,26 @@
 #ifndef MINT_DEBUG_DEBUG_INFO_H
 #define MINT_DEBUG_DEBUG_INFO_H
 
+#include "mint/compiler/descriptions.h"
 #include "mint/config.h"
 
 #include <cstddef>
+#include <deque>
+#include <functional>
 #include <map>
-#include <string>
-#include <vector>
 
 namespace mint {
 
 class Module;
 
+struct ClassInfo {
+	std::reference_wrapper<ClassDescription> description;
+	std::size_t begin_offset;
+	std::size_t end_offset;
+};
+
 struct FunctionInfo {
-	std::string name;
+	std::reference_wrapper<FunctionDescription> description;
 	std::size_t begin_offset;
 	std::size_t end_offset;
 };
@@ -49,14 +56,21 @@ public:
 
 	[[nodiscard]] std::size_t to_executable_line_number(std::size_t line_number) const;
 
+	[[nodiscard]] const ClassInfo* find_class_from_description(const ClassDescription& description) const;
+	[[nodiscard]] const ClassInfo* find_class_from_line_number(std::size_t line_number) const;
+	[[nodiscard]] const ClassInfo* find_class_from_offset(std::size_t offset) const;
+	ClassInfo& register_class(ClassInfo class_info);
+
+	[[nodiscard]] const FunctionInfo* find_function_from_description(const FunctionDescription& description) const;
 	[[nodiscard]] const FunctionInfo* find_function_from_line_number(std::size_t line_number) const;
 	[[nodiscard]] const FunctionInfo* find_function_from_offset(std::size_t offset) const;
-	void register_function(FunctionInfo function_info);
+	FunctionInfo& register_function(FunctionInfo function_info);
 
 private:
 	std::map<std::size_t, std::size_t> _offset_to_line;
 	std::map<std::size_t, std::size_t> _line_to_offset;
-	std::vector<FunctionInfo> _functions;
+	std::deque<ClassInfo> _classes;
+	std::deque<FunctionInfo> _functions;
 };
 
 }

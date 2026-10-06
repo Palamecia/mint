@@ -16,10 +16,10 @@ load network.sockets.local
         }
 
         let server = Network.Channel(Network.LocalSocket(), Network.ServerSerializer)
-        self.expectEqual(true, server.listen(endpoint))
+        self.expectEqual(server.listen(endpoint), true)
 
         let client = Network.Channel(Network.LocalSocket())
-        self.expectEqual(true, client.connect(endpoint))
+        self.expectEqual(client.connect(endpoint), true)
 
         let remoteClient = Network.Channel(server.read())
         remoteClient.write('ok')
@@ -29,7 +29,7 @@ load network.sockets.local
         server.close()
         client.close()
 
-        self.expectEqual('ok', result)
+        self.expectEqual(result, 'ok')
     }
 
     const def testMessageEvent(self) {
@@ -68,14 +68,14 @@ load network.sockets.local
             poller.unwatch(client)
         }
 
-        self.expectEqual(true, poller.watch(server))
-        self.expectEqual(true, server.listen(endpoint))
+        self.expectEqual(poller.watch(server), true)
+        self.expectEqual(server.listen(endpoint), true)
 
-        self.expectEqual(true, poller.watch(client))
-        self.expectEqual(true, client.connect(endpoint))
+        self.expectEqual(poller.watch(client), true)
+        self.expectEqual(client.connect(endpoint), true)
 
         poller.run()
-        self.expectEqual('ok', result)
+        self.expectEqual(result, 'ok')
     }
 
 	const def testMessageAsync(self) {
@@ -91,14 +91,14 @@ load network.sockets.local
 
         async def [...] serverMain() {
             let server = Network.AsyncChannel(Network.LocalSocket().asyncOn(scheduler), Network.AsyncServerSerializer)
-            self.expectEqual(true, server.listen(endpoint))
+            self.expectEqual(server.listen(endpoint), true)
             let client = await server.read()
             await client.write('ok')
         }
 
         async def [...] clientMain() {
             let client = Network.AsyncChannel(Network.LocalSocket().asyncOn(scheduler))
-            self.expectEqual(true, await client.connect(endpoint))
+            self.expectEqual(await client.connect(endpoint), true)
             return await client.read()
         }
 
@@ -107,7 +107,7 @@ load network.sockets.local
         let promise = scheduler.spawn(clientMain())
         scheduler.run()
 
-        self.expectEqual('ok', promise.get())
+        self.expectEqual(promise.get(), 'ok')
     }
 
     const def testStateAndEndpoint(self) {
@@ -122,14 +122,14 @@ load network.sockets.local
 
         let server = Network.Channel(Network.LocalSocket(), Network.ServerSerializer)
 
-        self.expectEqual(Network.Socket.State.Unknown, server.getState())
-        self.expectEqual(true, server.listen(endpoint))
-        self.expectEqual(Network.Socket.State.Listening, server.getState())
+        self.expectEqual(server.getState(), Network.Socket.State.Unknown)
+        self.expectEqual(server.listen(endpoint), true)
+        self.expectEqual(server.getState(), Network.Socket.State.Listening)
         self.expectDefined(server.getSocket().getEndpoint())
-        self.expectEqual(true, server.setNonBlocking(true))
-        self.expectEqual(true, server.isNonBlocking())
-        self.expectEqual(true, server.setNonBlocking(false))
-        self.expectEqual(false, server.isNonBlocking())
+        self.expectEqual(server.setNonBlocking(true), true)
+        self.expectEqual(server.isNonBlocking(), true)
+        self.expectEqual(server.setNonBlocking(false), true)
+        self.expectEqual(server.isNonBlocking(), false)
         server.close()
     }
 }

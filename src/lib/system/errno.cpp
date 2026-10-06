@@ -41,7 +41,8 @@ mint::Reference mint_errno_setup(mint::Cursor& /*cursor*/, const mint::Reference
 #define BIND_ERRNO_VALUE(_enum, _errno) \
 	_enum.data<mint::Object>().metadata.find_global(#_errno)->value.data<mint::Number>().value = _errno
 #define BIND_ERRNO_DISABLE(_enum, _errno) \
-	_enum.data<mint::Object>().metadata.find_global(#_errno)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_errno)->value) \
+	        .move_data(mint::create_none()))
 
 	BIND_ERRNO_VALUE(errno_enum, EPERM);
 	BIND_ERRNO_VALUE(errno_enum, ENOENT);

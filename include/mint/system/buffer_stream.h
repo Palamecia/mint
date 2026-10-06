@@ -39,13 +39,14 @@ public:
 	explicit BufferStream(std::string buffer);
 
 	[[nodiscard]] bool at_end() const override;
+	[[nodiscard]] std::string get_line(std::size_t line_number) override;
 
 	[[nodiscard]] bool is_valid() const override;
 	[[nodiscard]] std::filesystem::path path() const override;
 
 protected:
 	int read_char() override;
-	int next_buffered_char() override;
+	int next_buffered_char();
 
 private:
 	enum class Status : std::uint8_t {

@@ -48,6 +48,8 @@ public:
 
 	[[nodiscard]] FILE* stream() const;
 
+	void mark() override;
+
 private:
 	FILE* _stream;
 	void (*_print)(FILE* stream, const std::string& str);

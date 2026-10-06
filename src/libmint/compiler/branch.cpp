@@ -22,11 +22,13 @@
  */
 
 #include "branch.h"
+#include "mint/compiler/compiler.h"
 #include "mint/program/node.h"
-#include "mint/compiler/build_tools.h"
 #include "mint/program/module.h"
+#include <algorithm>
+#include <cassert>
 #include <cstddef>
-#include <functional>
+#include <memory>
 #include <optional>
 #include <ranges>
 #include <utility>
@@ -45,22 +47,13 @@
 using namespace mint;
 
 void Branch::set_pending_new_line(std::size_t line_number) {
-	_pending_new_line = [this, line_number] {
-		on_new_line(line_number);
-	};
+	_pending_new_line = line_number;
 }
 
 void Branch::commit_line() {
 	if (_pending_new_line) {
-		std::invoke(_pending_new_line.value());
-		_pending_new_line = std::nullopt;
+		on_new_line(*std::exchange(_pending_new_line, std::nullopt));
 	}
-}
-
-void Branch::start_jump_forward() {
-	_jump_forward.emplace_back(ForwardNodeIndex({next_node_offset()}));
-	_labels.insert(next_node_offset());
-	push_node(0);
 }
 
 void Branch::shift_jump_forward() {
@@ -69,22 +62,50 @@ void Branch::shift_jump_forward() {
 }
 
 void Branch::resolve_jump_forward() {
-
-	for (const std::size_t offset : _jump_forward.back()) {
+	assert(!_jump_forward.empty());
+	for (const std::size_t offset : *_jump_forward.back()) {
 		replace_node(offset, static_cast<int>(next_node_offset()));
 	}
-
 	_jump_forward.pop_back();
 }
 
-void Branch::start_jump_backward() {
-	_jump_backward.emplace_back(next_node_offset());
+void mint::Branch::resolve_jump_forward(ForwardNodeIndex& forward) {
+	const auto it = std::ranges::find(_jump_forward, &forward, &std::unique_ptr<ForwardNodeIndex>::get);
+	assert(it != _jump_forward.end());
+	for (const std::size_t offset : forward) {
+		replace_node(offset, static_cast<int>(next_node_offset()));
+	}
+	_jump_forward.erase(it);
 }
 
-void Branch::resolve_jump_backward() {
-	_labels.insert(next_node_offset());
-	push_node(static_cast<int>(_jump_backward.back()));
-	_jump_backward.pop_back();
+void Branch::start_jump_forward() {
+	_jump_forward.emplace_back(std::make_unique<ForwardNodeIndex>(ForwardNodeIndex {next_node_offset()}));
+	insert_label(next_node_offset());
+	push_node(0);
+}
+
+void Branch::start_jump_forward(ForwardNodeIndex& forward) {
+	const auto offset = next_node_offset();
+	const auto owner = std::ranges::find(_jump_forward, &forward, &std::unique_ptr<ForwardNodeIndex>::get);
+	if (owner != _jump_forward.end()) {
+		forward.push_back(offset);
+		insert_label(offset);
+	}
+	else {
+		insert_label(offset, &forward);
+	}
+	push_node(0);
+}
+
+void Branch::start_jump_backward() {
+	_jump_backward.emplace_back(std::make_unique<BackwardNodeIndex>(next_node_offset()));
+}
+
+void Branch::push_jump_backward(BackwardNodeIndex& backward) {
+	const auto offset = next_node_offset();
+	const auto owner = std::ranges::find(_jump_backward, &backward, &std::unique_ptr<BackwardNodeIndex>::get);
+	insert_label(offset, nullptr, owner == _jump_backward.end() ? &backward : nullptr);
+	push_node(static_cast<int>(backward));
 }
 
 void Branch::shift_jump_backward() {
@@ -92,87 +113,138 @@ void Branch::shift_jump_backward() {
 	std::swap(_jump_backward[end - 1], _jump_backward[end - 2]);
 }
 
+void Branch::resolve_jump_backward() {
+	assert(!_jump_backward.empty());
+	insert_label(next_node_offset());
+	push_node(static_cast<int>(*_jump_backward.back()));
+	_jump_backward.pop_back();
+}
+
+void Branch::track_offset(std::size_t& offset) {
+	_offset_relocations.push_back(&offset);
+}
+
 std::size_t Branch::resolve_labels_offset(Branch& parent) {
 
 	const std::size_t offset = parent.next_node_offset();
 
-	for (const std::size_t label : _labels) {
+	for (const auto& [label, relocation] : _labels) {
+		const auto parent_offset = offset + label;
+		if (relocation.backward) {
+			const auto owner = std::ranges::find(parent._jump_backward, relocation.backward,
+			    &std::unique_ptr<BackwardNodeIndex>::get);
+			parent.insert_label(parent_offset, nullptr,
+			    owner == parent._jump_backward.end() ? relocation.backward : nullptr);
+			continue;
+		}
+
 		node_at(label).parameter += static_cast<int>(offset);
-		parent.insert_label(offset + label);
+		if (!relocation.forward) {
+			parent.insert_label(parent_offset);
+			continue;
+		}
+
+		const auto owner = std::ranges::find(parent._jump_forward, relocation.forward,
+		    &std::unique_ptr<ForwardNodeIndex>::get);
+		if (owner != parent._jump_forward.end()) {
+			relocation.forward->push_back(parent_offset);
+			parent.insert_label(parent_offset);
+		}
+		else {
+			parent.insert_label(parent_offset, relocation.forward);
+		}
 	}
 
 	_labels.clear();
+	for (auto* offset_reference : _offset_relocations) {
+		*offset_reference += offset;
+		parent._offset_relocations.push_back(offset_reference);
+	}
+	_offset_relocations.clear();
 	return offset;
 }
 
-void Branch::insert_label(std::size_t offset) {
-	_labels.insert(offset);
+void Branch::insert_label(std::size_t offset, ForwardNodeIndex* forward, BackwardNodeIndex* backward) {
+	const auto [label, inserted] = _labels.emplace(offset, Label {
+	                                                           .forward = forward,
+	                                                           .backward = backward,
+	                                                       });
+	assert(inserted || (!label->second.forward || !forward || label->second.forward == forward));
+	assert(inserted || (!label->second.backward || !backward || label->second.backward == backward));
+	if (!inserted) {
+		if (!label->second.forward) {
+			label->second.forward = forward;
+		}
+		if (!label->second.backward) {
+			label->second.backward = backward;
+		}
+	}
 }
 
 void Branch::forward_jumps(Branch& parent, std::size_t offset) {
 
-	for (const auto& jump_forward : _jump_forward) {
-		parent._jump_forward.emplace_back(std::from_range,
-		    std::views::transform(jump_forward, [offset](const auto jump) {
-			    return jump + offset;
-		    }));
+	for (auto& jump_forward : _jump_forward) {
+		for (auto& jump : *jump_forward) {
+			jump += offset;
+		}
+		parent._jump_forward.push_back(std::move(jump_forward));
 	}
 
 	_jump_forward.clear();
 
-	for (const auto jump_backward : _jump_backward) {
-		parent._jump_backward.push_back(jump_backward + offset);
+	for (auto& jump_backward : _jump_backward) {
+		*jump_backward += offset;
+		parent._jump_backward.push_back(std::move(jump_backward));
 	}
 
 	_jump_backward.clear();
 }
 
-MainBranch::MainBranch(Program& program, ModuleInfo& data) :
+MainBranch::MainBranch(Compiler& compiler) :
 #ifdef MINT_BUILD_TYPE_DEBUG
-    _offset(data.bytecode.next_node_offset()),
+    _offset(compiler.data().bytecode.next_node_offset()),
 #endif
-    _program(program),
-    _data(data) {
+    _compiler(compiler) {
 }
 
 void MainBranch::push_node(const Node& node) {
-	_data.get().bytecode.push_node(node);
+	_compiler.get().push_node(node);
 }
 
 void MainBranch::push_nodes(const std::vector<Node>& nodes) {
-	_data.get().bytecode.push_nodes(nodes);
+	_compiler.get().push_nodes(nodes);
 }
 
 void MainBranch::replace_node(std::size_t offset, const Node& node) {
-	_data.get().bytecode.node_at(offset) = node;
+	_compiler.get().data().bytecode.node_at(offset) = node;
 }
 
 std::size_t MainBranch::next_node_offset() const {
-	return _data.get().bytecode.next_node_offset();
+	return _compiler.get().data().bytecode.next_node_offset();
 }
 
 Node& MainBranch::node_at(std::size_t offset) {
-	return _data.get().bytecode.node_at(offset);
+	return _compiler.get().data().bytecode.node_at(offset);
 }
 
 void MainBranch::on_new_line(std::size_t offset, std::size_t line_number) {
-	_data.get().debug_info.new_line(offset, line_number);
+	_compiler.get().data().debug_info.new_line(offset, line_number);
 }
 
 void MainBranch::on_new_line(std::size_t line_number) {
-	_data.get().debug_info.new_line(_data.get().bytecode, line_number);
+	_compiler.get().data().debug_info.new_line(_compiler.get().data().bytecode, line_number);
 }
 
 void MainBranch::build() {
 #if defined(MINT_BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
-	if (_data.get().id != Module::invalid_id) {
-		const auto& bytecode = _data.get().bytecode;
-		auto cursor = Cursor(_program, bytecode);
-		mint::print(stdout,
-		    std::format("## MODULE: {} ({})\n", _data.get().id, _program.get().get_module_name(bytecode)));
+	if (_compiler.get().data().id != Module::invalid_id) {
+		const auto& bytecode = _compiler.get().data().bytecode;
+		auto cursor = Cursor(_compiler.get().program(), bytecode);
+		std::cout << std::format("## MODULE: {} ({})\n", _compiler.get().data().id,
+		    _compiler.get().data().description.get_path().to_string());
 		cursor.jmp(_offset);
 		for (std::size_t offset = cursor.offset(); offset < bytecode.next_node_offset(); offset = cursor.offset()) {
-			mint::print(stdout, std::format("LINE {} ", _data.get().debug_info.line_number(offset)));
+			std::cout << std::format("LINE {} ", _compiler.get().data().debug_info.line_number(offset));
 			if (dump_command(cursor, std::cout) == Node::Command::exit_module) {
 				cursor.jmp(bytecode.next_node_offset());
 			}

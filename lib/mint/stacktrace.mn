@@ -37,7 +37,6 @@
         self.d_ptr.delete = def [g_lib = Exception.StackFrame.g_lib] (self) {
             g_lib.call('mint_stack_frame_delete', self)
         }
-        return self
     }
 
     /**
@@ -48,7 +47,6 @@
         self.d_ptr.delete = def [g_lib = Exception.StackFrame.g_lib] (self) {
             g_lib.call('mint_stack_frame_delete', self)
         }
-        return self
     }
 
     /**
@@ -82,7 +80,7 @@
     /**
      * Returns the string representation of the stack frame.
      */
-	const def toString(const self) {
+	const def toString(const self) -> string {
         return StackFrame.g_lib.call('mint_stack_frame_to_string', self.d_ptr)
     }
 
@@ -101,7 +99,7 @@
     }
 
     /// Global library handle.
-    - @const g_lib = lib('libmint-mint')
+    - @const g_lib: library = lib('libmint-mint')
 
     /// Object data.
     - final d_ptr = null
@@ -112,6 +110,6 @@
  * one. If the `threadId` parameter is given, the stacktrace of the thread * with the given id is used; otherwise the
  * current thread is used.
  */
-@def [g_lib = lib('libmint-mint')] stacktrace() {
+@def [g_lib: library = lib('libmint-mint')] stacktrace() {
     return [for let (id, name, line) in g_lib.call('mint_lang_stacktrace') => StackFrame(id, name, line)]
 }

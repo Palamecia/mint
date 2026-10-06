@@ -7,35 +7,35 @@ load serializer.text-stream
 	const def testOpenClose(self) {
 
 		let f = System.FileStream()
-		self.expectEqual(false, f.isOpen())
+		self.expectEqual(f.isOpen(), false)
 
 		f.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
-		self.expectEqual(true, f.isOpen())
+		self.expectEqual(f.isOpen(), true)
 
 		f.close()
-		self.expectEqual(false, f.isOpen())
+		self.expectEqual(f.isOpen(), false)
 
 		f.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
-		self.expectEqual(true, f.isOpen())
+		self.expectEqual(f.isOpen(), true)
 	}
 
 	const def testReadWrite(self) {
 		
 		let writeFile = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'), 'w')
-		self.expectEqual('System.FileStream', typeof writeFile)
-		self.expectEqual(true, writeFile.isOpen())
+		self.expectEqual(typeof writeFile, 'System.FileStream')
+		self.expectEqual(writeFile.isOpen(), true)
 
 		let writeStream = Serializer.TextStream(writeFile)
-		self.expectEqual('Serializer.TextStream', typeof writeStream)
+		self.expectEqual(typeof writeStream, 'Serializer.TextStream')
 		print(writeStream, 'test')
 		writeFile.close()
 
 		let readFile = System.open(System.FS.getStandardPath(System.StandardPath.Temporary, 'test'))
-		self.expectEqual('System.FileStream', typeof readFile)
-		self.expectEqual(true, readFile.isOpen())
+		self.expectEqual(typeof readFile, 'System.FileStream')
+		self.expectEqual(readFile.isOpen(), true)
 
 		let readStream = Serializer.TextStream(readFile)
-		self.expectEqual('Serializer.TextStream', typeof readStream)
-		self.expectEqual('test', readStream.read())
+		self.expectEqual(typeof readStream, 'Serializer.TextStream')
+		self.expectEqual(readStream.read(), 'test')
 	}
 }

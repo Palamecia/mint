@@ -39,30 +39,34 @@ namespace {
 
 class ResultHandler : public Module {
 public:
-	explicit ResultHandler(Program& program) :
-	    Module(program) {
+	explicit ResultHandler() {
 		push_nodes({Node::Command::unload_reference, Node::Command::exit_module});
 	}
 
-	static ResultHandler& instance(Program& program) {
-		return program.unique_module<ResultHandler>();
+	static ResultHandler& instance() {
+		static auto g_instance = ResultHandler();
+		return g_instance;
 	}
 };
 
 }
 
 ObjectPrinter::ObjectPrinter(Cursor& cursor, Reference::Flags flags, Object& object) :
-    _object(flags, object),
-    _cursor(cursor) {}
+    _cursor(cursor),
+    _object(flags, object) {}
 
 void ObjectPrinter::print(const Reference& reference) {
 
 	_cursor.get().stack().emplace_back(_object);
 	_cursor.get().stack().emplace_back(reference);
-	_cursor.get().call(ResultHandler::instance(_cursor.get().program()), 0uz, _cursor.get().program().global_data());
+	_cursor.get().call(ResultHandler::instance(), 0uz, _cursor.get().program().global_data());
 
 	if (!call_overload(_cursor, builtin_symbols::write_method, 1)) [[unlikely]] {
 		_cursor.get().exit_module();
 		error("class '{}' doesn't overload 'write'(1)", type_name(_object));
 	}
+}
+
+void mint::ObjectPrinter::mark() {
+	_object.data().mark();
 }

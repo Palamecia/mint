@@ -24,11 +24,14 @@
 #ifndef LIBMINT_COMPILER_CASE_TABLE_H
 #define LIBMINT_COMPILER_CASE_TABLE_H
 
+#include "branch.h"
+#include "control_flow.h"
+#include "mint/compiler/build_context.h"
 #include <cstddef>
-#include <memory>
 #include <optional>
 #include <string>
-#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace mint {
 
@@ -37,17 +40,27 @@ class BuildContext;
 
 struct CaseTable {
 	struct Label {
-		Label(Branch& parent);
-
-		std::unique_ptr<Branch> condition;
-		std::size_t offset;
+		std::vector<std::string> tokens;
 	};
 
-	std::unordered_map<std::string, Label> labels;
-	std::optional<std::size_t> default_label;
-	std::optional<Label> current_label;
-	std::size_t origin = 0;
+	struct Case {
+		Branch::ForwardNodeIndex* forward = nullptr;
+	};
+
+	struct Body {
+		SubBranch branch;
+		std::optional<std::size_t> case_index;
+		ControlFlowSet flow = flow_flag(ControlFlow::next);
+	};
+
+	std::optional<std::pair<Label, Case>> current_case;
+	std::vector<std::pair<Label, Case>> cases;
+	std::optional<Case> default_case;
+	std::optional<Body> current_body;
+	std::vector<Body> bodies;
 };
+
+bool operator==(const CaseTable::Label& lhs, const CaseTable::Label& rhs);
 
 }
 

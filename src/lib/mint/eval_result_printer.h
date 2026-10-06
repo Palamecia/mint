@@ -38,6 +38,8 @@ public:
 
 	[[nodiscard]] mint::Reference result();
 
+	void mark() override;
+
 private:
 	std::reference_wrapper<mint::Cursor> _cursor;
 	std::vector<mint::Reference> _results;

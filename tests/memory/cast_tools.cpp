@@ -6,7 +6,7 @@
 
 TEST(cast_tools, to_number) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	EXPECT_EQ(7357, mint::to_number(process->cursor(), mint::create_number(7357)));
@@ -29,7 +29,7 @@ TEST(cast_tools, to_number) {
 
 TEST(cast_tools, to_boolean) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	EXPECT_EQ(true, to_boolean(mint::create_number(7357)));
@@ -44,7 +44,7 @@ TEST(cast_tools, to_boolean) {
 
 TEST(cast_tools, to_char) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	EXPECT_EQ("", to_char(mint::create_none()));
@@ -60,7 +60,7 @@ TEST(cast_tools, to_char) {
 
 TEST(cast_tools, to_string) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	EXPECT_EQ("", to_string(mint::create_none()));

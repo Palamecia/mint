@@ -22,8 +22,7 @@
  */
 
 #include "mint/scheduler/processor.h"
-#include "mint/program/class_register.h"
-#include "mint/program/module.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
@@ -176,8 +175,8 @@ public:
 		declare_function(cursor, symbol, flags);
 	}
 
-	static void on_function_overload(Cursor& cursor) {
-		function_overload_from_stack(cursor);
+	static void on_extend_function(Cursor& cursor) {
+		extend_function(cursor);
 	}
 
 	static void on_alloc_iterator(Cursor& cursor) {
@@ -233,8 +232,8 @@ public:
 		cursor.symbols().close_package();
 	}
 
-	static void on_declare_class(Cursor& cursor, ClassDescription& desc, Reference::Flags flags) {
-		declare_class(cursor, desc, flags);
+	static void on_declare_class(Cursor& cursor, const ClassDescription& desc) {
+		declare_class(cursor, desc);
 	}
 
 	static void on_move_operator(Cursor& cursor) {
@@ -271,6 +270,10 @@ public:
 
 	static void on_is_operator(Cursor& cursor) {
 		is_operator(cursor);
+	}
+
+	static void on_as_operator(Cursor& cursor) {
+		as_operator(cursor);
 	}
 
 	static void on_eq_operator(Cursor& cursor) {

@@ -10,7 +10,7 @@ load test.case
             yield ''
             break
         }
-        self.expectEqual('5', i)
+        self.expectEqual(i, '5')
     }
 
     const def testSwitchArrowGenerator(self) {
@@ -18,7 +18,7 @@ load test.case
             case 5 => '5'
             default => ''
         }
-        self.expectEqual('5', i)
+        self.expectEqual(i, '5')
     }
 
     const def testReturnSwitchExpression(self) {
@@ -30,8 +30,47 @@ load test.case
             }
         }
 
-        self.expectEqual('Hello', greet('friendly'))
-        self.expectEqual('Greetings', greet('formal'))
-        self.expectEqual('Hi', greet('other'))
+        self.expectEqual(greet('friendly'), 'Hello')
+        self.expectEqual(greet('formal'), 'Greetings')
+        self.expectEqual(greet('other'), 'Hi')
+    }
+
+    const def testFunctionDefinedInCaseBody(self) {
+        let result = 0
+        switch 1 {
+        case 1:
+            let nested = def() {
+                return 42
+            }
+            result = nested()
+        }
+        self.expectEqual(result, 42)
+    }
+
+    const def testContinueFromCaseBody(self) {
+        let values = []
+        for let i in 0..5 {
+            switch i {
+            case 2:
+                continue
+            }
+            values.push(i)
+        }
+        self.expectEqual(values, [0, 1, 3, 4, 5])
+    }
+
+    const def testContinueFromNestedCaseBody(self) {
+        let values = []
+        switch true {
+        case true:
+            for let i in 0..5 {
+                switch i {
+                case 2:
+                    continue
+                }
+                values.push(i)
+            }
+        }
+        self.expectEqual(values, [0, 1, 3, 4, 5])
     }
 }

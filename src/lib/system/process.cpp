@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "errno.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/builtin/iterator.h"
@@ -191,8 +192,6 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 
 #ifdef MINT_OS_WINDOWS
 
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	std::wstringstream command;
 	const wchar_t* process_working_directory = nullptr;
 	wchar_t** process_environment = nullptr;
@@ -265,17 +264,11 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 
 	if (CreateProcessW(nullptr, const_cast<wchar_t*>(command_line.data()), nullptr, nullptr, false, creation_flags,
 	        process_environment, process_working_directory, &startup_info, &process_info)) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_handle(cursor.program(), process_info.hProcess));
+		auto result = mint_system::make_success(cursor, mint::create_handle(cursor.program(), process_info.hProcess));
 		CloseHandle(process_info.hThread);
+		return result;
 	}
-	else {
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_number(mint::errno_from_error_code(mint::last_error_code())));
-	}
-
-	return result;
+	return mint_system::make_failure(cursor, mint::errno_from_error_code(mint::last_error_code()));
 
 #elifdef MINT_OS_UNIX
 
@@ -329,7 +322,7 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 		if (posix_spawn_file_actions_addchdir_np(&actions, to_string(working_directory).c_str()) != 0) {
 			cleanup_spawn_structures();
 			cleanup_args();
-			return mint::create_iterator_from(cursor, mint::create_number(errno));
+			return mint_system::make_failure(cursor, errno);
 		}
 	}
 
@@ -359,10 +352,10 @@ mint::Reference mint_process_start(mint::Cursor& cursor, const mint::Reference& 
 	}
 
 	if (status != 0) {
-		return mint::create_iterator_from(cursor, mint::create_number(errno));
+		return mint_system::make_failure(cursor, errno);
 	}
 
-	return mint::create_iterator_from(cursor, mint::create_none(), mint::create_handle(cursor.program(), pid));
+	return mint_system::make_success(cursor, mint::create_handle(cursor.program(), pid));
 #endif
 }
 

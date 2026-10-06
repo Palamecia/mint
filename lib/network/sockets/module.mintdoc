@@ -12,10 +12,8 @@ state as operations progress.
 > ```mn
 > class MySocketClass : Network.Socket {
 >     const def new(self, ...) {
->         if self = Network.Socket.new(self) {
->             // initialize the low-level handle and state
->             return self
->         }
+>         Network.Socket.new(self)
+>         // initialize the low-level handle and state
 >     }
 > }
 > ```

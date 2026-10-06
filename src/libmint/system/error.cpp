@@ -76,7 +76,7 @@ void mint::call_error_callbacks(const std::string& message) {
 
 	const std::unique_lock _(g_error.callback_mutex);
 
-	for (auto& callback : g_error.callbacks) {
+	for (const auto& callback : g_error.callbacks) {
 		callback.second(message);
 	}
 }
@@ -87,7 +87,7 @@ void mint::remove_error_callback(int id) {
 
 	const std::unique_lock _(g_error.callback_mutex);
 
-	if (auto it = std::ranges::find(g_error.callbacks, id, &CallbackList::value_type::first);
+	if (const auto it = std::ranges::find(g_error.callbacks, id, &CallbackList::value_type::first);
 	    it != g_error.callbacks.end()) {
 		g_error.callbacks.erase(it);
 	}

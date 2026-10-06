@@ -4,62 +4,62 @@ load mint.range
 @class RangeTest : Test.Case {
 
 	const def testAccumulate(self) {
-		self.expectEqual(64, [2, 4, 8].accumulate(1, def (i, j) => i * j))
+		self.expectEqual([2, 4, 8].accumulate(1, def (i, j) => i * j), 64)
 	}
 
 	const def testAllOf(self) {
-		self.expectEqual(true, [0, 2, 4].allOf(def (i) => i % 2 === 0))
-		self.expectEqual(false, [0, 1, 2].allOf(def (i) => i % 2 === 0))
+		self.expectEqual([0, 2, 4].allOf(def (i) => i % 2 === 0), true)
+		self.expectEqual([0, 1, 2].allOf(def (i) => i % 2 === 0), false)
 	}
 	
 	const def testAnyOf(self) {
-		self.expectEqual(true, [0, 1, 2].anyOf(def (i) => i === 0))
-		self.expectEqual(true, [0, 1, 2].anyOf(def (i) => i === 1))
-		self.expectEqual(true, [0, 1, 2].anyOf(def (i) => i === 2))
-		self.expectEqual(false, [0, 1, 2].anyOf(def (i) => i === 3))
+		self.expectEqual([0, 1, 2].anyOf(def (i) => i === 0), true)
+		self.expectEqual([0, 1, 2].anyOf(def (i) => i === 1), true)
+		self.expectEqual([0, 1, 2].anyOf(def (i) => i === 2), true)
+		self.expectEqual([0, 1, 2].anyOf(def (i) => i === 3), false)
 	}
 
 	const def testNoneOf(self) {
-		self.expectEqual(false, [0, 1, 2].noneOf(def (i) => i === 0))
-		self.expectEqual(false, [0, 1, 2].noneOf(def (i) => i === 1))
-		self.expectEqual(false, [0, 1, 2].noneOf(def (i) => i === 2))
-		self.expectEqual(true, [0, 1, 2].noneOf(def (i) => i === 3))
+		self.expectEqual([0, 1, 2].noneOf(def (i) => i === 0), false)
+		self.expectEqual([0, 1, 2].noneOf(def (i) => i === 1), false)
+		self.expectEqual([0, 1, 2].noneOf(def (i) => i === 2), false)
+		self.expectEqual([0, 1, 2].noneOf(def (i) => i === 3), true)
 	}
 
 	const def testEach(self) {
 		%values = []
 		each(0..5, def [values] (i) { values << i })
-		self.expectEqual([0, 1, 2, 3, 4, 5], values)
+		self.expectEqual(values, [0, 1, 2, 3, 4, 5])
 	}
 
 	const def testEachN(self) {
 		%values = []
 		eachN(0..5, 3, def [values] (i) { values << i })
-		self.expectEqual([0, 1, 2], values)
+		self.expectEqual(values, [0, 1, 2])
 	}
 
 	const def testCount(self) {
 		%values = [1, 2, 3, 4, 4, 3, 7, 8, 9, 10]
-		self.expectEqual(5, count(0...5))
-		self.expectEqual(10, count(values))
-		self.expectEqual(2, count(values, 3))
-		self.expectEqual(2, count(values, 4))
-		self.expectEqual(0, count(values, 5))
+		self.expectEqual(count(0...5), 5)
+		self.expectEqual(count(values), 10)
+		self.expectEqual(count(values, 3), 2)
+		self.expectEqual(count(values, 4), 2)
+		self.expectEqual(count(values, 5), 0)
 		/// \todo with predicate
 	}
 
 	const def testCountIf(self) {
 		%values = [1, 2, 3, 4, 4, 3, 7, 8, 9, 10]
-		self.expectEqual(3, countIf(values, def (i) => i % 4 === 0))
+		self.expectEqual(countIf(values, def (i) => i % 4 === 0), 3)
 	}
 
 	const def testMismatch(self) {
 		i, j = mismatch([1, 2, 3, 4, 5], [1, 2, 5, 4, 3])
-		self.expectEqual([3, 4, 5], array(i))
-		self.expectEqual([5, 4, 3], array(j))
+		self.expectEqual(array(i), [3, 4, 5])
+		self.expectEqual(array(j), [5, 4, 3])
 		i, j = mismatch([1, 2, 4, 8, 16], [1, 4, 7, 10, 13], def (i, j) => i % 2 == j % 2)
-		self.expectEqual([4, 8, 16], array(i))
-		self.expectEqual([7, 10, 13], array(j))
+		self.expectEqual(array(i), [4, 8, 16])
+		self.expectEqual(array(j), [7, 10, 13])
 	}
 
 	const def testFind(self) {
@@ -75,31 +75,31 @@ load mint.range
 	}
 
 	const def testFindEnd(self) {
-		self.expectEqual([1, 2, 3], array(findEnd([1, 2, 3, 1, 2, 3, 1, 2, 3], [1, 2])))
-		self.expectEqual([4, 5, 6, 7], array(findEnd(0..7, 4..6)))
+		self.expectEqual(array(findEnd([1, 2, 3, 1, 2, 3, 1, 2, 3], [1, 2])), [1, 2, 3])
+		self.expectEqual(array(findEnd(0..7, 4..6)), [4, 5, 6, 7])
 		/// \todo with predicate
 	}
 
 	const def testFindFirstOf(self) {
 		%values = [0, 2, 3, 25, 5]
-		self.expectEqual(self.slice(values, 1), array(findFirstOf(values, [3, 19, 10, 2])))
-		self.expectEqual(true, findFirstOf(values, [1, 6, 7, 9]).isEmpty())
-		self.expectEqual(self.slice(values, 3), array(findFirstOf(values, [10], def (i, j) => i > j)))
-		self.expectEqual(true, findFirstOf(values, [0], def (i, j) => i < j).isEmpty())
+		self.expectEqual(array(findFirstOf(values, [3, 19, 10, 2])), self.slice(values, 1))
+		self.expectEqual(findFirstOf(values, [1, 6, 7, 9]).isEmpty(), true)
+		self.expectEqual(array(findFirstOf(values, [10], def (i, j) => i > j)), self.slice(values, 3))
+		self.expectEqual(findFirstOf(values, [0], def (i, j) => i < j).isEmpty(), true)
 	}
 
 	const def testAdjacentFind(self) {
-		self.expectEqual([3, 3, 4, 5], array(adjacentFind([0, 1, 2, 3, 3, 4, 5])))
-		self.expectEqual(true, adjacentFind([0, 1, 2, 3, 4, 5]).isEmpty())
-		self.expectEqual([6, 3, 5], array(adjacentFind([1, 3, 6, 3, 5], def (i, j) => i % j === 0 )))
-		self.expectEqual(true, adjacentFind([1, 2, 3], def (i, j) => i % j === 0).isEmpty())
+		self.expectEqual(array(adjacentFind([0, 1, 2, 3, 3, 4, 5])), [3, 3, 4, 5])
+		self.expectEqual(adjacentFind([0, 1, 2, 3, 4, 5]).isEmpty(), true)
+		self.expectEqual(array(adjacentFind([1, 3, 6, 3, 5], def (i, j) => i % j === 0 )), [6, 3, 5])
+		self.expectEqual(adjacentFind([1, 2, 3], def (i, j) => i % j === 0).isEmpty(), true)
 	}
 
 	const def testSearch(self) {
 		%values = [0, 2, 3, 25, 5]
-		self.expectEqual(self.slice(values, 2), array(search(values, [3, 25])))
-		self.expectEqual(true, search(values, [3, 24]).isEmpty())
-		self.expectEqual([3, 4, 5, 6, 7], array(search(0..7, 3..5)))
+		self.expectEqual(array(search(values, [3, 25])), self.slice(values, 2))
+		self.expectEqual(search(values, [3, 24]).isEmpty(), true)
+		self.expectEqual(array(search(0..7, 3..5)), [3, 4, 5, 6, 7])
 	}
 
 	const def testSearchN(self) {
@@ -107,9 +107,9 @@ load mint.range
 	}
 
 	const def testEndsWith(self) {
-		self.expectEqual(true, endsWith(0..5, 2..5))
-		self.expectEqual(false, endsWith(0..5, 2..4))
-		self.expectEqual(false, endsWith(0..5, 6..9))
+		self.expectEqual(endsWith(0..5, 2..5), true)
+		self.expectEqual(endsWith(0..5, 2..4), false)
+		self.expectEqual(endsWith(0..5, 6..9), false)
 		// ...
 	}
 
@@ -119,10 +119,10 @@ load mint.range
 
 	const def testZip(self) {
 		i = zip(0...3, ['a', 'b', 'c'], (true, false))
-		self.expectEqual([0, 'a', true], array(i.next()))
-		self.expectEqual([1, 'b', false], array(i.next()))
-		self.expectEqual([2, 'c', none], array(i.next()))
-		self.expectEqual(true, i.isEmpty())
+		self.expectEqual(array(i.next()), [0, 'a', true])
+		self.expectEqual(array(i.next()), [1, 'b', false])
+		self.expectEqual(array(i.next()), [2, 'c', none])
+		self.expectEqual(i.isEmpty(), true)
 	}
 
 	- @def slice(range, from) {

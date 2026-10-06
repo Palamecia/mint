@@ -28,6 +28,7 @@
 #include "mint/system/async_io.h"
 #include <cstddef>
 #include <functional>
+#include <memory>
 #include <system_error>
 #include <utility>
 
@@ -52,7 +53,8 @@ public:
 mint::Reference mint_operation_create(mint::Cursor& cursor, const mint::Reference& self,
     const mint::Reference& scheduler) {
 	return mint::create_async_operation(cursor.program(),
-	    new DefaultAsyncOperation(self, *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr));
+	    std::make_unique<DefaultAsyncOperation>(self, *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr)
+	        .release());
 }
 
 mint::Reference mint_operation_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {

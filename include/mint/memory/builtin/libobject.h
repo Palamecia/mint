@@ -37,11 +37,18 @@ class Program;
 class MINT_EXPORT LibObjectClass : public Class {
 public:
 	explicit LibObjectClass(Program& program);
+
+	static ClassDescription& description();
 	static LibObjectClass& instance(Program& program);
 };
 
 template<typename Type>
-struct LibObject : public Object {
+struct LibObjectMarker {
+	static void mark(Type* ptr) {}
+};
+
+template<typename Type>
+struct LibObject final : public Object {
 	friend class GarbageCollector;
 public:
 	using object_type = Type;
@@ -50,6 +57,14 @@ public:
 	LibObject(Program& program, object_type* ptr);
 
 	object_type* ptr = nullptr;
+
+	void mark() override {
+		if (marked_bit()) {
+			return;
+		}
+		Object::mark();
+		LibObjectMarker<Type>::mark(ptr);
+	}
 
 private:
 	static SystemPool<LibObject<Type>> g_pool;

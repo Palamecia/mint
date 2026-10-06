@@ -147,7 +147,7 @@ using async_operation_t = struct KqueueOperation {
 class MINT_EXPORT AsyncOperation : public async_operation_t {
 	handle_t _handle;
 public:
-	AsyncOperation(handle_t handle);
+	explicit AsyncOperation(handle_t handle);
 	AsyncOperation(const AsyncOperation&) = delete;
 	AsyncOperation(AsyncOperation&&) = delete;
 	virtual ~AsyncOperation() = default;

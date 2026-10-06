@@ -33,13 +33,18 @@ load system.uri
 
 @class DefaultPlugin : MintLspPlugin {
 
-    const def onDocumentDidOpen(self, config, workspace, document) {
-        let rootDir = System.Dir(config.getRootPath())
-        let rootPath = rootDir.getAbsolutePath()
+    @const ParserCacheVersion = 3
+
+    const def onInitialized(self, config, workspace, rootPath) {
+        let rootDir = System.Dir(rootPath)
+        rootPath = rootDir.getAbsolutePath()
         if rootPath not in self.scannedWorkspaceRoots {
             self.scanWorkspace(config, workspace, rootDir)
             self.scannedWorkspaceRoots[rootPath] = true
         }
+    }
+
+    const def onDocumentDidOpen(self, config, workspace, document) {
         self.scanDocument(config, workspace, document)
     }
 
@@ -472,7 +477,10 @@ load system.uri
                 return none
             }
             if let stream = cacheFile.open('r') {
-                return Serializer.JsonStream(stream).read()
+                let documentInfo = Serializer.JsonStream(stream).read()
+                if documentInfo.get('indexVersion') == DefaultPlugin.ParserCacheVersion {
+                    return documentInfo
+                }
             }
         } catch error {
             logger.debug("Failed to load cache for %s: %s", path, error.toString())
@@ -573,7 +581,7 @@ load system.uri
         return 'symbol'
     }
 
-    - final const def hoverSnippet(self, name, item, typeName = none) {
+    - final const def hoverSnippet(self, name, item, typeName = none, returnType = none) {
         switch item.get('kind') {
         case DefaultPlugin.Parser.SymbolKind.Package:
             return 'package ' + name
@@ -582,7 +590,16 @@ load system.uri
         case DefaultPlugin.Parser.SymbolKind.Enum:
             return 'enum ' + name
         case DefaultPlugin.Parser.SymbolKind.Function:
-            return 'def ' + name + '(...)'
+            var signature = 'def ' + name + '(...)'
+            if defined returnType {
+                signature << ' -> ' + returnType
+            }
+            return signature
+        case DefaultPlugin.Parser.SymbolKind.Field:
+            if defined typeName {
+                return name + ': ' + typeName
+            }
+            return name
         case DefaultPlugin.Parser.SymbolKind.Variable:
             if defined typeName {
                 return 'let ' + name + ': ' + typeName
@@ -592,18 +609,15 @@ load system.uri
         return name
     }
 
-    - final const def createHover(self, path, name, item, typeName = none) {
+    - final const def createHover(self, path, name, item, typeName = none, returnType = none) {
         let lines = [
             '```mint',
-            self.hoverSnippet(name, item, typeName),
+            self.hoverSnippet(name, item, typeName, returnType),
             '```',
             '',
-            '**Kind:** ' + self.symbolKindName(item.get('kind')),
-            '**Defined:** `%s:%d`' % (path, item.get('line') + 1)
+            '**Kind:** ' + self.symbolKindName(item.get('kind'))
         ]
-        if defined typeName {
-            lines.insert(-1, '**Type:** `%s`' % typeName)
-        }
+        lines << '**Defined:** `%s:%d`' % (path, item.get('line') + 1)
         return {
             'contents': {
                 'kind': 'markdown',
@@ -658,7 +672,7 @@ load system.uri
         }
 
         for let definition in self.findDefinitionItems(context, symbolPath) {
-            return self.createHover(path, symbol, definition)
+            return self.createHover(path, symbol, definition, definition.get('type'), definition.get('returnType'))
         }
     }
 
@@ -792,6 +806,10 @@ load system.uri
             self.states = []
             self.lineNumber = 0
             self.lineOffset = 0
+            self.pendingVariable = null
+            self.typeAnnotationTarget = null
+            self.typeAnnotationKey = ''
+            self.typeAnnotationText = ''
             let rootDir = System.Dir(config.getRootPath())
             let filePath = document.getUri()?.toFile()?.getPath()
             let modulePath = rootDir.getRelativeFilePath(filePath).replace(System.FileSystem.Separator, '.').replace('/', '.')
@@ -801,6 +819,7 @@ load system.uri
             self.createDefinition(modulePath, DefaultPlugin.Parser.SymbolKind.Module, 0, 0)
             if self.parse(document.getSource()) {
                 return {
+                    'indexVersion': DefaultPlugin.ParserCacheVersion,
                     'path': document.getPath(),
                     'module': modulePath,
                     'dependencies': self.dependencies,
@@ -815,11 +834,63 @@ load system.uri
 
         override const def onNewLine(self, lineNumber, offset) {
             self.lineNumber = lineNumber
-            self.lineOffset = offset
+            self.lineOffset = offset ? offset + 1 : offset
             return true
         }
 
         override const def onToken(self, % type, token, offset) {
+            if self.getState() == DefaultPlugin.Parser.State.ExpectType {
+                switch type {
+                case is LexicalHandler.Token.Symbol:
+                case is LexicalHandler.Token.Dot:
+                    break
+                case is LexicalHandler.Token.Question:
+                    self.typeAnnotationText << '?'
+                    self.typeAnnotationTarget[self.typeAnnotationKey] = self.typeAnnotationText
+                    break
+                case is LexicalHandler.Token.Pipe:
+                    self.typeAnnotationText << '|'
+                    break
+                case is LexicalHandler.Token.Constant:
+                    if self.typeAnnotationText.endsWith('|') {
+                        self.typeAnnotationText << token
+                    } else {
+                        self.typeAnnotationText = token
+                    }
+                    self.typeAnnotationTarget[self.typeAnnotationKey] = self.typeAnnotationText
+                    break
+                default:
+                    self.popState()
+                    self.typeAnnotationTarget = null
+                    self.typeAnnotationKey = ''
+                    self.typeAnnotationText = ''
+                    break
+                }
+            }
+
+            if self.pendingVariable and type != LexicalHandler.Token.Colon {
+                self.pendingVariable = null
+            }
+            if self.pendingVariable and type == LexicalHandler.Token.Colon {
+                self.typeAnnotationTarget = self.pendingVariable
+                self.typeAnnotationKey = 'type'
+                self.typeAnnotationText = ''
+                self.typeAnnotationTarget[self.typeAnnotationKey] = self.typeAnnotationText
+                self.pendingVariable = null
+                self.pushState(DefaultPlugin.Parser.State.ExpectType)
+                return true
+            }
+            if type == LexicalHandler.Token.MinusRightAngled and self.context {
+                if self.getContextKind() == DefaultPlugin.Parser.SymbolKind.Function {
+                    self.typeAnnotationTarget = self.context['definition']
+                    self.typeAnnotationKey = 'returnType'
+                    self.typeAnnotationText = ''
+                    self.typeAnnotationTarget[self.typeAnnotationKey] = self.typeAnnotationText
+                    self.pushState(DefaultPlugin.Parser.State.ExpectType)
+                    return true
+                }
+            }
+
             switch self.getState() {
             case DefaultPlugin.Parser.State.ExpectStart:
                 switch type {
@@ -866,7 +937,7 @@ load system.uri
                         break
                     case DefaultPlugin.Parser.SymbolKind.Class:
                         // logger.debug("Found class member '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
-                        self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Field, self.lineNumber - 1, offset - self.lineOffset)
+                        self.pendingVariable = self.createDefinition(token, DefaultPlugin.Parser.SymbolKind.Field, self.lineNumber - 1, offset - self.lineOffset)
                         break
                     default:
                         break
@@ -946,7 +1017,7 @@ load system.uri
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     // logger.debug("Found variable '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
-                    self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+                    self.pendingVariable = self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     self.popState()
                     break
                 case is LexicalHandler.Token.Def:
@@ -967,7 +1038,7 @@ load system.uri
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     // logger.debug("Found variable '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
-                    self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+                    self.pendingVariable = self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     break
                 default:
                     break
@@ -977,7 +1048,7 @@ load system.uri
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     // logger.debug("Found capture '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
-                    self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+                    self.pendingVariable = self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     break
                 default:
                     break
@@ -987,7 +1058,7 @@ load system.uri
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     // logger.debug("Found parameter '%s' (line: %d, character: %d)", token, self.lineNumber - 1, offset - self.lineOffset)
-                    self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+                    self.pendingVariable = self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     break
                 default:
                     break
@@ -997,7 +1068,7 @@ load system.uri
                 switch type {
                 case is LexicalHandler.Token.Symbol:
                     // logger.debug("Found parameter '%s' (line: %d, character: %d, type: %s)", token, self.lineNumber - 1, offset - self.lineOffset, [for let context in self.contexts => context['token']].join('.'))
-                    self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+                    self.pendingVariable = self.createVariable(token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
                     if not self.contexts.isEmpty() {
                         self.context['definition']['variables'][token]['type'] = self.contexts[-1].get('symbol')
                     }
@@ -1006,6 +1077,8 @@ load system.uri
                 default:
                     break
                 }
+                break
+            case DefaultPlugin.Parser.State.ExpectType:
                 break
             }
             switch type {
@@ -1084,8 +1157,21 @@ load system.uri
         }
 
         override const def onSymbolToken(self, context, token, offset) {
-            var symbol = self.getSymbol((context + token).join('.'))
-            self.createReference(symbol, token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+            var symbol = (context + token).join('.')
+            if self.getState() != DefaultPlugin.Parser.State.ExpectType {
+                symbol = self.getSymbol(symbol)
+            }
+            if self.getState() == DefaultPlugin.Parser.State.ExpectType {
+                if self.typeAnnotationText.endsWith('|') {
+                    self.typeAnnotationText << (context + token).join('.')
+                } else {
+                    self.typeAnnotationText = (context + token).join('.')
+                }
+                self.typeAnnotationTarget[self.typeAnnotationKey] = self.typeAnnotationText
+            }
+            if self.getState() != DefaultPlugin.Parser.State.ExpectType and not self.pendingVariable {
+                self.createReference(symbol, token, DefaultPlugin.Parser.SymbolKind.Variable, self.lineNumber - 1, offset - self.lineOffset)
+            }
             self.createSymbol(symbol, token, self.lineNumber - 1, offset - self.lineOffset)
             return true
         }
@@ -1259,6 +1345,7 @@ load system.uri
             ExpectCaptureList
             ExpectParameterList
             ExpectSelfParameter
+            ExpectType
         }
 
         - final states = []
@@ -1272,6 +1359,10 @@ load system.uri
         - final symbol = {}
         - final contexts = []
         - final context = null
+        - final pendingVariable = null
+        - final typeAnnotationTarget = null
+        - final typeAnnotationKey = ''
+        - final typeAnnotationText = ''
     }
 
     - final documents = {}

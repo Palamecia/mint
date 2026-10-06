@@ -24,6 +24,7 @@
 #ifndef MINT_NETWORK_SOCKET_H
 #define MINT_NETWORK_SOCKET_H
 
+#include "mint/memory/function_tools.h"
 #include "mint/program/program.h"
 #include "mint/program/symbol.h"
 #include "mint/config.h"
@@ -213,6 +214,15 @@ public:
 	SocketBlockingModeGuard& operator=(const SocketBlockingModeGuard&) = delete;
 	SocketBlockingModeGuard& operator=(SocketBlockingModeGuard&&) = delete;
 };
+
+template<class... Values>
+mint::Reference make_success(mint::Cursor& cursor, Values&&... values) {
+	return mint::create_iterator_from(cursor, mint::create_number(0), std::forward<Values>(values)...);
+}
+
+inline mint::Reference make_failure(mint::Cursor& cursor, int error) {
+	return mint::create_iterator_from(cursor, mint::create_number(error));
+}
 
 std::error_code last_socket_error_code();
 int errno_from_socket_last_error();

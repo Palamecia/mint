@@ -29,6 +29,7 @@
 load serializer.data-stream
 load serializer.text-stream
 load serializer.json-stream
+load exception.exception
 load mint.string
 load mint.regex
 load mint.hash
@@ -45,24 +46,19 @@ package Network {
 			/**
 			 * Creates a new empty message.
 			 */
-			const def new(self) {
-				return self
-			}
+			const def new(self) {}
 
 			/**
 			 * Creates a new message described by `body`. The `attributes`
 			 * parameter can also be given to setup the attributes of the
 			 * header.
 			 * 
-			 * If `body` is an instance of {Network.JsonRpc.Message}, this
-			 * instance is returned.
-			 * 
 			 * If `body` is a hash, it is used as the body of the message.
 			 * 
 			 * If `body` is an instance of {Serializer.JsonStream}, this
 			 * instance is read to create the body of the message.
 			 * 
-			 * Otherwise, the creation fails.
+			 * Raises {Exception.TypeError} otherwise.
 			 */
 			const def new(self, body, attributes = {}) {
 				switch typeof body {
@@ -74,9 +70,22 @@ package Network {
 					self.headers = attributes
 					self.setBody(body.read())
 					return self
-				case 'Network.JsonRpc.Message':
-					return body
+				default:
+					raise Exception.TypeError('body must be a hash, a JSON stream or a JSON-RPC message', body)
 				}
+			}
+
+			/**
+			 * Returns an instance of {Network.JsonRpc.Message} from `data`.
+			 * 
+			 * If `data` is an instance of {Network.JsonRpc.Message}, this instance is returned; otherwise an new
+			 * instance is created from it.
+			 */
+			@const def from(data) -> Network.JsonRpc.Message {
+				if typeof data === 'Network.JsonRpc.Message' {
+					return data
+				}
+				return Network.JsonRpc.Message(data)
 			}
 
 			/**
@@ -85,10 +94,8 @@ package Network {
 			 * body of the message. The `attributes` parameter can also be given
 			 * to setup the attributes of the header.
 			 */
-			@const def fromString(body, attributes = {}) {
-				if defined body {
-					return Network.JsonRpc.Message(Serializer.JsonStream(Serializer.StringStream(body)).read(), attributes)
-				}
+			@const def fromString(body, attributes = {}) -> Network.JsonRpc.Message {
+				return Network.JsonRpc.Message(Serializer.JsonStream(Serializer.StringStream(body)).read(), attributes)
 			}
 
 			/**
@@ -169,7 +176,7 @@ package Network {
 			 * Returns the content of the message as a string including headers and body, with CRLF line endings
 			 * converted to LF.
 			 */
-			const def toString(const self) {
+			const def toString(const self) -> string {
 
 				let result = ''
 				let body = self.getBodyText()

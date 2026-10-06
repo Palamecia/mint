@@ -7,16 +7,16 @@ load mint.type
         const __my_type__ = type('__my_type__', {
             private('member'): none
         })
-        self.expectEqual(true, __my_type__.isMemberPrivate('member'))
+        self.expectEqual(__my_type__.isMemberPrivate('member'), true)
     }
 
     const def testGetMemberInfo(self) {
         const info = self.getMemberInfo('testGetMemberInfo')
-        self.expectEqual('MemberInfo', typeof info)
-        self.expectEqual('testGetMemberInfo', info.getName())
-        self.expectEqual('TypeTest', typeof info.getOwner())
-        self.expectEqual(true, info.isConst())
-        self.expectEqual(true, info.isPublic())
+        self.expectEqual(typeof info, 'MemberInfo')
+        self.expectEqual(info.getName(), 'testGetMemberInfo')
+        self.expectEqual(typeof info.getOwner(), 'TypeTest')
+        self.expectEqual(info.isConst(), true)
+        self.expectEqual(info.isPublic(), true)
     }
 
     const def testLocalClassBasic(self) {
@@ -25,7 +25,7 @@ load mint.type
 
         let foo = Foo()
 
-        self.expectEqual('Foo', typeof foo)
+        self.expectEqual(typeof foo, 'Foo')
     }
 
     const def testLocalClassScope(self) {
@@ -38,7 +38,7 @@ load mint.type
         let Foo1 = make()
         let Foo2 = make()
 
-        self.expectIsNotSame(Foo1, Foo2)
+        self.expectIsNotSame(Foo2, Foo1)
     }
 
     const def testLocalClassInstanceIsolation(self) {
@@ -48,7 +48,7 @@ load mint.type
         let a = Foo()
         let b = Foo()
 
-        self.expectIsNotSame(a, b)
+        self.expectIsNotSame(b, a)
     }
 
     const def testLocalClassMethod(self) {
@@ -61,7 +61,7 @@ load mint.type
 
         let foo = Foo()
 
-        self.expectEqual(42, foo.value())
+        self.expectEqual(foo.value(), 42)
     }
 
     const def testLocalClassInheritance(self) {
@@ -71,7 +71,7 @@ load mint.type
 
         let b = B()
 
-        self.expectEqual('B', typeof b)
+        self.expectEqual(typeof b, 'B')
     }
 
     const def testLocalClassNoCapture(self) {
@@ -86,7 +86,7 @@ load mint.type
 
         let foo = Foo()
 
-        self.expectIsSame(none, foo.get())
+        self.expectIsSame(foo.get(), none)
     }
 
     const def testLocalClassEscape(self) {
@@ -99,7 +99,7 @@ load mint.type
         let Foo = make()
         let obj = Foo()
 
-        self.expectEqual('Foo', typeof obj)
+        self.expectEqual(typeof obj, 'Foo')
     }
 
     const def testLocalClassShadowing(self) {
@@ -115,7 +115,7 @@ load mint.type
 
             self.fail()
         } catch error {
-            self.expectEqual("multiple definition of class 'Foo'", error.toString())
+            self.expectEqual(error.toString(), "multiple definition of class 'Foo'")
         }
     }
 
@@ -128,7 +128,7 @@ load mint.type
         let foo = Foo()
         foo.x = 10
 
-        self.expectEqual(10, foo.x)
+        self.expectEqual(foo.x, 10)
     }
 
     const def testLocalClassNested(self) {
@@ -143,7 +143,7 @@ load mint.type
         let o = Outer()
         let i = o.make()
 
-        self.expectEqual('Inner', typeof i)
+        self.expectEqual(typeof i, 'Inner')
     }
 
     const def testLocalClassReferenceSameScope(self) {
@@ -163,7 +163,7 @@ load mint.type
         let a = A()
         let b = a.make()
 
-        self.expectEqual(42, b.value())
+        self.expectEqual(b.value(), 42)
     }
 
     const def testLocalClassForwardReference(self) {
@@ -179,7 +179,7 @@ load mint.type
         let a = A()
         let b = a.make()
 
-        self.expectEqual('B', typeof b)
+        self.expectEqual(typeof b, 'B')
     }
 
     const def testLocalClassMutualReference(self) {
@@ -200,7 +200,7 @@ load mint.type
         let b = a.make()
         let a2 = b.make()
 
-        self.expectEqual('A', typeof a2)
+        self.expectEqual(typeof a2, 'A')
     }
 
     const def testLocalClassSelfReference(self) {
@@ -217,7 +217,7 @@ load mint.type
         let a = A()
         let result = a.make(3)
 
-        self.expectEqual('A', typeof result)
+        self.expectEqual(typeof result, 'A')
     }
 
     /*const def testLocalClassNestedReference(self) {
@@ -252,8 +252,8 @@ load mint.type
         let foo = Foo()
         let other = foo.clone()
 
-        self.expectEqual('Foo', typeof other)
-        self.expectIsNotSame(foo, other)
+        self.expectEqual(typeof other, 'Foo')
+        self.expectIsNotSame(other, foo)
     }
 
     const def testAllocateNoFieldCopy(self) {
@@ -271,7 +271,7 @@ load mint.type
 
         let other = foo.clone()
 
-        self.expectEqual(null, other.x)
+        self.expectEqual(other.x, null)
     }
 
     const def testAllocateNoConstructor(self) {
@@ -288,12 +288,12 @@ load mint.type
         }
 
         let foo = Foo()
-        self.expectEqual(true, Foo.called)
+        self.expectEqual(Foo.called, true)
 
         Foo.called = false
 
         let other = foo.clone()
-        self.expectEqual(false, Foo.called)
+        self.expectEqual(Foo.called, false)
     }
 
     const def testAllocateInheritance(self) {
@@ -307,10 +307,10 @@ load mint.type
         class Bar : Foo {}
 
         let foo = Foo()
-        self.expectEqual('Foo', typeof foo.clone())
+        self.expectEqual(typeof foo.clone(), 'Foo')
 
         let bar = Bar()
-        self.expectEqual('Bar', typeof bar.clone())
+        self.expectEqual(typeof bar.clone(), 'Bar')
     }
 
     const def testAllocatePolymorphic(self) {
@@ -326,7 +326,7 @@ load mint.type
         let bar = Bar()
         let result = bar.make()
 
-        self.expectEqual('Bar', typeof result)
+        self.expectEqual(typeof result, 'Bar')
     }
 
     const def testAllocateFromClass(self) {
@@ -339,7 +339,7 @@ load mint.type
 
         let obj = Foo.make()
 
-        self.expectEqual('Foo', typeof obj)
+        self.expectEqual(typeof obj, 'Foo')
     }
 
     const def testAllocateCloneCopy(self) {
@@ -359,8 +359,8 @@ load mint.type
 
         let other = foo.clone()
 
-        self.expectEqual(99, other.x)
-        self.expectIsNotSame(foo, other)
+        self.expectEqual(other.x, 99)
+        self.expectIsNotSame(other, foo)
     }
 
     const def testAllocateSelfReference(self) {
@@ -378,7 +378,7 @@ load mint.type
         let foo = Foo()
         let other = foo.clone()
 
-        self.expectIsSame(other.selfRef, other)
+        self.expectIsSame(other, other.selfRef)
     }
 
     const def testIsDerivedFrom(self) {
@@ -391,17 +391,17 @@ load mint.type
         let b = B()
         let c = C()
 
-        self.expectEqual(true, a.isDerivedFrom(A))
-        self.expectEqual(false, a.isDerivedFrom(B))
-        self.expectEqual(false, a.isDerivedFrom(C))
+        self.expectEqual(a.isDerivedFrom(A), true)
+        self.expectEqual(a.isDerivedFrom(B), false)
+        self.expectEqual(a.isDerivedFrom(C), false)
 
-        self.expectEqual(true, b.isDerivedFrom(A))
-        self.expectEqual(true, b.isDerivedFrom(B))
-        self.expectEqual(false, b.isDerivedFrom(C))
+        self.expectEqual(b.isDerivedFrom(A), true)
+        self.expectEqual(b.isDerivedFrom(B), true)
+        self.expectEqual(b.isDerivedFrom(C), false)
 
-        self.expectEqual(true, c.isDerivedFrom(A))
-        self.expectEqual(true, c.isDerivedFrom(B))
-        self.expectEqual(true, c.isDerivedFrom(C))
+        self.expectEqual(c.isDerivedFrom(A), true)
+        self.expectEqual(c.isDerivedFrom(B), true)
+        self.expectEqual(c.isDerivedFrom(C), true)
     }
 
     const def testHasMethod(self) {
@@ -417,11 +417,11 @@ load mint.type
         let a = A()
         let b = B()
 
-        self.expectEqual(true, a.hasMethod('foo'))
-        self.expectEqual(false, a.hasMethod('bar'))
+        self.expectEqual(a.hasMethod('foo'), true)
+        self.expectEqual(a.hasMethod('bar'), false)
 
-        self.expectEqual(true, b.hasMethod('foo'))
-        self.expectEqual(true, b.hasMethod('bar'))
+        self.expectEqual(b.hasMethod('foo'), true)
+        self.expectEqual(b.hasMethod('bar'), true)
     }
 
     const def testHasMethodWithSignature(self) {
@@ -437,13 +437,13 @@ load mint.type
         let a = A()
         let b = B()
 
-        self.expectEqual(true, a.hasMethod('foo', 2))
-        self.expectEqual(false, a.hasMethod('foo', 3))
-        self.expectEqual(false, a.hasMethod('bar', 3))
+        self.expectEqual(a.hasMethod('foo', 2), true)
+        self.expectEqual(a.hasMethod('foo', 3), false)
+        self.expectEqual(a.hasMethod('bar', 3), false)
 
-        self.expectEqual(true, b.hasMethod('foo', 2))
-        self.expectEqual(false, b.hasMethod('foo', 3))
-        self.expectEqual(true, b.hasMethod('bar', 3))
+        self.expectEqual(b.hasMethod('foo', 2), true)
+        self.expectEqual(b.hasMethod('foo', 3), false)
+        self.expectEqual(b.hasMethod('bar', 3), true)
     }
 
     const def testHasMethodWithVariadicSignature(self) {
@@ -459,12 +459,12 @@ load mint.type
         let a = A()
         let b = B()
 
-        self.expectEqual(true, a.hasMethod('foo', 2))
-        self.expectEqual(true, a.hasMethod('foo', 3))
-        self.expectEqual(false, a.hasMethod('bar', 3))
+        self.expectEqual(a.hasMethod('foo', 2), true)
+        self.expectEqual(a.hasMethod('foo', 3), true)
+        self.expectEqual(a.hasMethod('bar', 3), false)
 
-        self.expectEqual(true, b.hasMethod('foo', 2))
-        self.expectEqual(true, b.hasMethod('foo', 3))
-        self.expectEqual(true, b.hasMethod('bar', 3))
+        self.expectEqual(b.hasMethod('foo', 2), true)
+        self.expectEqual(b.hasMethod('foo', 3), true)
+        self.expectEqual(b.hasMethod('bar', 3), true)
     }
 }

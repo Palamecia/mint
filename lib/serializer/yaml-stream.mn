@@ -84,7 +84,6 @@ package Serializer {
 		 */
 		const def new(self, stream) {
 			self.stream = stream
-			return self
 		}
 
 		/**
@@ -1138,7 +1137,7 @@ package Serializer {
 		 */
 		- final const def parseUnquotedString(self, token, level) {
 
-			var identifier = trim(token + self.readUntil(/[\n:]/))
+			let identifier: string = trim(token + self.readUntil(/[\n:]/))
 			token = self.nextToken()
 
 			while token == ':' and (c = self.nextChar()) !~ /\s/ {
@@ -1195,8 +1194,8 @@ package Serializer {
 		 */
 		- final const def parseSingleQuotedString(self) {
 
-			var token = "'"
-			var identifier = ''
+			let token: string = "'"
+			let identifier: string = ''
 
 			while token == "'" {
 
@@ -1227,9 +1226,9 @@ package Serializer {
 		 */
 		- final const def parseDoubleQuotedString(self) {
 			
-			var token = '"'
-			var identifier = token + self.readUntil(/[\n"]/)
-			var last_token = identifier[-1]
+			let token: string = '"'
+			let identifier: string = token + self.readUntil(/[\n"]/)
+			let last_token: string = identifier[-1]
 
 			while last_token == '\\' or self.c == '\n' {
 
@@ -1254,7 +1253,7 @@ package Serializer {
 		- final const def yamlToScalar(self, identifier, tag = none) {
 
 			if defined tag {
-				return Serializer.YamlScalar(identifier, Serializer.YamlTag(tag))
+				return Serializer.YamlScalar(identifier, Serializer.YamlTag.from(tag))
 			}
 
 			return Serializer.YamlScalar(identifier)
@@ -1281,7 +1280,7 @@ package Serializer {
 		 */
 		- final const def readUntil(self, delim) {
 
-			var str = ''
+			let str: string = ''
 
 			if self.discarded {
 				c = self.c
@@ -1359,7 +1358,6 @@ package Serializer {
 	const def new(self, name, parameters) {
 		self.name = name
 		self.parameters = parameters
-		return self
 	}
 
 	/**
@@ -1388,15 +1386,15 @@ package Serializer {
 	 * Sets the comment associated to the directive.
 	 */
 	const def setComment(self, comment) {
-		self.comment = Serializer.YamlComment(comment)
+		self.comment = Serializer.YamlComment.from(comment)
 	}
 
 	/**
 	 * Returns the string representation of the processing instruction.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 
-		var str = '%' + self.name
+		let str: string = '%' + self.name
 
 		if not self.parameters.isEmpty() {
 			str << ' %s' % self.parameters.join(' ')
@@ -1487,11 +1485,11 @@ package Serializer {
 	/**
 	 * Returns the string representation of the document.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 
-		var str = '--- '
+		let str: string = '--- '
 
-		for comment in self.comments {
+		for let comment in self.comments {
 			str << '\n' + comment.toString()
 		}
 
@@ -1543,15 +1541,13 @@ package Serializer {
 	/**
 	 * Creates a new empty mapping node.
 	 */
-	const def new(self) {
-		return self
-	}
+	const def new(self) {}
+
 	/**
 	 * Creates a new mapping node for the mapping given by `content`.
 	 */
 	const def new(self, content) {
 		self.children = content.toHash()
-		return self
 	}
 
 	/**
@@ -1581,7 +1577,7 @@ package Serializer {
 	 * Returns an iterator on each elements in the mapping.
 	 */
 	const def in(const self) {
-		for node in self.children {
+		for let node in self.children {
 			yield node
 		}
 	}
@@ -1611,11 +1607,11 @@ package Serializer {
 	 * Returns the string representation of the mapping for the indentation
 	 * level given by `level`.
 	 */
-	const def toString(const self, level = 0) {
+	const def toString(const self, level = 0) -> string {
 
-		var str = ''
+		let str: string = ''
 
-		for key, value in self.children {
+		for let (key, value) in self.children {
 			switch typeof key {
 			case 'Serializer.YamlScalar':
 				switch typeof value {
@@ -1650,7 +1646,7 @@ package Serializer {
 	 * Returns the content of the mapping as a sequence of hashes and arrays
 	 * corresponding to the YAML mappings and sequences.
 	 */
-	const def toHash(const self) {
+	const def toHash(const self) -> hash {
 		return self.data()
 	}
 
@@ -1658,14 +1654,11 @@ package Serializer {
 	 * Returns the content of the mapping as a sequence of hashes and arrays
 	 * corresponding to the YAML mappings and sequences.
 	 */
-	const def data(const self) {
-
-		var data = {}
-		
-		for key, child in self.children {
+	const def data(const self) -> hash {
+		let data: hash = {}
+		for let (key, child) in self.children {
 			data[key.data()] = child.data()
 		}
-
 		return data
 	}
 
@@ -1682,16 +1675,13 @@ package Serializer {
 	/**
 	 * Creates a new empty sequence node.
 	 */
-	const def new(self) {
-		return self
-	}
+	const def new(self) {}
 
 	/**
 	 * Creates a new sequence node for the sequence given by `content`.
 	 */
 	const def new(self, content) {
 		self.children = content.toArray()
-		return self
 	}
 
 	/**
@@ -1802,11 +1792,11 @@ package Serializer {
 	 * Returns the string representation of the sequence for the indentation
 	 * level given by `level`.
 	 */
-	const def toString(const self, level = 0) {
-		
-		var str = ''
+	const def toString(const self, level = 0) -> string {
 
-		for child in self.children {
+		let str: string = ''
+
+		for let child in self.children {
 			switch typeof child {
 			case 'Serializer.YamlScalar':
 				str << '\n%s- %s' ('\t' * level, child.toString())
@@ -1825,7 +1815,7 @@ package Serializer {
 	 * Returns the content of the sequence as a sequence of hashes and arrays
 	 * corresponding to the YAML mappings and sequences.
 	 */
-	const def toArray(const self) {
+	const def toArray(const self) -> array {
 		return self.data()
 	}
 
@@ -1833,14 +1823,11 @@ package Serializer {
 	 * Returns the content of the sequence as a sequence of hashes and arrays
 	 * corresponding to the YAML mappings and sequences.
 	 */
-	const def data(const self) {
-
-		var data = []
-		
-		for child in self.children {
+	const def data(const self) -> array {
+		let data: array = []
+		for let child in self.children {
 			data << child.data()
 		}
-
 		return data
 	}
 
@@ -1859,7 +1846,6 @@ package Serializer {
 	 */
 	const def new(self) {
 		self.value = '~'
-		return self
 	}
 
 	/**
@@ -1870,9 +1856,8 @@ package Serializer {
 	const def new(self, value, tag = none) {
 		self.value = value
 		if defined tag {
-			self.tag = Serializer.YamlTag(tag)
+			self.tag = Serializer.YamlTag.from(tag)
 		}
-		return self
 	}
 
 	/**
@@ -1886,7 +1871,7 @@ package Serializer {
 	 * Sets the {Serializer.YamlTag} of the node.
 	 */
 	const def setTag(const self, tag) {
-		self.tag = Serializer.YamlTag(tag)
+		self.tag = Serializer.YamlTag.from(tag)
 	}
 
 	/**
@@ -1915,7 +1900,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the scalar.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if defined self.tag {
 			return '%s %s' % (self.tag.toString(), self.value)
 		}
@@ -2038,7 +2023,6 @@ package Serializer {
 	const def new(self, document, anchor) {
 		self.document = document
 		self.anchor = anchor
-		return self
 	}
 
 	/**
@@ -2051,7 +2035,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the alias.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '*%s' % self.anchor
 	}
 
@@ -2089,7 +2073,6 @@ package Serializer {
 		 */
 		const def new(self, tag) {
 			self.tag = tag
-			return self
 		}
 
 		/**
@@ -2102,7 +2085,7 @@ package Serializer {
 		/**
 		 * Returns the exception informations as a string.
 		 */
-		const def toString(const self) {
+		const def toString(const self) -> string {
 			return 'invalid tag %s : not implemented' % self.tag.getName()
 		}
 
@@ -2113,21 +2096,23 @@ package Serializer {
 	/**
 	 * Creates a new tag property for the type described by `type`.
 	 * 
-	 * If the `type` parameter is an instance of {Serializer.YamlTag}, this
-	 * instance is returned; otherwise `type` is cast to string to get the type
-	 * name.
+	 * The `type` parameter is cast to string to get the type name.
 	 */
 	const def new(self, type) {
-		switch typeof type {
-		case 'Serializer.YamlTag':
-			return type
-		case 'string':
-			self.name = type
-			return self
-		default:
-			self.name = type.toString()
-			return self
+		self.name = type.toString()
+	}
+
+	/**
+	 * Returns an instance of {Serializer.YamlTag} from `data`.
+	 * 
+	 * If `data` is an instance of {Serializer.YamlTag}, this instance is returned; otherwise an new
+	 * instance is created from it.
+	 */
+	@const def from(data) -> Serializer.YamlTag {
+		if typeof data === 'Serializer.YamlTag' {
+			return data
 		}
+		return Serializer.YamlTag(data)
 	}
 
 	/**
@@ -2161,7 +2146,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the tag.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '!%s' % self.name
 	}
 
@@ -2200,21 +2185,23 @@ Serializer.YamlTag.g_converters = {
 	/**
 	 * Creates a new comment for the content described by `content`.
 	 * 
-	 * If the `content` parameter is an instance of {Serializer.YamlComment},
-	 * this instance is returned; otherwise `content` is cast to string to get
-	 * the text of the comment.
+	 * The `content` parameter is cast to string to get the text of the comment.
 	 */
 	const def new(self, content) {
-		switch typeof content {
-		case 'Serializer.YamlComment':
-			return content
-		case 'string':
-			self.content = content
-			return self
-		default:
-			self.content = content.toString()
-			return self
+		self.content = content.toString()
+	}
+
+	/**
+	 * Returns an instance of {Serializer.YamlComment} from `data`.
+	 * 
+	 * If `data` is an instance of {Serializer.YamlComment}, this instance is returned; otherwise an new
+	 * instance is created from it.
+	 */
+	@const def from(data) -> Serializer.YamlComment {
+		if typeof data === 'Serializer.YamlComment' {
+			return data
 		}
+		return Serializer.YamlComment(data)
 	}
 
 	/**

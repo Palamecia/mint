@@ -48,7 +48,6 @@
 	const def new(self, mutex) {
 		self.mutex = mutex
 		self.mutex.lock()
-		return self
 	}
 
 	/**

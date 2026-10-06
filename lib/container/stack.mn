@@ -45,7 +45,6 @@ package Container {
 	 */
 	const def new(self) {
 		self.values = Container.LinkedList()
-		return self
 	}
 
 	/**

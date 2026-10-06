@@ -41,6 +41,8 @@ public:
 	Printer& operator=(const Printer& other) = delete;
 
 	virtual void print(const Reference& reference) = 0;
+
+	virtual void mark() = 0;
 };
 
 }

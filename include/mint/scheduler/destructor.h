@@ -33,7 +33,7 @@
 
 namespace mint {
 
-class MINT_EXPORT Destructor : public Process {
+class MINT_EXPORT Destructor final : public Process {
 public:
 	Destructor(Scheduler& scheduler, Object* object, const Reference& member, Class& owner,
 	    const Process* process = nullptr);
@@ -52,7 +52,7 @@ public:
 private:
 	std::reference_wrapper<Class> _owner;
 	Object* _object;
-	RootReference _member;
+	Reference _member;
 };
 
 MINT_EXPORT bool is_destructor(Process& process);

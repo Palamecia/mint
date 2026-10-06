@@ -233,12 +233,12 @@ void InteractiveDebugger::init_backtrace(CommandRunner::Command& command) {
 			if (with_context_lines) {
 				if (count < 0) {
 					print_highlighted((std::cmp_less_equal(line_number, abs(count))) ? 1 : line_number + count,
-					    line_number + abs(count), line_number, debugger.program().global_data(),
+					    line_number + abs(count), line_number, debugger.program().global_data_description(),
 					    mint::get_module_stream(module_name));
 				}
 				else {
-					print_highlighted(line_number, line_number + count, line_number, debugger.program().global_data(),
-					    mint::get_module_stream(module_name));
+					print_highlighted(line_number, line_number + count, line_number,
+					    debugger.program().global_data_description(), mint::get_module_stream(module_name));
 				}
 			}
 		}
@@ -321,12 +321,12 @@ void InteractiveDebugger::init_print(CommandRunner::Command& command) {
 	auto print_sources = [](Debugger& debugger, const std::string& module_name, std::size_t line_number, int count = 0) {
 		if (count < 0) {
 			print_highlighted((std::cmp_less_equal(line_number, abs(count))) ? 1 : line_number + count,
-			    line_number + abs(count), line_number, debugger.program().global_data(),
+			    line_number + abs(count), line_number, debugger.program().global_data_description(),
 			    mint::get_module_stream(module_name));
 		}
 		else {
-			print_highlighted(line_number, line_number + count, line_number, debugger.program().global_data(),
-			    mint::get_module_stream(module_name));
+			print_highlighted(line_number, line_number + count, line_number,
+			    debugger.program().global_data_description(), mint::get_module_stream(module_name));
 		}
 	};
 
@@ -379,7 +379,7 @@ void InteractiveDebugger::init_list(CommandRunner::Command& command) {
 					case mint::Data::Format::object:
 						if (mint::is_object(parent->data<mint::Object>())) {
 							for (auto [symbol, member] : parent->data<mint::Object>().metadata.members()) {
-								if (slots_only && member.get().offset == mint::Class::MemberInfo::invalid_offset) {
+								if (slots_only && member.offset == mint::Class::MemberInfo::invalid_offset) {
 									continue;
 								}
 								const auto& reference = mint::Class::MemberInfo::get(member,

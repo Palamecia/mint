@@ -49,7 +49,7 @@ namespace mint {
 struct SavedState;
 class Program;
 
-class MINT_EXPORT Cursor : public MemoryRoot {
+class MINT_EXPORT Cursor : public MemoryRoot<MemoryRootRegistrationMode::manual> {
 	friend class CursorDebugger;
 	friend struct SavedState;
 public:
@@ -68,9 +68,9 @@ public:
 		[[nodiscard]] Flags get_flags() const;
 		void set_flags(Flags flags);
 
-		[[nodiscard]] Class* get_metadata() const;
-		void set_metadata(Class* metadata);
-		void set_metadata(Class& metadata);
+		[[nodiscard]] const Class* get_metadata() const;
+		void set_metadata(const Class* metadata);
+		void set_metadata(const Class& metadata);
 
 		[[nodiscard]] int extra_argument_count() const;
 		void add_extra_argument(std::size_t count);
@@ -79,7 +79,7 @@ public:
 
 	private:
 		Reference _function;
-		Class* _metadata = nullptr;
+		const Class* _metadata = nullptr;
 		int _extra_args = 0;
 		Flags _flags = standard_call;
 	};
@@ -165,8 +165,8 @@ public:
 	[[nodiscard]] bool call_in_progress() const;
 	void call_generator_expression(std::size_t offset);
 	void call_async_generator_expression(std::size_t offset);
-	void call(const FunctionHandle& handle, int signature, Class* metadata = nullptr);
-	void call(const Module& module, std::size_t pos, PackageData& package, Class* metadata = nullptr);
+	void call(const FunctionHandle& handle, int signature, const Class* metadata = nullptr);
+	void call(const Module& module, std::size_t pos, PackageData& package, const Class* metadata = nullptr);
 	void exit_call();
 
 	[[nodiscard]] bool is_in_builtin() const;

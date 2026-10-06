@@ -40,9 +40,11 @@ public:
 
 	void print(const Reference& reference) override;
 
+	void mark() override;
+
 private:
-	RootReference _object;
 	std::reference_wrapper<Cursor> _cursor;
+	Reference _object;
 };
 
 }

@@ -44,13 +44,12 @@ package Exception {
 	const def new(self, index, container = none) {
 		self.index = index
 		self.container = container
-		return self
 	}
 
 	/**
 	 * Returns the exception informations as a string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return "index '%d' is out of range\n" % self.index
 	}
 
@@ -88,13 +87,12 @@ package Exception {
 	const def new(self, key, container = none) {
 		self.key = key
 		self.container = container
-		return self
 	}
 
 	/**
 	 * Returns the exception informations as a string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return "key '%s' is not valid\n" % self.key
 	}
 
@@ -131,13 +129,12 @@ package Exception {
 	 */
 	const def new(self, container, %method) {
 		self.function = Callback(container, method)
-		return self
 	}
 
 	/**
 	 * Returns the exception informations as a string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return "no item for %s\n" % self.function.toString()
 	}
 

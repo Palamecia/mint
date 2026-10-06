@@ -42,7 +42,7 @@ package Test {
 	 * 
 	 * class MyTestCase : Test.Case {
 	 *     def testAddOneAndOne(self) {
-	 *         self.expectEqual(2, 1 + 1, '1 + 1 is not 2')
+	 *         self.expectEqual(1 + 1, 2, '1 + 1 is not 2')
 	 *     }
 	 * }
 	 * ```
@@ -207,10 +207,10 @@ package Test {
 		}
 
 		/**
-		 * Test for equality between `expected` and `result`. If given values are not equal,
-		 * the test fails. If `message` is given, the message is printed on the standard output.
+		 * Test whether `result` equals `expected`. If given values are not equal, the test fails. If `message` is
+		 * given, the message is printed on the standard output.
 		 */
-		const def expectEqual(self, %expected, %result, message = none) {
+		const def expectEqual(self, %result, %expected, message = none) {
 			if expected != result {
 				print (System.IO) {
 					System.IO.magenta()
@@ -225,15 +225,16 @@ package Test {
 		}
 
 		/**
-		 * Test for inequality between `expected` and `result`. If given values are equal,
-		 * the test fails. If `message` is given, the message is printed on the standard output.
+		 * Test whether `result` differs from `expected`. If given values are equal, the test fails. If `message` is
+		 * given, the message is printed on the standard output.
 		 */
-		const def expectNotEqual(self, %expected, %result, message = none) {
+		const def expectNotEqual(self, %result, %expected, message = none) {
 			if expected == result {
 				print (System.IO) {
 					System.IO.magenta()
 					'  ' + Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
-					"\tExpected: %s != %s\n" % (Test.Case.printValue(expected), Test.Case.printValue(result))
+					"\tValue of: %s\n" % Test.Case.printValue(result)
+					"\tExpected: not %s\n" % Test.Case.printValue(expected)
 					defined message ? '\t' + message + '\n' : ''
 					System.IO.reset()
 				}
@@ -242,11 +243,10 @@ package Test {
 		}
 
 		/**
-		 * Test for address equality between `expected` and `result`. If given address are not
-		 * equal, the test fails. If `message` is given, the message is printed on the standard
-		 * output.
+		 * Test whether `result` has the same address as `expected`. If given address are not equal, the test fails. If
+		 * `message` is given, the message is printed on the standard output.
 		 */
-		const def expectIsSame(self, %expected, %result, message = none) {
+		const def expectIsSame(self, %result, %expected, message = none) {
 			if not (expected is result) {
 				print (System.IO) {
 					System.IO.magenta()
@@ -260,16 +260,16 @@ package Test {
 		}
 
 		/**
-		 * Test for address inequality between `expected` and `result`. If given address are
-		 * equal, the test fails. If `message` is given, the message is printed on the standard
-		 * output.
+		 * Test whether `result` has a different address from `expected`. If given addresses are equal, the test fails.
+		 * If `message` is given, the message is printed on the standard output.
 		 */
-		const def expectIsNotSame(self, %expected, %result, message = none) {
+		const def expectIsNotSame(self, %result, %expected, message = none) {
 			if expected is result {
 				print (System.IO) {
 					System.IO.magenta()
 					'  ' + Test.Case.g_lib.call('mint_test_case_line_infos') + '\n'
-					"\tExpected: 0x%P != 0x%P\n" % (expected, result)
+					"\tAddress of: 0x%P\n" % result
+					"\tExpected: not 0x%P\n" % expected
 					defined message ? '\t' + message + '\n' : ''
 					System.IO.reset()
 				}
@@ -321,7 +321,7 @@ package Test {
 		/**
 		 * Returns a printable string representation of `value` based on its type.
 		 */
-		- @const def printValue(value) {
+		- @const def printValue(value) -> string {
 			switch typeof value {
 			case 'string':
 				return "'%s'" % value
@@ -338,14 +338,14 @@ package Test {
 			case 'array':
 			case 'hash':
 			case 'iterator':
-				return value
+				return value as string
 			default:
 				return '%s(%s)' % (typeof value, value)
 			}
 		}
-		
+
 		/// Global library handle.
-		- @const g_lib = lib('libmint-test')
+		- @const g_lib: library = lib('libmint-test')
 		
 		/// Internal list of found test methods.
 		- final found = []

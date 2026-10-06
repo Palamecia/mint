@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "errno.h"
 #include "mint/program/cursor.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
@@ -29,14 +30,20 @@
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
 #include "mint/system/async_io.h"
+#include "mint/system/errno.h"
 
 #include <array>
 #include <chrono>
+#include <cerrno>
 #include <cstdint>
 #include <cstring>
+#include <functional>
+#include <future>
 #include <memory>
 #include <optional>
+#include <system_error>
 #include <type_traits>
+#include <utility>
 
 #ifdef MINT_OS_WINDOWS
 #include <Windows.h>
@@ -47,6 +54,7 @@
 #include <winnt.h>
 #else
 #ifdef MINT_OS_LINUX
+#include <poll.h>
 #include <sys/epoll.h>
 #include <sys/time.h>
 #else
@@ -109,7 +117,6 @@ constexpr inline LONGLONG to_milliseconds = 10000LL;
 #endif
 
 mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& clock_type) {
-
 #ifdef MINT_OS_WINDOWS
 
 	auto timer = std::make_unique<TimerData>(TimerData {
@@ -119,9 +126,10 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	        },
 	    .clock_type = to_clock_type(cursor, clock_type),
 	});
-	if (timer->event.handle != INVALID_HANDLE_VALUE) {
-		return mint::create_c_object(cursor.program(), timer.release());
+	if (timer->event.handle != nullptr) {
+		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
 	}
+	return mint_system::make_failure(cursor, mint::errno_from_last_error());
 
 #elifdef MINT_OS_LINUX
 
@@ -146,8 +154,9 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	        },
 	});
 	if (timer->event.fd != -1) {
-		return mint::create_c_object(cursor.program(), timer.release());
+		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
 	}
+	return mint_system::make_failure(cursor, errno);
 
 #elifdef MINT_OS_FREE_BSD
 
@@ -172,8 +181,9 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	        },
 	});
 	if (timer->event.fd != -1) {
-		return mint::create_c_object(cursor.program(), timer.release());
+		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
 	}
+	return mint_system::make_failure(cursor, errno);
 
 #elifdef MINT_OS_MAC
 
@@ -181,12 +191,13 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 
 	auto fds = std::to_array<int>({-1, -1});
 	if (pipe(fds.data()) != 0) {
-		return {};
+		return mint_system::make_failure(cursor, errno);
 	}
 	if (!set_nonblocking(fds.at(0)) || !set_nonblocking(fds.at(1))) {
+		auto result = mint_system::make_failure(cursor, errno);
 		close(fds.at(0));
 		close(fds.at(1));
-		return {};
+		return result;
 	}
 
 	auto timer = std::make_unique<TimerData>(TimerData {
@@ -204,16 +215,18 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	timer->queue = dispatch_queue_create("mint.timer",
 	    dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INTERACTIVE, 0));
 	if (timer->queue == nullptr) {
+		auto result = mint_system::make_failure(cursor, ENOMEM);
 		close(fds.at(0));
 		close(fds.at(1));
-		return {};
+		return result;
 	}
 	timer->source = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, timer->queue);
 	if (timer->source == nullptr) {
+		auto result = mint_system::make_failure(cursor, ENOMEM);
 		release_dispatch_object(timer->queue);
 		close(fds.at(0));
 		close(fds.at(1));
-		return {};
+		return result;
 	}
 
 	auto* timer_ptr = timer.get();
@@ -224,10 +237,11 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 			timer_ptr->running = false;
 		}
 	});
-	return mint::create_c_object(cursor.program(), timer.release());
+	return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
 
+#else
+#error "Timer is not implemented for this platform"
 #endif
-	return {};
 }
 
 mint::Reference mint_timer_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
@@ -534,6 +548,119 @@ mint::Reference mint_timer_wait(mint::Cursor& cursor, const mint::Reference& d_p
 #endif
 }
 
+mint::Reference mint_timer_wait_async(mint::Cursor& cursor, mint::Reference& self, const mint::Reference& scheduler,
+    const mint::Reference& handle) {
+	class AsyncWaitOperation : public mint::MintAsyncOperation {
+		std::reference_wrapper<mint::Cursor> _cursor;
+#ifdef MINT_OS_WINDOWS
+		std::reference_wrapper<mint::AsyncRuntime> _scheduler;
+		std::future<void> _future;
+		std::error_code _wait_error;
+#endif
+	public:
+		AsyncWaitOperation(mint::Cursor& cursor, mint::Reference self, [[maybe_unused]] mint::AsyncRuntime& scheduler,
+		    mint::handle_t handle) :
+		    mint::MintAsyncOperation(std::move(self), handle),
+		    _cursor(cursor)
+#ifdef MINT_OS_WINDOWS
+		    ,
+		    _scheduler(scheduler)
+#endif
+		{
+		}
+
+		std::error_code start() override {
+#ifdef MINT_OS_WINDOWS
+			_future = std::async(std::launch::async, [this]() {
+				if (WaitForSingleObject(get_handle(), INFINITE) != WAIT_OBJECT_0) {
+					_wait_error = mint::last_error_code();
+				}
+				_scheduler.get().post_deferred_completion(*this);
+			});
+			return {};
+#elifdef MINT_OS_LINUX
+			return std::visit(mint::Overloaded {
+#ifdef MINT_ASYNC_BACKEND_IO_URING
+			                      [&](mint::IoUringOperation& operation) -> std::error_code {
+				                      io_uring_prep_poll_add(operation.sqe, get_handle(), POLLIN);
+				                      return {};
+			                      },
+#endif
+#ifdef MINT_ASYNC_BACKEND_EPOLL
+			                      [&](mint::EPollOperation& operation) -> std::error_code {
+				                      operation.events = EPOLLIN;
+				                      auto expirations = std::uint64_t();
+				                      const auto bytes = read(get_handle(), &expirations, sizeof(expirations));
+				                      if (bytes == -1) {
+					                      return mint::last_error_code();
+				                      }
+				                      operation.result = bytes;
+				                      return {};
+			                      },
+#endif
+			                      [](std::monostate) -> std::error_code {
+				                      return std::make_error_code(std::errc::not_supported);
+			                      },
+			                  },
+			    static_cast<mint::async_operation_t&>(*this));
+#elifdef MINT_OS_UNIX
+			filter = EVFILT_READ;
+			auto expirations = std::uint64_t();
+			const auto bytes = read(get_handle(), &expirations, sizeof(expirations));
+			if (bytes == -1) {
+				return mint::last_error_code();
+			}
+			result = bytes;
+			return {};
+#else
+#error "Asynchronous timer wait is not implemented for this platform"
+#endif
+		}
+
+		void complete(std::error_code error, std::size_t bytes_transferred) override {
+			if (!error) {
+#ifdef MINT_OS_LINUX
+#ifdef MINT_ASYNC_BACKEND_IO_URING
+				if (std::holds_alternative<mint::IoUringOperation>(static_cast<mint::async_operation_t&>(*this))) {
+					auto expirations = std::uint64_t();
+					const auto bytes = read(get_handle(), &expirations, sizeof(expirations));
+					if (bytes == -1) {
+						error = mint::last_error_code();
+					}
+					else {
+						bytes_transferred = static_cast<std::size_t>(bytes);
+					}
+				}
+#endif
+#endif
+#ifdef MINT_OS_WINDOWS
+				if (_wait_error) {
+					error = _wait_error;
+				}
+				else {
+					bytes_transferred = sizeof(std::uint64_t);
+				}
+#endif
+			}
+
+			if (error) {
+				done(mint::create_number(mint::errno_from_error_code(error)));
+			}
+			else if (bytes_transferred != sizeof(std::uint64_t)) {
+				done(mint::create_number(EIO));
+			}
+			else {
+				done(mint::create_number(0));
+			}
+		}
+	};
+
+	return mint::create_async_operation(cursor.program(),
+	    std::make_unique<AsyncWaitOperation>(cursor, std::move(self),
+	        *scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr, mint::to_handle(handle))
+	        .release());
+}
+
 }
 
 MINT_EXPORT_FUNCTION(mint_timer_create, 1)
@@ -546,3 +673,4 @@ MINT_EXPORT_FUNCTION(mint_timer_stop, 1)
 MINT_EXPORT_FUNCTION(mint_timer_is_running, 1)
 MINT_EXPORT_FUNCTION(mint_timer_clear, 1)
 MINT_EXPORT_FUNCTION(mint_timer_wait, 2)
+MINT_EXPORT_FUNCTION(mint_timer_wait_async, 3)

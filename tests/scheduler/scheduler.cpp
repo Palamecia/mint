@@ -12,8 +12,8 @@
 
 TEST(scheduler, invoke_function) {
 
-	auto scheduler = mint::Scheduler({});
-	auto& module = scheduler.program().create_module(mint::Module::State::ready);
+	auto scheduler = mint::Scheduler();
+	auto& module = scheduler.program().create_module({}, mint::Module::State::ready);
 	const auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
 
@@ -31,7 +31,7 @@ TEST(scheduler, invoke_function) {
 
 TEST(scheduler, invoke_new) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
 
@@ -43,15 +43,15 @@ TEST(scheduler, invoke_new) {
 
 TEST(scheduler, invoke_method) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
 
 	mint::Class& test_class = mint::create_class(scheduler.program(), "__test_class__",
 	    {
 	        {
-	            mint::builtin_symbols::new_method,
-	            mint::create_function(scheduler.program(), R"(
+	            .symbol = mint::builtin_symbols::new_method,
+	            .value = mint::create_function(scheduler.program(), R"(
 					def (self, value) {
 						self.value = value
 						return self
@@ -59,22 +59,25 @@ TEST(scheduler, invoke_method) {
 				)"),
 	        },
 	        {
-	            "getSelf",
-	            mint::create_function(scheduler.program(), R"(
+	            .symbol = "getSelf",
+	            .value = mint::create_function(scheduler.program(), R"(
 					def (self) {
 						return self
 					}
 				)"),
 	        },
 	        {
-	            "getValue",
-	            mint::create_function(scheduler.program(), R"(
+	            .symbol = "getValue",
+	            .value = mint::create_function(scheduler.program(), R"(
 					def (self) {
 						return self.value
 					}
 				)"),
 	        },
-	        {"value", mint::create_none()},
+	        {
+	            .symbol = "value",
+	            .value = mint::create_none(),
+	        },
 	    });
 
 	const auto object = scheduler.invoke(test_class, mint::create_signed_number(42));
@@ -95,15 +98,15 @@ TEST(scheduler, invoke_method) {
 
 TEST(scheduler, invoke_operator) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
 
 	mint::Class& test_class = mint::create_class(scheduler.program(), "__test_class__",
 	    {
 	        {
-	            mint::builtin_symbols::new_method,
-	            mint::create_function(scheduler.program(), R"(
+	            .symbol = mint::builtin_symbols::new_method,
+	            .value = mint::create_function(scheduler.program(), R"(
 										def (self, value) {
 											self.value = value
 											return self
@@ -111,14 +114,17 @@ TEST(scheduler, invoke_operator) {
 									)"),
 	        },
 	        {
-	            mint::builtin_symbols::add_operator,
-	            mint::create_function(scheduler.program(), R"(
+	            .symbol = mint::builtin_symbols::add_operator,
+	            .value = mint::create_function(scheduler.program(), R"(
 										def (self, value) {
 											return self.value + value
 										}
 									)"),
 	        },
-	        {"value", mint::create_none()},
+	        {
+	            .symbol = "value",
+	            .value = mint::create_none(),
+	        },
 	    });
 
 	const auto object = scheduler.invoke(test_class, mint::create_number(2));

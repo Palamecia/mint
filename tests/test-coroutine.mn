@@ -11,21 +11,21 @@ load mint.coroutine
             let x = await f()
             return x + 1
         }
-        self.expectEqual(6, spawn(g()))
+        self.expectEqual(spawn(g()), 6)
     }
 
     const def testNestedWait(self) {
         async def a() { return 1 }
         async def [...] b() { return await a() }
         async def [...] c() { return await b() }
-        self.expectEqual(1, spawn(c()))
+        self.expectEqual(spawn(c()), 1)
     }
 
     const def testWithParameter(self) {
         async def f(seed) {
             return seed + 4
         }
-        self.expectEqual(6, spawn(f(2)))
+        self.expectEqual(spawn(f(2)), 6)
     }
 
     const def testGenerator(self) {
@@ -34,9 +34,9 @@ load mint.coroutine
             return 42
         }
         let result = spawn(f())
-        self.expectEqual('async_iterator', typeof result)
+        self.expectEqual(typeof result, 'async_iterator')
         self.expectNotDefined(spawn(result.next()))
-        self.expectEqual(42, spawn(result.next()))
+        self.expectEqual(spawn(result.next()), 42)
     }
 
     const def testGeneratorOnly(self) {
@@ -46,11 +46,11 @@ load mint.coroutine
             yield 3
         }
         let result = spawn(f())
-        self.expectEqual('async_iterator', typeof result)
-        self.expectEqual(1, spawn(result.next()))
-        self.expectEqual(2, spawn(result.next()))
-        self.expectEqual(3, spawn(result.next()))
-        self.expectEqual(true, result.isEmpty())
+        self.expectEqual(typeof result, 'async_iterator')
+        self.expectEqual(spawn(result.next()), 1)
+        self.expectEqual(spawn(result.next()), 2)
+        self.expectEqual(spawn(result.next()), 3)
+        self.expectEqual(result.isEmpty(), true)
     }
     
     const def testAwaitNestedGenerator(self) {
@@ -62,9 +62,9 @@ load mint.coroutine
             return await f()
         }
         let result = spawn(g())
-        self.expectEqual('async_iterator', typeof result)
+        self.expectEqual(typeof result, 'async_iterator')
         self.expectNotDefined(spawn(result.next()))
-        self.expectEqual(42, spawn(result.next()))
+        self.expectEqual(spawn(result.next()), 42)
     }
 
     const def testAwaitNestedGeneratorOnly(self) {
@@ -77,11 +77,11 @@ load mint.coroutine
             return await f()
         }
         let result = spawn(g())
-        self.expectEqual('async_iterator', typeof result)
-        self.expectEqual(1, spawn(result.next()))
-        self.expectEqual(2, spawn(result.next()))
-        self.expectEqual(3, spawn(result.next()))
-        self.expectEqual(true, result.isEmpty())
+        self.expectEqual(typeof result, 'async_iterator')
+        self.expectEqual(spawn(result.next()), 1)
+        self.expectEqual(spawn(result.next()), 2)
+        self.expectEqual(spawn(result.next()), 3)
+        self.expectEqual(result.isEmpty(), true)
     }
 
     const def testAwaitNestedGeneratorWithOperation(self) {
@@ -95,10 +95,10 @@ load mint.coroutine
             }
         }
         let result = spawn(g())
-        self.expectEqual('async_iterator', typeof result)
-        self.expectEqual(2, spawn(result.next()))
-        self.expectEqual(3, spawn(result.next()))
-        self.expectEqual(true, result.isEmpty())
+        self.expectEqual(typeof result, 'async_iterator')
+        self.expectEqual(spawn(result.next()), 2)
+        self.expectEqual(spawn(result.next()), 3)
+        self.expectEqual(result.isEmpty(), true)
     }
 
     const def testDeepAwaitChain(self) {
@@ -116,7 +116,7 @@ load mint.coroutine
         async def [...] root() {
             return await level1()
         }
-        self.expectEqual(3, spawn(root()))
+        self.expectEqual(spawn(root()), 3)
     }
 
     const def testAwaitInsideLoop(self) {
@@ -130,7 +130,7 @@ load mint.coroutine
             }
             return sum
         }
-        self.expectEqual(9, spawn(test()))
+        self.expectEqual(spawn(test()), 9)
     }
 
     const def testAwaitInsideConditionalBranch(self) {
@@ -144,8 +144,8 @@ load mint.coroutine
                 return await value(10)
             }
         }
-        self.expectEqual(10, spawn(test(true)))
-        self.expectEqual(20, spawn(test(false)))
+        self.expectEqual(spawn(test(true)), 10)
+        self.expectEqual(spawn(test(false)), 20)
     }
 
     const def testAwaitExpressionEvaluationOrder(self) {
@@ -155,7 +155,7 @@ load mint.coroutine
             let x = 1 + await a() * await b()
             return x
         }
-        self.expectEqual(1 + 2 * 3, spawn(test()))
+        self.expectEqual(spawn(test()), 1 + 2 * 3)
     }
 
     const def testAwaitInNestedBlocks(self) {
@@ -169,7 +169,7 @@ load mint.coroutine
                 }
             }
         }
-        self.expectEqual(5, spawn(outer()))
+        self.expectEqual(spawn(outer()), 5)
     }
 
     const def testExceptionPropagationThroughAwait(self) {
@@ -183,7 +183,7 @@ load mint.coroutine
                 return "caught"
             }
         }
-        self.expectEqual("caught", spawn(test()))
+        self.expectEqual(spawn(test()), "caught")
     }
 
     const def testExceptionBubblingAcrossMultipleLevels(self) {
@@ -200,7 +200,7 @@ load mint.coroutine
                 return "ok"
             }
         }
-        self.expectEqual("ok", spawn(top()))
+        self.expectEqual(spawn(top()), "ok")
     }
 
     const def testDoubleAwaitOnSameCoroutine(self) {
@@ -208,13 +208,13 @@ load mint.coroutine
             return 10
         }
         let c = simple()
-        self.expectEqual(10, spawn(c))
+        self.expectEqual(spawn(c), 10)
         try {
             let catcher = Test.ErrorCatcher()
             spawn(c)
             self.fail()
         } catch error {
-            self.expectEqual("cannot reuse already awaited coroutine", error.toString())
+            self.expectEqual(error.toString(), "cannot reuse already awaited coroutine")
         }
     }
 
@@ -230,7 +230,7 @@ load mint.coroutine
             }
             return sum
         }
-        self.expectEqual(9, spawn(test()))
+        self.expectEqual(spawn(test()), 9)
     }
 
     const def testVariableCaptureAcrossSuspension(self) {
@@ -240,7 +240,7 @@ load mint.coroutine
             x = 100
             return y
         }
-        self.expectEqual(6, spawn(test()))
+        self.expectEqual(spawn(test()), 6)
     }
 
     const def testMassiveSuspensionDepth(self) {
@@ -250,7 +250,7 @@ load mint.coroutine
             }
             return 1 + await chain(n - 1)
         }
-        self.expectEqual(50, spawn(chain(50)))
+        self.expectEqual(spawn(chain(50)), 50)
     }
 
     const def testAwaitInSwitch(self) {
@@ -265,8 +265,8 @@ load mint.coroutine
             }
             return r
         }
-        self.expectEqual(2, spawn(test(1)))
-        self.expectEqual(4, spawn(test(2)))
+        self.expectEqual(spawn(test(1)), 2)
+        self.expectEqual(spawn(test(2)), 4)
     }
 
     const def testReturnSwitchExpression(self) {
@@ -282,9 +282,9 @@ load mint.coroutine
             }
         }
 
-        self.expectEqual(2, spawn(test(1)))
-        self.expectEqual(4, spawn(test(2)))
-        self.expectEqual(0, spawn(test(3)))
+        self.expectEqual(spawn(test(1)), 2)
+        self.expectEqual(spawn(test(2)), 4)
+        self.expectEqual(spawn(test(3)), 0)
     }
 
     const def testAwaitInWhileLoopWithMutation(self) {
@@ -298,7 +298,7 @@ load mint.coroutine
             }
             return i
         }
-        self.expectEqual(3, spawn(test()))
+        self.expectEqual(spawn(test()), 3)
     }
 
     const def testTheMostImportantHiddenBug(self) {
@@ -309,7 +309,7 @@ load mint.coroutine
             })()
             return x + y
         }
-        self.expectEqual(3, spawn(test()))
+        self.expectEqual(spawn(test()), 3)
     }
 
     const def testStress(self) {
@@ -326,7 +326,7 @@ load mint.coroutine
             }
             return sum
         }
-        self.expectEqual(2 + 2 + 4 + 4, spawn(test()))
+        self.expectEqual(spawn(test()), 2 + 2 + 4 + 4)
     }
 
     const def testInnerCatchPreventsPropagation(self) {
@@ -340,7 +340,7 @@ load mint.coroutine
         async def [...] parent() {
             return await child()
         }
-        self.expectEqual("handled", spawn(parent()))
+        self.expectEqual(spawn(parent()), "handled")
     }
 
     const def testRethrowFromInnerCoroutine(self) {
@@ -359,7 +359,7 @@ load mint.coroutine
                 return error
             }
         }
-        self.expectEqual("rethrow", spawn(parent()))
+        self.expectEqual(spawn(parent()), "rethrow")
     }
 
     const def testAwaitInsideCatchBlock(self) {
@@ -376,7 +376,7 @@ load mint.coroutine
                 return await recover()
             }
         }
-        self.expectEqual("recovered", spawn(test()))
+        self.expectEqual(spawn(test()), "recovered")
     }
 
     const def testExceptionAfterAwaitResumesCorrectly(self) {
@@ -394,7 +394,7 @@ load mint.coroutine
                 return error
             }
         }
-        self.expectEqual("after", spawn(wrapper()))
+        self.expectEqual(spawn(wrapper()), "after")
     }
 
     const def testMultipleAwaitsWithFailureInSecond(self) {
@@ -412,7 +412,7 @@ load mint.coroutine
                 return "caught"
             }
         }
-        self.expectEqual("caught", spawn(wrapper()))
+        self.expectEqual(spawn(wrapper()), "caught")
     }
 
     const def testNestedTryCatchAcrossAwaitBoundaries(self) {
@@ -430,7 +430,7 @@ load mint.coroutine
                 return e2
             }
         }
-        self.expectEqual("inner", spawn(test()))
+        self.expectEqual(spawn(test()), "inner")
     }
 
     const def testExceptionValueIntegrity(self) {
@@ -444,7 +444,7 @@ load mint.coroutine
                 return error
             }
         }
-        self.expectEqual("boom", spawn(test()))
+        self.expectEqual(spawn(test()), "boom")
     }
 
     const def testDeepRecursiveAwaitPropagation(self) {
@@ -461,7 +461,7 @@ load mint.coroutine
                 return error
             }
         }
-        self.expectEqual("end", spawn(test()))
+        self.expectEqual(spawn(test()), "end")
     }
 
     const def testVariablePreservationAfterException(self) {
@@ -476,7 +476,7 @@ load mint.coroutine
                 return x
             }
         }
-        self.expectEqual(5, spawn(test()))
+        self.expectEqual(spawn(test()), 5)
     }
 
     const def testAwaitInsideFinallyBlock(self) {
@@ -489,7 +489,7 @@ load mint.coroutine
             }
             return "cleanup"
         }
-        self.expectEqual("cleanup", spawn(test()))
+        self.expectEqual(spawn(test()), "cleanup")
     }
 
     const def testExceptionInsideFinally(self) {
@@ -509,7 +509,7 @@ load mint.coroutine
                 return error
             }
         }
-        self.expectEqual("second", spawn(wrapper()))
+        self.expectEqual(spawn(wrapper()), "second")
     }
 
     const def testCallerThrowsAfterAwaitedException(self) {
@@ -530,7 +530,7 @@ load mint.coroutine
                 return error
             }
         }
-        self.expectEqual("caller_error", spawn(wrapper()))
+        self.expectEqual(spawn(wrapper()), "caller_error")
     }
 
     const def testConcurrentAwaitIsolation(self) {
@@ -547,7 +547,7 @@ load mint.coroutine
                 return await ok()
             }
         }
-        self.expectEqual(1, spawn(test()))
+        self.expectEqual(spawn(test()), 1)
     }
 
     const def testUltimateExceptionDiagnostic(self) {
@@ -562,7 +562,7 @@ load mint.coroutine
                 return x + 1
             }
         }
-        self.expectEqual(11, spawn(test()))
+        self.expectEqual(spawn(test()), 11)
     }
 
     const def testAsyncGeneratorNextAfterCompletion(self) {
@@ -573,11 +573,11 @@ load mint.coroutine
 
         let it = spawn(f())
 
-        self.expectEqual(1, spawn(it.next()))
-        self.expectEqual(true, it.isEmpty())
+        self.expectEqual(spawn(it.next()), 1)
+        self.expectEqual(it.isEmpty(), true)
 
         let result = spawn(it.next())
-        self.expectEqual(none, result)
+        self.expectEqual(result, none)
     }
 
     const def testAsyncGeneratorYieldAfterAwait(self) {
@@ -594,9 +594,9 @@ load mint.coroutine
 
         let it = spawn(g())
 
-        self.expectEqual(11, spawn(it.next()))
-        self.expectEqual(12, spawn(it.next()))
-        self.expectEqual(true, it.isEmpty())
+        self.expectEqual(spawn(it.next()), 11)
+        self.expectEqual(spawn(it.next()), 12)
+        self.expectEqual(it.isEmpty(), true)
     }
 
     const def testAsyncGeneratorYieldGeneratorExpressionWithoutParentheses(self) {
@@ -607,10 +607,10 @@ load mint.coroutine
 
         let it = spawn(f())
 
-        self.expectEqual(1, spawn(it.next()))
-        self.expectEqual(2, spawn(it.next()))
-        self.expectEqual(3, spawn(it.next()))
-        self.expectEqual(true, it.isEmpty())
+        self.expectEqual(spawn(it.next()), 1)
+        self.expectEqual(spawn(it.next()), 2)
+        self.expectEqual(spawn(it.next()), 3)
+        self.expectEqual(it.isEmpty(), true)
     }
 
     const def testAsyncGeneratorAwaitInLoop(self) {
@@ -633,9 +633,9 @@ load mint.coroutine
 
         let it = spawn(g())
 
-        self.expectEqual(2, spawn(it.next()))
-        self.expectEqual(4, spawn(it.next()))
-        self.expectEqual(true, it.isEmpty())
+        self.expectEqual(spawn(it.next()), 2)
+        self.expectEqual(spawn(it.next()), 4)
+        self.expectEqual(it.isEmpty(), true)
     }
 
     const def testAsyncGeneratorException(self) {
@@ -648,13 +648,13 @@ load mint.coroutine
         let caught = false
         try {
             let it = spawn(f())
-            self.expectEqual(1, spawn(it.next()))
+            self.expectEqual(spawn(it.next()), 1)
             spawn(it.next())
         } catch error {
             caught = true
         }
 
-        self.expectEqual(true, caught)
+        self.expectEqual(caught, true)
     }
 
     const def testAsyncGeneratorDoubleIterator(self) {
@@ -667,10 +667,10 @@ load mint.coroutine
         let it1 = spawn(f())
         let it2 = it1   // aliasing same iterator
 
-        self.expectEqual(1, spawn(it1.next()))
-        self.expectEqual(2, spawn(it2.next()))
+        self.expectEqual(spawn(it1.next()), 1)
+        self.expectEqual(spawn(it2.next()), 2)
 
-        self.expectEqual(true, it1.isEmpty())
+        self.expectEqual(it1.isEmpty(), true)
     }
 
     const def testAsyncGeneratorDeepStack(self) {
@@ -687,8 +687,8 @@ load mint.coroutine
 
         let it = spawn(f(5))
 
-        self.expectEqual(5, spawn(it.next()))
-        self.expectEqual(true, it.isEmpty())
+        self.expectEqual(spawn(it.next()), 5)
+        self.expectEqual(it.isEmpty(), true)
     }
 
     const def testAsyncGeneratorReturnGeneratorExpressionWithoutParentheses(self) {
@@ -704,9 +704,9 @@ load mint.coroutine
 
         let it = spawn(f())
 
-        self.expectEqual(1, spawn(it.next()))
-        self.expectEqual(20, spawn(it.next()))
-        self.expectEqual(true, it.isEmpty())
+        self.expectEqual(spawn(it.next()), 1)
+        self.expectEqual(spawn(it.next()), 20)
+        self.expectEqual(it.isEmpty(), true)
     }
     
 
@@ -725,6 +725,6 @@ load mint.coroutine
         }
 
         let result = spawn(consumer())
-        self.expectEqual(3, result)
+        self.expectEqual(result, 3)
     }
 }

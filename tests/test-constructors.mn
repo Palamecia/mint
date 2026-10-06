@@ -1,0 +1,55 @@
+load test.case
+
+@class CtorBase {
+	const def new(self, value) {
+		self.value = value
+	}
+
+	+ final value = none
+}
+
+@class CtorDerived : CtorBase {}
+
+@class CtorExplicit : CtorBase {
+	const def new(self, value) {
+		CtorBase.new(self, value)
+	}
+}
+
+@class CtorExplicitReturn {
+	const def new(self, flag) {
+		self.flag = flag
+		return self
+	}
+
+	+ final flag = none
+}
+
+@class TestConstructors : Test.Case {
+
+	// The end of a constructor returns the instance.
+	const def testConstructorWithoutReturn(self) {
+		let instance = CtorBase(1)
+		self.expectEqual('CtorBase', typeof instance)
+		self.expectEqual(instance.value, 1)
+	}
+
+	// An inherited constructor builds an instance of the derived class.
+	const def testInheritedConstructor(self) {
+		let instance = CtorDerived(2)
+		self.expectEqual('CtorDerived', typeof instance)
+		self.expectEqual(instance.value, 2)
+	}
+
+	const def testExplicitParentConstructorCall(self) {
+		let instance = CtorExplicit(3)
+		self.expectEqual('CtorExplicit', typeof instance)
+		self.expectEqual(instance.value, 3)
+	}
+
+	const def testExplicitReturnSelf(self) {
+		let instance = CtorExplicitReturn(false)
+		self.expectEqual('CtorExplicitReturn', typeof instance)
+		self.expectEqual(instance.flag, false)
+	}
+}

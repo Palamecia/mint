@@ -24,4 +24,4 @@
  * @module
  */
 
-@const __version__ = '1.0'
+@const __version__: string = '1.0'

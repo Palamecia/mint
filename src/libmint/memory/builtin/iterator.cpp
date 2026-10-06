@@ -30,6 +30,8 @@
 #include <vector>
 
 #include "mint/memory/builtin/iterator.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/function_tools.h"
@@ -38,6 +40,7 @@
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/algorithm.h"
+#include "mint/program/module.h"
 #include "mint/program/program.h"
 #include "mint/program/cursor.h"
 #include "mint/system/error.h"
@@ -50,8 +53,66 @@
 
 using namespace mint;
 
+namespace {
+
+ClassDescription make_iterator_description() {
+	auto description = ClassDescription(Module::invalid_id, "iterator");
+	description.create_method(get_operator_symbol(Class::copy_operator), BuiltinTypeKind::iterator)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::iterator})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("next", {})
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::iterator})
+	    .set_required_parameter_count(1);
+	description.create_method("value", {})
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::iterator})
+	    .set_required_parameter_count(1);
+	description.create_method("isEmpty", PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::iterator})
+	    .set_required_parameter_count(1);
+	description.create_method("each", PrimitiveTypeKind::none)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::iterator})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2);
+	return description;
+}
+
+ClassDescription make_async_iterator_description() {
+	auto description = ClassDescription(Module::invalid_id, "async_iterator");
+	description.create_method(get_operator_symbol(Class::copy_operator), BuiltinTypeKind::async_iterator)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::async_iterator})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("next", {})
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::async_iterator})
+	    .set_required_parameter_count(1);
+	description.create_method("value", {})
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::async_iterator})
+	    .set_required_parameter_count(1);
+	description.create_method("isEmpty", PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::async_iterator})
+	    .set_required_parameter_count(1);
+	description.create_method("each", PrimitiveTypeKind::none)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::async_iterator})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2);
+	return description;
+}
+
+}
+
+ClassDescription& mint::IteratorClass::description() {
+	static auto g_description = make_iterator_description();
+	return g_description;
+}
+
 IteratorClass& IteratorClass::instance(Program& program) {
 	return program.global_data().builtin<IteratorClass>(Class::Metatype::iterator);
+}
+
+ClassDescription& mint::AsyncIteratorClass::description() {
+	static auto g_description = make_async_iterator_description();
+	return g_description;
 }
 
 AsyncIteratorClass& AsyncIteratorClass::instance(Program& program) {
@@ -124,7 +185,7 @@ void Iterator::mark() {
 }
 
 IteratorClass::IteratorClass(Program& program) :
-    Class(program.global_data(), "iterator", Class::Metatype::iterator) {
+    Class(program.global_data(), description(), Class::Metatype::iterator) {
 
 	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
@@ -190,7 +251,7 @@ IteratorClass::IteratorClass(Program& program) :
 }
 
 AsyncIteratorClass::AsyncIteratorClass(Program& program) :
-    Class(program.global_data(), "async_iterator", Class::Metatype::async_iterator) {
+    Class(program.global_data(), description(), Class::Metatype::async_iterator) {
 
 	create_builtin_member(copy_operator, program.create_builtin_async_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);

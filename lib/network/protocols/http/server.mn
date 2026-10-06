@@ -75,7 +75,6 @@ package Network {
 			 */
 			const def new(self, routes = {}) {
 				self.routes = routes
-				return self
 			}
 
 			/**
@@ -234,8 +233,7 @@ package Network {
 			 * {System.Directory}.
 			 */
 			const def new(self, rootDirectory = System.Directory.current()) {
-				self.rootDirectory = System.Directory(rootDirectory)
-				return self
+				self.rootDirectory = rootDirectory.toDirectory()
 			}
 
 			/**
@@ -398,7 +396,7 @@ package Network {
 			 * Sets the root directory used by the resolver to the given `rootDirectory`.
 			 */
 			const def setRootDirectory(self, rootDirectory) {
-				self.rootDirectory = System.Directory(rootDirectory)
+				self.rootDirectory = rootDirectory.toDirectory()
 			}
 			
 			/// Internal root directory.
@@ -410,8 +408,7 @@ package Network {
 		 */
 		@class AsyncStaticResolver : Network.Http.Resolver {
 			const def new(self, rootDirectory = System.Directory.current()) {
-				self.rootDirectory = System.Directory(rootDirectory)
-				return self
+				self.rootDirectory = rootDirectory.toDirectory()
 			}
 
 			/**
@@ -574,7 +571,7 @@ package Network {
 			 * Sets the root directory used by the resolver to the given `rootDirectory`.
 			 */
 			const def setRootDirectory(self, rootDirectory) {
-				self.rootDirectory = System.Directory(rootDirectory)
+				self.rootDirectory = rootDirectory.toDirectory()
 			}
 
 			/// Internal root directory.
@@ -617,7 +614,6 @@ package Network {
 				self.channel.onClose = def [self] (_, channel) {
 					self.onClose(self)
 				}
-				return self
 			}
 
 			/**
@@ -641,7 +637,7 @@ package Network {
 			 * on success; otherwise returns `false`. This method calls the {Network.EventChannel.listen} method of the
 			 * underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def listen(self, endpoint) {
 				try {
@@ -660,7 +656,7 @@ package Network {
 			 * {Network.EventChannel.close} method of the underlying channel. If the socket was successfully closed,
 			 * {@see onClose} is called; otherwise the socket will be closed later.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def close(self) {
 				try {
@@ -734,7 +730,7 @@ package Network {
 			 * > to perform I/O operations until the current operation's
 			 * > acknowledgment by the peer.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def setNonBlocking(self, enabled) {
 				try {
@@ -768,7 +764,7 @@ package Network {
 			 * method calls the {Network.EventChannel.notifyReadable}
 			 * method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyReadable(self) {
 				try {
@@ -787,7 +783,7 @@ package Network {
 			 * method calls the {Network.EventChannel.notifyWritable}
 			 * method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyWritable(self) {
 				try {
@@ -807,7 +803,7 @@ package Network {
 			 * {Network.EventChannel.notifyConnection} method of the
 			 * underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyConnection(self) {
 				try {
@@ -827,7 +823,7 @@ package Network {
 			 * of the underlying channel.
 			 * 
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyClosed(self) {
 				try {
@@ -924,7 +920,6 @@ package Network {
 					self.onClose(self)
 				}
 				self.configuration = configuration
-				return self
 			}
 
 			/**
@@ -966,7 +961,7 @@ package Network {
 			 * If the socket was successfully closed, {@see onClose} is called;
 			 * otherwise the socket will be closed later.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def close(self) {
 				try {
@@ -1040,7 +1035,7 @@ package Network {
 			 * > to perform I/O operations until the current operation's
 			 * > acknowledgment by the peer.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def setNonBlocking(self, enabled) {
 				try {
@@ -1074,7 +1069,7 @@ package Network {
 			 * method calls the {Network.EventChannel.notifyReadable}
 			 * method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyReadable(self) {
 				try {
@@ -1093,7 +1088,7 @@ package Network {
 			 * method calls the {Network.EventChannel.notifyWritable}
 			 * method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyWritable(self) {
 				try {
@@ -1113,7 +1108,7 @@ package Network {
 			 * of the underlying channel.
 			 * 
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyClosed(self) {
 				try {
@@ -1237,7 +1232,6 @@ package Network {
 				self.configuration = Network.Http.ServerConfiguration()
 				self.configuration.resolver = Network.Http.StaticResolver(System.Directory.current())
 				self.channel = Network.AsyncChannel(socket, Network.AsyncServerSerializer)
-				return self
 			}
 
 			/**
@@ -1245,7 +1239,7 @@ package Network {
 			 * on success; otherwise returns `false`. This method calls the {Network.AsyncChannel.listen} method of the
 			 * underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def listen(self, endpoint) {
 				try {
@@ -1287,7 +1281,7 @@ package Network {
 			 *
 			 * This method calls the {Network.AsyncChannel.close} method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def close(self) {
 				try {
@@ -1369,7 +1363,6 @@ package Network {
 			const def new(self, socket, configuration) {
 				self.channel = Network.AsyncChannel(socket, Network.Http.AsyncSerializer)
 				self.configuration = configuration
-				return self
 			}
 
 			/**
@@ -1404,7 +1397,7 @@ package Network {
 			 *
 			 * This method calls the {Network.AsyncChannel.close} method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def close(self) {
 				try {

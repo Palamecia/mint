@@ -22,7 +22,7 @@
  */
 
 #include "mint/program/node.h"
-#include "mint/program/class_register.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/reference.h"
 
@@ -40,5 +40,5 @@ Node::Node(const Symbol* symbol) :
 Node::Node(const Reference* constant) :
     constant(constant) {}
 
-Node::Node(ClassDescription* class_description) :
+Node::Node(const ClassDescription* class_description) :
     class_description(class_description) {}

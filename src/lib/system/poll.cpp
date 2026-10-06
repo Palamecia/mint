@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "errno.h"
 #include "mint/program/cursor.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/builtin/iterator.h"
@@ -35,6 +36,7 @@
 #include "mint/system/errno.h"
 #include <algorithm>
 #include <array>
+#include <cerrno>
 #include <cstddef>
 #include <ranges>
 #include <span>
@@ -62,19 +64,20 @@ namespace {
 
 mint::Reference mint_poll_new(mint::Cursor& cursor) {
 #ifdef MINT_OS_WINDOWS
-	return mint::create_c_object(cursor.program(), new std::vector<mint::poll_event_t*>());
+	return mint_system::make_success(cursor,
+	    mint::create_c_object(cursor.program(), new std::vector<mint::poll_event_t*>()));
 #elifdef MINT_OS_LINUX
 	if (auto fd = ::epoll_create1(EPOLL_CLOEXEC); fd != -1) {
-		return mint::create_handle(cursor.program(), fd);
+		return mint_system::make_success(cursor, mint::create_handle(cursor.program(), fd));
 	}
 #elifdef MINT_OS_UNIX
 	if (auto fd = ::kqueue(); fd != -1) {
-		return mint::create_handle(cursor.program(), fd);
+		return mint_system::make_success(cursor, mint::create_handle(cursor.program(), fd));
 	}
 #else
 #error "Poll is not implemented for this platform"
 #endif
-	return {};
+	return mint_system::make_failure(cursor, errno);
 }
 
 mint::Reference mint_poll_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {

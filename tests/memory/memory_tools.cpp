@@ -18,7 +18,7 @@
 
 TEST(memory_tools, get_stack_base) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 	mint::Cursor& cursor = process->cursor();
 
@@ -33,7 +33,7 @@ TEST(memory_tools, get_stack_base) {
 
 TEST(memory_tools, type_name) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	EXPECT_EQ("none", mint::type_name(mint::create_none()));
@@ -50,7 +50,7 @@ TEST(memory_tools, type_name) {
 
 TEST(memory_tools, is_class) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	const auto ref = mint::make_reference<mint::String>(mint::create_flags, scheduler.program());
@@ -62,7 +62,7 @@ TEST(memory_tools, is_class) {
 
 TEST(memory_tools, is_object) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	const auto ref = mint::make_reference<mint::String>(mint::create_flags, scheduler.program());
@@ -74,7 +74,7 @@ TEST(memory_tools, is_object) {
 
 TEST(memory_tools, create_printer_from_fd) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 	mint::Cursor& cursor = process->cursor();
 
@@ -85,7 +85,7 @@ TEST(memory_tools, create_printer_from_fd) {
 
 TEST(memory_tools, create_printer_from_path) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 	mint::Cursor& cursor = process->cursor();
 
@@ -96,7 +96,7 @@ TEST(memory_tools, create_printer_from_path) {
 
 TEST(memory_tools, create_printer_from_object) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 	mint::Cursor& cursor = process->cursor();
 	mint::Class& test_class = mint::create_class(scheduler.program(), "__test_class__", {});
@@ -212,7 +212,7 @@ TEST(memory_tools, iterator_add) {
 
 TEST(memory_tools, iterator_next) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	auto process = scheduler.enable_testing();
 
 	const auto it = mint::create_iterator_from(process->cursor(), mint::create_number(0), mint::create_number(1));

@@ -27,47 +27,48 @@
 
 load mint.lang
 load mint.type
+load exception.exception
 
 /**
  * This class provides a context to call a function or a method indirectly.
  */
 @class Callback {
 	/**
-	 * Creates a new callback on the `func` function.
+	 * Creates a new callback from the given `func` value.
 	 * 
-	 * The `func` parameter can also be:
-	 * * an instance of {Callback}, in this case the object is returned as the
-	 *   new instance.
-	 * * an object providing a `toCallback` method, in this case the result of
-	 *   this method call is used as the new instance.
-	 * * an object providing a `toFunction` method, in this case the result of
-	 *   this method call is used to retrieve the function.
+	 * The `func` parameter can be:
+	 * * a function, which is stored as the callback function.
+	 * * an object providing a `toFunction` method, in which case the result of this method call is stored as the
+	 *   callback function.
+	 * * an invocable object, i.e. an object providing a `()` method, which is stored as the callback target.
 	 * 
-	 * In other cases, `none` is returned.
+	 * The conversion method is checked before the invocability of the object itself.
+	 * 
+	 * Raises {Exception.TypeError} on error.
 	 */
 	const def new(self, %func) {
 		switch typeof func {
-		case 'Callback':
-			return func
 		case 'function':
 			self.function = func
 			return self
 		default:
-			if defined func.toCallback {
-				return func.toCallback()
-			}
 			if defined func.toFunction {
 				self.function = func.toFunction()
 				return self
 			}
+			if func.hasMethod('()') {
+				self.function = func
+				return self
+			}
 		}
+		raise Exception.TypeError("Expected a callable value", func)
 	}
 
 	/**
-	 * Creates a new callback on the `member` member of the `object` object. The
-	 * member can either be a member function of `object` or a member name.
+	 * Creates a new callback on the `member` member of the `object` object. The member can either be a member function
+	 * of `object` or a member name.
 	 * 
-	 * If `object` has no member `member`, `none` is returned.
+	 * Raises {Exception.InvalidOperation} on error.
 	 */
 	const def new(self, object, %member) {
 		self.memberInfo = Callback.g_lib.call('mint_get_member_info', object, member)
@@ -80,6 +81,7 @@ load mint.type
 			self.function = member
 			return self
 		}
+		raise Exception.InvalidOperation("Object has no member '%s'" % member, object)
 	}
 
 	/**
@@ -104,10 +106,8 @@ load mint.type
 	 * the same method on the same object.
 	 */
 	const def ==(const self, const other) {
-		if let callback = Callback(other) {
-			return self.object is callback.object and self.function == callback.function
-		}
-		return false
+		const callback = other.toCallback()
+		return self.object is callback.object and self.function == callback.function
 	}
 
 	/**
@@ -118,10 +118,8 @@ load mint.type
 	 * the same method on the same object.
 	 */
 	const def !=(const self, const other) {
-		if let callback = Callback(other) {
-			return not (self.object is callback.object) or self.function != callback.function
-		}
-		return true
+		const callback = other.toCallback()
+		return not (self.object is callback.object) or self.function != callback.function
 	}
 
 	/**
@@ -142,7 +140,7 @@ load mint.type
 	/**
 	 * Returns the callback's function or method name or a placeholder.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if defined self.memberInfo {
 			return Callback.g_lib.call('mint_function_name', self.memberInfo)
 		}
@@ -150,7 +148,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Internal member informations.
 	- final memberInfo = none
@@ -163,43 +161,60 @@ load mint.type
 }
 
 /**
+ * Converts `self` to {Callback}. If `value` is already a {Callback}, the object is returned; otherwise, if it provides
+ * a `toCallback` method, the result of the method call is returned; otherwise, a new object is created.
+ */
+@const def toCallback(self) -> Callback {
+	if typeof self === 'Callback' {
+		return self
+	}
+	if defined self.toCallback {
+		return self.toCallback() as Callback
+	}
+	return Callback(self)
+}
+
+/**
  * This class provides a callback wrapper for async methods and functions.
  * It behaves like {Callback} but awaits the wrapped async callable when it is
  * invoked.
  */
 @class AsyncCallback {
 	/**
-	 * Creates a new async callback for the given function.
+	 * Creates a new async callback from the given `func` value.
 	 * 
-	 * The `func` parameter can also be:
-	 * * an instance of {AsyncCallback}, in this case the object is returned as the new instance.
-	 * * an object providing a `toAsyncCallback` method, in this case the result of this method call is used as the new
-	 *   instance.
-	 * * an object providing a `toFunction` method, in this case the result of this method call is used to retrieve the
-	 *   function.
-	 *  
-	 * In other cases, `none` is returned.
+	 * The `func` parameter can be:
+	 * * a function, which is stored as the callback function.
+	 * * an object providing a `toFunction` method, in which case the result of this method call is stored as the
+	 *   callback function.
+	 * * an invocable object, i.e. an object providing a `()` method, which is stored as the callback target.
+	 * 
+	 * The conversion method is checked before the invocability of the object itself.
+	 * 
+	 * Raises {Exception.TypeError} on error.
 	 */
 	const def new(self, %func) {
 		switch typeof func {
-		case 'AsyncCallback':
-			return func
 		case 'function':
 			self.function = func
 			return self
 		default:
-			if defined func.toAsyncCallback {
-				return func.toAsyncCallback()
-			}
 			if defined func.toFunction {
 				self.function = func.toFunction()
 				return self
 			}
+			if func.hasMethod('()') {
+				self.function = func
+				return self
+			}
 		}
+		raise Exception.TypeError("Expected a callable value", func)
 	}
 
 	/**
 	 * Creates a new async callback bound to the given object member.
+	 * 
+	 * Raises {Exception.InvalidOperation} on error.
 	 */
 	const def new(self, object, %member) {
 		self.memberInfo = AsyncCallback.g_lib.call('mint_get_member_info', object, member)
@@ -212,6 +227,7 @@ load mint.type
 			self.function = member
 			return self
 		}
+		raise Exception.InvalidOperation("Object has no member '%s'" % member, object)
 	}
 
 	/**
@@ -231,20 +247,16 @@ load mint.type
 	 * Returns `true` if `other` is equal to this callback.
 	 */
 	const def ==(const self, const other) {
-		if let callback = AsyncCallback(other) {
-			return self.object is callback.object and self.function == callback.function
-		}
-		return false
+		const callback = other.toAsyncCallback()
+		return self.object is callback.object and self.function == callback.function
 	}
 
 	/**
 	 * Returns `true` if `other` is not equal to this callback.
 	 */
 	const def !=(const self, const other) {
-		if let callback = AsyncCallback(other) {
-			return not (self.object is callback.object) or self.function != callback.function
-		}
-		return true
+		const callback = other.toAsyncCallback()
+		return not (self.object is callback.object) or self.function != callback.function
 	}
 
 	/**
@@ -265,7 +277,7 @@ load mint.type
 	/**
 	 * Returns the callback's function or method name or a placeholder.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if defined self.memberInfo {
 			return AsyncCallback.g_lib.call('mint_function_name', self.memberInfo)
 		}
@@ -273,7 +285,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Internal member informations.
 	- final memberInfo = none
@@ -286,19 +298,27 @@ load mint.type
 }
 
 /**
+ * Converts `self` to {AsyncCallback}. If `value` is already an {AsyncCallback}, the object is returned; otherwise, if
+ * it provides a `toAsyncCallback` method, the result of the method call is returned; otherwise, a new object is
+ * created.
+ */
+@const def toAsyncCallback(self) -> AsyncCallback {
+	if typeof self === 'AsyncCallback' {
+		return self
+	}
+	if defined self.toAsyncCallback {
+		return self.toAsyncCallback() as AsyncCallback
+	}
+	return AsyncCallback(self)
+}
+
+/**
  * This class provides an event-driven callback mechanism. Multiple
  * callbacks can be connected to an instance using the {@see connect}
  * method. Each connected callback will then be called on a call to the
  * {@see ()} operator.
  */
 @class Signal {
-	/**
-	 * Creates a new signal.
-	 */
-	const def new(self) {
-		return self
-	}
-
 	/**
 	 * Connects the signal to the given `func` function. The `func` function can
 	 * either be a `function` or an instance of {Callback}.
@@ -429,9 +449,9 @@ load mint.type
  * extra arguments.
  */
 @def reduce(func, ...) {
-    value = va_args.next()
-    for let element in va_args {
-        value = func(value, element)
-    }
-    return value
+	value = va_args.next()
+	for let element in va_args {
+		value = func(value, element)
+	}
+	return value
 }

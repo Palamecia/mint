@@ -10,7 +10,7 @@
 
 TEST(algorithm, visit_calls_visitor_with_referenced_data) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	const auto ref = mint::create_string(scheduler.program(), "hello");

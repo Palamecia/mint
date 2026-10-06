@@ -28,6 +28,7 @@
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
 #include <memory>
+#include <string>
 
 namespace mint {
 
@@ -38,6 +39,8 @@ class Program;
 class MINT_EXPORT LibraryClass : public Class {
 public:
 	explicit LibraryClass(Program& program);
+
+	static ClassDescription& description();
 	static LibraryClass& instance(Program& program);
 };
 
@@ -45,6 +48,7 @@ class MINT_EXPORT Library : public Object {
 	friend class GarbageCollector;
 public:
 	explicit Library(Program& program);
+	Library(Program& program, const std::string& plugin);
 	Library(Library&& other) noexcept;
 	Library(const Library& other);
 	~Library() override;

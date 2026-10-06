@@ -8,12 +8,12 @@ load system.poller
         let poller = System.Poller()
         let pipe = System.Pipe()
 
-        self.expectEqual(true, poller.watch(pipe, def {}))
+        self.expectEqual(poller.watch(pipe, def {}), true)
 
         pipe.write("hello")
-        self.expectEqual(true, poller.poll(0))
+        self.expectEqual(poller.poll(0), true)
 
         let data = pipe.read()
-        self.expectEqual(false, poller.poll(0))
+        self.expectEqual(poller.poll(0), false)
     }
 }

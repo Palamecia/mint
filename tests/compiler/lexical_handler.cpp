@@ -112,6 +112,14 @@ private:
 
 }
 
+TEST(lexical_handler, get_line_reads_unconsumed_source) {
+	auto stream = LexicalHandlerStream("complete source line\nsecond line");
+
+	EXPECT_EQ('c', stream.get_char());
+	EXPECT_EQ("complete source line", stream.get_line(1));
+	EXPECT_EQ("second line", stream.get_line(2));
+}
+
 TEST(lexical_handler, module_path_symbols) {
 
 	auto handler = SymbolCaptureHandler();

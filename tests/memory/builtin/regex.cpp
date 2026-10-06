@@ -8,7 +8,7 @@
 
 TEST(regex, default_regex_has_regex_format_and_empty_pattern) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	const auto regex = mint::make_reference<mint::Regex>(mint::Reference::default_flags, scheduler.program());

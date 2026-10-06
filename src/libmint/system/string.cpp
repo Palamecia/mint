@@ -70,23 +70,25 @@ void mint::force_decimal_point(std::string& buffer) {
 
 void mint::crop_zeros(std::string& buffer) {
 
-	std::string::iterator stop = buffer.end();
 	std::string::iterator start = buffer.begin();
 
 	while ((start != buffer.end()) && (*start != '.')) {
 		++start;
 	}
-	if (start++ != buffer.end()) {
-		while ((start != buffer.end()) && (*start != 'e') && (*start != 'E')) {
-			++start;
-		}
-		stop = start--;
-		while (*start == '0') {
-			--start;
-		}
-		if (*start == '.') {
-			--start;
-		}
-		buffer.erase(start + 1, stop);
+	if (start == buffer.end()) {
+		// No decimal point: there is nothing to crop (and the end iterator must not be incremented).
+		return;
 	}
+	++start;
+	while ((start != buffer.end()) && (*start != 'e') && (*start != 'E')) {
+		++start;
+	}
+	const std::string::iterator stop = start--;
+	while (*start == '0') {
+		--start;
+	}
+	if (*start == '.') {
+		--start;
+	}
+	buffer.erase(start + 1, stop);
 }

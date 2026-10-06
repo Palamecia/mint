@@ -13,12 +13,12 @@ load system.filesystem
         System.File(path).open('w')
 
         let watcher = System.FileWatcher(path)
-        self.expectEqual(true, poller.watch(watcher, def {}))
+        self.expectEqual(poller.watch(watcher, def {}), true)
 
         watcher.toFile().open('w').write("hello")
-        self.expectEqual(true, poller.poll(0))
+        self.expectEqual(poller.poll(0), true)
 
         let data = watcher.toFile().open('r').read()
-        self.expectEqual(false, poller.poll(0))
+        self.expectEqual(poller.poll(0), false)
     }
 }

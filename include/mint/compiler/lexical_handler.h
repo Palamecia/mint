@@ -39,6 +39,7 @@ namespace mint {
 class MINT_EXPORT AbstractLexicalHandlerStream : public DataStream {
 public:
 	[[nodiscard]] std::filesystem::path path() const final;
+	[[nodiscard]] std::string get_line(std::size_t line_number) final;
 
 	[[nodiscard]] std::string::size_type find(const std::string& substr,
 	    std::string::size_type offset = 0) const noexcept;
@@ -51,7 +52,6 @@ public:
 
 protected:
 	int read_char() final;
-	int next_buffered_char() final;
 
 	virtual int get() = 0;
 

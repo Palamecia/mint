@@ -1141,6 +1141,7 @@ bool Parser::on_token(mint::Token type, const std::string& token, std::string::s
 	case mint::Token::while_token:
 	case mint::Token::yield_token:
 	case mint::Token::is_token:
+	case mint::Token::as_token:
 	case mint::Token::typeof_token:
 	case mint::Token::membersof_token:
 	case mint::Token::defined_token:

@@ -70,7 +70,7 @@ bool mint::is_integer(const Reference& ref) {
 Boolean::Boolean(bool value) :
     value(value) {}
 
-Object::Object(Class& type) :
+Object::Object(const Class& type) :
     metadata(type) {}
 
 Object::~Object() {
@@ -105,18 +105,17 @@ void Object::construct(const Object& other, std::unordered_map<const Data*, Data
 
 		if (!metadata.is_trivially_copyable()) [[unlikely]] {
 			// TODO: try using a clone method if available before giving up
-			error("type '{}' is not copyable", metadata.full_name());
+			error("type '{}' is not copyable", metadata.get_full_name());
 		}
 
 		data = g_allocator.allocate(std::max(1uz, metadata.size()));
 
 		for (const auto& member : metadata.slots()) {
 
-			const auto& target_ref = other.data[member.get().offset];
-			Reference* member_ref = data + member.get().offset;
-			auto i = memory_map.find(&target_ref.data());
+			const auto& target_ref = other.data[member.offset];
+			Reference* member_ref = std::next(data, static_cast<std::ptrdiff_t>(member.offset));
 
-			if (i == memory_map.end()) {
+			if (const auto i = memory_map.find(&target_ref.data()); i == memory_map.end()) {
 				if ((target_ref.flags() & (Reference::const_address | Reference::const_value))
 				    != (Reference::const_address | Reference::const_value)) {
 					switch (target_ref.data().format()) {
@@ -185,7 +184,7 @@ void Object::mark() {
 	}
 	Data::mark();
 	if (data) {
-		for (auto& slot : std::span(data, metadata.size())) {
+		for (const auto& slot : std::span(data, metadata.size())) {
 			slot.data().mark();
 		}
 	}
@@ -208,16 +207,16 @@ Function::Function(const std::pair<int, Signature>& mapping) :
 mint::Function::Function(const std::pair<int, FunctionHandle&>& mapping) :
     mapping(mapping) {}
 
-void Function::Stateless::call(int signature, Class* metadata, Cursor& cursor) {
+void Function::Stateless::call(int signature, const Class* metadata, Cursor& cursor) {
 	cursor.call(handle(), signature, metadata);
 }
 
-void Function::Stateful::call(int signature, Class* metadata, Cursor& cursor) {
+void Function::Stateful::call(int signature, const Class* metadata, Cursor& cursor) {
 
 	cursor.call(handle(), signature, metadata);
 
 	for (SymbolTable& symbols = handle().async ? cursor.stack().back().data<Coroutine>().symbols() : cursor.symbols();
-	    auto& item : _capture) {
+	    const auto& item : _capture) {
 		symbols.emplace(item.first, item.second);
 	}
 }

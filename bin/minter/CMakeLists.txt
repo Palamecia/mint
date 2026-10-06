@@ -14,7 +14,7 @@ set(${PROJECT_NAME}_PLUGINS
 )
 
 set(${PROJECT_NAME}_SOURCES
-    minter.mn
+    main.mn
 )
 
 source_group("Libraries" FILES ${${PROJECT_NAME}_LIBRARIES})

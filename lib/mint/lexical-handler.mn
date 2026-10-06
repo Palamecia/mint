@@ -26,8 +26,7 @@
  * to parse a mint script and get callbacks on each token.
  */
 
-load serializer.buffered-stream
-load serializer.string-stream
+load serializer.text-stream
 
 /**
  * This class provides an interface to parse mint scripts using the {@see parse}
@@ -39,6 +38,8 @@ load serializer.string-stream
 	 * This enum describes the token types used in the {@see onToken} method.
 	 */
 	enum Token {
+		/// The token is an `as` operator.
+		As
 		/// The token is an `assert` keyword.
 		Assert
 		/// The token is an `async` keyword.
@@ -127,6 +128,8 @@ load serializer.string-stream
 		Sharp
 		/// The token is a `\` operator.
 		BackSlash
+		/// The token is a `->` operator.
+		MinusRightAngled
 		/// The token is a `,` operator.
 		Comma
 		/// The token is a `||` or `or` operator.
@@ -255,11 +258,9 @@ load serializer.string-stream
 	 * Creates a new handler.
 	 */
 	const def new(self) {
-		if self.d_ptr = LexicalHandler.g_lib.call('mint_lexical_handler_new', self) {
-			self.d_ptr.delete = def [g_lib = LexicalHandler.g_lib] (self) {
-				g_lib.call('mint_lexical_handler_delete', self)
-			}
-			return self
+		self.d_ptr = LexicalHandler.g_lib.call('mint_lexical_handler_new', self)
+		self.d_ptr.delete = def [g_lib = LexicalHandler.g_lib] (self) {
+			g_lib.call('mint_lexical_handler_delete', self)
 		}
 	}
 
@@ -269,12 +270,7 @@ load serializer.string-stream
 	 * a `getChar` method. Returns `true` on success; otherwise returns `false`.
 	 */
 	const def parse(const self, stream) {
-		if not defined stream.read {
-			stream = Serializer.StringStream(stream)
-		} elif not defined stream.getChar {
-			stream = Serializer.BufferedStream(stream)
-		}
-		return LexicalHandler.g_lib.call('mint_lexical_handler_parse', self.d_ptr, stream)
+		return LexicalHandler.g_lib.call('mint_lexical_handler_parse', self.d_ptr, Serializer.TextStream(stream))
 	}
 
 	/**
@@ -406,7 +402,7 @@ load serializer.string-stream
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null

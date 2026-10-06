@@ -26,11 +26,6 @@ TEST(lexer, token_type) {
 	/// \todo
 }
 
-TEST(lexer, format_error) {
-
-	/// \todo
-}
-
 TEST(lexer, at_end) {
 
 	/// \todo

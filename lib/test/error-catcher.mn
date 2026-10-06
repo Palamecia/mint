@@ -31,7 +31,7 @@ load exception.exception
 package Test {
 
 	/**
-	 * This class provides the context of a runtime error catched by an instance
+	 * This class provides the context of a runtime error caught by an instance
 	 * of {Test.ErrorCatcher}.
 	 */
 	@class RuntimeError : Exception.Exception {
@@ -41,24 +41,23 @@ package Test {
 		 */
 		const def new(self, message) {
 			self.message = message
-			return self
 		}
 
 		/**
 		 * Returns the runtime error message.
 		 */
-		const def toString(const self) {
+		const def toString(const self) -> string {
 			return self.message
 		}
 
-		/// Internal error mesage.
+		/// Internal error message.
 		- final message = none
 	}
 
 	/**
 	 * This class provides a context to manage runtime error conversion to
 	 * exception. All runtime errors reached with an instance of {Test.ErrorCatcher}
-	 * active will automaticaly be converted into {Test.RuntimeError} and raised.
+	 * active will automatically be converted into {Test.RuntimeError} and raised.
 	 * 
 	 * Test code can then catch the {Test.RuntimeError} to perform tests.
 	 * 
@@ -69,8 +68,8 @@ package Test {
 	 *     let catcher = Test.ErrorCatcher()
 	 *     1 % 0
 	 * } catch error {
-	 *     self.expectEquel('Test.RuntimeError', typeof error)
-	 *     self.expectEquel('modulo by zero', error.toString())
+	 *     self.expectEqual(typeof error, 'Test.RuntimeError')
+	 *     self.expectEqual(error.toString(), 'modulo by zero')
 	 * }
 	 * ```
 	 */
@@ -83,11 +82,10 @@ package Test {
 			self.d_ptr.delete = def [g_lib = Test.ErrorCatcher.g_lib](self) {
 				g_lib.call('mint_test_error_catcher_remove', self)
 			}
-			return self
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-test')
+		- @const g_lib: library = lib('libmint-test')
 
 		/// Internal context.
 		- final d_ptr = null

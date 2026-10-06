@@ -22,11 +22,9 @@
  */
 
 #include "case_table.h"
-#include "branch.h"
-#include <memory>
 
 using namespace mint;
 
-CaseTable::Label::Label(Branch& parent) :
-    condition(std::make_unique<SubBranch>(parent)),
-    offset(parent.next_node_offset()) {}
+bool mint::operator==(const CaseTable::Label& lhs, const CaseTable::Label& rhs) {
+	return lhs.tokens == rhs.tokens;
+}

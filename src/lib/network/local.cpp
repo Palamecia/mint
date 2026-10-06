@@ -571,7 +571,7 @@ public:
 
 			void complete(std::error_code error, [[maybe_unused]] std::size_t bytes_transferred) override {
 				if (error) {
-					done(mint::create_iterator_from(_cursor, mint::create_number(error.value())));
+					done(mint_network::make_failure(_cursor, error.value()));
 				}
 				else {
 #ifdef MINT_ASYNC_BACKEND_IOCP
@@ -585,7 +585,7 @@ public:
 					_handle.data<mint::LibObject<std::remove_pointer_t<mint::handle_t>>>().ptr =
 					    std::bit_cast<mint::handle_t>(_socket_fd.get());
 					mint_network::SocketManager::instance().set_socket_listening(_socket_fd, true);
-					done(mint::create_iterator_from(_cursor, mint::create_number(0),
+					done(mint_network::make_success(_cursor,
 					    mint::create_c_object<LocalSocket>(_cursor.get().program(),
 					        new NamedPipeLocalSocket(client_fd, _socket.get().get_path())),
 					    mint_network::create_socket(_cursor.get().program(), client_fd)));
@@ -1454,7 +1454,7 @@ public:
 
 			void complete(std::error_code error, [[maybe_unused]] std::size_t bytes_transferred) override {
 				if (error) {
-					done(mint::create_iterator_from(_cursor, mint::create_number(error.value())));
+					done(mint_network::make_failure(_cursor, error.value()));
 				}
 				else {
 #ifdef MINT_ASYNC_BACKEND_IOCP
@@ -1472,17 +1472,17 @@ public:
 					try {
 						mint_network::set_socket_option(_client_fd, SO_UPDATE_ACCEPT_CONTEXT, socket_fd);
 						mint_network::SocketManager::instance().accept_socket(_client_fd);
-						done(mint::create_iterator_from(_cursor, mint::create_number(0),
+						done(mint_network::make_success(_cursor,
 						    mint::create_c_object<LocalSocket>(_cursor.get().program(), new UnixLocalSocket(_client_fd)),
 						    mint_network::create_socket(_cursor.get().program(), _client_fd)));
 					}
 					catch (const std::system_error& error) {
-						done(mint::create_iterator_from(_cursor, mint::create_number(error.code().value())));
+						done(mint_network::make_failure(_cursor, error.code().value()));
 					}
 #elifdef MINT_OS_UNIX
 					const auto client_fd = static_cast<SOCKET>(bytes_transferred);
 					mint_network::SocketManager::instance().accept_socket(client_fd);
-					done(mint::create_iterator_from(_cursor, mint::create_number(0),
+					done(mint_network::make_success(_cursor,
 					    mint::create_c_object<LocalSocket>(_cursor.get().program(), new UnixLocalSocket(client_fd)),
 					    mint_network::create_socket(_cursor.get().program(), client_fd)));
 #else
@@ -1575,10 +1575,13 @@ mint::Reference mint_local_endpoint_create(mint::Cursor& cursor, const mint::Ref
 	                          .string();
 	if (path_str.size() < UNIX_PATH_MAX) {
 		std::ranges::copy(path_str, d_ptr->sun_path);
-		return mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release()));
+		return mint_network::make_success(cursor,
+		    mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release())));
 	}
+	return mint_network::make_failure(cursor, ENAMETOOLONG);
+#else
+	return mint_network::make_failure(cursor, EAFNOSUPPORT);
 #endif
-	return {};
 }
 
 mint::Reference mint_local_endpoint_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
@@ -1642,7 +1645,7 @@ mint::Reference mint_local_socket_connect_async(mint::FunctionHelper& helper, mi
 		                                  ? mint_network::to_sockaddr(endpoint)
 		                                  : std::make_tuple<sockaddr*, socklen_t>(nullptr, 0);
 
-		return mint::create_iterator_from(helper.cursor(), mint::create_number(0),
+		return mint_network::make_success(helper.cursor(),
 		    mint::create_async_operation(helper.cursor().program(),
 		        socket.release()
 		            ->connect_async(helper, std::move(self), scheduler.data<mint::LibObject<mint::AsyncRuntime>>().ptr,
@@ -1650,7 +1653,7 @@ mint::Reference mint_local_socket_connect_async(mint::FunctionHelper& helper, mi
 		            .release()));
 	}
 	catch (const std::system_error& error) {
-		return mint::create_iterator_from(helper.cursor(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(helper.cursor(), error.code().value());
 	}
 }
 
@@ -1789,12 +1792,11 @@ mint::Reference mint_local_socket_listen(mint::Cursor& cursor, const mint::Refer
 		                                           : std::make_tuple<sockaddr*, socklen_t>(nullptr, 0);
 		socket->listen(mint::to_string(name), address, address_length);
 		const auto socket_fd = socket->get_socket();
-		return mint::create_iterator_from(cursor, mint::create_number(0),
-		    mint::create_c_object(cursor.program(), socket.release()),
+		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), socket.release()),
 		    mint_network::create_socket(cursor.program(), socket_fd));
 	}
 	catch (const std::system_error& error) {
-		return mint::create_iterator_from(cursor, mint::create_number(error.code().value()), mint::create_null());
+		return mint_network::make_failure(cursor, error.code().value());
 	}
 }
 
@@ -1802,15 +1804,14 @@ mint::Reference mint_local_socket_accept(mint::Cursor& cursor, const mint::Refer
 	try {
 		auto socket = d_ptr.data<mint::LibObject<LocalSocket>>().ptr->accept(handle);
 		if (!socket) {
-			return mint::create_iterator_from(cursor, mint::create_number(0), mint::create_null());
+			return mint_network::make_success(cursor, mint::create_null());
 		}
 		const auto socket_fd = socket->get_socket();
-		return mint::create_iterator_from(cursor, mint::create_number(0),
-		    mint::create_c_object(cursor.program(), socket.release()),
+		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), socket.release()),
 		    mint_network::create_socket(cursor.program(), socket_fd));
 	}
 	catch (const std::system_error& error) {
-		return mint::create_iterator_from(cursor, mint::create_number(error.code().value()), mint::create_null());
+		return mint_network::make_failure(cursor, error.code().value());
 	}
 }
 

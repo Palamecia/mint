@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "errno.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
@@ -50,39 +51,33 @@ mint::Reference mint_directory_set_current(mint::Cursor& /*cursor*/, const mint:
 
 mint::Reference mint_directory_absolute_path(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return mint::create_iterator_from(cursor,
-		    mint::create_string(cursor.program(), std::filesystem::absolute(to_string(path)).generic_string()),
-		    mint::create_none());
+		return mint_system::make_success(cursor,
+		    mint::create_string(cursor.program(), std::filesystem::absolute(to_string(path)).generic_string()));
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return mint::create_iterator_from(cursor, mint::create_none(),
-		    mint::create_number(mint::errno_from_error_code(error.code())));
+		return mint_system::make_failure(cursor, mint::errno_from_error_code(error.code()));
 	}
 }
 
 mint::Reference mint_directory_canonical_path(mint::Cursor& cursor, const mint::Reference& path) {
 	try {
-		return mint::create_iterator_from(cursor,
-		    mint::create_string(cursor.program(), std::filesystem::canonical(to_string(path)).generic_string()),
-		    mint::create_none());
+		return mint_system::make_success(cursor,
+		    mint::create_string(cursor.program(), std::filesystem::canonical(to_string(path)).generic_string()));
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return mint::create_iterator_from(cursor, mint::create_none(),
-		    mint::create_number(mint::errno_from_error_code(error.code())));
+		return mint_system::make_failure(cursor, mint::errno_from_error_code(error.code()));
 	}
 }
 
 mint::Reference mint_directory_relative_path(mint::Cursor& cursor, const mint::Reference& root,
     const mint::Reference& path) {
 	try {
-		return mint::create_iterator_from(cursor,
+		return mint_system::make_success(cursor,
 		    mint::create_string(cursor.program(),
-		        std::filesystem::relative(to_string(path), to_string(root)).generic_string()),
-		    mint::create_none());
+		        std::filesystem::relative(to_string(path), to_string(root)).generic_string()));
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return mint::create_iterator_from(cursor, mint::create_none(),
-		    mint::create_number(mint::errno_from_error_code(error.code())));
+		return mint_system::make_failure(cursor, mint::errno_from_error_code(error.code()));
 	}
 }
 
@@ -93,11 +88,10 @@ mint::Reference mint_directory_list(mint::Cursor& cursor, const mint::Reference&
 			iterator_yield(cursor, entries.data<mint::Iterator>(),
 			    mint::create_string(cursor.program(), entry.path().filename().generic_string()));
 		}
-		return mint::create_iterator_from(cursor, std::move(entries), mint::create_none());
+		return mint_system::make_success(cursor, std::move(entries));
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor, mint::create_none(),
-		    mint::create_number(mint::errno_from_error_code(error.code())));
+		return mint_system::make_failure(cursor, mint::errno_from_error_code(error.code()));
 	}
 }
 
@@ -148,13 +142,11 @@ mint::Reference mint_directory_mkpath(mint::Cursor& /*cursor*/, const mint::Refe
 mint::Reference mint_directory_is_subpath(mint::Cursor& cursor, const mint::Reference& path,
     const mint::Reference& sub_path) {
 	try {
-		return create_iterator_from(cursor,
-		    mint::create_boolean(mint::FileSystem::is_subpath(to_string(sub_path), to_string(path))),
-		    mint::create_none());
+		return mint_system::make_success(cursor,
+		    mint::create_boolean(mint::FileSystem::is_subpath(to_string(sub_path), to_string(path))));
 	}
 	catch (const std::filesystem::filesystem_error& error) {
-		return create_iterator_from(cursor, mint::create_none(),
-		    mint::create_number(mint::errno_from_error_code(error.code())));
+		return mint_system::make_failure(cursor, mint::errno_from_error_code(error.code()));
 	}
 }
 

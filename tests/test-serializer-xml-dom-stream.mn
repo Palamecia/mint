@@ -4,8 +4,159 @@ load serializer.xml-dom-stream
 @class TestXmlDomStream : Test.Case {
 	const def testMultiDocument(self) {
 		var s = Serializer.XmlDomStream('<document><test/></document><document><test/></document>')
-		self.expectEqual('Serializer.XmlDomDocument', typeof s.read())
-		self.expectEqual('Serializer.XmlDomDocument', typeof s.read())
-		self.expectEqual('none', typeof s.read())
+		self.expectEqual(typeof s.read(), 'Serializer.XmlDomDocument')
+		self.expectEqual(typeof s.read(), 'Serializer.XmlDomDocument')
+		self.expectEqual(typeof s.read(), 'none')
+	}
+
+	const def testStructure(self) {
+		var doc = Serializer.XmlDomStream('<a x="1"><b>t</b><!--c--></a>').read()
+		var a = doc.getDocumentElement()
+		self.expectEqual(a.getTagName(), 'a')
+		self.expectEqual(a.getAttribute('x'), '1')
+		self.expectEqual(a.getChildNodes().size(), 2)
+		var b = a.getFirstChild()
+		self.expectEqual(b.getTagName(), 'b')
+		self.expectEqual(b.getTextContent(), 't')
+		self.expectEqual(typeof a.getLastChild(), 'Serializer.XmlDomComment')
+		self.expectEqual(a.getLastChild().getData(), 'c')
+		self.expectEqual(b.getParentNode() is a, true)
+		self.expectEqual(a.getParentNode() is doc, true)
+	}
+
+	const def testTextIsKeptAsIs(self) {
+		var doc = Serializer.XmlDomStream('<a>  hello <b/> world  </a>').read()
+		var a = doc.getDocumentElement()
+		self.expectEqual(a.getChildNodes().size(), 3)
+		self.expectEqual(a.getFirstChild().getData(), '  hello ')
+		self.expectEqual(a.getLastChild().getData(), ' world  ')
+	}
+
+	const def testAttributes(self) {
+		var doc = Serializer.XmlDomStream('<a x="1" y="2"/>').read()
+		var a = doc.getDocumentElement()
+		self.expectEqual(a.hasAttribute('x'), true)
+		self.expectEqual(a.getAttribute('y'), '2')
+		self.expectEqual(not a.getAttribute('missing'), true)
+		a.setAttribute('x', '3')
+		self.expectEqual(a.getAttribute('x'), '3')
+		self.expectEqual(a.toggleAttribute('z'), true)
+		self.expectEqual(a.getAttribute('z'), '')
+		a.removeAttribute('y')
+		self.expectEqual(a.hasAttribute('y'), false)
+		self.expectEqual(a.getAttributeNode('x').getOwnerElement() is a, true)
+		self.expectEqual(a.toString(), '<a x="3" z=""/>')
+	}
+
+	const def testPrologNodes(self) {
+		var doc = Serializer.XmlDomStream('<?xml version="1.0"?><!DOCTYPE html><a><![CDATA[x < y]]></a>').read()
+		self.expectEqual(doc.getChildNodes().size(), 3)
+		var pi = doc.getFirstChild()
+		self.expectEqual(typeof pi, 'Serializer.XmlDomProcessingInstruction')
+		self.expectEqual(pi.getTarget(), 'xml')
+		self.expectEqual(pi.getAttribute('version').getValue(), '1.0')
+		self.expectEqual(doc.getDoctype().getData(), 'html')
+		var cdata = doc.getDocumentElement().getFirstChild()
+		self.expectEqual(typeof cdata, 'Serializer.XmlDomCData')
+		self.expectEqual(cdata.getData(), 'x < y')
+	}
+
+	const def testNavigation(self) {
+		var doc = Serializer.XmlDomStream('<a><b/><c/><d/></a>').read()
+		var a = doc.getDocumentElement()
+		var c = a.getChildNodes()[1]
+		self.expectEqual(c.getPreviousSibling().getTagName(), 'b')
+		self.expectEqual(c.getNextSibling().getTagName(), 'd')
+		self.expectEqual(not a.getFirstChild().getPreviousSibling(), true)
+		self.expectEqual(not a.getLastChild().getNextSibling(), true)
+	}
+
+	const def testNodesAreComparedByIdentity(self) {
+		var doc = Serializer.XmlDomStream('<a><br/><br/></a>').read()
+		var a = doc.getDocumentElement()
+		var first = a.getFirstChild()
+		var second = a.getLastChild()
+		self.expectEqual(second.getPreviousSibling() is first, true)
+		self.expectEqual(first.getNextSibling() is second, true)
+		a.removeChild(second)
+		self.expectEqual(a.getChildNodes().size(), 1)
+		self.expectEqual(a.getFirstChild() is first, true)
+		self.expectEqual(not second.getParentNode(), true)
+	}
+
+	const def testSearch(self) {
+		var doc = Serializer.XmlDomStream('<a><b id="i"/><c><b/></c></a>').read()
+		var count = 0
+		for var element in doc.getElementsByTagName('b') {
+			count = count + 1
+		}
+		self.expectEqual(count, 2)
+		self.expectEqual(doc.getElementById('i').getTagName(), 'b')
+	}
+
+	const def testNormalizeAndSplitText(self) {
+		var doc = Serializer.XmlDomDocument()
+		var a = doc.createElement('a')
+		doc.appendChild(a)
+		a.appendChild(doc.createTextNode('foo'))
+		a.appendChild(doc.createTextNode('bar'))
+		a.normalize()
+		self.expectEqual(a.getChildNodes().size(), 1)
+		self.expectEqual(a.getFirstChild().getData(), 'foobar')
+		var rest = a.getFirstChild().splitText(3)
+		self.expectEqual(a.getChildNodes().size(), 2)
+		self.expectEqual(a.getFirstChild().getData(), 'foo')
+		self.expectEqual(rest.getData(), 'bar')
+	}
+
+	const def testToString(self) {
+		var source = '<?xml version="1.0"?><!DOCTYPE html><a x="1"><b>t</b><!--c--><![CDATA[d]]></a>'
+		var doc = Serializer.XmlDomStream(source).read()
+		self.expectEqual(doc.toString(), source)
+	}
+
+	const def testDumpCompact(self) {
+		var source = '<?xml version="1.0"?><!DOCTYPE html><a x="1"><b>t</b><!--c--><![CDATA[d]]></a>'
+		var doc = Serializer.XmlDomStream(source).read()
+		var str = ''
+		var out = Serializer.XmlDomStream(str)
+		out.write(doc)
+		self.expectEqual(str, source)
+	}
+
+	const def testDumpCompactKeepsText(self) {
+		var doc = Serializer.XmlDomStream('<a>  x  </a>').read()
+		var str = ''
+		var out = Serializer.XmlDomStream(str)
+		out.write(doc)
+		self.expectEqual(str, '<a>  x  </a>')
+	}
+
+	const def testDumpIndentedTrimsText(self) {
+		var doc = Serializer.XmlDomStream('<a>  x  </a>').read()
+		var str = ''
+		var out = Serializer.XmlDomStream(str)
+		out.setIndented(true)
+		out.write(doc)
+		self.expectEqual(str, '<a>\n\tx\n</a>\n')
+		self.expectEqual(doc.getDocumentElement().getFirstChild().getData(), '  x  ')
+	}
+
+	const def testDumpIndentedSkipsBlankText(self) {
+		var doc = Serializer.XmlDomDocument()
+		var a = doc.createElement('a')
+		doc.appendChild(a)
+		a.appendChild(doc.createTextNode('   '))
+
+		var compact = ''
+		var out = Serializer.XmlDomStream(compact)
+		out.write(doc)
+		self.expectEqual(compact, '<a>   </a>')
+
+		var indented = ''
+		out = Serializer.XmlDomStream(indented)
+		out.setIndented(true)
+		out.write(doc)
+		self.expectEqual(indented, '<a/>\n')
 	}
 }

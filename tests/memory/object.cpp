@@ -10,7 +10,7 @@
 
 TEST(object, number_boolean_and_package_formats) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	const auto integer = mint::create_number(7357);
@@ -31,11 +31,14 @@ TEST(object, number_boolean_and_package_formats) {
 
 TEST(object, object_constructs_slots_from_class_defaults) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 	mint::Class& type = mint::create_class(scheduler.program(), "__object_api_test__",
 	    {
-	        {mint::Symbol("member"), mint::create_number(42)},
+	        {
+	            .symbol = mint::Symbol("member"),
+	            .value = mint::create_number(42),
+	        },
 	    });
 
 	const auto ref = mint::make_reference<mint::Object>(mint::Reference::default_flags, type);

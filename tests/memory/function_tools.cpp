@@ -17,7 +17,7 @@ TEST(function_tools, return_value) {
 
 TEST(function_tools, create_number) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 	const auto ref = mint::create_number(7357);
 
@@ -27,7 +27,7 @@ TEST(function_tools, create_number) {
 
 TEST(function_tools, create_boolean) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 	const auto ref = mint::create_boolean(true);
 
@@ -37,7 +37,7 @@ TEST(function_tools, create_boolean) {
 
 TEST(function_tools, create_string) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 	const auto ref = mint::create_string(scheduler.program(), "test");
 

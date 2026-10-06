@@ -24,6 +24,7 @@
 #ifndef MDBG_DEBUGGER_H
 #define MDBG_DEBUGGER_H
 
+#include "debugger_backend.h"
 #include "mint/program/program.h"
 #include "mint/debug/debug_interface.h"
 #include "mint/scheduler/scheduler.h"
@@ -35,11 +36,9 @@
 #include <unordered_set>
 #include <vector>
 
-class DebuggerBackend;
-
 class Debugger : public mint::DebugInterface {
 public:
-	explicit Debugger(const std::vector<std::string>& args);
+	Debugger() = default;
 	Debugger(const Debugger&) = delete;
 	Debugger(Debugger&&) = delete;
 	~Debugger();
@@ -53,6 +52,7 @@ public:
 	void add_pending_breakpoint_from_module(const std::string& module, std::size_t line_number);
 	void pause_on_next_step();
 
+	bool setup(const std::vector<std::string>& args);
 	int run();
 
 protected:

@@ -31,6 +31,7 @@ load serializer.text-stream
 load serializer.string-stream
 load codec.mime-types
 load codec.iconv
+load exception.exception
 load mint.string
 load mint.regex
 load mint.hash
@@ -109,14 +110,10 @@ package Network {
 			 */
 			const def new(self) {
 				self.body = Serializer.DataStream()
-				return self
 			}
 
 			/**
 			 * Creates a new message described by `identifier`.
-			 * 
-			 * If `identifier` is an instance of {Network.Http.Message}, this
-			 * instance is returned.
 			 * 
 			 * If `identifier` is a number, it is used as a status code to create
 			 * a response message. The `complement` parameter can then provides a
@@ -126,7 +123,7 @@ package Network {
 			 * a request message.  The `complement` parameter can then provides a
 			 * target URI.
 			 * 
-			 * Otherwise, the creation fails.
+			 * Raises {Exception.TypeError} otherwise.
 			 */
 			const def new(self, identifier, complement = none) {
 				switch typeof identifier{
@@ -138,9 +135,22 @@ package Network {
 					self.setMethod(identifier, complement)
 					self.body = Serializer.DataStream()
 					return self
-				case 'Network.Http.Message':
-					return identifier
+				default:
+					raise Exception.TypeError('identifier must be a number, a string or an HTTP message', identifier)
 				}
+			}
+
+			/**
+			 * Returns an instance of {Network.Http.Message} from `data`.
+			 * 
+			 * If `data` is an instance of {Network.Http.Message}, this instance is returned; otherwise an new
+			 * instance is created from it.
+			 */
+			@const def from(data) -> Network.Http.Message {
+				if typeof data === 'Network.Http.Message' {
+					return data
+				}
+				return Network.Http.Message(data)
 			}
 
 			/**
@@ -270,7 +280,7 @@ package Network {
 			 * Returns the content of the message as a string including headers and body, with CRLF line endings
 			 * converted to LF. Non-textual body content is represented as base64.
 			 */
-			const def toString(const self) {
+			const def toString(const self) -> string {
 
 				if not defined self.method {
 					if not defined self.code {

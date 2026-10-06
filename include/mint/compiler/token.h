@@ -31,6 +31,7 @@
 namespace mint {
 
 enum class Token : std::uint8_t {
+	as_token,
 	assert_token,
 	async_token,
 	await_token,
@@ -75,6 +76,7 @@ enum class Token : std::uint8_t {
 	at_token,
 	sharp_token,
 	back_slash_token,
+	minus_right_angled_token,
 	comma_token,
 	dbl_pipe_token,
 	dbl_amp_token,
@@ -137,7 +139,7 @@ enum class Token : std::uint8_t {
 
 	// special tokens
 	module_path_token,
-	regex_token
+	regex_token,
 };
 
 MINT_EXPORT Token token_from_local_id(int id);

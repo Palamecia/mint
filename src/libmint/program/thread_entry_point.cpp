@@ -22,17 +22,15 @@
  */
 
 #include "thread_entry_point.h"
-#include "mint/program/program.h"
-#include "mint/program/module.h"
 #include "mint/program/node.h"
 
 using namespace mint;
 
-ThreadEntryPoint::ThreadEntryPoint(Program& program) :
-    Module(program) {
+ThreadEntryPoint::ThreadEntryPoint() {
 	push_node(Node::Command::exit_thread);
 }
 
-ThreadEntryPoint& ThreadEntryPoint::instance(Program& program) {
-	return program.unique_module<ThreadEntryPoint>();
+ThreadEntryPoint& ThreadEntryPoint::instance() {
+	static auto g_instance = ThreadEntryPoint();
+	return g_instance;
 }

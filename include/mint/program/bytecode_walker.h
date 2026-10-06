@@ -98,8 +98,8 @@ R walk(Cursor& cursor, Walker& walker) {
 			const auto flags = static_cast<Reference::Flags>(cursor.next().as_parameter());
 			return walker.on_declare_function(cursor, symbol, flags);
 		}
-	case Node::Command::function_overload:
-		return walker.on_function_overload(cursor);
+	case Node::Command::extend_function:
+		return walker.on_extend_function(cursor);
 	case Node::Command::alloc_iterator:
 		return walker.on_alloc_iterator(cursor);
 	case Node::Command::init_iterator:
@@ -127,11 +127,7 @@ R walk(Cursor& cursor, Walker& walker) {
 	case Node::Command::close_package:
 		return walker.on_close_package(cursor);
 	case Node::Command::declare_class:
-		{
-			auto& desc = cursor.next().as_class();
-			const auto flags = static_cast<Reference::Flags>(cursor.next().as_parameter());
-			return walker.on_declare_class(cursor, desc, flags);
-		}
+		return walker.on_declare_class(cursor, cursor.next().as_class());
 	case Node::Command::move_operator:
 		return walker.on_move_operator(cursor);
 	case Node::Command::copy_operator:
@@ -150,6 +146,8 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_pow_operator(cursor);
 	case Node::Command::is_operator:
 		return walker.on_is_operator(cursor);
+	case Node::Command::as_operator:
+		return walker.on_as_operator(cursor);
 	case Node::Command::eq_operator:
 		return walker.on_eq_operator(cursor);
 	case Node::Command::ne_operator:

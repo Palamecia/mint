@@ -79,43 +79,26 @@ std::shared_ptr<Reference::Info> Reference::info() const {
 }
 
 RootReference::RootReference() :
-    Reference(default_flags, Info::alloc<None>()) {
-	register_root();
-}
+    Reference(default_flags, Info::alloc<None>()) {}
 
 RootReference::RootReference(Flags flags) :
-    Reference(flags, Info::alloc<None>()) {
-	register_root();
-}
+    Reference(flags, Info::alloc<None>()) {}
 
 RootReference::RootReference(Flags flags, Data& data) :
-    Reference(flags, &data) {
-	register_root();
-}
+    Reference(flags, &data) {}
 
-RootReference::RootReference(const RootReference& other) :
-    Reference(other) {
-	register_root();
-}
+RootReference::RootReference(const RootReference& other) = default;
 
 RootReference::RootReference(const Reference& other) :
-    Reference(other) {
-	register_root();
-}
+    Reference(other) {}
 
 RootReference::RootReference(RootReference&& other) noexcept :
-    Reference(std::move(other)) {
-	register_root();
-}
+    Reference(std::move(other)) {}
 
 RootReference::RootReference(Reference&& other) noexcept :
-    Reference(std::move(other)) {
-	register_root();
-}
+    Reference(std::move(other)) {}
 
-RootReference::~RootReference() {
-	unregister_root();
-}
+RootReference::~RootReference() = default;
 
 RootReference& RootReference::operator=(Reference&& other) noexcept {
 	Reference::operator=(std::move(other));

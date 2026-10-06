@@ -46,14 +46,15 @@ package Network {
 	/**
 	 * This class describe the polling state of a specific channel.
 	 */
-	@class PollDescriptor {
+	@final class PollDescriptor {
 		/**
 		 * Creates a new context for the channel given by `channel`. The  `channel` object must provide a `getHandle`
 		 * method returning the socket's handle as an instance of `mint::handle_t`.
+		 * 
+		 * Returns `none` if the channel has no active handle.
 		 */
-		const def new(self, channel) {
-			let handle = channel.getHandle()
-			if defined handle {
+		const def new(self, channel) -> Network.PollDescriptor? {
+			if let handle = channel.getHandle() {
 				self.handle = self.g_lib.call('mint_pollfd_new', handle)
 				self.handle.delete = def [g_lib = Network.PollDescriptor.g_lib] (self) {
 					g_lib.call('mint_pollfd_delete', self)
@@ -104,7 +105,7 @@ package Network {
 		 * 
 		 * After a call to this method, the value returned by {@see getEvents} is updated.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def poll(self, timeout = 500) {
 			let (errno, status) = Network.PollDescriptor.g_lib.call('mint_poll', [self.getHandle()], timeout)
@@ -115,7 +116,7 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal channel handle.
 		- final handle = null
@@ -189,7 +190,7 @@ package Network {
 		 * 
 		 * Returns `true` if an event was activated; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def poll(self, timeout = 500) {
 
@@ -198,11 +199,8 @@ package Network {
 
 			for let (channel, fd) in self.channels {
 				if not defined fd {
-					if fd = Network.PollDescriptor(channel) {
-						self.channels[channel] = fd
-					} else {
-						continue
-					}
+					fd = Network.PollDescriptor(channel)
+					self.channels[channel] = fd
 				}
 				switch typeof channel {
 				case 'Network.PollDescriptor':
@@ -263,7 +261,7 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal channels context.
 		- final channels = {}

@@ -14,13 +14,13 @@ load network.serializers.datagram
         let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
 
         let socket = Network.TcpSocket()
-        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        self.expectEqual(socket.open(endpoint.getIpVersion()), true)
         socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
         let server = Network.Channel(socket, Network.ServerSerializer)
-        self.expectEqual(true, server.listen(endpoint))
+        self.expectEqual(server.listen(endpoint), true)
 
         let client = Network.Channel(Network.TcpSocket())
-        self.expectEqual(true, client.connect(endpoint))
+        self.expectEqual(client.connect(endpoint), true)
 
         let remoteClient = Network.Channel(server.read())
         server.close()
@@ -31,7 +31,7 @@ load network.serializers.datagram
         let result = client.read()
         client.close()
 
-        self.expectEqual('ok', result)
+        self.expectEqual(result, 'ok')
     }
 
 	const def testTcpMessageEvent(self) {
@@ -41,7 +41,7 @@ load network.serializers.datagram
         let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
 
         let socket = Network.TcpSocket()
-        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        self.expectEqual(socket.open(endpoint.getIpVersion()), true)
         socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
         let server = Network.EventChannel(socket, Network.ServerSerializer)
         server.onMessage = def [result, poller] (self, channel) {
@@ -56,8 +56,8 @@ load network.serializers.datagram
             poller.unwatch(channel)
         }
 
-        self.expectEqual(true, poller.watch(server))
-        self.expectEqual(true, server.listen(endpoint))
+        self.expectEqual(poller.watch(server), true)
+        self.expectEqual(server.listen(endpoint), true)
 
         let client = Network.EventChannel(Network.TcpSocket())
         client.onOpen = def (self, channel) {
@@ -67,12 +67,12 @@ load network.serializers.datagram
             poller.unwatch(channel)
         }
 
-        self.expectEqual(true, poller.watch(client))
-        self.expectEqual(true, client.connect(endpoint))
+        self.expectEqual(poller.watch(client), true)
+        self.expectEqual(client.connect(endpoint), true)
 
         poller.run()
 
-        self.expectEqual('ok', result)
+        self.expectEqual(result, 'ok')
     }
 
 	const def testTcpMessageAsync(self) {
@@ -82,17 +82,17 @@ load network.serializers.datagram
 
         async def [...] serverMain() {
             let socket = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+            self.expectEqual(socket.open(endpoint.getIpVersion()), true)
             socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
             let server = Network.AsyncChannel(socket, Network.AsyncServerSerializer)
-            self.expectEqual(true, server.listen(endpoint))
+            self.expectEqual(server.listen(endpoint), true)
             let client = await server.read()
             await client.write('ok')
         }
 
         async def [...] clientMain() {
             let client = Network.AsyncChannel(Network.TcpSocket().asyncOn(scheduler))
-            self.expectEqual(true, await client.connect(endpoint))
+            self.expectEqual(await client.connect(endpoint), true)
             return await client.read()
         }
 
@@ -101,7 +101,7 @@ load network.serializers.datagram
         let promise = scheduler.spawn(clientMain())
         scheduler.run()
 
-        self.expectEqual('ok', promise.get())
+        self.expectEqual(promise.get(), 'ok')
     }
 
     const def testUdpMessage(self) {
@@ -110,13 +110,13 @@ load network.serializers.datagram
         let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
 
         let socket = Network.UdpSocket()
-        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        self.expectEqual(socket.open(endpoint.getIpVersion()), true)
         socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
         let server = Network.Channel(socket, Network.DatagramSerializer)
-        self.expectEqual(true, server.bind(endpoint))
+        self.expectEqual(server.bind(endpoint), true)
 
         let client = Network.Channel(Network.UdpSocket(), Network.DatagramSerializer)
-        self.expectEqual(true, client.connect(endpoint))
+        self.expectEqual(client.connect(endpoint), true)
 
         let sender = System.Thread(def [client, result] {
             while result === 'ko' {
@@ -136,7 +136,7 @@ load network.serializers.datagram
         result = datagram.data().getString()
         server.close()
 
-        self.expectEqual('ok', result)
+        self.expectEqual(result, 'ok')
     }
 
 	const def testUdpMessageEvent(self) {
@@ -146,7 +146,7 @@ load network.serializers.datagram
         let endpoint = Network.IpEndpoint('127.0.0.1', 7357)
 
         let socket = Network.UdpSocket()
-        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        self.expectEqual(socket.open(endpoint.getIpVersion()), true)
         socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
         let server = Network.EventChannel(socket, Network.DatagramSerializer)
         server.onMessage = def [...] (self, channel) {
@@ -169,16 +169,16 @@ load network.serializers.datagram
             client.close()
         })
 
-        self.expectEqual(true, poller.watch(server))
-        self.expectEqual(true, server.bind(endpoint))
+        self.expectEqual(poller.watch(server), true)
+        self.expectEqual(server.bind(endpoint), true)
 
-        self.expectEqual(true, poller.watch(client))
-        self.expectEqual(true, client.connect(endpoint))
+        self.expectEqual(poller.watch(client), true)
+        self.expectEqual(client.connect(endpoint), true)
 
         sender.start()
         poller.run()
 
-        self.expectEqual('ok', result)
+        self.expectEqual(result, 'ok')
     }
 
     const def testUdpMessageAsync(self) {
@@ -189,10 +189,10 @@ load network.serializers.datagram
 
         async def [...] serverMain() {
             let socket = Network.UdpSocket().asyncOn(scheduler)
-            self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+            self.expectEqual(socket.open(endpoint.getIpVersion()), true)
             socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
             let server = Network.AsyncChannel(socket, Network.AsyncDatagramSerializer)
-            self.expectEqual(true, server.bind(endpoint))
+            self.expectEqual(server.bind(endpoint), true)
             let datagram = await server.read()
             result = datagram.data().getString()
             return result
@@ -200,7 +200,7 @@ load network.serializers.datagram
 
         async def [...] clientMain() {
             let client = Network.AsyncChannel(Network.UdpSocket().asyncOn(scheduler), Network.AsyncDatagramSerializer)
-            self.expectEqual(true, await client.connect(endpoint))
+            self.expectEqual(await client.connect(endpoint), true)
 
             while result === 'ko' {
                 await client.write('ok')
@@ -211,7 +211,7 @@ load network.serializers.datagram
         scheduler.spawn(clientMain())
         scheduler.run()
 
-        self.expectEqual('ok', promise.get())
+        self.expectEqual(promise.get(), 'ok')
     }
 
 	const def testWatch(self) {
@@ -223,7 +223,7 @@ load network.serializers.datagram
         let socket = Network.TcpSocket()
         let server = Network.EventChannel(socket, Network.ServerSerializer)
 
-        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
+        self.expectEqual(socket.open(endpoint.getIpVersion()), true)
         socket.setSocketOption(Network.SocketOption.REUSEADDR, true)
 
         server.onMessage = def [result] (self, channel) {
@@ -241,14 +241,14 @@ load network.serializers.datagram
             }
         }
 
-        self.expectEqual(true, poller.watch(server))
-        self.expectEqual(true, server.listen(endpoint))
+        self.expectEqual(poller.watch(server), true)
+        self.expectEqual(server.listen(endpoint), true)
 
-        self.expectEqual(true, poller.watch(client))
-        self.expectEqual(true, client.connect(endpoint))
+        self.expectEqual(poller.watch(client), true)
+        self.expectEqual(client.connect(endpoint), true)
 
         poller.run()
-        self.expectEqual(3, i)
+        self.expectEqual(i, 3)
     }
 
     const def testChannelStateAndMetadata(self) {
@@ -257,17 +257,17 @@ load network.serializers.datagram
         let socket = Network.TcpSocket()
         let server = Network.Channel(socket, Network.ServerSerializer)
 
-        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
-        self.expectEqual(Network.Socket.State.Open, server.getState())
-        self.expectEqual(true, server.setNonBlocking(true))
-        self.expectEqual(true, server.isNonBlocking())
+        self.expectEqual(socket.open(endpoint.getIpVersion()), true)
+        self.expectEqual(server.getState(), Network.Socket.State.Open)
+        self.expectEqual(server.setNonBlocking(true), true)
+        self.expectEqual(server.isNonBlocking(), true)
 
-        self.expectEqual(true, server.listen(endpoint))
-        self.expectEqual(Network.Socket.State.Listening, server.getState())
+        self.expectEqual(server.listen(endpoint), true)
+        self.expectEqual(server.getState(), Network.Socket.State.Listening)
         self.expectDefined(server.getSocket().getEndpoint())
 
-        self.expectEqual(true, server.setNonBlocking(false))
-        self.expectEqual(false, server.isNonBlocking())
+        self.expectEqual(server.setNonBlocking(false), true)
+        self.expectEqual(server.isNonBlocking(), false)
         server.close()
     }
 }

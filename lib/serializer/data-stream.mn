@@ -62,7 +62,7 @@ package Serializer {
 			return other
 		}
 		if defined other.toDataStream {
-			return other.toDataStream()
+			return other.toDataStream() as Serializer.DataStream
 		}
 		self.d_ptr = Serializer.DataStream.g_lib.call('mint_data_stream_create_buffer')
 		self.d_ptr.delete = def [g_lib = Serializer.DataStream.g_lib] (self) {
@@ -76,8 +76,8 @@ package Serializer {
 	 * Creates a new stream containing the `count` first bytes from the `bytes` string. If `count` is more than the
 	 * amount of bytes in the string, extra zero bytes are appended.
 	 */
-	@const def fromUtf8Bytes(bytes, count) {
-		let self = Serializer.DataStream()
+	@const def fromUtf8Bytes(bytes, count) -> Serializer.DataStream {
+		let self: Serializer.DataStream = Serializer.DataStream()
 		Serializer.DataStream.g_lib.call('mint_data_stream_from_utf8_bytes', self.d_ptr, bytes, count)
 		return self
 	}
@@ -86,8 +86,8 @@ package Serializer {
 	 * Creates a new stream containing the `count` bytes from the `bytes` string starting from the byte at position
 	 * `from`. If `count` is more than the amount of bytes in the string, extra zero bytes are appended.
 	 */
-	@const def fromUtf8Bytes(bytes, from, count) {
-		let self = Serializer.DataStream()
+	@const def fromUtf8Bytes(bytes, from, count) -> Serializer.DataStream {
+		let self: Serializer.DataStream = Serializer.DataStream()
 		Serializer.DataStream.g_lib.call('mint_data_stream_from_utf8_bytes_from', self.d_ptr, bytes, from, count)
 		return self
 	}
@@ -469,8 +469,8 @@ package Serializer {
 	 * Creates a new stream containing the data of `data` decoded from Base64.
 	 * Returns `none` if `data` is not a valid Base64 string.
 	 */
-	@const def fromBase64(data) {
-		var self = Serializer.DataStream()
+	@const def fromBase64(data) -> Serializer.DataStream? {
+		var self: Serializer.DataStream = Serializer.DataStream()
 		if Serializer.DataStream.g_lib.call('mint_data_stream_write_base64', self.d_ptr, data) {
 			return self
 		}
@@ -480,8 +480,8 @@ package Serializer {
 	 * Creates a new stream containing the data of `data` decoded from Base64Url.
 	 * Returns `none` if `data` is not a valid Base64Url string.
 	 */
-	@const def fromBase64Url(data) {
-		var self = Serializer.DataStream()
+	@const def fromBase64Url(data) -> Serializer.DataStream? {
+		var self: Serializer.DataStream = Serializer.DataStream()
 		if Serializer.DataStream.g_lib.call('mint_data_stream_write_base64url', self.d_ptr, data) {
 			return self
 		}
@@ -779,7 +779,7 @@ package Serializer {
 	}
 
 	/// Global library handle
-	- @const g_lib = lib('libmint-serializer')
+	- @const g_lib: library = lib('libmint-serializer')
 	
 	/// Object data
 	- final d_ptr = null

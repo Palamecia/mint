@@ -38,16 +38,16 @@ namespace {
 
 std::string get_member_name(const mint::Class::MemberInfo& infos) {
 
-	mint::Class& metadata = infos.owner.get();
+	const auto& metadata = infos.owner.get();
 	const auto members = metadata.members();
 
 	const auto it = std::ranges::find(members, &infos, [](const auto& member) {
-		return &member.second.get();
+		return &member.second;
 	});
 	if (it != members.end()) {
-		return metadata.full_name() + "." + (*it).first.str();
+		return metadata.get_full_name() + "." + (*it).first.str();
 	}
-	return metadata.full_name() + ".<function>";
+	return metadata.get_full_name() + ".<unknown>";
 }
 
 mint::Reference mint_get_member_info(mint::Cursor& cursor, const mint::Reference& object,

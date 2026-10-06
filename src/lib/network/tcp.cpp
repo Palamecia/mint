@@ -74,7 +74,6 @@ namespace {
 
 mint::Reference mint_tcp_socket_open(mint::Cursor& cursor, const mint::Reference& ip_version) {
 
-	mint::Reference result = mint::create_iterator(cursor.program());
 	auto socket_fd = INVALID_SOCKET;
 
 	switch (to_integer<int>(cursor, ip_version)) {
@@ -85,22 +84,13 @@ mint::Reference mint_tcp_socket_open(mint::Cursor& cursor, const mint::Reference
 		socket_fd = mint_network::SocketManager::instance().open_socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 		break;
 	default:
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(EAFNOSUPPORT));
-		return result;
+		return mint_network::make_failure(cursor, EAFNOSUPPORT);
 	}
 
 	if (socket_fd == INVALID_SOCKET) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_number(mint_network::errno_from_socket_last_error()));
+		return mint_network::make_failure(cursor, mint_network::errno_from_socket_last_error());
 	}
-	else {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint_network::create_socket(cursor.program(), socket_fd));
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-	}
-
-	return result;
+	return mint_network::make_success(cursor, mint_network::create_socket(cursor.program(), socket_fd));
 }
 
 mint::Reference mint_tcp_socket_send(mint::FunctionHelper& helper, const mint::Reference& socket,
@@ -589,7 +579,8 @@ mint::Reference mint_tcp_socket_setup_options(mint::Cursor& /*cursor*/, const mi
 #define BIND_TCP_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = TCP_##_option
 #define BIND_TCP_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef TCP_MAXSEG
 	BIND_TCP_VALUE(tcp_socket_option, MAXSEG);
@@ -607,21 +598,15 @@ mint::Reference mint_tcp_socket_setup_options(mint::Cursor& /*cursor*/, const mi
 
 mint::Reference mint_tcp_socket_get_option_number(mint::Cursor& cursor, const mint::Reference& socket,
     const mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<int>(socket_fd, IPPROTO_TCP, option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(option_value));
+		return mint_network::make_success(cursor, mint::create_number(option_value));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_tcp_socket_set_option_number(mint::Cursor& cursor, const mint::Reference& socket,
@@ -642,23 +627,16 @@ mint::Reference mint_tcp_socket_set_option_number(mint::Cursor& cursor, const mi
 
 mint::Reference mint_tcp_socket_get_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
     const mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<mint_network::sockopt_bool>(socket_fd, IPPROTO_TCP,
 		    option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_boolean(option_value != mint_network::sockopt_false));
+		return mint_network::make_success(cursor, mint::create_boolean(option_value != mint_network::sockopt_false));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_tcp_socket_set_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,

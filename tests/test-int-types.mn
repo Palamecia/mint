@@ -3,21 +3,21 @@ load mint.int-types
 
 @class TestInt8 : Test.Case {
 	const def testCreate(self) {
-		self.expectEqual(0, number(int8(0)))
-		self.expectEqual(127, number(int8(127)))
-		self.expectEqual(-128, number(int8(128)))
-		self.expectEqual(-1, number(int8(255)))
-		self.expectEqual(0, number(int8(1024)))
-		self.expectEqual(0, number(int8(2048)))
-		self.expectEqual(15, number(int8('0x0F')))
-		self.expectEqual(-1, number(int8('0xFF')))
+		self.expectEqual(number(int8(0)), 0)
+		self.expectEqual(number(int8(127)), 127)
+		self.expectEqual(number(int8(128)), -128)
+		self.expectEqual(number(int8(255)), -1)
+		self.expectEqual(number(int8(1024)), 0)
+		self.expectEqual(number(int8(2048)), 0)
+		self.expectEqual(number(int8('0x0F')), 15)
+		self.expectEqual(number(int8('0xFF')), -1)
 	}
 
 	const def testCopy(self) {
 		c = d = int8(5)
 		d := 7
-		self.expectEqual(7, d.toNumber())
-		self.expectIsSame(c, d)
+		self.expectEqual(d.toNumber(), 7)
+		self.expectIsSame(d, c)
 	}
 
 	const def testCall(self) {

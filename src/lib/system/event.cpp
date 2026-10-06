@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "errno.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
 #include "mint/memory/memory_tools.h"
@@ -28,6 +29,7 @@
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
 #include "mint/system/async_io.h"
+#include "mint/system/errno.h"
 #include <array>
 #include <cstdint>
 
@@ -71,73 +73,85 @@ bool set_nonblocking(int fd) {
 mint::Reference mint_event_create(mint::Cursor& cursor) {
 #ifdef MINT_OS_WINDOWS
 
-	if (HANDLE handle = CreateEvent(nullptr, false, false, nullptr); handle != INVALID_HANDLE_VALUE) {
-		return mint::create_c_object(cursor.program(), new EventData {
-		                                                   .event =
-		                                                       {
-		                                                           .handle = handle,
-		                                                       },
-		                                               });
+	if (HANDLE handle = CreateEvent(nullptr, false, false, nullptr); handle != nullptr) {
+		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), new EventData {
+		                                                                                     .event =
+		                                                                                         {
+		                                                                                             .handle = handle,
+		                                                                                         },
+		                                                                                 }));
 	}
+	return mint_system::make_failure(cursor, mint::errno_from_last_error());
 
 #elifdef MINT_OS_LINUX
 
 	if (const int fd = eventfd(0, EFD_NONBLOCK); fd != -1) {
-		return mint::create_c_object(cursor.program(), new EventData {
-		                                                   .event =
-		                                                       {
-		                                                           .fd = fd,
-		                                                           .events = EPOLLIN,
-		                                                           .on_signal =
-		                                                               [](mint::poll_event_t& event) {
-			                                                               auto counter = uint64_t();
-			                                                               read(event.fd, &counter, sizeof(counter));
-		                                                               },
-		                                                       },
-		                                               });
+		return mint_system::make_success(cursor,
+		    mint::create_c_object(cursor.program(), new EventData {
+		                                                .event =
+		                                                    {
+		                                                        .fd = fd,
+		                                                        .events = EPOLLIN,
+		                                                        .on_signal =
+		                                                            [](mint::poll_event_t& event) {
+			                                                            auto counter = uint64_t();
+			                                                            read(event.fd, &counter, sizeof(counter));
+		                                                            },
+		                                                    },
+		                                            }));
 	}
+	return mint_system::make_failure(cursor, errno);
 
 #elifdef MINT_OS_FREE_BSD
 
 	if (const int fd = eventfd(0, EFD_NONBLOCK); fd != -1) {
-		return mint::create_c_object(cursor.program(), new EventData {
-		                                                   .event =
-		                                                       mint::poll_event_t {
-		                                                           .fd = fd,
-		                                                           .filter = EVFILT_READ,
-		                                                           .on_signal =
-		                                                               [](mint::poll_event_t& event) {
-			                                                               auto counter = uint64_t();
-			                                                               read(event.fd, &counter, sizeof(counter));
-		                                                               },
-		                                                       },
-		                                               });
+		return mint_system::make_success(cursor,
+		    mint::create_c_object(cursor.program(), new EventData {
+		                                                .event =
+		                                                    mint::poll_event_t {
+		                                                        .fd = fd,
+		                                                        .filter = EVFILT_READ,
+		                                                        .on_signal =
+		                                                            [](mint::poll_event_t& event) {
+			                                                            auto counter = uint64_t();
+			                                                            read(event.fd, &counter, sizeof(counter));
+		                                                            },
+		                                                    },
+		                                            }));
 	}
+	return mint_system::make_failure(cursor, errno);
 
 #elifdef MINT_OS_MAC
 	auto fds = std::to_array<int>({-1, -1});
 	if (pipe(fds.data()) == 0) {
 		if (set_nonblocking(fds.at(0)) && set_nonblocking(fds.at(1))) {
-			return mint::create_c_object(cursor.program(), new EventData {
-			                                                   .event =
-			                                                       {
-			                                                           .fd = fds.at(0),
-			                                                           .filter = EVFILT_READ,
-			                                                           .on_signal =
-			                                                               [](mint::poll_event_t& event) {
-				                                                               auto token = uint64_t();
-				                                                               read(event.fd, &token, sizeof(token));
-			                                                               },
-			                                                       },
-			                                                   .write_fd = fds.at(1),
-			                                               });
+			return mint_system::make_success(cursor,
+			    mint::create_c_object(cursor.program(), new EventData {
+			                                                .event =
+			                                                    {
+			                                                        .fd = fds.at(0),
+			                                                        .filter = EVFILT_READ,
+			                                                        .on_signal =
+			                                                            [](mint::poll_event_t& event) {
+				                                                            auto token = uint64_t();
+				                                                            read(event.fd, &token, sizeof(token));
+			                                                            },
+			                                                    },
+			                                                .write_fd = fds.at(1),
+			                                            }));
 		}
+		auto result = mint_system::make_failure(cursor, errno);
 		close(fds.at(0));
 		close(fds.at(1));
+		return result;
+	}
+	else {
+		return mint_system::make_failure(cursor, errno);
 	}
 
+#else
+#error "Event is not implemented for this platform"
 #endif
-	return {};
 }
 
 mint::Reference mint_event_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {

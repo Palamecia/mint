@@ -10,7 +10,7 @@ load test.case
 				error = 0
 			}
 		}
-		self.expectEqual(5, i)
+		self.expectEqual(i, 5)
 	}
 
 	const def testMultiException(self) {
@@ -21,7 +21,7 @@ load test.case
 			} catch error {
 				error = i
 			}
-			self.expectEqual(i, a)
+			self.expectEqual(a, i)
 		}
 	}
 
@@ -31,7 +31,7 @@ load test.case
 				raise foo
 			}
 		} catch error {
-			self.expectEqual(true, error)
+			self.expectEqual(error, true)
 		}
 		self.expectNotDefined(foo)
 	}
@@ -41,6 +41,6 @@ load test.case
 		try {
 			raise test
 		}
-		self.expectEqual(7357, test)
+		self.expectEqual(test, 7357)
 	}
 }

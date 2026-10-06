@@ -66,6 +66,8 @@ package System {
 		 * If `desc` provides a `toDate` method, this method is used to create
 		 * the returned value; otherwise `desc` is cast to number to get an unix
 		 * timestamp.
+		 * 
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def new(self, desc) {
 			switch typeof desc {
@@ -78,15 +80,16 @@ package System {
 				return self
 
 			case 'string':
-				var (timepoint, timezone) = System.Date.g_lib.call('mint_parse_iso_date', desc)
-				if self.timepoint = timepoint {
-					self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
-						g_lib.call('mint_date_delete', self)
-					}
-					self.timezone = System.TimeZone(timezone)
-					return self
+				let (errno, timepoint, timezone) = System.Date.g_lib.call('mint_parse_iso_date', desc)
+				if errno {
+					raise Exception.SystemError(errno, self)
 				}
-				break
+				self.timepoint = timepoint
+				self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+					g_lib.call('mint_date_delete', self)
+				}
+				self.timezone = System.TimeZone(timezone)
+				return self
 
 			case 'System.Date':
 				return desc
@@ -98,7 +101,7 @@ package System {
 
 			default:
 				if defined desc.toDate {
-					return desc.toDate()
+					return desc.toDate() as System.Date
 				}
 				self.timezone = System.TimeZone.current()
 				self.timepoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', number(desc))
@@ -125,6 +128,8 @@ package System {
 		 * described by the `timezone` parameter. The current {System.TimeZone}
 		 * is used if the parameter is not provided. This instance is also used
 		 * by the object.
+		 * 
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def new(self, year, month, day, h = 0, min = 0, sec = 0, ms = 0, timezone = none) {
 			if defined timezone {
@@ -132,13 +137,11 @@ package System {
 			} else {
 				self.timezone = System.TimeZone.current()
 			}
-			if defined self.timezone {
-				self.timepoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
-				self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
-					g_lib.call('mint_date_delete', self)
-				}
-				return self
+			self.timepoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', self.timezone.millisecondsSinceEpoch(year, month, day, h, min, sec, ms))
+			self.timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
+				g_lib.call('mint_date_delete', self)
 			}
+			return self
 		}
 
 		/**
@@ -148,7 +151,7 @@ package System {
 		 * timestamp to get the date and time (i.e. the amount of seconds since
 		 * 1970-01-01T00:00:00Z). The current {System.TimeZone} is used.
 		 */
-		@const def fromSecondsSinceEpoch(seconds) {
+		@const def fromSecondsSinceEpoch(seconds) -> System.Date {
 			let timepoint = System.Date.g_lib.call('mint_date_seconds_to_timepoint', seconds)
 			timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
 				g_lib.call('mint_date_delete', self)
@@ -164,7 +167,7 @@ package System {
 		 * of milliseconds since 1970-01-01T00:00:00.000Z). The current
 		 * {System.TimeZone} is used.
 		 */
-		@const def fromMillisecondsSinceEpoch(milliseconds) {
+		@const def fromMillisecondsSinceEpoch(milliseconds) -> System.Date {
 			let timepoint = System.Date.g_lib.call('mint_date_milliseconds_to_timepoint', milliseconds)
 			timepoint.delete = def [g_lib = System.Date.g_lib] (self) {
 				g_lib.call('mint_date_delete', self)
@@ -178,14 +181,14 @@ package System {
 		/**
 		 * Returns the current date and time as an instance of {System.Date}.
 		 */
-		@const def current() {
+		@const def current() -> System.Date {
 			return System.Date()
 		}
 
 		/**
 		 * Sets the system's current date and time to `date`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		@const def setCurrent(date) {
 			var date = System.Date(date)
@@ -727,7 +730,7 @@ package System {
 			}
 			var str = ''
 			var (year, month, day, h, min, sec, ms) = self.timezone.timeFromMilliseconds(self)
-			for (var c = format.in(), not c.isEmpty(), c.next()) {
+			for (let c = format.in(), not c.isEmpty(), c.next()) {
 				if '%' == c.value() {
 					if c.next() {
 						switch c.value() {
@@ -916,7 +919,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 		
 		/// Internal time point.
 		- final timepoint = null

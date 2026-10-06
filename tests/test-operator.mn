@@ -37,93 +37,93 @@ class OperatorTest : Test.Case {
 	const def testPriority(self) {
 		var recorder = OperatorRecorder()
 		-recorder * 2
-		self.expectEqual(['-(0)', '*(1)'], recorder.record)
+		self.expectEqual(recorder.record, ['-(0)', '*(1)'])
 	}
 
 	const def testAdd(self) {
 
-		self.expectEqual(false, addOperator(false, false))
-		self.expectEqual(true, addOperator(false, true))
-		self.expectEqual(true, addOperator(true, false))
-		self.expectEqual(true, addOperator(true, true))
+		self.expectEqual(addOperator(false, false), false)
+		self.expectEqual(addOperator(false, true), true)
+		self.expectEqual(addOperator(true, false), true)
+		self.expectEqual(addOperator(true, true), true)
 	
-		self.expectEqual(4, addOperator(2, 2))
-		self.expectEqual(4, addOperator(2, '2'))
+		self.expectEqual(addOperator(2, 2), 4)
+		self.expectEqual(addOperator(2, '2'), 4)
 
-		self.expectEqual('22', addOperator('2', '2'))
-		self.expectEqual('22', addOperator('2', 2))
+		self.expectEqual(addOperator('2', '2'), '22')
+		self.expectEqual(addOperator('2', 2), '22')
 	}
 	
 	const def testSub(self) {
-		self.expectEqual(false, subOperator(false, false))
-		self.expectEqual(true, subOperator(false, true))
-		self.expectEqual(true, subOperator(true, false))
-		self.expectEqual(false, subOperator(true, true))
+		self.expectEqual(subOperator(false, false), false)
+		self.expectEqual(subOperator(false, true), true)
+		self.expectEqual(subOperator(true, false), true)
+		self.expectEqual(subOperator(true, true), false)
 	
-		self.expectEqual(0, subOperator(2, 2))
-		self.expectEqual(0, subOperator(2, '2'))
+		self.expectEqual(subOperator(2, 2), 0)
+		self.expectEqual(subOperator(2, '2'), 0)
 
-		self.expectEqual(false, '-' in (membersof ''))
+		self.expectEqual('-' in (membersof ''), false)
 	}
 
 	const def testEq(self) {
-		self.expectEqual(true, eqOperator(false, false))
-		self.expectEqual(false, eqOperator(false, true))
-		self.expectEqual(false, eqOperator(true, false))
-		self.expectEqual(true, eqOperator(true, true))
+		self.expectEqual(eqOperator(false, false), true)
+		self.expectEqual(eqOperator(false, true), false)
+		self.expectEqual(eqOperator(true, false), false)
+		self.expectEqual(eqOperator(true, true), true)
 	
-		self.expectEqual(true, eqOperator(2, 2))
-		self.expectEqual(true, eqOperator(2, '2'))
+		self.expectEqual(eqOperator(2, 2), true)
+		self.expectEqual(eqOperator(2, '2'), true)
 	}
 
 	const def testNe(self) {
-		self.expectEqual(false, neOperator(false, false))
-		self.expectEqual(true, neOperator(false, true))
-		self.expectEqual(true, neOperator(true, false))
-		self.expectEqual(false, neOperator(true, true))
+		self.expectEqual(neOperator(false, false), false)
+		self.expectEqual(neOperator(false, true), true)
+		self.expectEqual(neOperator(true, false), true)
+		self.expectEqual(neOperator(true, true), false)
 	
-		self.expectEqual(false, neOperator(2, 2))
-		self.expectEqual(false, neOperator(2, '2'))
+		self.expectEqual(neOperator(2, 2), false)
+		self.expectEqual(neOperator(2, '2'), false)
 	}
 
 	const def testStrictEq(self) {
-		self.expectEqual(true, strictEqOperator(false, false))
-		self.expectEqual(false, strictEqOperator(false, true))
-		self.expectEqual(false, strictEqOperator(true, false))
-		self.expectEqual(true, strictEqOperator(true, true))
+		self.expectEqual(strictEqOperator(false, false), true)
+		self.expectEqual(strictEqOperator(false, true), false)
+		self.expectEqual(strictEqOperator(true, false), false)
+		self.expectEqual(strictEqOperator(true, true), true)
 	
-		self.expectEqual(true, strictEqOperator(2, 2))
-		self.expectEqual(false, strictEqOperator(2, '2'))
+		self.expectEqual(strictEqOperator(2, 2), true)
+		self.expectEqual(strictEqOperator(2, '2'), false)
 	}
 
 	const def testStrictNe(self) {
-		self.expectEqual(false, strictNeOperator(false, false))
-		self.expectEqual(true, strictNeOperator(false, true))
-		self.expectEqual(true, strictNeOperator(true, false))
-		self.expectEqual(false, strictNeOperator(true, true))
+		self.expectEqual(strictNeOperator(false, false), false)
+		self.expectEqual(strictNeOperator(false, true), true)
+		self.expectEqual(strictNeOperator(true, false), true)
+		self.expectEqual(strictNeOperator(true, true), false)
 	
-		self.expectEqual(false, strictNeOperator(2, 2))
-		self.expectEqual(true, strictNeOperator(2, '2'))
+		self.expectEqual(strictNeOperator(2, 2), false)
+		self.expectEqual(strictNeOperator(2, '2'), true)
 	}
 
 	const def testHashKeyCompare(self) {
-		self.expectEqual(false, hashKeyCompareOperator(none, none))
-		self.expectEqual(false, hashKeyCompareOperator(null, null))
-		self.expectEqual(false, hashKeyCompareOperator(null, none))
-		self.expectEqual(true, hashKeyCompareOperator(none, null))
+		self.expectEqual(hashKeyCompareOperator(none, none), false)
+		self.expectEqual(hashKeyCompareOperator(null, null), false)
+		self.expectEqual(hashKeyCompareOperator(null, none), false)
+		self.expectEqual(hashKeyCompareOperator(none, null), true)
 	}
 
 	const def testInExpression(self) {
-		self.expectEqual(true, 2 in [1, 2, 3])
-		self.expectEqual(false, 4 in [1, 2, 3])
-		self.expectEqual(true, 4 not in [1, 2, 3])
+		self.expectEqual(2 in [1, 2, 3], true)
+		self.expectEqual(4 in [1, 2, 3], false)
+		self.expectEqual(4 not in [1, 2, 3], true)
 
 		let found = 'e' in 'test'
-		self.expectEqual(true, found)
-		self.expectEqual('found', (3 in 0..5) ? 'found' : 'missing')
-		self.expectEqual(true, (2 in [1, 2, 3]) && (4 in 0..5))
-		self.expectEqual(true, 1 in 0..1 or 2 in 2..3)
-		self.expectEqual(false, 1 in 0..0 or 2 in 3..4)
+		self.expectEqual(found, true)
+		self.expectEqual((3 in 0..5) ? 'found' : 'missing', 'found')
+		self.expectEqual((2 in [1, 2, 3]) && (4 in 0..5), true)
+		self.expectEqual(1 in 0..1 or 2 in 2..3, true)
+		self.expectEqual(1 in 0..0 or 2 in 3..4, false)
 	}
 
 	const def testForInStillIterates(self) {
@@ -131,6 +131,6 @@ class OperatorTest : Test.Case {
 		for value in 0..3 {
 			values << value
 		}
-		self.expectEqual([0, 1, 2, 3], values)
+		self.expectEqual(values, [0, 1, 2, 3])
 	}
 }

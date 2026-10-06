@@ -27,23 +27,27 @@
 
 load mint.lang
 load mint.type
+load exception.exception
 
 /**
  * This class provides a context to call a function or a method indirectly.
  */
 @class Callback {
 	/**
-	 * Creates a new callback on the `func` function.
+	 * Creates a new callback from the given `func` value.
 	 * 
-	 * The `func` parameter can also be:
-	 * * an instance of {Callback}, in this case the object is returned as the
-	 *   new instance.
-	 * * an object providing a `toCallback` method, in this case the result of
-	 *   this method call is used as the new instance.
-	 * * an object providing a `toFunction` method, in this case the result of
-	 *   this method call is used to retrieve the function.
+	 * The `func` parameter can be:
+	 * * an instance of {Callback}, in which case the existing object is returned.
+	 * * a function, which is stored as the callback function.
+	 * * an object providing a `toCallback` method, in which case the result of this method call is used as the new
+	 *   callback.
+	 * * an object providing a `toFunction` method, in which case the result of this method call is stored as the
+	 *   callback function.
+	 * * an invocable object, i.e. an object providing a `()` method, which is stored as the callback target.
 	 * 
-	 * In other cases, `none` is returned.
+	 * The conversion methods are checked before the invocability of the object itself.
+	 * 
+	 * Raises {Exception.TypeError} on error.
 	 */
 	const def new(self, %func) {
 		switch typeof func {
@@ -54,20 +58,25 @@ load mint.type
 			return self
 		default:
 			if defined func.toCallback {
-				return func.toCallback()
+				return func.toCallback() as Callback
 			}
 			if defined func.toFunction {
 				self.function = func.toFunction()
 				return self
 			}
+			if func.hasMethod('()') {
+				self.function = func
+				return self
+			}
 		}
+		raise Exception.TypeError("Expected a callable value", func)
 	}
 
 	/**
-	 * Creates a new callback on the `member` member of the `object` object. The
-	 * member can either be a member function of `object` or a member name.
+	 * Creates a new callback on the `member` member of the `object` object. The member can either be a member function
+	 * of `object` or a member name.
 	 * 
-	 * If `object` has no member `member`, `none` is returned.
+	 * Raises {Exception.InvalidOperation} on error.
 	 */
 	const def new(self, object, %member) {
 		self.memberInfo = Callback.g_lib.call('mint_get_member_info', object, member)
@@ -80,6 +89,7 @@ load mint.type
 			self.function = member
 			return self
 		}
+		raise Exception.InvalidOperation("Object has no member '%s'" % member, object)
 	}
 
 	/**
@@ -142,7 +152,7 @@ load mint.type
 	/**
 	 * Returns the callback's function or method name or a placeholder.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if defined self.memberInfo {
 			return Callback.g_lib.call('mint_function_name', self.memberInfo)
 		}
@@ -150,7 +160,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Internal member informations.
 	- final memberInfo = none
@@ -169,16 +179,20 @@ load mint.type
  */
 @class AsyncCallback {
 	/**
-	 * Creates a new async callback for the given function.
+	 * Creates a new async callback from the given `func` value.
 	 * 
-	 * The `func` parameter can also be:
-	 * * an instance of {AsyncCallback}, in this case the object is returned as the new instance.
-	 * * an object providing a `toAsyncCallback` method, in this case the result of this method call is used as the new
-	 *   instance.
-	 * * an object providing a `toFunction` method, in this case the result of this method call is used to retrieve the
-	 *   function.
-	 *  
-	 * In other cases, `none` is returned.
+	 * The `func` parameter can be:
+	 * * an instance of {AsyncCallback}, in which case the existing object is returned.
+	 * * a function, which is stored as the callback function.
+	 * * an object providing a `toAsyncCallback` method, in which case the result of this method call is used as the new
+	 *   async callback.
+	 * * an object providing a `toFunction` method, in which case the result of this method call is stored as the
+	 *   callback function.
+	 * * an invocable object, i.e. an object providing a `()` method, which is stored as the callback target.
+	 * 
+	 * The conversion methods are checked before the invocability of the object itself.
+	 * 
+	 * Raises {Exception.TypeError} on error.
 	 */
 	const def new(self, %func) {
 		switch typeof func {
@@ -189,17 +203,24 @@ load mint.type
 			return self
 		default:
 			if defined func.toAsyncCallback {
-				return func.toAsyncCallback()
+				return func.toAsyncCallback() as AsyncCallback
 			}
 			if defined func.toFunction {
 				self.function = func.toFunction()
 				return self
 			}
+			if func.hasMethod('()') {
+				self.function = func
+				return self
+			}
 		}
+		raise Exception.TypeError("Expected a callable value", func)
 	}
 
 	/**
 	 * Creates a new async callback bound to the given object member.
+	 * 
+	 * Raises {Exception.InvalidOperation} on error.
 	 */
 	const def new(self, object, %member) {
 		self.memberInfo = AsyncCallback.g_lib.call('mint_get_member_info', object, member)
@@ -212,6 +233,7 @@ load mint.type
 			self.function = member
 			return self
 		}
+		raise Exception.InvalidOperation("Object has no member '%s'" % member, object)
 	}
 
 	/**
@@ -265,7 +287,7 @@ load mint.type
 	/**
 	 * Returns the callback's function or method name or a placeholder.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if defined self.memberInfo {
 			return AsyncCallback.g_lib.call('mint_function_name', self.memberInfo)
 		}
@@ -273,7 +295,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Internal member informations.
 	- final memberInfo = none
@@ -429,9 +451,9 @@ load mint.type
  * extra arguments.
  */
 @def reduce(func, ...) {
-    value = va_args.next()
-    for let element in va_args {
-        value = func(value, element)
-    }
-    return value
+	value = va_args.next()
+	for let element in va_args {
+		value = func(value, element)
+	}
+	return value
 }

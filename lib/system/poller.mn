@@ -39,15 +39,19 @@ package System {
 	@class Poller {
 		/**
 		 * Creates a new poller object.
+		 *
+		 * Raises {Exception.SystemError} if the poller cannot be created.
 		 */
 		const def new(self) {
-			self.d_ptr = System.Poller.g_lib.call('mint_poll_new')
-			if defined self.d_ptr {
-				self.d_ptr.delete = def [g_lib = System.Poller.g_lib] (self) {
-					g_lib.call('mint_poll_delete', self)
-				}
-				return self
+			let (errno, d_ptr) = System.Poller.g_lib.call('mint_poll_new')
+			if errno {
+				raise Exception.SystemError(errno, self)
 			}
+			self.d_ptr = d_ptr
+			self.d_ptr.delete = def [g_lib = System.Poller.g_lib] (self) {
+				g_lib.call('mint_poll_delete', self)
+			}
+			return self
 		}
 
 		/**
@@ -55,7 +59,7 @@ package System {
 		 * When the event associated to `object` is triggered, `callback` will ba called by {@see poll}. Returns `true`
 		 * if `object` is successfully watched; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def watch(self, object, callback) {
 			if let desc = self.events.get(object) {
@@ -77,7 +81,7 @@ package System {
 		 * Removes the `object` from the watcher. Returns `true` if `event` is watched by the watcher; otherwise returns
 		 * `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def unwatch(self, object) {
 			if let desc = self.events.get(object) {
@@ -96,7 +100,7 @@ package System {
 		 * 
 		 * Returns `true` if at least one event is set; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def poll(self, timeout = none) {
 			let triggered = ()
@@ -140,8 +144,12 @@ package System {
 
 		/// Internal poll context structure.
 		- class PollDescriptor {
-			/// Creates a new context for the given `event` object.
-			const def new(self, object) {
+			/**
+			 * Creates a new context for the given `object`.
+			 * 
+			 * Returns `none` if the object has no active event handle.
+			 */
+			const def new(self, object) -> System.Poller.PollDescriptor? {
 				if self.event = System.Poller.eventFromObject(object) {
 					self.object = object
 					return self
@@ -159,7 +167,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null

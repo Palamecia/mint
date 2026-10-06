@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "errno.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/data.h"
@@ -71,7 +72,7 @@ mint::Reference mint_thread_start_member(mint::FunctionHelper& helper, const min
 			thread_cursor->waiting_calls().emplace(method, info->owner);
 		}
 		else {
-			mint::error("member not found in class '{}'", object.data<mint::Object>().metadata.full_name());
+			mint::error("member not found in class '{}'", object.data<mint::Object>().metadata.get_full_name());
 		}
 	}
 	else {
@@ -83,16 +84,13 @@ mint::Reference mint_thread_start_member(mint::FunctionHelper& helper, const min
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_member_operator(*thread_cursor, signature);
-	mint::Reference result = mint::create_iterator(helper.cursor().program());
 	try {
 		const auto thread_id = scheduler.create_thread(std::move(thread_cursor));
-		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(thread_id));
+		return mint_system::make_success(helper.cursor(), mint::create_number(thread_id));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_system::make_failure(helper.cursor(), error.code().value());
 	}
-	return result;
 }
 
 mint::Reference mint_thread_start(mint::FunctionHelper& helper, const mint::Reference& func,
@@ -106,16 +104,13 @@ mint::Reference mint_thread_start(mint::FunctionHelper& helper, const mint::Refe
 	thread_cursor->stack().append_range(args.data<mint::Iterator>().ctx);
 
 	mint::call_operator(*thread_cursor, signature);
-	mint::Reference result = mint::create_iterator(helper.cursor().program());
 	try {
 		const auto thread_id = scheduler.create_thread(std::move(thread_cursor));
-		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(thread_id));
+		return mint_system::make_success(helper.cursor(), mint::create_number(thread_id));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(helper.cursor(), result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_system::make_failure(helper.cursor(), error.code().value());
 	}
-	return result;
 }
 
 mint::Reference mint_thread_is_running(mint::FunctionHelper& helper, const mint::Reference& thread_id) {

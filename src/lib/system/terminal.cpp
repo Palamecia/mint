@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "errno.h"
 #include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/builtin/iterator.h"
@@ -342,34 +343,28 @@ mint::Reference mint_terminal_read(mint::Cursor& cursor, const mint::Reference& 
 mint::Reference mint_terminal_write(mint::Cursor& cursor, const mint::Reference& data) {
 	try {
 		if (is_instance_of(data, symbols::data_stream)) {
-			return create_iterator_from(cursor,
+			return mint_system::make_success(cursor,
 			    mint::create_unsigned_number(
-			        write_to_term(stdout, *get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)),
-			    mint::create_none());
+			        write_to_term(stdout, *get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)));
 		}
-		return create_iterator_from(cursor, mint::create_unsigned_number(write_to_term(stdout, to_string(data))),
-		    mint::create_none());
+		return mint_system::make_success(cursor, mint::create_unsigned_number(write_to_term(stdout, to_string(data))));
 	}
 	catch (std::system_error& error) {
-		return create_iterator_from(cursor, mint::create_signed_number(EOF),
-		    mint::create_number(mint::errno_from_error_code(error.code())));
+		return mint_system::make_failure(cursor, mint::errno_from_error_code(error.code()));
 	}
 }
 
 mint::Reference mint_terminal_write_error(mint::Cursor& cursor, const mint::Reference& data) {
 	try {
 		if (is_instance_of(data, symbols::data_stream)) {
-			return create_iterator_from(cursor,
+			return mint_system::make_success(cursor,
 			    mint::create_unsigned_number(
-			        write_to_term(stderr, *get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)),
-			    mint::create_none());
+			        write_to_term(stderr, *get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)));
 		}
-		return create_iterator_from(cursor, mint::create_unsigned_number(write_to_term(stderr, to_string(data))),
-		    mint::create_none());
+		return mint_system::make_success(cursor, mint::create_unsigned_number(write_to_term(stderr, to_string(data))));
 	}
 	catch (std::system_error& error) {
-		return create_iterator_from(cursor, mint::create_signed_number(EOF),
-		    mint::create_number(mint::errno_from_error_code(error.code())));
+		return mint_system::make_failure(cursor, mint::errno_from_error_code(error.code()));
 	}
 }
 

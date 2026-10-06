@@ -239,7 +239,7 @@ package Container {
 	 * 
 	 * Same as {@see keys}.
 	 */
-	const def toArray(const self) {
+	const def toArray(const self) -> array {
 		return self.keys()
 	}
 
@@ -248,7 +248,7 @@ package Container {
 	 * 
 	 * Same as {@see data}.
 	 */
-	const def toHash(const self) {
+	const def toHash(const self) -> hash {
 		return self.data()
 	}
 
@@ -268,7 +268,7 @@ package Container {
 	 * is returned instead.
 	 */
 	const def get(const self, key, defaultValue = none) {
-		if isDefined(var node = self.root.find(Container.Map.Node(key))) {
+		if defined let node = self.root.find(Container.Map.Node(key)) {
 			return node.value
 		}
 		return defaultValue
@@ -282,7 +282,7 @@ package Container {
 	 * the givens `key` and `value`.
 	 */
 	const def set(self, key, value) {
-		if isDefined(var node = self.root.find(Container.Map.Node(key))) {
+		if defined let node = self.root.find(Container.Map.Node(key)) {
 			node.value = value
 		} else {
 			self.root.insert(Container.Map.Node(key, value))

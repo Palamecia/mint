@@ -53,12 +53,16 @@ class Program;
 class MINT_EXPORT IteratorClass : public Class {
 public:
 	explicit IteratorClass(Program& program);
+
+	static ClassDescription& description();
 	static IteratorClass& instance(Program& program);
 };
 
 class MINT_EXPORT AsyncIteratorClass : public Class {
 public:
 	explicit AsyncIteratorClass(Program& program);
+
+	static ClassDescription& description();
 	static AsyncIteratorClass& instance(Program& program);
 };
 

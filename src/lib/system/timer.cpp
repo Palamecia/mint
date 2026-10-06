@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "errno.h"
 #include "mint/program/cursor.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
@@ -29,6 +30,7 @@
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
 #include "mint/system/async_io.h"
+#include "mint/system/errno.h"
 
 #include <array>
 #include <chrono>
@@ -109,7 +111,6 @@ constexpr inline LONGLONG to_milliseconds = 10000LL;
 #endif
 
 mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& clock_type) {
-
 #ifdef MINT_OS_WINDOWS
 
 	auto timer = std::make_unique<TimerData>(TimerData {
@@ -119,9 +120,10 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	        },
 	    .clock_type = to_clock_type(cursor, clock_type),
 	});
-	if (timer->event.handle != INVALID_HANDLE_VALUE) {
-		return mint::create_c_object(cursor.program(), timer.release());
+	if (timer->event.handle != nullptr) {
+		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
 	}
+	return mint_system::make_failure(cursor, mint::errno_from_last_error());
 
 #elifdef MINT_OS_LINUX
 
@@ -146,8 +148,9 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	        },
 	});
 	if (timer->event.fd != -1) {
-		return mint::create_c_object(cursor.program(), timer.release());
+		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
 	}
+	return mint_system::make_failure(cursor, errno);
 
 #elifdef MINT_OS_FREE_BSD
 
@@ -172,8 +175,9 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	        },
 	});
 	if (timer->event.fd != -1) {
-		return mint::create_c_object(cursor.program(), timer.release());
+		return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
 	}
+	return mint_system::make_failure(cursor, errno);
 
 #elifdef MINT_OS_MAC
 
@@ -181,12 +185,13 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 
 	auto fds = std::to_array<int>({-1, -1});
 	if (pipe(fds.data()) != 0) {
-		return {};
+		return mint_system::make_failure(cursor, errno);
 	}
 	if (!set_nonblocking(fds.at(0)) || !set_nonblocking(fds.at(1))) {
+		auto result = mint_system::make_failure(cursor, errno);
 		close(fds.at(0));
 		close(fds.at(1));
-		return {};
+		return result;
 	}
 
 	auto timer = std::make_unique<TimerData>(TimerData {
@@ -204,16 +209,18 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 	timer->queue = dispatch_queue_create("mint.timer",
 	    dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INTERACTIVE, 0));
 	if (timer->queue == nullptr) {
+		auto result = mint_system::make_failure(cursor, ENOMEM);
 		close(fds.at(0));
 		close(fds.at(1));
-		return {};
+		return result;
 	}
 	timer->source = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, timer->queue);
 	if (timer->source == nullptr) {
+		auto result = mint_system::make_failure(cursor, ENOMEM);
 		release_dispatch_object(timer->queue);
 		close(fds.at(0));
 		close(fds.at(1));
-		return {};
+		return result;
 	}
 
 	auto* timer_ptr = timer.get();
@@ -224,10 +231,11 @@ mint::Reference mint_timer_create(mint::Cursor& cursor, const mint::Reference& c
 			timer_ptr->running = false;
 		}
 	});
-	return mint::create_c_object(cursor.program(), timer.release());
+	return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), timer.release()));
 
+#else
+#error "Timer is not implemented for this platform"
 #endif
-	return {};
 }
 
 mint::Reference mint_timer_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {

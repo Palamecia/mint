@@ -109,10 +109,16 @@ mint::Reference mint_ip_endpoint_create(mint::Cursor& cursor, const mint::Refere
 		{
 			auto d_ptr = std::make_unique<sockaddr_in>(sockaddr_in {
 			    .sin_family = AF_INET,
+			    .sin_port = htons(to_integer<std::uint16_t>(cursor, port)),
 			});
-			d_ptr->sin_port = htons(to_integer<std::uint16_t>(cursor, port));
-			if (::inet_pton(AF_INET, address_str.c_str(), &d_ptr->sin_addr.s_addr) == 1) {
-				return mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release()));
+			switch (::inet_pton(AF_INET, address_str.c_str(), &d_ptr->sin_addr.s_addr)) {
+			case 0:
+				return mint_network::make_failure(cursor, EINVAL);
+			case 1:
+				return mint_network::make_success(cursor,
+				    mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release())));
+			default:
+				return mint_network::make_failure(cursor, mint_network::last_socket_error_code().value());
 			}
 		}
 		break;
@@ -120,17 +126,22 @@ mint::Reference mint_ip_endpoint_create(mint::Cursor& cursor, const mint::Refere
 		{
 			auto d_ptr = std::make_unique<sockaddr_in6>(sockaddr_in6 {
 			    .sin6_family = AF_INET6,
+			    .sin6_port = htons(to_integer<std::uint16_t>(cursor, port)),
 			});
-			d_ptr->sin6_port = htons(to_integer<std::uint16_t>(cursor, port));
-			if (::inet_pton(AF_INET6, address_str.c_str(), &d_ptr->sin6_addr.s6_addr) == 1) {
-				return mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release()));
+			switch (::inet_pton(AF_INET6, address_str.c_str(), &d_ptr->sin6_addr.s6_addr)) {
+			case 0:
+				return mint_network::make_failure(cursor, EINVAL);
+			case 1:
+				return mint_network::make_success(cursor,
+				    mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release())));
+			default:
+				return mint_network::make_failure(cursor, mint_network::last_socket_error_code().value());
 			}
 		}
 		break;
 	default:
-		break;
+		return mint_network::make_failure(cursor, EAFNOSUPPORT);
 	}
-	return {};
 }
 
 mint::Reference mint_ip_endpoint_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
@@ -205,12 +216,11 @@ mint::Reference mint_ip_socket_accept(mint::Cursor& cursor, const mint::Referenc
 		try {
 			const auto [address, port] = mint_network::get_ip_socket_info(remote_address);
 			mint_network::SocketManager::instance().accept_socket(client_fd);
-			return mint::create_iterator_from(cursor, mint::create_number(0),
-			    mint_network::create_socket(cursor.program(), client_fd),
+			return mint_network::make_success(cursor, mint_network::create_socket(cursor.program(), client_fd),
 			    mint::create_string(cursor.program(), address), mint::create_number(port));
 		}
 		catch (const std::system_error& error) {
-			return mint::create_iterator_from(cursor, mint::create_number(error.code().value()));
+			return mint_network::make_failure(cursor, error.code().value());
 		}
 	}
 
@@ -220,7 +230,7 @@ mint::Reference mint_ip_socket_accept(mint::Cursor& cursor, const mint::Referenc
 		mint_network::SocketManager::instance().set_socket_blocked(socket_fd, true);
 		break;
 	default:
-		return mint::create_iterator_from(cursor, mint::create_number(error));
+		return mint_network::make_failure(cursor, error);
 	}
 
 	return {};
@@ -315,7 +325,7 @@ mint::Reference mint_ip_socket_accept_async(mint::Cursor& cursor, const mint::Re
 
 		void complete(std::error_code error, [[maybe_unused]] std::size_t bytes_transferred) override {
 			if (error) {
-				done(mint::create_iterator_from(_cursor, mint::create_number(error.value())));
+				done(mint_network::make_failure(_cursor.get(), error.value()));
 			}
 			else {
 #ifdef MINT_ASYNC_BACKEND_IOCP
@@ -334,19 +344,19 @@ mint::Reference mint_ip_socket_accept_async(mint::Cursor& cursor, const mint::Re
 					mint_network::set_socket_option(_client_fd, SO_UPDATE_ACCEPT_CONTEXT, socket_fd);
 					const auto [address, port] = mint_network::get_ip_socket_info(*remote_address);
 					mint_network::SocketManager::instance().accept_socket(_client_fd);
-					done(mint::create_iterator_from(_cursor, mint::create_number(0),
+					done(mint_network::make_success(_cursor.get(),
 					    mint_network::create_socket(_cursor.get().program(), _client_fd),
 					    mint::create_string(_cursor.get().program(), address), mint::create_number(port)));
 				}
 				catch (const std::system_error& error) {
-					done(mint::create_iterator_from(_cursor, mint::create_number(error.code().value())));
+					done(mint_network::make_failure(_cursor.get(), error.code().value()));
 				}
 #elifdef MINT_OS_UNIX
 				const auto client_fd = static_cast<SOCKET>(bytes_transferred);
 				const auto [address, port] = mint_network::get_ip_socket_info(
 				    *reinterpret_cast<sockaddr*>(&_remote_address));
 				mint_network::SocketManager::instance().accept_socket(client_fd);
-				done(mint::create_iterator_from(_cursor, mint::create_number(0),
+				done(mint_network::make_success(_cursor.get(),
 				    mint_network::create_socket(_cursor.get().program(), client_fd),
 				    mint::create_string(_cursor.get().program(), address), mint::create_number(port)));
 #else
@@ -365,7 +375,8 @@ mint::Reference mint_ip_socket_setup_options(mint::Cursor& /*cursor*/, const min
 #define BIND_MCAST_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = _option
 #define BIND_MCAST_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef MCAST_JOIN_GROUP
 	BIND_MCAST_VALUE(ip_socket_option, MCAST_JOIN_GROUP);
@@ -406,7 +417,8 @@ mint::Reference mint_ipv4_socket_setup_options(mint::Cursor& /*cursor*/, const m
 #define BIND_IP_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = IP_##_option
 #define BIND_IP_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef IP_HEADERSINCL
 	BIND_IP_VALUE(ip_v4_socket_option, HDRINCL);
@@ -489,21 +501,15 @@ mint::Reference mint_ipv4_socket_setup_options(mint::Cursor& /*cursor*/, const m
 
 mint::Reference mint_ipv4_socket_get_option_number(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<int>(socket_fd, IPPROTO_IP, option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(option_value));
+		return mint_network::make_success(cursor, mint::create_number(option_value));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv4_socket_set_option_number(mint::Cursor& cursor, const mint::Reference& socket,
@@ -524,23 +530,16 @@ mint::Reference mint_ipv4_socket_set_option_number(mint::Cursor& cursor, const m
 
 mint::Reference mint_ipv4_socket_get_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<mint_network::sockopt_bool>(socket_fd, IPPROTO_IP,
 		    option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_boolean(option_value != mint_network::sockopt_false));
+		return mint_network::make_success(cursor, mint::create_boolean(option_value != mint_network::sockopt_false));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv4_socket_set_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
@@ -561,22 +560,15 @@ mint::Reference mint_ipv4_socket_set_option_boolean(mint::Cursor& cursor, const 
 
 mint::Reference mint_ipv4_socket_get_option_byte(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<u_char>(socket_fd, IPPROTO_IP, option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_number(option_value != mint_network::sockopt_false));
+		return mint_network::make_success(cursor, mint::create_number(option_value != mint_network::sockopt_false));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv4_socket_set_option_byte(mint::Cursor& cursor, const mint::Reference& socket,
@@ -597,22 +589,15 @@ mint::Reference mint_ipv4_socket_set_option_byte(mint::Cursor& cursor, const min
 
 mint::Reference mint_ipv4_socket_get_option_flag(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<u_char>(socket_fd, IPPROTO_IP, option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_boolean(option_value != mint_network::sockopt_false));
+		return mint_network::make_success(cursor, mint::create_boolean(option_value != mint_network::sockopt_false));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv4_socket_set_option_flag(mint::Cursor& cursor, const mint::Reference& socket,
@@ -633,27 +618,21 @@ mint::Reference mint_ipv4_socket_set_option_flag(mint::Cursor& cursor, const min
 
 mint::Reference mint_ipv4_socket_get_option_addr(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<in_addr>(socket_fd, IPPROTO_IP, option_id);
 		auto buffer = std::array<char, INET_ADDRSTRLEN>();
 		if (const char* address = inet_ntop(AF_INET, &option_value, buffer.data(), buffer.size())) {
-			iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_string(cursor.program(), address));
+			return mint_network::make_success(cursor, mint::create_string(cursor.program(), address));
 		}
 		else {
 			throw std::system_error(mint_network::last_socket_error_code());
 		}
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv4_socket_set_option_addr(mint::Cursor& cursor, const mint::Reference& socket,
@@ -682,22 +661,15 @@ mint::Reference mint_ipv4_socket_set_option_addr(mint::Cursor& cursor, const min
 
 mint::Reference mint_ipv4_socket_get_option_mreq(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		auto option_value = mint_network::get_socket_option<std::unique_ptr<ip_mreq>>(socket_fd, IPPROTO_IP, option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_c_object(cursor.program(), option_value.release()));
+		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), option_value.release()));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv4_socket_set_option_mreq(mint::Cursor& cursor, const mint::Reference& socket,
@@ -718,23 +690,16 @@ mint::Reference mint_ipv4_socket_set_option_mreq(mint::Cursor& cursor, const min
 
 mint::Reference mint_ipv4_socket_get_option_mreq_source(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		auto option_value = mint_network::get_socket_option<std::unique_ptr<ip_mreq_source>>(socket_fd, IPPROTO_IP,
 		    option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_c_object(cursor.program(), option_value.release()));
+		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), option_value.release()));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv4_socket_set_option_mreq_source(mint::Cursor& cursor, const mint::Reference& socket,
@@ -757,13 +722,19 @@ mint::Reference mint_ipv4_socket_mreq_create(mint::Cursor& cursor, const mint::R
     const mint::Reference& imr_interface) {
 
 	auto group = std::make_unique<ip_mreq>();
-	if (!inet_pton(AF_INET, to_string(imr_multiaddr).c_str(), &group->imr_multiaddr)) {
-		return {};
+	switch (inet_pton(AF_INET, to_string(imr_multiaddr).c_str(), &group->imr_multiaddr)) {
+	case 0:
+		return mint_network::make_failure(cursor, EINVAL);
+	case -1:
+		return mint_network::make_failure(cursor, mint_network::last_socket_error_code().value());
 	}
-	if (!inet_pton(AF_INET, to_string(imr_interface).c_str(), &group->imr_interface)) {
-		return {};
+	switch (inet_pton(AF_INET, to_string(imr_interface).c_str(), &group->imr_interface)) {
+	case 0:
+		return mint_network::make_failure(cursor, EINVAL);
+	case -1:
+		return mint_network::make_failure(cursor, mint_network::last_socket_error_code().value());
 	}
-	return create_c_object(cursor.program(), group.release());
+	return mint_network::make_success(cursor, create_c_object(cursor.program(), group.release()));
 }
 
 mint::Reference mint_ipv4_socket_mreq_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
@@ -804,16 +775,25 @@ mint::Reference mint_ipv4_socket_mreq_set_interface(mint::Cursor& /*cursor*/, co
 mint::Reference mint_ipv4_socket_mreq_source_create(mint::Cursor& cursor, const mint::Reference& imr_multiaddr,
     const mint::Reference& imr_sourceaddr, const mint::Reference& imr_interface) {
 	auto group = std::make_unique<ip_mreq_source>();
-	if (!inet_pton(AF_INET, to_string(imr_multiaddr).c_str(), &group->imr_multiaddr)) {
-		return {};
+	switch (inet_pton(AF_INET, to_string(imr_multiaddr).c_str(), &group->imr_multiaddr)) {
+	case 0:
+		return mint_network::make_failure(cursor, EINVAL);
+	case -1:
+		return mint_network::make_failure(cursor, mint_network::last_socket_error_code().value());
 	}
-	if (!inet_pton(AF_INET, to_string(imr_sourceaddr).c_str(), &group->imr_sourceaddr)) {
-		return {};
+	switch (inet_pton(AF_INET, to_string(imr_sourceaddr).c_str(), &group->imr_sourceaddr)) {
+	case 0:
+		return mint_network::make_failure(cursor, EINVAL);
+	case -1:
+		return mint_network::make_failure(cursor, mint_network::last_socket_error_code().value());
 	}
-	if (!inet_pton(AF_INET, to_string(imr_interface).c_str(), &group->imr_interface)) {
-		return {};
+	switch (inet_pton(AF_INET, to_string(imr_interface).c_str(), &group->imr_interface)) {
+	case 0:
+		return mint_network::make_failure(cursor, EINVAL);
+	case -1:
+		return mint_network::make_failure(cursor, mint_network::last_socket_error_code().value());
 	}
-	return create_c_object(cursor.program(), group.release());
+	return mint_network::make_success(cursor, create_c_object(cursor.program(), group.release()));
 }
 
 mint::Reference mint_ipv4_socket_mreq_source_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
@@ -871,7 +851,8 @@ mint::Reference mint_ipv6_socket_setup_options(mint::Cursor& /*cursor*/, const m
 #define BIND_IPV6_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = IPV6_##_option
 #define BIND_IPV6_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef IPV6_CHECKSUM
 	BIND_IPV6_VALUE(ip_v6_socket_option, CHECKSUM);
@@ -979,21 +960,15 @@ mint::Reference mint_ipv6_socket_setup_options(mint::Cursor& /*cursor*/, const m
 
 mint::Reference mint_ipv6_socket_get_option_number(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<int>(socket_fd, IPPROTO_IPV6, option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(option_value));
+		return mint_network::make_success(cursor, mint::create_number(option_value));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv6_socket_set_option_number(mint::Cursor& cursor, const mint::Reference& socket,
@@ -1014,23 +989,16 @@ mint::Reference mint_ipv6_socket_set_option_number(mint::Cursor& cursor, const m
 
 mint::Reference mint_ipv6_socket_get_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		const auto option_value = mint_network::get_socket_option<mint_network::sockopt_bool>(socket_fd, IPPROTO_IPV6,
 		    option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_boolean(option_value != mint_network::sockopt_false));
+		return mint_network::make_success(cursor, mint::create_boolean(option_value != mint_network::sockopt_false));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv6_socket_set_option_boolean(mint::Cursor& cursor, const mint::Reference& socket,
@@ -1051,23 +1019,16 @@ mint::Reference mint_ipv6_socket_set_option_boolean(mint::Cursor& cursor, const 
 
 mint::Reference mint_ipv6_socket_get_option_addr(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		auto option_value = mint_network::get_socket_option<std::unique_ptr<sockaddr_in6>>(socket_fd, IPPROTO_IPV6,
 		    option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_c_object(cursor.program(), option_value.release()));
+		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), option_value.release()));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv6_socket_set_option_addr(mint::Cursor& cursor, const mint::Reference& socket,
@@ -1088,30 +1049,22 @@ mint::Reference mint_ipv6_socket_set_option_addr(mint::Cursor& cursor, const min
 
 mint::Reference mint_ipv6_socket_get_option_mtuinfo(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 #if defined(MINT_OS_LINUX) && defined(__UAPI_DEF_IP6_MTUINFO)
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		auto option_value = mint_network::get_socket_option<std::unique_ptr<ip6_mtuinfo>>(socket_fd, IPPROTO_IPV6,
 		    option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_c_object(cursor.program(), option_value.release()));
+		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), option_value.release()));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
 #else
 	((void)option);
 	((void)socket);
-	iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-	iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(ENOTSUP));
+	return mint_network::make_failure(cursor, ENOTSUP);
 #endif
-
-	return result;
 }
 
 mint::Reference mint_ipv6_socket_set_option_mtuinfo(mint::Cursor& cursor, const mint::Reference& socket,
@@ -1140,23 +1093,16 @@ mint::Reference mint_ipv6_socket_set_option_mtuinfo(mint::Cursor& cursor, const 
 
 mint::Reference mint_ipv6_socket_get_option_mreq(mint::Cursor& cursor, const mint::Reference& socket,
     mint::Reference& option) {
-
-	mint::Reference result = mint::create_iterator(cursor.program());
-
 	try {
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto option_id = to_integer<int>(cursor, option);
 		auto option_value = mint_network::get_socket_option<std::unique_ptr<ipv6_mreq>>(socket_fd, IPPROTO_IPV6,
 		    option_id);
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_c_object(cursor.program(), option_value.release()));
+		return mint_network::make_success(cursor, mint::create_c_object(cursor.program(), option_value.release()));
 	}
 	catch (const std::system_error& error) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
-
-	return result;
 }
 
 mint::Reference mint_ipv6_socket_set_option_mreq(mint::Cursor& cursor, const mint::Reference& socket,
@@ -1179,8 +1125,11 @@ mint::Reference mint_ipv6_socket_mreq_create(mint::Cursor& cursor, const mint::R
     mint::Reference& ipv6mr_interface) {
 
 	auto group = std::make_unique<ipv6_mreq>();
-	if (!inet_pton(AF_INET6, to_string(ipv6mr_multiaddr).c_str(), &group->ipv6mr_multiaddr)) {
-		return {};
+	switch (inet_pton(AF_INET6, to_string(ipv6mr_multiaddr).c_str(), &group->ipv6mr_multiaddr)) {
+	case 0:
+		return mint_network::make_failure(cursor, EINVAL);
+	case -1:
+		return mint_network::make_failure(cursor, mint_network::last_socket_error_code().value());
 	}
 #ifdef MINT_OS_WINDOWS
 	group->ipv6mr_interface = to_integer<ULONG>(cursor, ipv6mr_interface);
@@ -1189,7 +1138,7 @@ mint::Reference mint_ipv6_socket_mreq_create(mint::Cursor& cursor, const mint::R
 #else
 	group->ipv6mr_interface = to_integer<unsigned int>(cursor, ipv6mr_interface);
 #endif
-	return create_c_object(cursor.program(), group.release());
+	return mint_network::make_success(cursor, create_c_object(cursor.program(), group.release()));
 }
 
 mint::Reference mint_ipv6_socket_mreq_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {

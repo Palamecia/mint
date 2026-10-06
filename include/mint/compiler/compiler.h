@@ -24,18 +24,35 @@
 #ifndef MINT_COMPILER_COMPILER_H
 #define MINT_COMPILER_COMPILER_H
 
-#include "mint/program/class_register.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
 #include "mint/config.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/builtin/library.h"
+#include "mint/memory/class.h"
 #include "mint/memory/data.h"
+#include "mint/memory/garbage_collector.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include "mint/program/node.h"
 #include "mint/system/data_stream.h"
 #include "mint/program/module.h"
+#include "mint/system/error.h"
+#include <concepts>
 #include <cstdint>
+#include <exception>
 #include <functional>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace mint {
 
 class MINT_EXPORT Compiler {
+	std::reference_wrapper<Program> _program;
+	std::reference_wrapper<ModuleInfo> _data;
+	bool _printing = false;
 public:
 	enum class DataHint : std::uint8_t {
 		data_unknown_hint,
@@ -48,27 +65,54 @@ public:
 		data_none_hint,
 	};
 
-	explicit Compiler(Program& program);
+	Compiler(Program& program, ModuleInfo& data);
 
 	[[nodiscard]] bool is_printing() const;
 	void set_printing(bool enabled);
 
-	bool build(DataStream& stream, ModuleInfo& node);
+	bool build(DataStream& stream);
 
+	const Reference* make_constant(const std::string& token, DataHint hint);
 	Data* make_data(const std::string& token, DataHint hint);
-	Data& make_library(const std::string& token);
-	static Data& make_package(PackageData& package);
-	static Data& make_number(double value);
-	static Data& make_boolean(bool value);
-	Data& make_array();
-	Data& make_hash();
-	static Data& make_none();
+
+	const Reference* make_constant(Reference::Flags flags, Data* data);
+
+	template<std::derived_from<Data> Type, typename... Args>
+	const Reference* make_constant(Args&&... args) {
+		return data().bytecode.make_constant(make_data<Type>(std::forward<Args>(args)...));
+	}
+
+	template<std::derived_from<Data> Type, typename... Args>
+	Type* make_data(Args&&... args) {
+		if constexpr (std::is_same_v<Type, Library> && std::constructible_from<std::string, Args...>) {
+			const auto token = std::string(std::forward<Args>(args)...);
+			try {
+				auto* data = GarbageCollector::instance().alloc<Type>(_program, token_to_string(token));
+				data->construct();
+				return data;
+			}
+			catch (const std::exception& error) {
+				mint::error("failed to load plugin {}: {}", token, error.what());
+			}
+		}
+		else if constexpr (std::derived_from<Type, Object>) {
+			auto* data = GarbageCollector::instance().alloc<Type>(_program, std::forward<Args>(args)...);
+			data->construct();
+			return data;
+		}
+		else {
+			return GarbageCollector::instance().alloc<Type>(std::forward<Args>(args)...);
+		}
+	}
+
+	void push_node(const Node& node);
+	void push_nodes(const std::vector<Node>& nodes);
 
 	Program& program();
+	ModuleInfo& data();
 
 private:
-	std::reference_wrapper<Program> _program;
-	bool _printing = false;
+	static std::string token_to_string(const std::string& token);
 };
 
 }

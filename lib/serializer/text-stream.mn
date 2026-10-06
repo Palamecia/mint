@@ -30,6 +30,7 @@ load mint.lang
 load mint.string
 load codec.codec
 load exception.codec
+load exception.exception
 load serializer.data-stream
 load serializer.string-stream
 
@@ -46,33 +47,34 @@ package Serializer {
 	 * an instance of {Serializer.BufferedStream} is created to provide these methods.
 	 * 
 	 * The `codec` parameter is used to specify the text codec to use for reading and writing text.
-	 * 
-	 * If `stream` is not a valid object, `none` is returned.
+	 *
+	 * Raises {Exception.ValueError} if `stream` is not a valid object.
 	 */
 	const def new(self, stream, codec = Codec.TextCodec()) {
-		if stream {
-			self.codec = codec
-			self.byteBuffer = Serializer.DataStream()
-			if defined stream.readSome and defined stream.read and defined stream.write {
-				self.stream = stream
-			} else {
-				self.stream = Serializer.StringStream(stream)
-			}
-			if defined self.stream.isEmpty {
-				self.isSourceExhausted = def(self) {
-					return self.stream.isEmpty()
-				}
-			} elif defined self.stream.isOver {
-				self.isSourceExhausted = def(self) {
-					return self.stream.isOver()
-				}
-			} elif defined self.stream.atEnd {
-				self.isSourceExhausted = def(self) {
-					return self.stream.atEnd()
-				}
-			}
-			return self
+		if not stream {
+			raise Exception.ValueError('stream must be a valid object', stream)
 		}
+		self.codec = codec
+		self.byteBuffer = Serializer.DataStream()
+		if defined stream.readSome and defined stream.read and defined stream.write {
+			self.stream = stream
+		} else {
+			self.stream = Serializer.StringStream(stream)
+		}
+		if defined self.stream.isEmpty {
+			self.isSourceExhausted = def(self) {
+				return self.stream.isEmpty()
+			}
+		} elif defined self.stream.isOver {
+			self.isSourceExhausted = def(self) {
+				return self.stream.isOver()
+			}
+		} elif defined self.stream.atEnd {
+			self.isSourceExhausted = def(self) {
+				return self.stream.atEnd()
+			}
+		}
+		return self
 	}
 
 	/**

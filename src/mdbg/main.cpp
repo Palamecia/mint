@@ -23,9 +23,21 @@
 
 #include "debugger.h"
 #include "mint/system/arguments.h"
+#include "mint/system/error.h"
+#include <cstdlib>
+#include <exception>
 #include <ranges>
 
 int main() {
-	auto debugger = Debugger({std::from_range, std::views::drop(mint::arguments(), 1)});
-	return debugger.run();
+	try {
+		auto debugger = Debugger();
+		if (!debugger.setup({std::from_range, std::views::drop(mint::arguments(), 1)})) {
+			return EXIT_SUCCESS;
+		}
+		return debugger.run();
+	}
+	catch (const std::exception& error) {
+		mint::print_error(error.what());
+		return EXIT_FAILURE;
+	}
 }

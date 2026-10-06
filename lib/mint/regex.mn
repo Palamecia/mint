@@ -42,7 +42,7 @@ load mint.type
 	 * Creates a new context for `match`. If `match` is an empty match, `none`
 	 * is returned.
 	 */
-	const def new(self, match) {
+	const def new(self, match) -> RegexMatch? {
 		if defined match {
 			for let (str, pos, len) in match {
 				self.matches << RegexMatch.Item(str, pos, len)

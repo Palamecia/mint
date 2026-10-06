@@ -13,7 +13,7 @@ load test.case
             result = 3
         }
 
-        self.expectEqual(1, result)
+        self.expectEqual(result, 1)
     }
 
     const def testIfElseLetSameName(self) {
@@ -31,7 +31,7 @@ load test.case
             result = result + x
         }
 
-        self.expectEqual(2, result)
+        self.expectEqual(result, 2)
         self.expectNotDefined(x)
     }
 
@@ -46,7 +46,7 @@ load test.case
             result = result + x
         }
 
-        self.expectEqual(0, result)
+        self.expectEqual(result, 0)
         self.expectNotDefined(x)
     }
     
@@ -62,7 +62,7 @@ load test.case
         }
 
         self.expectDefined(result)
-        self.expectEqual(true, result)
+        self.expectEqual(result, true)
         self.expectNotDefined(x)
     }
     
@@ -77,7 +77,7 @@ load test.case
         }
 
         self.expectDefined(result)
-        self.expectEqual(true, result)
+        self.expectEqual(result, true)
         self.expectNotDefined(x)
     }
 }

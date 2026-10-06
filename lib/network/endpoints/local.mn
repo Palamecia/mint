@@ -36,12 +36,17 @@ package Network {
 
 		/**
 		 * Creates a new end point for the local address described by `name`.
+		 *
+		 * Raises {Exception.SocketError} if the local endpoint cannot be created.
 		 */
 		const def new(self, name) {
-			if self.d_ptr = Network.LocalEndpoint.g_lib.call('mint_local_endpoint_create', name) {
-				self.d_ptr.delete = def [g_lib = Network.LocalEndpoint.g_lib] (self) {
-					g_lib.call('mint_local_endpoint_delete', self)
-				}
+			let (errno, d_ptr) = Network.LocalEndpoint.g_lib.call('mint_local_endpoint_create', name)
+			if errno {
+				raise Exception.SocketError(errno, self)
+			}
+			self.d_ptr = d_ptr
+			self.d_ptr.delete = def [g_lib = Network.LocalEndpoint.g_lib] (self) {
+				g_lib.call('mint_local_endpoint_delete', self)
 			}
 			self.name = name
 			return self
@@ -69,7 +74,7 @@ package Network {
         }
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal local serveur name.
 		- final name = ''

@@ -31,7 +31,7 @@ load mint.lang
 
 @class MintLspConfig {
 
-    @const ConfigFileName = '.minter'
+    @const ConfigFileName: string = '.minter'
 
     class PluginManager {
         const def new(self) {
@@ -52,7 +52,7 @@ load mint.lang
             // return plugins
         }
 
-        const def hasHookFor(const self, hookName, disabledPlugins) {
+        const def hasHookFor(const self, hookName: string, disabledPlugins: array) -> boolean {
             for let plugin in self.plugins {
                 if plugin not in disabledPlugins {
                     if defined plugin.${hookName} {
@@ -63,7 +63,7 @@ load mint.lang
             return false
         }
 
-        const def subSetHookCaller(const self, hookName, disabledPlugins) {
+        const def subSetHookCaller(const self, hookName: plugin, disabledPlugins: array) -> function {
             var plugins = for let plugin in self.plugins => \
                 if plugin not in disabledPlugins => \
                     if defined plugin.${hookName} => \
@@ -79,7 +79,7 @@ load mint.lang
             }
         }
 
-        - plugins = []
+        - plugins: array = []
     }
 
     const def new(self, rootUri, initOptions, processId, capabilities) {

@@ -108,11 +108,10 @@ std::size_t GarbageCollector::collect() {
 	if (auto* scheduler = Scheduler::instance()) {
 		for (auto* data : _collecting) {
 			if (auto* object = dynamic_cast<Object*>(data)) {
-				if (auto* slots = object->data) {
-					if (const auto* member = object->metadata.find_operator(Class::delete_operator)) {
-						if (is_instance_of(Class::MemberInfo::get(*member, slots), Data::Format::function)) {
-							scheduler->invoke(Reference(Reference::default_flags, *object), Class::delete_operator);
-						}
+				if (const auto* slots = object->data) {
+					if (const auto* member = object->metadata.find_operator(Class::delete_operator);
+					    member && is_instance_of(Class::MemberInfo::get(*member, slots), Data::Format::function)) {
+						scheduler->invoke(Reference(Reference::default_flags, *object), Class::delete_operator);
 					}
 				}
 			}
@@ -126,7 +125,7 @@ std::size_t GarbageCollector::collect() {
 
 	_threshold = std::max(_threshold, ((_count / threshold_growth_factor) + 1) * threshold_growth_factor);
 
-	auto collected = std::move(_collecting);
+	const auto collected = std::move(_collecting);
 	_collecting.clear();
 	return collected.size();
 }
@@ -174,7 +173,7 @@ void GarbageCollector::unregister_data(Data* data) {
 	--_count;
 }
 
-void GarbageCollector::register_root(MemoryRoot* root) {
+void GarbageCollector::register_root(MemoryNode* root) {
 	assert(_roots.head == nullptr || _roots.head->_prev == nullptr);
 	assert(_roots.tail == nullptr || _roots.tail->_next == nullptr);
 	gc_list_insert_element(_roots, root);
@@ -182,7 +181,7 @@ void GarbageCollector::register_root(MemoryRoot* root) {
 	assert(_roots.tail->_next == nullptr);
 }
 
-void GarbageCollector::unregister_root(MemoryRoot* root) {
+void GarbageCollector::unregister_root(MemoryNode* root) {
 	assert(_roots.head->_prev == nullptr);
 	assert(_roots.tail->_next == nullptr);
 	gc_list_remove_element(_roots, root);
@@ -381,27 +380,27 @@ void GarbageCollector::destroy(Object* ptr) {
 	}
 }
 
-MemoryRoot::MemoryRoot() = default;
+MemoryNode::MemoryNode() = default;
 
-MemoryRoot::MemoryRoot(MemoryRoot&& /*other*/) noexcept {}
+MemoryNode::MemoryNode(const MemoryNode&) {}
 
-MemoryRoot::MemoryRoot(const MemoryRoot& /*other*/) {}
+MemoryNode::MemoryNode(MemoryNode&&) noexcept {}
 
-MemoryRoot::~MemoryRoot() {
+MemoryNode::~MemoryNode() {
 #ifdef MINT_BUILD_TYPE_DEBUG
 	assert(!_registered);
 #endif
 }
 
-MemoryRoot& MemoryRoot::operator=(MemoryRoot&& /*other*/) noexcept {
+MemoryNode& MemoryNode::operator=(const MemoryNode&) {
 	return *this;
 }
 
-MemoryRoot& MemoryRoot::operator=(const MemoryRoot& /*other*/) {
+MemoryNode& MemoryNode::operator=(MemoryNode&&) noexcept {
 	return *this;
 }
 
-void MemoryRoot::register_root() {
+void MemoryNode::register_root() {
 #ifdef MINT_BUILD_TYPE_DEBUG
 	assert(!_registered);
 #endif
@@ -412,7 +411,7 @@ void MemoryRoot::register_root() {
 #endif
 }
 
-void MemoryRoot::unregister_root() {
+void MemoryNode::unregister_root() {
 #ifdef MINT_BUILD_TYPE_DEBUG
 	assert(_registered);
 #endif

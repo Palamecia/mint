@@ -36,23 +36,25 @@ load minter.logger
 load minter.lsp
 
 class Config {
-    stdio = false
-    tcp = false
-    pipe = null
-    socket = null
-    host = "127.0.0.1"
-    port = 2087
-    checkParentProcess = false
+    stdio: boolean = false
+    tcp: boolean = false
+    pipe: string? = none
+    socket: string? = none
+    host: string = "127.0.0.1"
+    port: number = 2087
+    checkParentProcess: boolean = false
 
-    logFile = null
-    verbose = 0
+    logFile: string? = none
+    verbose: number = 0
 }
 
-def addArguments(parser, config) {
+def [...] parseArguments() -> Config {
 
+    var parser: CommandLineParser = CommandLineParser()
     parser.setDescription("Mint Language Server")
     parser.setVersion(__version__)
 
+    var config: Config = Config()
     parser.addArgument("stdio", {
         'description': "Force stdio interface.",
         'target': config.stdio
@@ -97,9 +99,12 @@ def addArguments(parser, config) {
         'action': CommandLineParser.Action.Count,
         'target': config.verbose
     })
+
+    parser.parse(args)
+    return config
 }
 
-def configureLogger(verbose = 0, logFile = none) {
+def configureLogger(verbose: number = 0, logFile: string? = none) -> none {
 
     class StdErrorStream {
         def write(self, data) {
@@ -107,23 +112,22 @@ def configureLogger(verbose = 0, logFile = none) {
         }
     }
 
-    var logFormatter = Logger.Formatter()
-    var logHandler = Logger.Handler(Serializer.TextStream(logFile ? System.open(logFile, 'w') : StdErrorStream()))
+    var logFormatter: Logger.Formatter = Logger.Formatter()
 
-    if logHandler {
+    if var logHandler: Logger.Handler = Logger.Handler(Serializer.TextStream(logFile ? System.open(logFile, 'w') : StdErrorStream())) {
         logHandler.setFormatter(logFormatter)
         logger.addHandler(logHandler)
     }
 
     switch verbose {
     case 0:
-        level = Logger.Level.Warning
+        var level = Logger.Level.Warning
         break
     case 1:
-        level = Logger.Level.Info
+        var level = Logger.Level.Info
         break
     default:
-        level = Logger.Level.Debug
+        var level = Logger.Level.Debug
         break
     }
 
@@ -143,11 +147,7 @@ def configureLogger(verbose = 0, logFile = none) {
 
 def [...] main(args) {
 
-    var parser = CommandLineParser()
-    var config = Config()
-    
-    addArguments(parser, config)
-    parser.parse(args)
+    var config: Config = parseArguments()
     configureLogger(config.verbose, config.logFile)
 
     if config.stdio {

@@ -9,18 +9,18 @@ load system.poller
         let event = System.Event()
         let triggerCount = 0
 
-        self.expectEqual(true, poller.watch(event, def [...] {
+        self.expectEqual(poller.watch(event, def [...] {
             ++triggerCount
-        }))
+        }), true)
 
-        self.expectEqual(false, poller.poll(0))
-        self.expectEqual(0, triggerCount)
+        self.expectEqual(poller.poll(0), false)
+        self.expectEqual(triggerCount, 0)
 
         event.set()
 
-        self.expectEqual(true, poller.poll(0))
-        self.expectEqual(1, triggerCount)
+        self.expectEqual(poller.poll(0), true)
+        self.expectEqual(triggerCount, 1)
 
-        self.expectEqual(false, poller.poll(0))
+        self.expectEqual(poller.poll(0), false)
     }
 }

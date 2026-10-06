@@ -30,6 +30,7 @@
 #include "mint/compiler/token.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/symbol_table.h"
+#include "mint/program/module.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -107,6 +108,7 @@ private:
 	void set_state(State state);
 	void pop_state();
 
+	mint::ModuleInfo _module;
 	mint::Compiler _compiler;
 	std::unique_ptr<mint::Cursor> _cursor;
 	std::vector<EvaluatorState> _state = {EvaluatorState {}};

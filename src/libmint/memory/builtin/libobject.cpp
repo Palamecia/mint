@@ -22,17 +22,35 @@
  */
 
 #include "mint/memory/builtin/libobject.h"
+#include "mint/compiler/type_annotation.h"
+#include "mint/program/module.h"
 #include "mint/program/program.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/memory/class.h"
 #include "mint/memory/global_data.h"
 
 using namespace mint;
+
+namespace {
+
+ClassDescription make_description() {
+	auto description = ClassDescription(Module::invalid_id, "libobject");
+	description.create_attribute("delete", {});
+	return description;
+}
+
+}
+
+ClassDescription& mint::LibObjectClass::description() {
+	static auto g_description = make_description();
+	return g_description;
+}
 
 LibObjectClass& LibObjectClass::instance(Program& program) {
 	return program.global_data().builtin<LibObjectClass>(Class::Metatype::libobject);
 }
 
 LibObjectClass::LibObjectClass(Program& program) :
-    Class(program.global_data(), "libobject", Class::Metatype::libobject) {
+    Class(program.global_data(), description(), Class::Metatype::libobject) {
 	create_builtin_member(delete_operator);
 }

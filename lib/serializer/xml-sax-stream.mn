@@ -38,15 +38,6 @@ package Serializer {
  */
 @class XmlSaxStream : Serializer.XmlStream {
 	/**
-	 * Creates a new stream for reading and writing data using `stream`.
-	 */
-	const def new(self, stream) {
-		if self = Serializer.XmlStream.new(self, stream) {
-			return self
-		}
-	}
-
-	/**
 	 * Returns the handle used to handle XML content.
 	 */
 	const def getHandle(const self) {
@@ -61,15 +52,24 @@ package Serializer {
 	}
 
 	/**
-	 * Reads the content of the stream. Returns `true` if all encountred events
-	 * have been correctly handled by the handler; otherwise returns `false`.
+	 * Reads the next document of the stream and reports each encountered event
+	 * to the handle.
+	 * 
+	 * Returns `true` if the whole document has been processed, i.e. if the
+	 * handle returned `true` for every event up to the end of the document.
+	 * Returns `false` if the handle stopped the parsing by returning `false`,
+	 * if the stream ended before the end of the document, or if no handle is
+	 * set.
+	 * 
 	 * If the content of the stream is not a valid XML, an instance of
 	 * {Serializer.DocumentStream.InvalidDocument} is raised.
 	 */
 	override const def read(self) {
 		if defined self.handle {
-			while let token = Serializer.XmlStream.read(self) {
-				switch token {
+			while true {
+				switch Serializer.XmlStream.read(self) {
+				case Serializer.XmlStream.TokenType.Invalid:
+					return false
 				case Serializer.XmlStream.TokenType.ProcessingInstruction:
 					if not self.handle.onProcessingInstruction(self.getProcessingInstructionTarget(), self.getProcessingInstructionData()) {
 						return false
@@ -81,17 +81,14 @@ package Serializer {
 					}
 					break
 				case Serializer.XmlStream.TokenType.EndDocument:
-					if not self.handle.onEndDocument() {
-						return false
-					}
-					break
+					return self.handle.onEndDocument()
 				case Serializer.XmlStream.TokenType.StartElement:
-					if not self.handle.onStartElement(self.getNamespaceUri(), self.getName(), self.getQualifiedName(), self.getAttributes()) {
+					if not self.handle.onStartElement(self.getNamespaceUri(), self.getLocalName(), self.getQualifiedName(), self.getAttributes()) {
 						return false
 					}
 					break
 				case Serializer.XmlStream.TokenType.EndElement:
-					if not self.handle.onEndElement(self.getNamespaceUri(), self.getName(), self.getQualifiedName()) {
+					if not self.handle.onEndElement(self.getNamespaceUri(), self.getLocalName(), self.getQualifiedName()) {
 						return false
 					}
 					break
@@ -117,8 +114,8 @@ package Serializer {
 					break
 				}
 			}
-			return true
 		}
+		return false
 	}
 
 	/// Internal read handle.
@@ -154,9 +151,9 @@ package Serializer {
 
 	/**
 	 * The reader calls this function when it has parsed a start element tag.
-	 * The tag name is given through the `localName` parameter and each attributes
-	 * of the tag is inserted in an hash (name to value) and passed through the
-	 * `attributes` parameter.
+	 * The tag name is given through the `localName` parameter and the attributes
+	 * of the tag are passed through the `attributes` parameter as an instance of
+	 * {Serializer.XmlAttributes}.
 	 * 
 	 * There is a corresponding {@see onEndElement} call when the corresponding
 	 * end element tag is read. The {@see onStartElement} and {@see onEndElement}
@@ -184,9 +181,9 @@ package Serializer {
 
 	/**
 	 * The reader calls this function when it has parsed a processing instruction.
-	 * The target name is given through the `name` parameter and each attributes
-	 * of the data is inserted in an hash (name to value) and passed through the
-	 * `attributes` parameter.
+	 * The target name is given through the `name` parameter and the attributes
+	 * of the data are passed through the `attributes` parameter as an instance
+	 * of {Serializer.XmlAttributes}.
 	 * 
 	 * If this function returns `false` the reader stops parsing and report an
 	 * unfinished parsing.

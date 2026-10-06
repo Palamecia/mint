@@ -9,14 +9,14 @@ load mint.enum
 
 @class EnumTest : Test.Case {
 	const def testFindEnumName(self) {
-		self.expectEqual('TestEnum.first', TestEnum.findEnumName(TestEnum.first))
-		self.expectEqual('TestEnum.next', TestEnum.findEnumName(TestEnum.next))
-		self.expectEqual('TestEnum.last', TestEnum.findEnumName(TestEnum.last))
+		self.expectEqual(TestEnum.findEnumName(TestEnum.first), 'TestEnum.first')
+		self.expectEqual(TestEnum.findEnumName(TestEnum.next), 'TestEnum.next')
+		self.expectEqual(TestEnum.findEnumName(TestEnum.last), 'TestEnum.last')
 	}
 
 	const def testFindEnumValue(self) {
-		self.expectIsSame(TestEnum.first, TestEnum.findEnumValue(0))
-		self.expectIsSame(TestEnum.next, TestEnum.findEnumValue(1))
-		self.expectIsSame(TestEnum.last, TestEnum.findEnumValue(2))
+		self.expectIsSame(TestEnum.findEnumValue(0), TestEnum.first)
+		self.expectIsSame(TestEnum.findEnumValue(1), TestEnum.next)
+		self.expectIsSame(TestEnum.findEnumValue(2), TestEnum.last)
 	}
 }

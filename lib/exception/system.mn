@@ -367,7 +367,7 @@ package Exception {
 	/**
 	 * Returns the exception informations as a string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if self.errno {
 			return '%s (%s)' % (self.getDescription(), Exception.SystemError.Errno.findEnumName(self.errno))
 		}
@@ -391,12 +391,12 @@ package Exception {
 	/**
 	 * Returns the error description.
 	 */
-	const def getDescription(const self) {
+	const def getDescription(const self) -> string {
 		return Exception.SystemError.g_lib.call('mint_errno_strerror', self.errno or 0)
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-system')
+	- @const g_lib: library = lib('libmint-system')
 
 	/// Internal error identifier.
 	- final %errno = none
@@ -407,5 +407,5 @@ package Exception {
 
 }
 
-const g_lib = lib('libmint-system')
+const g_lib: library = lib('libmint-system')
 g_lib.call('mint_errno_setup', Exception.SystemError.Errno)

@@ -82,7 +82,6 @@ inline constexpr std::size_t max_udp_payload = 65507;
 
 mint::Reference mint_udp_socket_open(mint::Cursor& cursor, const mint::Reference& ip_version) {
 
-	mint::Reference result = mint::create_iterator(cursor.program());
 	auto socket_fd = INVALID_SOCKET;
 
 	switch (mint::to_integer<int>(cursor, ip_version)) {
@@ -93,22 +92,13 @@ mint::Reference mint_udp_socket_open(mint::Cursor& cursor, const mint::Reference
 		socket_fd = mint_network::SocketManager::instance().open_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 		break;
 	default:
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(EAFNOSUPPORT));
-		return result;
+		return mint_network::make_failure(cursor, EAFNOSUPPORT);
 	}
 
 	if (socket_fd == INVALID_SOCKET) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_number(mint_network::errno_from_socket_last_error()));
+		return mint_network::make_failure(cursor, mint_network::errno_from_socket_last_error());
 	}
-	else {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint_network::create_socket(cursor.program(), socket_fd));
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-	}
-
-	return result;
+	return mint_network::make_success(cursor, mint_network::create_socket(cursor.program(), socket_fd));
 }
 
 mint::Reference mint_udp_socket_sendto(mint::FunctionHelper& helper, const mint::Reference& socket,
@@ -303,13 +293,13 @@ mint::Reference mint_udp_socket_sendto_async(mint::FunctionHelper& helper, const
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto [address, address_length] = mint_network::to_sockaddr(endpoint);
 
-		return mint::create_iterator_from(helper.cursor(), mint::create_number(0),
+		return mint_network::make_success(helper.cursor(),
 		    mint::create_async_operation(helper.cursor().program(),
 		        new AsyncSendToOperation(helper, std::move(self), socket_fd, address, address_length,
 		            buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)));
 	}
 	catch (const std::system_error& error) {
-		return mint::create_iterator_from(helper.cursor(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(helper.cursor(), error.code().value());
 	}
 }
 

@@ -37,6 +37,8 @@ class Program;
 class MINT_EXPORT LibObjectClass : public Class {
 public:
 	explicit LibObjectClass(Program& program);
+
+	static ClassDescription& description();
 	static LibObjectClass& instance(Program& program);
 };
 

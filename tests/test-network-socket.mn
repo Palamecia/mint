@@ -11,9 +11,9 @@ load network.sockets.tcp
 
         async def [...] serverMain() {
             let server = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            self.expectEqual(server.open(endpoint.getIpVersion()), true)
             server.setSocketOption(Network.SocketOption.REUSEADDR, true)
-            self.expectEqual(true, server.listen(endpoint))
+            self.expectEqual(server.listen(endpoint), true)
             let client = await server.accept()
             await client.write('ok')
             client.close()
@@ -22,7 +22,7 @@ load network.sockets.tcp
 
         async def [...] clientMain() {
             let client = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, await client.connect(endpoint))
+            self.expectEqual(await client.connect(endpoint), true)
             let result = await client.read(def(buffer) => buffer.containsString())
             client.close()
             return result.getString()
@@ -33,7 +33,7 @@ load network.sockets.tcp
         let promise = scheduler.spawn(clientMain())
         scheduler.run()
 
-        self.expectEqual('ok', promise.get())
+        self.expectEqual(promise.get(), 'ok')
     }
 
     const def testTcpMultipleClients(self) {
@@ -45,9 +45,9 @@ load network.sockets.tcp
         async def [...] serverMain() {
 
             let server = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            self.expectEqual(server.open(endpoint.getIpVersion()), true)
             server.setSocketOption(Network.SocketOption.REUSEADDR, true)
-            self.expectEqual(true, server.listen(endpoint))
+            self.expectEqual(server.listen(endpoint), true)
 
             for (let i = 0, i < 3, i = i + 1) {
                 let client = await server.accept()
@@ -60,7 +60,7 @@ load network.sockets.tcp
 
         async def [...] clientMain() {
             let client = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, await client.connect(endpoint))
+            self.expectEqual(await client.connect(endpoint), true)
             results.push((await client.read(def(buffer) => buffer.containsString())).getString())
             client.close()
         }
@@ -73,7 +73,7 @@ load network.sockets.tcp
 
         scheduler.run()
 
-        self.expectEqual(['ok','ok','ok'], results)
+        self.expectEqual(results, ['ok','ok','ok'])
     }
 
     const def testTcpConcurrentClients(self) {
@@ -85,9 +85,9 @@ load network.sockets.tcp
         async def [...] serverMain() {
 
             let server = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            self.expectEqual(server.open(endpoint.getIpVersion()), true)
             server.setSocketOption(Network.SocketOption.REUSEADDR, true)
-            self.expectEqual(true, server.listen(endpoint))
+            self.expectEqual(server.listen(endpoint), true)
 
             for (let i = 0, i < 3, i = i + 1) {
                 let client = await server.accept()
@@ -100,7 +100,7 @@ load network.sockets.tcp
 
         async def [...] clientMain() {
             let client = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, await client.connect(endpoint))
+            self.expectEqual(await client.connect(endpoint), true)
             results.push((await client.read(def(buffer) => buffer.containsString())).getString())
             client.close()
         }
@@ -113,7 +113,7 @@ load network.sockets.tcp
 
         scheduler.run()
 
-        self.expectEqual(3, results.size())
+        self.expectEqual(results.size(), 3)
     }
 
     const def testTcpBidirectional(self) {
@@ -124,9 +124,9 @@ load network.sockets.tcp
 
         async def [...] serverMain() {
             let server = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            self.expectEqual(server.open(endpoint.getIpVersion()), true)
             server.setSocketOption(Network.SocketOption.REUSEADDR, true)
-            self.expectEqual(true, server.listen(endpoint))
+            self.expectEqual(server.listen(endpoint), true)
             let client = await server.accept()
             let message = (await client.read(def(buffer) => buffer.containsString())).getString()
             await client.write(message + ' world')
@@ -136,7 +136,7 @@ load network.sockets.tcp
 
         async def [...] clientMain() {
             let client = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, await client.connect(endpoint))
+            self.expectEqual(await client.connect(endpoint), true)
             await client.write('hello')
             result = (await client.read(def(buffer) => buffer.containsString())).getString()
             client.close()
@@ -147,7 +147,7 @@ load network.sockets.tcp
 
         scheduler.run()
 
-        self.expectEqual('hello world', result)
+        self.expectEqual(result, 'hello world')
     }
 
     const def testTcpClientDisconnect(self) {
@@ -157,9 +157,9 @@ load network.sockets.tcp
 
         async def [...] serverMain() {
             let server = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            self.expectEqual(server.open(endpoint.getIpVersion()), true)
             server.setSocketOption(Network.SocketOption.REUSEADDR, true)
-            self.expectEqual(true, server.listen(endpoint))
+            self.expectEqual(server.listen(endpoint), true)
             let client = await server.accept()
             client.close()
             server.close()
@@ -167,7 +167,7 @@ load network.sockets.tcp
 
         async def [...] clientMain() {
             let client = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, await client.connect(endpoint))
+            self.expectEqual(await client.connect(endpoint), true)
             client.close()
         }
 
@@ -187,9 +187,9 @@ load network.sockets.tcp
 
         async def [...] serverMain() {
             let server = Network.TcpSocket().asyncOn(scheduler)
-			self.expectEqual(true, server.open(endpoint.getIpVersion()))
+			self.expectEqual(server.open(endpoint.getIpVersion()), true)
 			server.setSocketOption(Network.SocketOption.REUSEADDR, true)
-            self.expectEqual(true, server.listen(endpoint))
+            self.expectEqual(server.listen(endpoint), true)
             let client = await server.accept()
             await client.write(message)
             client.close()
@@ -198,7 +198,7 @@ load network.sockets.tcp
 
         async def [...] clientMain() {
             let client = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, await client.connect(endpoint))
+            self.expectEqual(await client.connect(endpoint), true)
             result = (await client.read(def(buffer) => buffer.containsString())).getString()
             client.close()
         }
@@ -208,7 +208,7 @@ load network.sockets.tcp
 
         scheduler.run()
 
-        self.expectEqual(message, result)
+        self.expectEqual(result, message)
     }
 
     const def testTcpAcceptLoop(self) {
@@ -220,9 +220,9 @@ load network.sockets.tcp
         async def [...] serverMain() {
 
             let server = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, server.open(endpoint.getIpVersion()))
+            self.expectEqual(server.open(endpoint.getIpVersion()), true)
             server.setSocketOption(Network.SocketOption.REUSEADDR, true)
-            self.expectEqual(true, server.listen(endpoint))
+            self.expectEqual(server.listen(endpoint), true)
 
             for (let i = 0, i < 2, i = i + 1) {
                 let client = await server.accept()
@@ -235,7 +235,7 @@ load network.sockets.tcp
 
         async def [...] clientMain() {
             let client = Network.TcpSocket().asyncOn(scheduler)
-            self.expectEqual(true, await client.connect(endpoint))
+            self.expectEqual(await client.connect(endpoint), true)
             results.push((await client.read(def(buffer) => buffer.containsString())).getString())
             client.close()
         }
@@ -246,7 +246,7 @@ load network.sockets.tcp
 
         scheduler.run()
 
-        self.expectEqual(['ok','ok'], results)
+        self.expectEqual(results, ['ok','ok'])
     }
 
     const def testTcpSocketMetadata(self) {
@@ -254,16 +254,16 @@ load network.sockets.tcp
         let socket = Network.TcpSocket()
         let endpoint = Network.IpEndpoint('127.0.0.1', 7364)
 
-        self.expectEqual(true, socket.open(endpoint.getIpVersion()))
-        self.expectEqual(Network.Socket.State.Open, socket.getState())
-        self.expectEqual(true, socket.setNonBlocking(true))
-        self.expectEqual(true, socket.isNonBlocking())
+        self.expectEqual(socket.open(endpoint.getIpVersion()), true)
+        self.expectEqual(socket.getState(), Network.Socket.State.Open)
+        self.expectEqual(socket.setNonBlocking(true), true)
+        self.expectEqual(socket.isNonBlocking(), true)
 
-        self.expectEqual(true, socket.listen(endpoint))
+        self.expectEqual(socket.listen(endpoint), true)
         self.expectDefined(socket.getEndpoint())
 
-        self.expectEqual(true, socket.setNonBlocking(false))
-        self.expectEqual(false, socket.isNonBlocking())
+        self.expectEqual(socket.setNonBlocking(false), true)
+        self.expectEqual(socket.isNonBlocking(), false)
         socket.close()
     }
 }

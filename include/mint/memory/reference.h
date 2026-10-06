@@ -29,7 +29,6 @@
 #include "mint/memory/memory_pool.h"
 #include "mint/memory/garbage_collector.h"
 #include <concepts>
-#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -48,7 +47,7 @@ inline constexpr FromCopy copy_from;
 class MINT_EXPORT Reference {
 	friend class GarbageCollector;
 public:
-	using Flags = std::uint16_t;
+	using Flags = unsigned;
 
 	static constexpr Flags default_flags = 0x000;
 	static constexpr Flags const_value = 0x001;
@@ -134,7 +133,7 @@ private:
 	std::shared_ptr<Info> _info;
 };
 
-class MINT_EXPORT RootReference final : public Reference, public MemoryRoot {
+class MINT_EXPORT RootReference final : public Reference, public MemoryRoot<MemoryRootRegistrationMode::automatic> {
 public:
 	RootReference();
 	template<std::derived_from<Data> Type, typename... Args>
@@ -203,24 +202,16 @@ RootReference make_root_reference(Reference::Flags flags, Args&&... args) {
 template<std::derived_from<Data> Type, typename... Args>
     requires std::constructible_from<Type, Args...>
 RootReference::RootReference(Reference::Flags flags, std::in_place_type_t<Type> /*in_place_type*/, Args&&... args) :
-    Reference(flags, Info::alloc<Type>(std::forward<Args>(args)...)) {
-	register_root();
-}
+    Reference(flags, Info::alloc<Type>(std::forward<Args>(args)...)) {}
 
 inline RootReference::RootReference(FromCreate /*create_from*/, const Reference& other) :
-    Reference(other.flags(), &other.data()) {
-	register_root();
-}
+    Reference(other.flags(), &other.data()) {}
 
 inline RootReference::RootReference(FromCopy /*copy_from*/, const Reference& other) :
-    Reference(other.flags(), Info::copy(other.data())) {
-	register_root();
-}
+    Reference(other.flags(), Info::copy(other.data())) {}
 
 inline RootReference::RootReference(FromCopy /*copy_from*/, Flags flags, const Data& data) :
-    Reference(flags, Info::copy(data)) {
-	register_root();
-}
+    Reference(flags, Info::copy(data)) {}
 
 }
 

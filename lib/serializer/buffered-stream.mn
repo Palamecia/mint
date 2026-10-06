@@ -27,6 +27,7 @@
  */
 
 load serializer.data-stream
+load exception.exception
 
 package Serializer {
 
@@ -37,12 +38,16 @@ package Serializer {
 @class BufferedStream {
 	/**
 	 * Creates a new stream for reading and writing data using `stream`.
+	 *
+	 * Raises {Exception.ValueError} if `stream` is not a valid object.
 	 */
 	const def new(self, stream) {
-		if self.stream = stream {
-			self.buffer = Serializer.DataStream()
-			return self
+		if not stream {
+			raise Exception.ValueError('stream must be a valid object', stream)
 		}
+		self.stream = stream
+		self.buffer = Serializer.DataStream()
+		return self
 	}
 
 	/**

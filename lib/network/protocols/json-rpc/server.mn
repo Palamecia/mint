@@ -167,7 +167,7 @@ package Network {
 			 * on success; otherwise returns `false`. This method calls the {Network.EventChannel.listen} method of the
 			 * underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def listen(self, endpoint) {
 				try {
@@ -187,7 +187,7 @@ package Network {
 			 * method of the underlying channel. If the socket was successfully closed,
 			 * {@see onClose} is called; otherwise the socket will be closed later.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def close(self) {
 				try {
@@ -261,7 +261,7 @@ package Network {
 			 * > to perform I/O operations until the current operation's
 			 * > acknowledgment by the peer.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def setNonBlocking(self, enabled) {
 				try {
@@ -295,7 +295,7 @@ package Network {
 			 * method calls the {Network.EventChannel.notifyReadable}
 			 * method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyReadable(self) {
 				try {
@@ -314,7 +314,7 @@ package Network {
 			 * method calls the {Network.EventChannel.notifyWritable}
 			 * method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyWritable(self) {
 				try {
@@ -334,7 +334,7 @@ package Network {
 			 * {Network.EventChannel.notifyConnection} method of the
 			 * underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyConnection(self) {
 				try {
@@ -354,7 +354,7 @@ package Network {
 			 * of the underlying channel.
 			 * 
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyClosed(self) {
 				try {
@@ -492,7 +492,7 @@ package Network {
 			 * If the socket was successfully closed, {@see onClose} is called;
 			 * otherwise the socket will be closed later.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def close(self) {
 				try {
@@ -566,7 +566,7 @@ package Network {
 			 * > to perform I/O operations until the current operation's
 			 * > acknowledgment by the peer.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def setNonBlocking(self, enabled) {
 				try {
@@ -600,7 +600,7 @@ package Network {
 			 * method calls the {Network.EventChannel.notifyReadable}
 			 * method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyReadable(self) {
 				try {
@@ -619,7 +619,7 @@ package Network {
 			 * method calls the {Network.EventChannel.notifyWritable}
 			 * method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyWritable(self) {
 				try {
@@ -639,7 +639,7 @@ package Network {
 			 * of the underlying channel.
 			 * 
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def notifyClosed(self) {
 				try {
@@ -816,7 +816,7 @@ package Network {
 			 *
 			 * This method calls the {Network.AsyncChannel.close} method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def close(self) {
 				try {
@@ -932,7 +932,7 @@ package Network {
 			 *
 			 * This method calls the {Network.AsyncChannel.close} method of the underlying channel.
 			 * 
-			 * An instance of {Exception.SocketError} is raised on error.
+			 * Raises {Exception.SocketError} on error.
 			 */
 			const def close(self) {
 				try {
@@ -993,7 +993,7 @@ package Network {
 			const async def run(self) {
 				while self.channel.isOpen() {
 					if let message = await self.channel.read() {
-						await self.onMessage(self, message)
+						await self.onMessage(message)
 					} else {
 						break
 					}

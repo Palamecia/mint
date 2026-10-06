@@ -74,7 +74,7 @@ package Runtime {
 		/**
 		 * Adds an `object` to the scheduler. The object must provides the `getHandle` method.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def watch(self, object) {
 			if let errno = Runtime.Scheduler.g_lib.call('mint_scheduler_watch', self.d_ptr, object.getHandle()) {
@@ -99,7 +99,7 @@ package Runtime {
 		 *
 		 * This mechanism allows asynchronous operations to be written in a sequential style using `await`.
 		 * 
-		 * An instance of {Exception.InvalidOperation} is raised on error.
+		 * Raises {Exception.InvalidOperation} on error.
 		 */
 		const async def suspend(self, operation) {
 
@@ -187,7 +187,7 @@ package Runtime {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-runtime')
+		- @const g_lib: library = lib('libmint-runtime')
 
 		/// Internal scheduler context pointer.
 		- final d_ptr = null

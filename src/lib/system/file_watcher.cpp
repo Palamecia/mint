@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "errno.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/data.h"
@@ -29,9 +30,9 @@
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/reference.h"
 #include "mint/system/async_io.h"
+#include "mint/system/errno.h"
 
 #include <algorithm>
-#include <cerrno>
 #include <chrono>
 #include <cstdio>
 #include <filesystem>
@@ -42,6 +43,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <system_error>
 #include <type_traits>
 #include <vector>
 
@@ -135,9 +137,24 @@ void CALLBACK file_watcher_notification_callback(DWORD error_code, DWORD bytes_t
 
 mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Reference& path,
     const mint::Reference& flags) {
-#ifdef MINT_OS_WINDOWS
-
 	auto watcher = std::make_unique<FileWatcherData>();
+	const auto fail = [&cursor, &watcher](int error_code) {
+#ifdef MINT_OS_WINDOWS
+		if (watcher->directory_handle != INVALID_HANDLE_VALUE) {
+			CloseHandle(watcher->directory_handle);
+		}
+		if (watcher->event.handle != nullptr && watcher->event.handle != INVALID_HANDLE_VALUE
+		    && watcher->event.handle != watcher->directory_handle) {
+			CloseHandle(watcher->event.handle);
+		}
+#else
+		if (watcher->event.fd != -1) {
+			close(watcher->event.fd);
+		}
+#endif
+		return mint_system::make_failure(cursor, error_code);
+	};
+#ifdef MINT_OS_WINDOWS
 
 	if (to_changes(cursor, flags) & Changes::name) {
 		watcher->notify_filter |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
@@ -167,7 +184,7 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 	    FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, nullptr);
 
 	if (watcher->directory_handle == INVALID_HANDLE_VALUE) {
-		return {};
+		return fail(mint::errno_from_last_error());
 	}
 
 	auto bytes_returned = DWORD();
@@ -178,8 +195,11 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 		    static_cast<DWORD>(watcher->buffer.size()), false, watcher->notify_filter, &bytes_returned,
 		    &watcher->overlapped, &file_watcher_notification_callback);
 
-		if (!success && GetLastError() != ERROR_IO_PENDING) {
-			return {};
+		if (!success) {
+			const auto error_code = GetLastError();
+			if (error_code != ERROR_IO_PENDING) {
+				return fail(mint::errno_from_error_code(std::error_code(error_code, std::system_category())));
+			}
 		}
 
 		watcher->event.handle = watcher->directory_handle;
@@ -191,21 +211,23 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 		    static_cast<DWORD>(watcher->buffer.size()), false, watcher->notify_filter, &bytes_returned,
 		    &watcher->overlapped, &file_watcher_notification_callback);
 
-		if (!success && GetLastError() != ERROR_IO_PENDING) {
-			return {};
+		if (!success) {
+			const auto error_code = GetLastError();
+			if (error_code != ERROR_IO_PENDING) {
+				return fail(mint::errno_from_error_code(std::error_code(error_code, std::system_category())));
+			}
 		}
-
 		watcher->event.handle = CreateEvent(nullptr, false, false, nullptr);
-		if (watcher->event.handle == INVALID_HANDLE_VALUE) {
-			return {};
+		if (watcher->event.handle == nullptr) {
+			return fail(mint::errno_from_last_error());
 		}
 	}
 
-	return mint::create_c_object(cursor.program(), watcher.release());
+	return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), watcher.release()));
 
 #elifdef MINT_OS_LINUX
 
-	auto watcher = std::make_unique<FileWatcherData>(FileWatcherData {
+	watcher = std::make_unique<FileWatcherData>(FileWatcherData {
 	    .event =
 	        {
 	            .fd = inotify_init1(IN_NONBLOCK),
@@ -220,9 +242,8 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 	                },
 	        },
 	});
-
 	if (watcher->event.fd == -1) {
-		return {};
+		return fail(errno);
 	}
 
 	auto watch_flags = std::uint32_t();
@@ -238,16 +259,15 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 	if (to_changes(cursor, flags) & Changes::attributes) {
 		watch_flags |= IN_ATTRIB;
 	}
-
-	if (!inotify_add_watch(watcher->event.fd, to_string(path).c_str(), watch_flags)) {
-		return {};
+	if (inotify_add_watch(watcher->event.fd, to_string(path).c_str(), watch_flags) == -1) {
+		return fail(errno);
 	}
 
-	return mint::create_c_object(cursor.program(), watcher.release());
+	return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), watcher.release()));
 
 #elifdef MINT_OS_UNIX
 
-	auto watcher = std::make_unique<FileWatcherData>(FileWatcherData {
+	watcher = std::make_unique<FileWatcherData>(FileWatcherData {
 	    .event =
 	        {
 #ifdef MINT_OS_MACOS
@@ -259,9 +279,8 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 	            .flags = EV_ONESHOT,
 	        },
 	});
-
 	if (watcher->event.fd == -1) {
-		return {};
+		return fail(errno);
 	}
 
 	if (to_changes(cursor, flags) & Changes::name) {
@@ -274,8 +293,9 @@ mint::Reference mint_file_watcher_create(mint::Cursor& cursor, const mint::Refer
 		watcher->event.fflags |= NOTE_ATTRIB;
 	}
 
-	return mint::create_c_object(cursor.program(), watcher.release());
+	return mint_system::make_success(cursor, mint::create_c_object(cursor.program(), watcher.release()));
 #endif
+	return fail(EIO);
 }
 
 mint::Reference mint_file_watcher_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {

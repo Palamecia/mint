@@ -1138,7 +1138,7 @@ package Serializer {
 		 */
 		- final const def parseUnquotedString(self, token, level) {
 
-			var identifier = trim(token + self.readUntil(/[\n:]/))
+			let identifier: string = trim(token + self.readUntil(/[\n:]/))
 			token = self.nextToken()
 
 			while token == ':' and (c = self.nextChar()) !~ /\s/ {
@@ -1195,8 +1195,8 @@ package Serializer {
 		 */
 		- final const def parseSingleQuotedString(self) {
 
-			var token = "'"
-			var identifier = ''
+			let token: string = "'"
+			let identifier: string = ''
 
 			while token == "'" {
 
@@ -1227,9 +1227,9 @@ package Serializer {
 		 */
 		- final const def parseDoubleQuotedString(self) {
 			
-			var token = '"'
-			var identifier = token + self.readUntil(/[\n"]/)
-			var last_token = identifier[-1]
+			let token: string = '"'
+			let identifier: string = token + self.readUntil(/[\n"]/)
+			let last_token: string = identifier[-1]
 
 			while last_token == '\\' or self.c == '\n' {
 
@@ -1281,7 +1281,7 @@ package Serializer {
 		 */
 		- final const def readUntil(self, delim) {
 
-			var str = ''
+			let str: string = ''
 
 			if self.discarded {
 				c = self.c
@@ -1394,9 +1394,9 @@ package Serializer {
 	/**
 	 * Returns the string representation of the processing instruction.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 
-		var str = '%' + self.name
+		let str: string = '%' + self.name
 
 		if not self.parameters.isEmpty() {
 			str << ' %s' % self.parameters.join(' ')
@@ -1487,11 +1487,11 @@ package Serializer {
 	/**
 	 * Returns the string representation of the document.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 
-		var str = '--- '
+		let str: string = '--- '
 
-		for comment in self.comments {
+		for let comment in self.comments {
 			str << '\n' + comment.toString()
 		}
 
@@ -1581,7 +1581,7 @@ package Serializer {
 	 * Returns an iterator on each elements in the mapping.
 	 */
 	const def in(const self) {
-		for node in self.children {
+		for let node in self.children {
 			yield node
 		}
 	}
@@ -1611,11 +1611,11 @@ package Serializer {
 	 * Returns the string representation of the mapping for the indentation
 	 * level given by `level`.
 	 */
-	const def toString(const self, level = 0) {
+	const def toString(const self, level = 0) -> string {
 
-		var str = ''
+		let str: string = ''
 
-		for key, value in self.children {
+		for let (key, value) in self.children {
 			switch typeof key {
 			case 'Serializer.YamlScalar':
 				switch typeof value {
@@ -1650,7 +1650,7 @@ package Serializer {
 	 * Returns the content of the mapping as a sequence of hashes and arrays
 	 * corresponding to the YAML mappings and sequences.
 	 */
-	const def toHash(const self) {
+	const def toHash(const self) -> hash {
 		return self.data()
 	}
 
@@ -1658,14 +1658,11 @@ package Serializer {
 	 * Returns the content of the mapping as a sequence of hashes and arrays
 	 * corresponding to the YAML mappings and sequences.
 	 */
-	const def data(const self) {
-
-		var data = {}
-		
-		for key, child in self.children {
+	const def data(const self) -> hash {
+		let data: hash = {}
+		for let (key, child) in self.children {
 			data[key.data()] = child.data()
 		}
-
 		return data
 	}
 
@@ -1802,11 +1799,11 @@ package Serializer {
 	 * Returns the string representation of the sequence for the indentation
 	 * level given by `level`.
 	 */
-	const def toString(const self, level = 0) {
-		
-		var str = ''
+	const def toString(const self, level = 0) -> string {
 
-		for child in self.children {
+		let str: string = ''
+
+		for let child in self.children {
 			switch typeof child {
 			case 'Serializer.YamlScalar':
 				str << '\n%s- %s' ('\t' * level, child.toString())
@@ -1825,7 +1822,7 @@ package Serializer {
 	 * Returns the content of the sequence as a sequence of hashes and arrays
 	 * corresponding to the YAML mappings and sequences.
 	 */
-	const def toArray(const self) {
+	const def toArray(const self) -> array {
 		return self.data()
 	}
 
@@ -1833,14 +1830,11 @@ package Serializer {
 	 * Returns the content of the sequence as a sequence of hashes and arrays
 	 * corresponding to the YAML mappings and sequences.
 	 */
-	const def data(const self) {
-
-		var data = []
-		
-		for child in self.children {
+	const def data(const self) -> array {
+		let data: array = []
+		for let child in self.children {
 			data << child.data()
 		}
-
 		return data
 	}
 
@@ -1915,7 +1909,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the scalar.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if defined self.tag {
 			return '%s %s' % (self.tag.toString(), self.value)
 		}
@@ -2051,7 +2045,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the alias.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '*%s' % self.anchor
 	}
 
@@ -2102,7 +2096,7 @@ package Serializer {
 		/**
 		 * Returns the exception informations as a string.
 		 */
-		const def toString(const self) {
+		const def toString(const self) -> string {
 			return 'invalid tag %s : not implemented' % self.tag.getName()
 		}
 
@@ -2161,7 +2155,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the tag.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '!%s' % self.name
 	}
 

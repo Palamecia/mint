@@ -1,0 +1,113 @@
+load test.case
+load serializer.xml-sax-stream
+
+@class TestXmlSaxStream : Test.Case {
+	class Recorder : Serializer.XmlSaxHandle {
+		+ final events = []
+		+ final stopAtElement = none
+
+		override def onStartDocument(self) {
+			self.events << 'startDocument'
+			return true
+		}
+
+		override def onEndDocument(self) {
+			self.events << 'endDocument'
+			return true
+		}
+
+		override def onStartElement(self, namespaceUri, localName, qualifiedName, attributes) {
+			self.events << ('start ' + qualifiedName)
+			return self.stopAtElement != localName
+		}
+
+		override def onEndElement(self, namespaceUri, localName, qualifiedName) {
+			self.events << ('end ' + qualifiedName)
+			return true
+		}
+
+		override def onProcessingInstruction(self, name, attributes) {
+			self.events << ('pi ' + name)
+			return true
+		}
+
+		override def onCharacters(self, content) {
+			self.events << ('text ' + content)
+			return true
+		}
+
+		override def onComment(self, content) {
+			self.events << ('comment ' + content)
+			return true
+		}
+
+		override def onDtd(self, content) {
+			self.events << ('dtd ' + content)
+			return true
+		}
+	}
+
+	const def testEvents(self) {
+		var handle = TestXmlSaxStream.Recorder()
+		var s = Serializer.XmlSaxStream('<?xml version="1.0"?><a x="1"><b/>t<!--c--></a>')
+		s.setHandle(handle)
+		self.expectEqual(s.read(), true)
+		self.expectEqual(handle.events, ['startDocument', 'pi xml', 'start a', 'start b', 'end b', 'text t', 'comment c', 'end a', 'endDocument'])
+	}
+
+	const def testCDataIsReportedAsCharacters(self) {
+		var handle = TestXmlSaxStream.Recorder()
+		var s = Serializer.XmlSaxStream('<a><![CDATA[d]]></a>')
+		s.setHandle(handle)
+		self.expectEqual(s.read(), true)
+		self.expectEqual(handle.events, ['startDocument', 'start a', 'text d', 'end a', 'endDocument'])
+	}
+
+	const def testDtd(self) {
+		var handle = TestXmlSaxStream.Recorder()
+		var s = Serializer.XmlSaxStream('<!DOCTYPE html><a/>')
+		s.setHandle(handle)
+		self.expectEqual(s.read(), true)
+		self.expectEqual(handle.events, ['startDocument', 'dtd html', 'start a', 'end a', 'endDocument'])
+	}
+
+	const def testTextIsReportedAsIs(self) {
+		var handle = TestXmlSaxStream.Recorder()
+		var s = Serializer.XmlSaxStream('<a>  x  </a>')
+		s.setHandle(handle)
+		s.read()
+		self.expectEqual(handle.events, ['startDocument', 'start a', 'text   x  ', 'end a', 'endDocument'])
+	}
+
+	const def testHandleCanStopTheParsing(self) {
+		var handle = TestXmlSaxStream.Recorder()
+		handle.stopAtElement = 'b'
+		var s = Serializer.XmlSaxStream('<a><b/><c/></a>')
+		s.setHandle(handle)
+		self.expectEqual(s.read(), false)
+		self.expectEqual(handle.events, ['startDocument', 'start a', 'start b'])
+	}
+
+	const def testEmptyStreamIsNotAProcessedDocument(self) {
+		var handle = TestXmlSaxStream.Recorder()
+		var s = Serializer.XmlSaxStream('')
+		s.setHandle(handle)
+		self.expectEqual(s.read(), false)
+		self.expectEqual(handle.events, [])
+	}
+
+	const def testOneDocumentPerRead(self) {
+		var handle = TestXmlSaxStream.Recorder()
+		var s = Serializer.XmlSaxStream('<a/><b/>')
+		s.setHandle(handle)
+		self.expectEqual(s.read(), true)
+		self.expectEqual(handle.events, ['startDocument', 'start a', 'end a', 'endDocument'])
+		self.expectEqual(s.read(), true)
+		self.expectEqual(handle.events, ['startDocument', 'start a', 'end a', 'endDocument', 'startDocument', 'start b', 'end b', 'endDocument'])
+	}
+
+	const def testWithoutHandle(self) {
+		var s = Serializer.XmlSaxStream('<a/>')
+		self.expectEqual(s.read(), false)
+	}
+}

@@ -34,7 +34,7 @@ load runtime.scheduler
         scheduler.spawn(main())
         scheduler.run()
 
-        self.expectEqual(42, result)
+        self.expectEqual(result, 42)
     }
 
     def testMultipleSpawn(self) {
@@ -54,7 +54,7 @@ load runtime.scheduler
         scheduler.spawn(b())
         scheduler.run()
 
-        self.expectEqual([1,2], result)
+        self.expectEqual(result, [1,2])
     }
 
     def testSuspendReturnsValue(self) {
@@ -69,7 +69,7 @@ load runtime.scheduler
         scheduler.spawn(main())
         scheduler.run()
 
-        self.expectEqual(99, result)
+        self.expectEqual(result, 99)
     }
 
     def testSuspendRaisesException(self) {
@@ -88,7 +88,7 @@ load runtime.scheduler
         scheduler.spawn(main())
         scheduler.run()
 
-        self.expectEqual("boom", result)
+        self.expectEqual(result, "boom")
     }
 
     def testUnhandledException(self) {
@@ -107,7 +107,7 @@ load runtime.scheduler
             failed = true
         }
 
-        self.expectEqual(true, failed)
+        self.expectEqual(failed, true)
     }
 
     def testNestedAwaitSuspend(self) {
@@ -127,7 +127,7 @@ load runtime.scheduler
         scheduler.spawn(parent())
         scheduler.run()
 
-        self.expectEqual(10, result)
+        self.expectEqual(result, 10)
     }
 
     def testMultipleSuspendPoints(self) {
@@ -144,7 +144,7 @@ load runtime.scheduler
         scheduler.spawn(main())
         scheduler.run()
 
-        self.expectEqual(5, result)
+        self.expectEqual(result, 5)
     }
 
     def testInterleaving(self) {
@@ -166,7 +166,7 @@ load runtime.scheduler
         scheduler.spawn(b())
         scheduler.run()
 
-        self.expectEqual([1,2,3], result)
+        self.expectEqual(result, [1,2,3])
     }
 
     def testRunOne(self) {
@@ -181,7 +181,7 @@ load runtime.scheduler
         scheduler.spawn(main())
         scheduler.runOne()
 
-        self.expectEqual(7, result)
+        self.expectEqual(result, 7)
     }
 
     def testRunAllTerminates(self) {
@@ -196,7 +196,7 @@ load runtime.scheduler
         scheduler.spawn(main())
         scheduler.run()
 
-        self.expectEqual(true, completed)
+        self.expectEqual(completed, true)
     }
 
     const def testExceptionAfterSuspend(self) {
@@ -220,6 +220,6 @@ load runtime.scheduler
         scheduler.spawn(wrapper())
         scheduler.run()
 
-        self.expectEqual(true, caught)
+        self.expectEqual(caught, true)
     }
 }

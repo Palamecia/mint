@@ -22,11 +22,14 @@
  */
 
 #include "mint/memory/builtin/library.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/memory/builtin/iterator.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/memory/class.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
 #include "mint/program/function_literal.h"
+#include "mint/program/module.h"
 #include "mint/program/program.h"
 #include "mint/program/cursor.h"
 #include "mint/memory/reference.h"
@@ -39,12 +42,71 @@
 
 using namespace mint;
 
+namespace {
+
+ClassDescription make_description() {
+	auto description = ClassDescription(Module::invalid_id, "lib");
+	description
+	    .create_method(get_operator_symbol(Class::new_operator),
+	        make_union(BuiltinTypeKind::library, PrimitiveTypeKind::none))
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::library})
+	    .add_parameter({.name = "path"})
+	    .set_required_parameter_count(2);
+	description.create_method("call", {})
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::library})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2)
+	    .set_variadic(true);
+	description.create_method("callAsNumber", PrimitiveTypeKind::number)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::library})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2)
+	    .set_variadic(true);
+	description.create_method("callAsBoolean", PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::library})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2)
+	    .set_variadic(true);
+	description.create_method("callAsString", BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::library})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2)
+	    .set_variadic(true);
+	description.create_method("callAsRegex", BuiltinTypeKind::regex)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::library})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2)
+	    .set_variadic(true);
+	description.create_method("callAsArray", BuiltinTypeKind::array)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::library})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2)
+	    .set_variadic(true);
+	description.create_method("callAsHash", BuiltinTypeKind::hash)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::library})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2)
+	    .set_variadic(true);
+	return description;
+}
+
+}
+
+ClassDescription& mint::LibraryClass::description() {
+	static auto g_description = make_description();
+	return g_description;
+}
+
 LibraryClass& LibraryClass::instance(Program& program) {
 	return program.global_data().builtin<LibraryClass>(Class::Metatype::library);
 }
 
 Library::Library(Program& program) :
     Object(LibraryClass::instance(program)) {}
+
+Library::Library(Program& program, const std::string& plugin) :
+    Object(LibraryClass::instance(program)),
+    plugin(Plugin::load(plugin)) {}
 
 Library::Library(Library&& other) noexcept :
     Object(other.metadata),
@@ -70,7 +132,7 @@ Library& Library::operator=(const Library& other) {
 Library::~Library() {}
 
 LibraryClass::LibraryClass(Program& program) :
-    Class(program.global_data(), "lib", Class::Metatype::library) {
+    Class(program.global_data(), description(), Class::Metatype::library) {
 
 	create_builtin_member(new_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
@@ -89,7 +151,7 @@ LibraryClass::LibraryClass(Program& program) :
 		}
 	}));
 
-	create_builtin_member("call", program.create_builtin_method(*this, variadic(2), [](Cursor& cursor) {
+	auto call_handle = program.create_builtin_method(*this, variadic(2), [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
 		const auto va_args = move_from_stack(cursor, base);
@@ -100,7 +162,7 @@ LibraryClass::LibraryClass(Program& program) :
 		cursor.stack().pop_back();
 		cursor.stack().pop_back();
 
-		std::string func_name = to_string(function);
+		const auto func_name = to_string(function);
 		auto* plugin = self.data<Library>().plugin.get();
 
 		const auto signature = static_cast<int>(va_args.data<Iterator>().ctx.size());
@@ -112,5 +174,13 @@ LibraryClass::LibraryClass(Program& program) :
 			error("no function '{}' taking {} arguments found in plugin '{}'", func_name, signature,
 			    plugin->get_path().generic_string());
 		}
-	}));
+	});
+
+	create_builtin_member("call", call_handle);
+	create_builtin_member("callAsNumber", call_handle);
+	create_builtin_member("callAsBoolean", call_handle);
+	create_builtin_member("callAsString", call_handle);
+	create_builtin_member("callAsRegex", call_handle);
+	create_builtin_member("callAsArray", call_handle);
+	create_builtin_member("callAsHash", call_handle);
 }

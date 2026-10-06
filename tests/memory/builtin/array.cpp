@@ -9,7 +9,7 @@
 
 TEST(array, join) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto thread = scheduler.enable_testing();
 
 	const auto array = mint::create_array(scheduler.program(), {

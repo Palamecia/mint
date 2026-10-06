@@ -22,7 +22,9 @@
  */
 
 #include "mint/memory/memory_tools.h"
-#include "mint/program/class_description.h"
+#include "mint/compiler/class_builder.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
 #include "mint/program/printer.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/class.h"
@@ -75,7 +77,7 @@ Cursor::Call& setup_member_call(Cursor& cursor, Reference& reference) {
 	assert(reference.data().format() == Data::Format::object);
 	auto* object = &reference.data<Object>();
 	Cursor::Call::Flags flags = Cursor::Call::member_call;
-	Class* metadata = &object->metadata;
+	const auto* metadata = &object->metadata;
 
 	if (mint::is_class(*object)) {
 
@@ -97,17 +99,17 @@ Cursor::Call& setup_member_call(Cursor& cursor, Reference& reference) {
 			switch (info->value.flags() & Reference::visibility_mask) {
 			case Reference::protected_visibility:
 				if (!is_protected_accessible(cursor, info->owner)) [[unlikely]] {
-					error("could not access protected member 'new' of class '{}'", metadata->full_name());
+					error("could not access protected member 'new' of class '{}'", metadata->get_full_name());
 				}
 				break;
 			case Reference::private_visibility:
 				if (!is_private_accessible(cursor, info->owner)) [[unlikely]] {
-					error("could not access private member 'new' of class '{}'", metadata->full_name());
+					error("could not access private member 'new' of class '{}'", metadata->get_full_name());
 				}
 				break;
 			case Reference::package_visibility:
 				if (!is_package_accessible(cursor, info->owner)) [[unlikely]] {
-					error("could not access package member 'new' of class '{}'", metadata->full_name());
+					error("could not access package member 'new' of class '{}'", metadata->get_full_name());
 				}
 				break;
 			default:
@@ -137,22 +139,22 @@ Cursor::Call& setup_member_call(Cursor& cursor, Reference& reference) {
 }
 
 const Reference& get_accessible_member(const Cursor& cursor, const Symbol& member, const Class::MemberInfo& info,
-    Object& object) {
+    const Object& object) {
 	const auto& result = Class::MemberInfo::get(info, object);
 	switch (result.flags() & Reference::visibility_mask) {
 	case Reference::protected_visibility:
 		if (!is_protected_accessible(cursor, info.owner)) [[unlikely]] {
-			error("could not access protected member '{}' of class '{}'", member.str(), object.metadata.full_name());
+			error("could not access protected member '{}' of class '{}'", member.str(), object.metadata.get_full_name());
 		}
 		break;
 	case Reference::private_visibility:
 		if (!is_private_accessible(cursor, info.owner)) [[unlikely]] {
-			error("could not access private member '{}' of class '{}'", member.str(), object.metadata.full_name());
+			error("could not access private member '{}' of class '{}'", member.str(), object.metadata.get_full_name());
 		}
 		break;
 	case Reference::package_visibility:
 		if (!is_package_accessible(cursor, info.owner)) [[unlikely]] {
-			error("could not access package member '{}' of class '{}'", member.str(), object.metadata.full_name());
+			error("could not access package member '{}' of class '{}'", member.str(), object.metadata.get_full_name());
 		}
 		break;
 	default:
@@ -164,16 +166,16 @@ const Reference& get_accessible_member(const Cursor& cursor, const Symbol& membe
 const Reference& get_accessible_class_member(Cursor& cursor, const Symbol& member, const Class::MemberInfo& info,
     const Class& metadata) {
 	if (cursor.is_in_builtin() || cursor.symbols().get_metadata() == nullptr) [[unlikely]] {
-		error("could not access member '{}' of class '{}' without object", member.str(), metadata.full_name());
+		error("could not access member '{}' of class '{}' without object", member.str(), metadata.get_full_name());
 	}
 	if (const auto* context_metadata = cursor.symbols().get_metadata();
 	    context_metadata && !metadata.is_direct_base_or_same(*context_metadata)) [[unlikely]] {
-		error("class '{}' is not a direct base of '{}'", metadata.full_name(),
-		    cursor.symbols().get_metadata()->full_name());
+		error("class '{}' is not a direct base of '{}'", metadata.get_full_name(),
+		    cursor.symbols().get_metadata()->get_full_name());
 	}
 	if ((info.value.flags() & Reference::private_visibility) && (&info.owner.get() != cursor.symbols().get_metadata()))
 	    [[unlikely]] {
-		error("could not access private member '{}' of class '{}'", member.str(), metadata.full_name());
+		error("could not access private member '{}' of class '{}'", member.str(), metadata.get_full_name());
 	}
 	return info.value;
 }
@@ -189,10 +191,10 @@ const Reference& get_accessible_global_member(const Cursor& cursor, const Symbol
 			return info.value;
 		}
 		if (!is_class(info.value)) [[unlikely]] {
-			error("could not access protected member '{}' of class '{}'", member.str(), metadata.full_name());
+			error("could not access protected member '{}' of class '{}'", member.str(), metadata.get_full_name());
 		}
 		if (!is_protected_accessible(cursor, info.value.data<Object>().metadata)) [[unlikely]] {
-			error("could not access protected member type '{}' of class '{}'", member.str(), metadata.full_name());
+			error("could not access protected member type '{}' of class '{}'", member.str(), metadata.get_full_name());
 		}
 		break;
 	case Reference::private_visibility:
@@ -200,10 +202,10 @@ const Reference& get_accessible_global_member(const Cursor& cursor, const Symbol
 			return info.value;
 		}
 		if (!is_class(info.value)) [[unlikely]] {
-			error("could not access private member '{}' of class '{}'", member.str(), metadata.full_name());
+			error("could not access private member '{}' of class '{}'", member.str(), metadata.get_full_name());
 		}
 		if (!is_private_accessible(cursor, info.value.data<Object>().metadata)) [[unlikely]] {
-			error("could not access private member type '{}' of class '{}'", member.str(), metadata.full_name());
+			error("could not access private member type '{}' of class '{}'", member.str(), metadata.get_full_name());
 		}
 		break;
 	case Reference::package_visibility:
@@ -211,10 +213,10 @@ const Reference& get_accessible_global_member(const Cursor& cursor, const Symbol
 			return info.value;
 		}
 		if (!is_class(info.value)) [[unlikely]] {
-			error("could not access package member '{}' of class '{}'", member.str(), metadata.full_name());
+			error("could not access package member '{}' of class '{}'", member.str(), metadata.get_full_name());
 		}
 		if (!is_package_accessible(cursor, info.value.data<Object>().metadata)) [[unlikely]] {
-			error("could not access package member type '{}' of class '{}'", member.str(), metadata.full_name());
+			error("could not access package member type '{}' of class '{}'", member.str(), metadata.get_full_name());
 		}
 		break;
 	default:
@@ -224,25 +226,25 @@ const Reference& get_accessible_global_member(const Cursor& cursor, const Symbol
 }
 
 const Reference& get_accessible_member(const Cursor& cursor, Class::Operator op, const Class::MemberInfo& info,
-    Object& object) {
+    const Object& object) {
 	const auto& result = Class::MemberInfo::get(info, object);
 	switch (result.flags() & Reference::visibility_mask) {
 	case Reference::protected_visibility:
 		if (!is_protected_accessible(cursor, info.owner)) [[unlikely]] {
 			error("could not access protected member '{}' of class '{}'", get_operator_symbol(op).str(),
-			    object.metadata.full_name());
+			    object.metadata.get_full_name());
 		}
 		break;
 	case Reference::private_visibility:
 		if (!is_private_accessible(cursor, info.owner)) [[unlikely]] {
 			error("could not access private member '{}' of class '{}'", get_operator_symbol(op).str(),
-			    object.metadata.full_name());
+			    object.metadata.get_full_name());
 		}
 		break;
 	case Reference::package_visibility:
 		if (!is_package_accessible(cursor, info.owner)) [[unlikely]] {
 			error("could not access package member '{}' of class '{}'", get_operator_symbol(op).str(),
-			    object.metadata.full_name());
+			    object.metadata.get_full_name());
 		}
 		break;
 	default:
@@ -255,16 +257,17 @@ const Reference& get_accessible_class_member(Cursor& cursor, Class::Operator op,
     const Class& metadata) {
 	if (cursor.is_in_builtin() || cursor.symbols().get_metadata() == nullptr) [[unlikely]] {
 		error("could not access member '{}' of class '{}' without object", get_operator_symbol(op).str(),
-		    metadata.full_name());
+		    metadata.get_full_name());
 	}
 	if (const auto* context_metadata = cursor.symbols().get_metadata();
 	    context_metadata && !metadata.is_direct_base_or_same(*context_metadata)) [[unlikely]] {
-		error("class '{}' is not a direct base of '{}'", metadata.full_name(),
-		    cursor.symbols().get_metadata()->full_name());
+		error("class '{}' is not a direct base of '{}'", metadata.get_full_name(),
+		    cursor.symbols().get_metadata()->get_full_name());
 	}
 	if ((info.value.flags() & Reference::private_visibility) && (&info.owner.get() != cursor.symbols().get_metadata()))
 	    [[unlikely]] {
-		error("could not access private member '{}' of class '{}'", get_operator_symbol(op).str(), metadata.full_name());
+		error("could not access private member '{}' of class '{}'", get_operator_symbol(op).str(),
+		    metadata.get_full_name());
 	}
 	return info.value;
 }
@@ -282,7 +285,7 @@ std::string mint::type_name(const Reference& reference) {
 	case Data::Format::boolean:
 		return "boolean";
 	case Data::Format::object:
-		return reference.data<Object>().metadata.full_name();
+		return reference.data<Object>().metadata.get_full_name();
 	case Data::Format::package:
 		return "package";
 	case Data::Format::function:
@@ -297,11 +300,11 @@ bool mint::is_instance_of(const Reference& reference, std::string_view type_name
 	switch (reference.data().format()) {
 	case Data::Format::object:
 		if (reference.data<Object>().metadata.metatype() == Class::Metatype::object) {
-			return type_name == reference.data<Object>().metadata.full_name();
+			return type_name == reference.data<Object>().metadata.get_full_name();
 		}
 		break;
 	case Data::Format::package:
-		return type_name == reference.data<Package>().data.full_name();
+		return type_name == reference.data<Package>().data.get_full_name();
 	default:
 		break;
 	}
@@ -444,7 +447,7 @@ void mint::init_member_call(Cursor& cursor, const Symbol& member) {
 void mint::init_member_call(Cursor& cursor, const Symbol& member, const Class::MemberInfo& info) {
 
 	assert(cursor.stack().back().data().format() == Data::Format::object);
-	auto& object = cursor.stack().back().data<Object>();
+	const auto& object = cursor.stack().back().data<Object>();
 	Reference function = is_object(object) ? get_accessible_member(cursor, member, info, object)
 	                                       : get_accessible_class_member(cursor, member, info, object.metadata);
 
@@ -611,15 +614,29 @@ Reference mint::get_symbol(Cursor& cursor, const Symbol& symbol) {
 	return get_symbol(cursor.symbols(), symbol);
 }
 
+namespace {
+
+const ClassDescription* find_local_class(const SymbolScope& locals, const Symbol& symbol) {
+	if (const auto* function = dynamic_cast<const FunctionDescription*>(&locals)) {
+		return function->find_class(symbol);
+	}
+	if (const auto* module = dynamic_cast<const ModuleDescription*>(&locals)) {
+		return module->find_class(symbol);
+	}
+	return nullptr;
+}
+
+}
+
 Reference mint::get_symbol(SymbolTable& symbols, const Symbol& symbol) {
 	if (const auto it = symbols.find(symbol); it != symbols.end()) {
 		return it->second;
 	}
 	if (const auto* metadata = symbols.get_metadata()) {
-		if (const auto* locals = metadata->get_description().get_root_register().get_function_data()) {
-			if (auto* desc = locals->find_class_description(symbol)) {
-				return create_alias(desc->generate());
-			}
+		// FIXME: This is NOT the right way to do. `mint::create_class` should make local classes accessible from here.
+		const auto& locals = metadata->get_description().get_root_scope();
+		if (const auto* desc = find_local_class(locals, symbol)) {
+			return create_alias(desc->generate(ClassBuilder(symbols.get_global_data().program())));
 		}
 	}
 	const auto& globals = symbols.get_global_data();
@@ -633,19 +650,19 @@ std::tuple<Reference, Class*> mint::get_member(Cursor& cursor, const Reference& 
 
 	switch (reference.data().format()) {
 	case Data::Format::package:
-		for (PackageData* package = &reference.data<Package>().data; package != nullptr;
+		for (auto* package = &reference.data<Package>().data; package != nullptr;
 		    package = package->get_owner_package()) {
 			if (const auto it = package->symbols().find(member); it != package->symbols().end()) {
 				return {it->second, nullptr};
 			}
 		}
 
-		error("package '{}' has no member '{}'", reference.data<Package>().data.name().str(), member.str());
+		error("package '{}' has no member '{}'", reference.data<Package>().data.get_full_name(), member.str());
 		break;
 
 	case Data::Format::object:
 		{
-			auto& object = reference.data<Object>();
+			const auto& object = reference.data<Object>();
 			if (const auto* info = object.metadata.find_member(member)) {
 				if (is_object(object)) {
 					const auto& result = get_accessible_member(cursor, member, *info, object);
@@ -662,23 +679,17 @@ std::tuple<Reference, Class*> mint::get_member(Cursor& cursor, const Reference& 
 				return {result, &info->owner.get()};
 			}
 
-			for (PackageData* package = &object.metadata.get_package(); package != nullptr;
+			for (auto* package = &object.metadata.get_package(); package != nullptr;
 			    package = package->get_owner_package()) {
 				if (const auto it = package->symbols().find(member); it != package->symbols().end()) {
 					return {Reference(Reference::const_address | Reference::const_value, it->second.data()), nullptr};
 				}
 			}
 
-			if (member == builtin_symbols::allocate_method) {
-				const auto& result = get_accessible_global_member(cursor, member,
-				    object.metadata.make_allocate_method_reference(cursor.program()), object.metadata);
-				return {result, &object.metadata};
-			}
-
 			if (is_object(object)) {
-				error("class '{}' has no member '{}'", object.metadata.full_name(), member.str());
+				error("class '{}' has no member '{}'", object.metadata.get_full_name(), member.str());
 			}
-			error("class '{}' has no global member '{}'", object.metadata.full_name(), member.str());
+			error("class '{}' has no global member '{}'", object.metadata.get_full_name(), member.str());
 		}
 		break;
 
@@ -697,7 +708,7 @@ std::tuple<Reference, Class*> mint::get_operator(Cursor& cursor, const Reference
 
 	switch (reference.data().format()) {
 	case Data::Format::object:
-		if (auto& object = reference.data<Object>(); const auto* info = object.metadata.find_operator(op)) {
+		if (const auto& object = reference.data<Object>(); const auto* info = object.metadata.find_operator(op)) {
 
 			if (is_object(object)) {
 				const auto& result = get_accessible_member(cursor, op, *info, object);
@@ -710,10 +721,10 @@ std::tuple<Reference, Class*> mint::get_operator(Cursor& cursor, const Reference
 		}
 
 		if (is_object(reference.data<Object>())) {
-			error("class '{}' has no member '{}'", reference.data<Object>().metadata.full_name(),
+			error("class '{}' has no member '{}'", reference.data<Object>().metadata.get_full_name(),
 			    get_operator_symbol(op).str());
 		}
-		error("class '{}' has no global member '{}'", reference.data<Object>().metadata.full_name(),
+		error("class '{}' has no global member '{}'", reference.data<Object>().metadata.get_full_name(),
 		    get_operator_symbol(op).str());
 
 	default:
@@ -725,24 +736,24 @@ void mint::reduce_member(Cursor& cursor, Reference&& member) {
 	cursor.stack().back() = std::move(member);
 }
 
-std::optional<std::pair<Symbol, std::reference_wrapper<const Class::MemberInfo>>> mint::find_member(Object& object,
+std::optional<std::pair<const Symbol&, const Class::MemberInfo&>> mint::find_member(const Object& object,
     const Reference& member) {
 
 	const auto& data_ref = member.data();
 
 	if (object.data) {
 		for (const auto& item : object.metadata.members()) {
-			if (&data_ref == &item.second.get().value.data()) {
+			if (&data_ref == &item.second.value.data()) {
 				return item;
 			}
-			if (&data_ref == &Class::MemberInfo::get(item.second.get(), object).data()) {
+			if (&data_ref == &Class::MemberInfo::get(item.second, object).data()) {
 				return item;
 			}
 		}
 	}
 	else {
 		for (const auto& item : object.metadata.members()) {
-			if (&data_ref == &item.second.get().value.data()) {
+			if (&data_ref == &item.second.value.data()) {
 				return item;
 			}
 		}
@@ -751,24 +762,24 @@ std::optional<std::pair<Symbol, std::reference_wrapper<const Class::MemberInfo>>
 	return std::nullopt;
 }
 
-const Class::MemberInfo* mint::find_member_info(Object& object, const Reference& member) {
+const Class::MemberInfo* mint::find_member_info(const Object& object, const Reference& member) {
 
 	const auto& data_ref = member.data();
 
 	if (object.data) {
 		for (auto [_, info] : object.metadata.members()) {
-			if (&data_ref == &info.get().value.data()) {
-				return &info.get();
+			if (&data_ref == &info.value.data()) {
+				return &info;
 			}
-			if (&data_ref == &Class::MemberInfo::get(info.get(), object).data()) {
-				return &info.get();
+			if (&data_ref == &Class::MemberInfo::get(info, object).data()) {
+				return &info;
 			}
 		}
 	}
 	else {
 		for (auto [_, info] : object.metadata.members()) {
-			if (&data_ref == &info.get().value.data()) {
-				return &info.get();
+			if (&data_ref == &info.value.data()) {
+				return &info;
 			}
 		}
 	}
@@ -776,9 +787,9 @@ const Class::MemberInfo* mint::find_member_info(Object& object, const Reference&
 	return nullptr;
 }
 
-std::optional<Symbol> mint::find_member_symbol(Object& object, const Class::MemberInfo& member) {
+std::optional<Symbol> mint::find_member_symbol(const Object& object, const Class::MemberInfo& member) {
 	for (auto [symbol, info] : object.metadata.members()) {
-		if (&member == &info.get()) {
+		if (&member == &info) {
 			return symbol;
 		}
 	}
@@ -804,70 +815,25 @@ bool mint::is_package_accessible(const Cursor& cursor, const Class& owner) {
 Symbol mint::var_symbol(Cursor& cursor) {
 	const auto var = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
-	return Symbol(to_string(var));
+	return Symbol {to_string(var)};
 }
 
-void mint::declare_class(Cursor& cursor, ClassDescription& desc, Reference::Flags flags) {
+void mint::declare_class(Cursor& cursor, const ClassDescription& desc, Reference::Flags flags) {
 
-	auto&& symbol = desc.name();
+	const auto symbol = desc.get_name();
 	auto& symbols = (flags & Reference::global) ? cursor.symbols().get_package().symbols() : cursor.symbols();
 
 	if (!ensure_not_defined(symbol, symbols)) [[unlikely]] {
 		error("multiple definition of class '{}'", symbol.str());
 	}
 
-	symbols.emplace(symbol, make_reference<Object>(flags, desc.generate()));
-}
-
-void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags flags) {
-
-	if (flags & Reference::global) {
-
-		PackageData& package = cursor.symbols().get_package();
-
-		if (!ensure_not_defined(symbol, package.symbols())) [[unlikely]] {
-			error("symbol '{}' was already defined in global context", symbol.str());
-		}
-
-		cursor.stack().emplace_back(package.symbols().emplace(symbol, Reference(flags)).first->second);
-	}
-	else {
-
-		if (!ensure_not_defined(symbol, cursor.symbols())) [[unlikely]] {
-			error("symbol '{}' was already defined in this context", symbol.str());
-		}
-
-		cursor.stack().emplace_back(cursor.symbols().emplace(symbol, Reference(flags)).first->second);
-	}
-}
-
-void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, std::size_t index, Reference::Flags flags) {
-
-	if (flags & Reference::global) {
-
-		PackageData& package = cursor.symbols().get_package();
-
-		if (!ensure_not_defined(symbol, package.symbols())) [[unlikely]] {
-			error("symbol '{}' was already defined in global context", symbol.str());
-		}
-
-		cursor.stack().emplace_back(
-		    package.symbols().emplace(symbol, cursor.symbols().setup_fast(symbol, index, flags)).first->second);
-	}
-	else {
-
-		if (!ensure_not_defined(symbol, cursor.symbols())) [[unlikely]] {
-			error("symbol '{}' was already defined in this context", symbol.str());
-		}
-
-		cursor.stack().emplace_back(cursor.symbols().setup_fast(symbol, index, flags));
-	}
+	symbols.emplace(symbol, make_reference<Object>(flags, desc.generate(ClassBuilder(cursor.program()))));
 }
 
 void mint::declare_function(Cursor& cursor, const Symbol& symbol, Reference::Flags flags) {
 
-	PackageData& package = cursor.symbols().get_package();
-	SymbolTable& symbols = (flags & Reference::global) ? package.symbols() : cursor.symbols();
+	auto& package = cursor.symbols().get_package();
+	auto& symbols = (flags & Reference::global) ? package.symbols() : cursor.symbols();
 
 	auto it = symbols.find(symbol);
 	if (it != symbols.end()) {
@@ -906,4 +872,49 @@ void mint::function_overload_from_stack(Cursor& cursor) {
 	}
 
 	cursor.stack().pop_back();
+}
+
+void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, std::size_t index, Reference::Flags flags) {
+
+	if (flags & Reference::global) {
+
+		auto& package = cursor.symbols().get_package();
+
+		if (!ensure_not_defined(symbol, package.symbols())) [[unlikely]] {
+			error("symbol '{}' was already defined in global context", symbol.str());
+		}
+
+		cursor.stack().emplace_back(
+		    package.symbols().emplace(symbol, cursor.symbols().setup_fast(symbol, index, flags)).first->second);
+	}
+	else {
+
+		if (!ensure_not_defined(symbol, cursor.symbols())) [[unlikely]] {
+			error("symbol '{}' was already defined in this context", symbol.str());
+		}
+
+		cursor.stack().emplace_back(cursor.symbols().setup_fast(symbol, index, flags));
+	}
+}
+
+void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags flags) {
+
+	if (flags & Reference::global) {
+
+		auto& package = cursor.symbols().get_package();
+
+		if (!ensure_not_defined(symbol, package.symbols())) [[unlikely]] {
+			error("symbol '{}' was already defined in global context", symbol.str());
+		}
+
+		cursor.stack().emplace_back(package.symbols().emplace(symbol, Reference(flags)).first->second);
+	}
+	else {
+
+		if (!ensure_not_defined(symbol, cursor.symbols())) [[unlikely]] {
+			error("symbol '{}' was already defined in this context", symbol.str());
+		}
+
+		cursor.stack().emplace_back(cursor.symbols().emplace(symbol, Reference(flags)).first->second);
+	}
 }

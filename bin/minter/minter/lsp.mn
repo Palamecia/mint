@@ -58,11 +58,11 @@ load minter.config
 	 * Creates a new language server. The `stream` parameter must implement the
 	 * stream interface (read and write) and will be used to send end receive
 	 * messages. If the `checkParentProcess` is set to `true`, the server will
-	 * be closed if the parent process is stoped. If the `consumer` parameter
+	 * be closed if the parent process is stopped. If the `consumer` parameter
 	 * is not `none`, the given object will be called to send responses instead
 	 * of the `stream` write method.
 	 */
-	const def new(self, stream, checkParentProcess = false, consumer = none) {
+	const def new(self, stream, checkParentProcess: boolean = false, consumer = none) {
 
 		self.checkParentProcess = checkParentProcess
 		self.jsonRpcStream = stream
@@ -240,7 +240,7 @@ load minter.config
 	/**
 	 * Returns `data` converted into an instance of `Network.JsonRpc.Message`.
 	 */
-	- const def toMessage(self, data) {
+	- const def toMessage(self, data) -> Network.JsonRpc.Message {
 		switch typeof data {
 		case 'Network.JsonRpc.Message':
 			return data
@@ -251,7 +251,7 @@ load minter.config
 		}
 	}
 
-	const def capabilities(self, rootUri) {
+	const def capabilities(self, rootUri) -> hash? {
 		if let workspace = self.getWorkspaceFromUrl(rootUri) {
 			return {
 				'codeActionProvider': self.hasCapability('onCodeActions', workspace),
@@ -677,12 +677,12 @@ load minter.config
 		return [for let list in results => for let item in list => item]
 	}
 
-	- final watchingThread = none
+	- final watchingThread: System.Thread? = none
 	- final workspaces = {}
 	- final uriWorkspaceMapper = {}
 
-	- final checkParentProcess = false
-	- final jsonRpcEndpoint = null
+	- final checkParentProcess: boolean = false
+	- final jsonRpcEndpoint: function? = none
 	- final jsonRpcStream = null
 	- final shutdown = false
 	- final running = false
@@ -695,7 +695,7 @@ load minter.config
  * `port`. If the `checkParentProcess` is set to `true`, the server will automatically
  * be closed if its parent process is closed.
  */
-@def startTcpLangServer(address, port, checkParentProcess, MintLspServerClass = MintLspServer) {
+@def startTcpLangServer(address: string, port: number, checkParentProcess: boolean, MintLspServerClass = MintLspServer) {
 
 	const shutdownServer = def (checkParentProcess, server) {
 		if checkParentProcess {
@@ -708,11 +708,10 @@ load minter.config
 
 	// Construct a custom wrapper class around the user's MintLspServerClass
 	const WrapperClass = type(typeof MintLspServerClass + 'Handler', [Network.JsonRpc.RequestHandler], {
-		'new': def [MintLspServerClass, checkParentProcess] (self, endpoint) {
-			if self = Network.JsonRpc.RequestHandler.new(self, endpoint) {
-				self.delegate = MintLspServerClass(self, checkParentProcess)
-				return self
-			}
+		'new': def [MintLspServerClass, checkParentProcess] (self, endpoint, configuration) {
+			Network.JsonRpc.RequestHandler.new(self as Network.JsonRpc.RequestHandler, endpoint, configuration)
+			self.delegate = MintLspServerClass(self, checkParentProcess)
+			return self
 		},
 		'onOpen': def (self, channel) {
 			try {
@@ -761,7 +760,7 @@ load minter.config
  * `checkParentProcess` is set to `true`, the server will automatically be closed if
  * its parent process is closed.
  */
-@def startWSLangServer(port, checkParentProcess, MintLspServerClass = MintLspServer) {
+@def startWSLangServer(port: number, checkParentProcess: boolean, MintLspServerClass = MintLspServer) {
 	
 }
 
@@ -771,13 +770,13 @@ load minter.config
  * set to `true`, the server will automatically be closed if its parent process is
  * closed.
  */
-@def startIOLangServer(checkParentProcess, MintLspServerClass = MintLspServer) {
+@def startIOLangServer(checkParentProcess: boolean, MintLspServerClass = MintLspServer) {
 	logger.info('Starting %s IO language server', typeof MintLspServerClass)
 	logger.debug("Creating Network.StdioSocket")
-	let socket = Network.StdioSocket()
+	let socket: Network.StdioSocket = Network.StdioSocket()
 	socket.bind(Network.StdioEndpoint(System.stdin, System.stdout))
 	logger.debug("Creating Channel")
-	let channel = Network.Channel(socket, Network.JsonRpc.Serializer)
+	let channel: Network.Channel = Network.Channel(socket, Network.JsonRpc.Serializer)
 	if not channel {
 		logger.error("Failed to create Channel")
 		return none

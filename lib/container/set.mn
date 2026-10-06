@@ -97,7 +97,7 @@ package Container {
 	/**
 	 * Converts the set to an `array`.
 	 */
-	const def toArray(const self) {
+	const def toArray(const self) -> array {
 		return self.values()
 	}
 

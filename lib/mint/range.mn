@@ -34,12 +34,11 @@ load mint.operator
  */
 @class Iterator {
     /**
-     * Creates a new instance iterating on the elements of `range`.
+     * Creates a new instance iterating on the elements of `range`, as produced by its `in` operator.
      */
     const def new(self, range) {
-        if self.iterator = range.inOperator() {
-            return self
-        }
+        self.iterator = range.inOperator()
+        return self
     }
 
     /**
@@ -106,15 +105,14 @@ load mint.operator
  */
 @class BidirectionalIterator : Iterator {
     /**
-     * Creates a new instance iterating on the elements of `range`.
+     * Creates a new instance iterating on the elements of `range`, as produced by its `in` operator.
      */
     override const def new(self, range) {
-        if self = Iterator.new(self, range) {
-            if not self.iterator.isEmpty() {
-                self.items << self.iterator.value()
-            }
-            return self
+        Iterator.new(self, range)
+        if not self.iterator.isEmpty() {
+            self.items << self.iterator.value()
         }
+        return self
     }
 
     /**

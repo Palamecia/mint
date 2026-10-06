@@ -39,7 +39,7 @@ load mint.type
 			return value
 		}
 		if defined value.toInt8 {
-			return value.toInt8()
+			return value.toInt8() as int8
 		}
 		self.d_ptr = int8.g_lib.call('mint_int8_create', value)
 		self.d_ptr.delete = def [g_lib = int8.g_lib] (self) {
@@ -189,14 +189,14 @@ load mint.type
 	 * Returns the result of the `++` operator applied to `self`.
 	 */
 	const def ++(self) {
-		return self.g_lib.call('mint_int8_inc', self)
+		return int8.g_lib.call('mint_int8_inc', self)
 	}
 
 	/**
 	 * Returns the result of the `--` operator applied to `self`.
 	 */
 	const def --(self) {
-		return self.g_lib.call('mint_int8_dec', self)
+		return int8.g_lib.call('mint_int8_dec', self)
 	}
 
 	/**
@@ -278,19 +278,19 @@ load mint.type
 	/**
 	 * Returns the value of the object as a number.
 	 */
-	const def toNumber(const self) {
-		return self.g_lib.call('mint_int8_to_number', self)
+	const def toNumber(const self) -> number {
+		return int8.g_lib.callAsNumber('mint_int8_to_number', self)
 	}
 
 	/**
 	 * Returns the value of the object as a string.
 	 */
-	const def toString(const self) {
-		return self.g_lib.call('mint_int8_to_number', self).toString()
+	const def toString(const self) -> string {
+		return int8.g_lib.call('mint_int8_to_number', self).toString()
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -308,7 +308,7 @@ load mint.type
 			return value
 		}
 		if defined value.toInt16 {
-			return value.toInt16()
+			return value.toInt16() as int16
 		}
 		self.d_ptr = int16.g_lib.call('mint_int16_create', value)
 		self.d_ptr.delete = def [g_lib = int16.g_lib] (self) {
@@ -458,14 +458,14 @@ load mint.type
 	 * Returns the result of the `++` operator applied to `self`.
 	 */
 	const def ++(self) {
-		return self.g_lib.call('mint_int16_inc', self)
+		return int16.g_lib.call('mint_int16_inc', self)
 	}
 
 	/**
 	 * Returns the result of the `--` operator applied to `self`.
 	 */
 	const def --(self) {
-		return self.g_lib.call('mint_int16_dec', self)
+		return int16.g_lib.call('mint_int16_dec', self)
 	}
 
 	/**
@@ -547,19 +547,19 @@ load mint.type
 	/**
 	 * Returns the value of the object as a number.
 	 */
-	const def toNumber(const self) {
-		return self.g_lib.call('mint_int16_to_number', self)
+	const def toNumber(const self) -> number {
+		return int16.g_lib.callAsNumber('mint_int16_to_number', self)
 	}
 
 	/**
 	 * Returns the value of the object as a string.
 	 */
-	const def toString(const self) {
-		return self.g_lib.call('mint_int16_to_number', self).toString()
+	const def toString(const self) -> string {
+		return int16.g_lib.call('mint_int16_to_number', self).toString()
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -577,7 +577,7 @@ load mint.type
 			return value
 		}
 		if defined value.toInt32 {
-			return value.toInt32()
+			return value.toInt32() as int32
 		}
 		self.d_ptr = int32.g_lib.call('mint_int32_create', value)
 		self.d_ptr.delete = def [g_lib = int32.g_lib] (self) {
@@ -727,14 +727,14 @@ load mint.type
 	 * Returns the result of the `++` operator applied to `self`.
 	 */
 	const def ++(self) {
-		return self.g_lib.call('mint_int32_inc', self)
+		return int32.g_lib.call('mint_int32_inc', self)
 	}
 
 	/**
 	 * Returns the result of the `--` operator applied to `self`.
 	 */
 	const def --(self) {
-		return self.g_lib.call('mint_int32_dec', self)
+		return int32.g_lib.call('mint_int32_dec', self)
 	}
 
 	/**
@@ -816,19 +816,19 @@ load mint.type
 	/**
 	 * Returns the value of the object as a number.
 	 */
-	const def toNumber(const self) {
-		return self.g_lib.call('mint_int32_to_number', self)
+	const def toNumber(const self) -> number {
+		return int32.g_lib.callAsNumber('mint_int32_to_number', self)
 	}
 
 	/**
 	 * Returns the value of the object as a string.
 	 */
-	const def toString(const self) {
-		return self.g_lib.call('mint_int32_to_number', self).toString()
+	const def toString(const self) -> string {
+		return int32.g_lib.call('mint_int32_to_number', self).toString()
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -846,7 +846,7 @@ load mint.type
 			return value
 		}
 		if defined value.toInt64 {
-			return value.toInt64()
+			return value.toInt64() as int64
 		}
 		self.d_ptr = int64.g_lib.call('mint_int64_create', value)
 		self.d_ptr.delete = def [g_lib = int64.g_lib] (self) {
@@ -996,14 +996,14 @@ load mint.type
 	 * Returns the result of the `++` operator applied to `self`.
 	 */
 	const def ++(self) {
-		return self.g_lib.call('mint_int64_inc', self)
+		return int64.g_lib.call('mint_int64_inc', self)
 	}
 
 	/**
 	 * Returns the result of the `--` operator applied to `self`.
 	 */
 	const def --(self) {
-		return self.g_lib.call('mint_int64_dec', self)
+		return int64.g_lib.call('mint_int64_dec', self)
 	}
 
 	/**
@@ -1085,19 +1085,19 @@ load mint.type
 	/**
 	 * Returns the value of the object as a number.
 	 */
-	const def toNumber(const self) {
-		return self.g_lib.call('mint_int64_to_number', self)
+	const def toNumber(const self) -> number {
+		return int64.g_lib.callAsNumber('mint_int64_to_number', self)
 	}
 
 	/**
 	 * Returns the value of the object as a string.
 	 */
-	const def toString(const self) {
-		return self.g_lib.call('mint_int64_to_number', self).toString()
+	const def toString(const self) -> string {
+		return int64.g_lib.call('mint_int64_to_number', self).toString()
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -1115,7 +1115,7 @@ load mint.type
 			return value
 		}
 		if defined value.toUInt8 {
-			return value.toUInt8()
+			return value.toUInt8() as uint8
 		}
 		self.d_ptr = uint8.g_lib.call('mint_uint8_create', value)
 		self.d_ptr.delete = def [g_lib = uint8.g_lib] (self) {
@@ -1265,14 +1265,14 @@ load mint.type
 	 * Returns the result of the `++` operator applied to `self`.
 	 */
 	const def ++(self) {
-		return self.g_lib.call('mint_uint8_inc', self)
+		return uint8.g_lib.call('mint_uint8_inc', self)
 	}
 
 	/**
 	 * Returns the result of the `--` operator applied to `self`.
 	 */
 	const def --(self) {
-		return self.g_lib.call('mint_uint8_dec', self)
+		return uint8.g_lib.call('mint_uint8_dec', self)
 	}
 
 	/**
@@ -1347,19 +1347,19 @@ load mint.type
 	/**
 	 * Returns the value of the object as a number.
 	 */
-	const def toNumber(const self) {
-		return self.g_lib.call('mint_uint8_to_number', self)
+	const def toNumber(const self) -> number {
+		return uint8.g_lib.callAsNumber('mint_uint8_to_number', self)
 	}
 
 	/**
 	 * Returns the value of the object as a string.
 	 */
-	const def toString(const self) {
-		return self.g_lib.call('mint_uint8_to_number', self).toString()
+	const def toString(const self) -> string {
+		return uint8.g_lib.call('mint_uint8_to_number', self).toString()
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -1377,7 +1377,7 @@ load mint.type
 			return value
 		}
 		if defined value.toUInt16 {
-			return value.toUInt16()
+			return value.toUInt16() as uint16
 		}
 		self.d_ptr = uint16.g_lib.call('mint_uint16_create', value)
 		self.d_ptr.delete = def [g_lib = uint16.g_lib] (self) {
@@ -1527,14 +1527,14 @@ load mint.type
 	 * Returns the result of the `++` operator applied to `self`.
 	 */
 	const def ++(self) {
-		return self.g_lib.call('mint_uint16_inc', self)
+		return uint16.g_lib.call('mint_uint16_inc', self)
 	}
 
 	/**
 	 * Returns the result of the `--` operator applied to `self`.
 	 */
 	const def --(self) {
-		return self.g_lib.call('mint_uint16_dec', self)
+		return uint16.g_lib.call('mint_uint16_dec', self)
 	}
 
 	/**
@@ -1609,19 +1609,19 @@ load mint.type
 	/**
 	 * Returns the value of the object as a number.
 	 */
-	const def toNumber(const self) {
-		return self.g_lib.call('mint_uint16_to_number', self)
+	const def toNumber(const self) -> number {
+		return uint16.g_lib.callAsNumber('mint_uint16_to_number', self)
 	}
 
 	/**
 	 * Returns the value of the object as a string.
 	 */
-	const def toString(const self) {
-		return self.g_lib.call('mint_uint16_to_number', self).toString()
+	const def toString(const self) -> string {
+		return uint16.g_lib.call('mint_uint16_to_number', self).toString()
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -1639,7 +1639,7 @@ load mint.type
 			return value
 		}
 		if defined value.toUInt32 {
-			return value.toUInt32()
+			return value.toUInt32() as uint32
 		}
 		self.d_ptr = uint32.g_lib.call('mint_uint32_create', value)
 		self.d_ptr.delete = def [g_lib = uint32.g_lib] (self) {
@@ -1789,14 +1789,14 @@ load mint.type
 	 * Returns the result of the `++` operator applied to `self`.
 	 */
 	const def ++(self) {
-		return self.g_lib.call('mint_uint32_inc', self)
+		return uint32.g_lib.call('mint_uint32_inc', self)
 	}
 
 	/**
 	 * Returns the result of the `--` operator applied to `self`.
 	 */
 	const def --(self) {
-		return self.g_lib.call('mint_uint32_dec', self)
+		return uint32.g_lib.call('mint_uint32_dec', self)
 	}
 
 	/**
@@ -1871,19 +1871,19 @@ load mint.type
 	/**
 	 * Returns the value of the object as a number.
 	 */
-	const def toNumber(const self) {
-		return self.g_lib.call('mint_uint32_to_number', self)
+	const def toNumber(const self) -> number {
+		return uint32.g_lib.callAsNumber('mint_uint32_to_number', self)
 	}
 
 	/**
 	 * Returns the value of the object as a string.
 	 */
-	const def toString(const self) {
-		return self.g_lib.call('mint_uint32_to_number', self).toString()
+	const def toString(const self) -> string {
+		return uint32.g_lib.call('mint_uint32_to_number', self).toString()
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null
@@ -1901,7 +1901,7 @@ load mint.type
 			return value
 		}
 		if defined value.toUInt64 {
-			return value.toUInt64()
+			return value.toUInt64() as uint64
 		}
 		self.d_ptr = uint64.g_lib.call('mint_uint64_create', value)
 		self.d_ptr.delete = def [g_lib = uint64.g_lib] (self) {
@@ -2051,14 +2051,14 @@ load mint.type
 	 * Returns the result of the `++` operator applied to `self`.
 	 */
 	const def ++(self) {
-		return self.g_lib.call('mint_uint64_inc', self)
+		return uint64.g_lib.call('mint_uint64_inc', self)
 	}
 
 	/**
 	 * Returns the result of the `--` operator applied to `self`.
 	 */
 	const def --(self) {
-		return self.g_lib.call('mint_uint64_dec', self)
+		return uint64.g_lib.call('mint_uint64_dec', self)
 	}
 
 	/**
@@ -2133,19 +2133,19 @@ load mint.type
 	/**
 	 * Returns the value of the object as a number.
 	 */
-	const def toNumber(const self) {
-		return self.g_lib.call('mint_uint64_to_number', self)
+	const def toNumber(const self) -> number {
+		return uint64.g_lib.callAsNumber('mint_uint64_to_number', self)
 	}
 
 	/**
 	 * Returns the value of the object as a string.
 	 */
-	const def toString(const self) {
-		return self.g_lib.call('mint_uint64_to_number', self).toString()
+	const def toString(const self) -> string {
+		return uint64.g_lib.call('mint_uint64_to_number', self).toString()
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null

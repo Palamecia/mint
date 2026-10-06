@@ -63,7 +63,7 @@ public:
 	SchedulerContextSwitcher& operator=(SchedulerContextSwitcher&&) = delete;
 };
 
-class MINT_EXPORT TestProcess : public Process {
+class MINT_EXPORT TestProcess final : public Process {
 	std::reference_wrapper<Scheduler> _scheduler;
 	SchedulerContextSwitcher _context;
 public:
@@ -78,13 +78,13 @@ public:
 
 class MINT_EXPORT Scheduler {
 public:
-	explicit Scheduler(const std::vector<std::string>& args);
-	Scheduler(Scheduler&&) = delete;
+	Scheduler() = default;
 	Scheduler(const Scheduler&) = delete;
+	Scheduler(Scheduler&&) = delete;
 	~Scheduler();
 
-	Scheduler& operator=(Scheduler&&) = delete;
 	Scheduler& operator=(const Scheduler&) = delete;
+	Scheduler& operator=(Scheduler&&) = delete;
 
 	static Scheduler* instance();
 
@@ -99,8 +99,8 @@ public:
 	Reference invoke(const Reference& function, std::vector<Reference>& parameters);
 
 	template<class... Args>
-	Reference invoke(Class& type, Args... args);
-	Reference invoke(Class& type, std::vector<Reference>& parameters);
+	Reference invoke(const Class& type, Args... args);
+	Reference invoke(const Class& type, std::vector<Reference>& parameters);
 
 	template<class... Args>
 	Reference invoke(const Reference& object, const Symbol& method, Args... args);
@@ -123,6 +123,8 @@ public:
 	void create_destructor(Object* object, const Reference& member, Class& owner);
 	void create_generator(std::unique_ptr<SavedState>&& state);
 
+	bool setup(const std::vector<std::string>& args);
+
 	void add_exit_callback(const std::function<void(int)>& callback);
 
 	bool is_running() const;
@@ -133,7 +135,6 @@ public:
 	bool disable_testing(TestProcess& process);
 
 protected:
-	bool parse_arguments(const std::vector<std::string>& args);
 	static void print_version();
 	static void print_help();
 
@@ -168,7 +169,7 @@ Reference Scheduler::invoke(const Reference& function, Args... args) {
 }
 
 template<class... Args>
-Reference Scheduler::invoke(Class& type, Args... args) {
+Reference Scheduler::invoke(const Class& type, Args... args) {
 	std::vector<Reference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);

@@ -226,14 +226,14 @@ package Container {
 	/**
 	 * Converts the list to an `array`.
 	 */
-	const def toArray(const self) {
+	const def toArray(const self) -> array {
 		return self.values
 	}
 
 	/**
 	 * Converts the list to an `hash`.
 	 */
-	const def toHash(const self) {
+	const def toHash(const self) -> hash {
 		return hash(self.values)
 	}
 

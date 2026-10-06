@@ -25,12 +25,14 @@
  * This module provides tools to works with Uniform Resource Identifiers (URI).
  */
 
+load exception.exception
 load serializer.data-stream
 load system.directory
 load system.os
 load mint.string
 load mint.regex
 load mint.range
+load mint.type
 
 package System {
 	/**
@@ -64,7 +66,7 @@ package System {
 		 */
 		@const def unescapeString(const str) {
 			var unescapedString = str
-			for (var index = unescapedString.indexOf(/%[0-9A-F]{2}/), defined index, index = unescapedString.indexOf(/%[0-9A-F]{2}/, index + 1)) {
+			for (let index = unescapedString.indexOf(/%[0-9A-F]{2}/), defined index, index = unescapedString.indexOf(/%[0-9A-F]{2}/, index + 1)) {
 				unescapedString.replace(index, 3, '%c' % ('0x' + unescapedString.substring(index + 1, 2)).toNumber())
 			}
 			return unescapedString
@@ -75,20 +77,24 @@ package System {
 		 * 
 		 * If `url` is an instance of {System.Url}, this instance is returned.
 		 * 
-		 * If `desc` is a string, it is parsed to retrieve the ressource
-		 * informations. If the string is not a valid URL, `none` is returned.
+		 * If `desc` is a string, it is parsed to retrieve the ressource informations. The string must be a valid URL.
 		 * 
-		 * If `desc` provides a `toUrl` method, this method is used to create
-		 * the returned value; otherwise `none` is returned.
+		 * If `desc` provides a `toUrl` method, this method is used to create the returned value; otherwise `none` is
+		 * returned.
+		 * 
+		 * Raises {Exception.ValueError} on error.
 		 */
 		const def new(self, url) {
 			switch typeof url {
 			case 'System.Url':
 				return url
-			case 'string':
+			default:
+				if defined url.toUrl {
+					return url.toUrl() as System.Url
+				}
 				var parser = System.Url.Parser()
-				if not parser.parse(url) {
-					return none
+				if not parser.parse(url.toString()) {
+					raise Exception.ValueError('string must be a valid URL', url)
 				}
 				self.scheme = parser.scheme
 				self.path = parser.path
@@ -100,10 +106,6 @@ package System {
 				self.params = parser.params
 				self.fragment = parser.fragment
 				return self
-			default:
-				if defined url.toUrl {
-					return url.toUrl()
-				}
 			}
 		}
 
@@ -199,7 +201,7 @@ package System {
 		/**
 		 * Creates a new URL for a local file path.
 		 */
-		@const def fromFilePath(const filePath) {
+		@const def fromFilePath(const filePath) -> System.Url {
 			if filePath.startsWith(/[a-zA-Z]:/) {
 				return System.Url('file:///' + System.Url.escapeString(filePath).replace('\\', '/'))
 			}
@@ -235,7 +237,7 @@ package System {
 		/**
 		 * Returns a string representation of the URL.
 		 */
-		const def toString(const self) {
+		const def toString(const self) -> string {
 			var url = ''
 			if defined self.scheme {
 				url << self.scheme + '://'

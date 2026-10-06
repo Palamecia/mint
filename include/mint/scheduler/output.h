@@ -24,12 +24,13 @@
 #ifndef MINT_SCHEDULER_OUTPUT_H
 #define MINT_SCHEDULER_OUTPUT_H
 
-#include "mint/program/class_register.h"
-#include "mint/program/printer.h"
 #include "mint/config.h"
+#include "mint/program/printer.h"
 #include <functional>
 
 namespace mint {
+
+class Program;
 
 class MINT_EXPORT Output : public Printer {
 	std::reference_wrapper<Program> _program;

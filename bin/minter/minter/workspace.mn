@@ -34,10 +34,10 @@ load mint.type
 
 @class MintLspWorkspace {
 
-    @const PublishDiagnostics = 'textDocument/publishDiagnostics'
-    @const Progress = '$/progress'
-    @const ApplyEdit = 'workspace/applyEdit'
-    @const ShowMessage = 'window/showMessage'
+    @const PublishDiagnostics: string = 'textDocument/publishDiagnostics'
+    @const Progress: string = '$/progress'
+    @const ApplyEdit: string = 'workspace/applyEdit'
+    @const ShowMessage: string = 'window/showMessage'
 
     class Document {
 
@@ -73,7 +73,7 @@ load mint.type
             return self.path
         }
 
-        const def toString(self) {
+        const def toString(const self) -> string {
             return self.uri.toString()
         }
 

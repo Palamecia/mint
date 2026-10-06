@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/program/class_register.h"
+#include "mint/memory/object.h"
 #include "mint/program/symbol.h"
 #include "mint/debug/line_info.h"
 #include "mint/memory/builtin/array.h"
@@ -137,9 +137,9 @@ mint::Reference mint_lang_get_object_locals(mint::Cursor& cursor, const mint::Re
 
 	if (mint::is_instance_of(object, mint::Data::Format::object)) {
 		for (const auto& [symbol, member] : object.data<mint::Object>().metadata.members()) {
-			if (!(member.get().value.flags() & mint::Reference::visibility_mask)) {
+			if (!(member.value.flags() & mint::Reference::visibility_mask)) {
 				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()),
-				    member.get().value);
+				    member.value);
 			}
 		}
 	}
@@ -154,9 +154,9 @@ mint::Reference mint_lang_get_object_globals(mint::Cursor& cursor, const mint::R
 	switch (object.data().format()) {
 	case mint::Data::Format::object:
 		for (const auto& [symbol, member] : object.data<mint::Object>().metadata.globals()) {
-			if (!(member.get().value.flags() & mint::Reference::visibility_mask)) {
+			if (!(member.value.flags() & mint::Reference::visibility_mask)) {
 				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()),
-				    member.get().value);
+				    member.value);
 			}
 		}
 		break;
@@ -190,16 +190,16 @@ mint::Reference mint_lang_get_object_types(mint::Cursor& cursor, const mint::Ref
 	switch (object.data().format()) {
 	case mint::Data::Format::object:
 		for (const auto& [symbol, type] : object.data<mint::Object>().metadata.classes()) {
-			if (!(type.get().value.flags() & mint::Reference::visibility_mask)) {
+			if (!(type.value.flags() & mint::Reference::visibility_mask)) {
 				hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()),
-				    mint::create_alias(type.get().value.data<mint::Object>().metadata));
+				    mint::create_alias(type.value.data<mint::Object>().metadata));
 			}
 		}
 		break;
 	case mint::Data::Format::package:
 		for (const auto& [symbol, type] : object.data<mint::Package>().data.classes()) {
 			hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()),
-			    mint::create_alias(type));
+			    mint::create_alias(type.data<mint::Object>().metadata));
 		}
 		break;
 	default:
@@ -215,7 +215,7 @@ mint::Reference mint_lang_get_types(mint::Cursor& cursor) {
 
 	for (const auto& [symbol, type] : cursor.program().global_data().classes()) {
 		hash_insert(result.data<mint::Hash>(), mint::create_string(cursor.program(), symbol.str()),
-		    mint::create_alias(type));
+		    mint::create_alias(type.data<mint::Object>().metadata));
 	}
 
 	return result;

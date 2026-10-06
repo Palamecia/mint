@@ -29,6 +29,7 @@
 load serializer.data-stream
 load serializer.text-stream
 load serializer.json-stream
+load exception.exception
 load mint.string
 load mint.regex
 load mint.hash
@@ -62,7 +63,7 @@ package Network {
 			 * If `body` is an instance of {Serializer.JsonStream}, this
 			 * instance is read to create the body of the message.
 			 * 
-			 * Otherwise, the creation fails.
+			 * Raises {Exception.TypeError} otherwise.
 			 */
 			const def new(self, body, attributes = {}) {
 				switch typeof body {
@@ -76,6 +77,8 @@ package Network {
 					return self
 				case 'Network.JsonRpc.Message':
 					return body
+				default:
+					raise Exception.TypeError('body must be a hash, a JSON stream or a JSON-RPC message', body)
 				}
 			}
 
@@ -85,10 +88,8 @@ package Network {
 			 * body of the message. The `attributes` parameter can also be given
 			 * to setup the attributes of the header.
 			 */
-			@const def fromString(body, attributes = {}) {
-				if defined body {
-					return Network.JsonRpc.Message(Serializer.JsonStream(Serializer.StringStream(body)).read(), attributes)
-				}
+			@const def fromString(body, attributes = {}) -> Network.JsonRpc.Message {
+				return Network.JsonRpc.Message(Serializer.JsonStream(Serializer.StringStream(body)).read(), attributes)
 			}
 
 			/**
@@ -169,7 +170,7 @@ package Network {
 			 * Returns the content of the message as a string including headers and body, with CRLF line endings
 			 * converted to LF.
 			 */
-			const def toString(const self) {
+			const def toString(const self) -> string {
 
 				let result = ''
 				let body = self.getBodyText()

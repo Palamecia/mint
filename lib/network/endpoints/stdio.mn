@@ -39,13 +39,18 @@ package Network {
 		 * an instance of `mint::handle_t` (C++) or a file descriptor described as a number (like {System.stdin} and
 		 * {System.stdout}). The `fdRead` provides the handle to read data from the peer (its stdout) and `fdWrite`
 		 * provides the handle to write data to the peer (its stdin).
+		 *
+		 * Raises {Exception.ValueError} if either handle is not valid.
 		 */
 		const def new(self, fdRead, fdWrite) {
-			self.readHandle = Network.StdioEndpoint.g_lib.call('mint_stdio_endpoint_to_handle', fdRead)
-			self.writeHandle = Network.StdioEndpoint.g_lib.call('mint_stdio_endpoint_to_handle', fdWrite)
-			if defined self.readHandle and defined self.writeHandle {
-				return self
+			let readHandle = Network.StdioEndpoint.g_lib.call('mint_stdio_endpoint_to_handle', fdRead)
+			let writeHandle = Network.StdioEndpoint.g_lib.call('mint_stdio_endpoint_to_handle', fdWrite)
+			if not readHandle or not writeHandle {
+				raise Exception.ValueError('handles must be valid', [fdRead, fdWrite])
 			}
+			self.readHandle = readHandle
+			self.writeHandle = writeHandle
+			return self
 		}
 
 		/**
@@ -63,7 +68,7 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal read handle.
 		- final readHandle = none

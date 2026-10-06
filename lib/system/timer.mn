@@ -27,6 +27,7 @@
  */
 
 load mint.type
+load exception.system
 
 package System {
 	/**
@@ -52,15 +53,18 @@ package System {
 		 * The `clockType` can be a value of {System.Timer.ClockType} that
 		 * describe the timer's clock precision.
 		 * 
-		 * If no timer can be created, `none` is returned.
+		 * Raises {Exception.SystemError} if the timer cannot be created.
 		 */
 	    const def new(self, clockType = System.Timer.ClockType.Monotonic) {
-		    if self.d_ptr = System.Timer.g_lib.call('mint_timer_create', clockType) {
-				self.d_ptr.delete = def [g_lib = System.Timer.g_lib](self) {
-					g_lib.call('mint_timer_delete', self)
-				}
-		    	return self
-		    }
+			let (errno, d_ptr) = System.Timer.g_lib.call('mint_timer_create', clockType)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			self.d_ptr = d_ptr
+			self.d_ptr.delete = def [g_lib = System.Timer.g_lib](self) {
+				g_lib.call('mint_timer_delete', self)
+			}
+			return self
 		}
 
 		/**
@@ -181,7 +185,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null

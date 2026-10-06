@@ -259,10 +259,10 @@ mint::Reference mint_poll(mint::Cursor& cursor, const mint::Reference& handles, 
 		for (const auto& [fd, poll_fd] : std::views::zip(handles.data<mint::Array>().values, fdset)) {
 			fd.data<mint::LibObject<PollFd>>().ptr->revents = poll_fd.revents;
 		}
-		return mint::create_iterator_from(cursor, mint::create_number(0), mint::create_boolean(result));
+		return mint_network::make_success(cursor, mint::create_boolean(result));
 	}
 	catch (const std::system_error& error) {
-		return mint::create_iterator_from(cursor, mint::create_number(error.code().value()));
+		return mint_network::make_failure(cursor, error.code().value());
 	}
 }
 

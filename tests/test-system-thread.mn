@@ -4,9 +4,9 @@ load mint.coroutine
 
 @class ThreadTest : Test.Case {
 	const def testMutexType(self) {
-		self.expectIsSame(System.Mutex.Kind.Normal, System.Mutex().getKind())
-		self.expectIsSame(System.Mutex.Kind.Normal, System.Mutex(System.Mutex.Kind.Normal).getKind())
-		self.expectIsSame(System.Mutex.Kind.Recursive, System.Mutex(System.Mutex.Kind.Recursive).getKind())
+		self.expectIsSame(System.Mutex().getKind(), System.Mutex.Kind.Normal)
+		self.expectIsSame(System.Mutex(System.Mutex.Kind.Normal).getKind(), System.Mutex.Kind.Normal)
+		self.expectIsSame(System.Mutex(System.Mutex.Kind.Recursive).getKind(), System.Mutex.Kind.Recursive)
 	}
 
 	const def testSharedReference(self) {
@@ -35,15 +35,15 @@ load mint.coroutine
 		}
 		m.unlock()
 
-		self.expectEqual(100, v)
+		self.expectEqual(v, 100)
 	}
 
 	const def testSpawn(self) {
 		let f = System.spawn(def {
 			return 42
 		})
-		self.expectEqual('System.Promise', typeof f)
-		self.expectEqual(42, f.get())
+		self.expectEqual(typeof f, 'System.Promise')
+		self.expectEqual(f.get(), 42)
 	}
 
 	const def testSpawnMethod(self) {
@@ -54,22 +54,22 @@ load mint.coroutine
 		}
 		let o = ThreadTestSpawnMethod()
 		let f = System.spawnMethod(o, o.run)
-		self.expectEqual('System.Promise', typeof f)
-		self.expectEqual(42, f.get())
+		self.expectEqual(typeof f, 'System.Promise')
+		self.expectEqual(f.get(), 42)
 	}
 
 	const def testSpawnAsync(self) {
 		let f = System.spawnAsync(async def {
 			return 42
 		}())
-		self.expectEqual('System.Promise', typeof f)
-		self.expectEqual(42, f.get())
+		self.expectEqual(typeof f, 'System.Promise')
+		self.expectEqual(f.get(), 42)
 	}
 
 	const def testSpawnImediateAsync(self) {
 		let f = System.spawnAsync(42)
-		self.expectEqual('System.Promise', typeof f)
-		self.expectEqual(42, f.get())
+		self.expectEqual(typeof f, 'System.Promise')
+		self.expectEqual(f.get(), 42)
 	}
 
 	const def testSpawnAwait(self) {
@@ -79,7 +79,7 @@ load mint.coroutine
 			})
 			return await p
 		}())
-		self.expectEqual('number', typeof f)
-		self.expectEqual(42, f)
+		self.expectEqual(typeof f, 'number')
+		self.expectEqual(f, 42)
 	}
 }

@@ -40,6 +40,8 @@ class Cursor;
 class MINT_EXPORT HashClass : public Class {
 public:
 	explicit HashClass(Program& program);
+
+	static ClassDescription& description();
 	static HashClass& instance(Program& program);
 };
 

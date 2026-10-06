@@ -84,6 +84,8 @@ std::filesystem::path InputStream::path() const {
 void InputStream::next() {
 	_level = 0;
 	_status = Status::ready;
+	_script.clear();
+	_script_start_line = line_number();
 }
 
 void InputStream::set_highlighter(Terminal::HighlighterFunction highlight) {
@@ -107,6 +109,7 @@ void InputStream::update_buffer() {
 	auto buffer = _terminal.read_line();
 	if (buffer.has_value()) {
 		_buffer = *buffer;
+		_script += _buffer;
 	}
 	else {
 		auto* scheduler = Scheduler::instance();
@@ -117,6 +120,23 @@ void InputStream::update_buffer() {
 	}
 
 	_cptr = _buffer.data();
+}
+
+std::string InputStream::get_line(std::size_t requested_line) {
+	if (requested_line < _script_start_line) {
+		return {};
+	}
+
+	auto start = std::size_t {0};
+	for (auto line = _script_start_line; line < requested_line; ++line) {
+		const auto newline = _script.find('\n', start);
+		if (newline == std::string::npos) {
+			return {};
+		}
+		start = newline + 1;
+	}
+	const auto newline = _script.find('\n', start);
+	return _script.substr(start, newline == std::string::npos ? newline : newline - start);
 }
 
 int InputStream::read_char() {
@@ -163,7 +183,7 @@ int InputStream::read_char() {
 			break;
 		}
 
-		return next_buffered_char();
+		return *_cptr++;
 
 	case Status::could_start_comment:
 		switch (*_cptr) {
@@ -205,7 +225,7 @@ int InputStream::read_char() {
 			break;
 		}
 
-		return next_buffered_char();
+		return *_cptr++;
 
 	case Status::single_line_comment:
 		switch (*_cptr) {
@@ -222,7 +242,7 @@ int InputStream::read_char() {
 			break;
 		}
 
-		return next_buffered_char();
+		return *_cptr++;
 
 	case Status::multi_line_comment:
 		switch (*_cptr) {
@@ -236,7 +256,7 @@ int InputStream::read_char() {
 			break;
 		}
 
-		return next_buffered_char();
+		return *_cptr++;
 
 	case Status::could_end_comment:
 		switch (*_cptr) {
@@ -252,7 +272,7 @@ int InputStream::read_char() {
 			break;
 		}
 
-		return next_buffered_char();
+		return *_cptr++;
 
 	case Status::single_quote_string:
 		switch (*_cptr) {
@@ -269,7 +289,7 @@ int InputStream::read_char() {
 			break;
 		}
 
-		return next_buffered_char();
+		return *_cptr++;
 
 	case Status::single_quote_string_escape_next:
 		switch (*_cptr) {
@@ -282,7 +302,7 @@ int InputStream::read_char() {
 			break;
 		}
 
-		return next_buffered_char();
+		return *_cptr++;
 
 	case Status::double_quote_string:
 		switch (*_cptr) {
@@ -299,7 +319,7 @@ int InputStream::read_char() {
 			break;
 		}
 
-		return next_buffered_char();
+		return *_cptr++;
 
 	case Status::double_quote_string_escape_next:
 		switch (*_cptr) {
@@ -312,7 +332,7 @@ int InputStream::read_char() {
 			break;
 		}
 
-		return next_buffered_char();
+		return *_cptr++;
 
 	case Status::breaking:
 		_status = Status::over;
@@ -324,8 +344,4 @@ int InputStream::read_char() {
 	}
 
 	return EOF;
-}
-
-int InputStream::next_buffered_char() {
-	return *_cptr++;
 }

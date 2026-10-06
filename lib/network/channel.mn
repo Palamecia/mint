@@ -39,6 +39,7 @@
  */
  
 load network.serializers.text
+load exception.exception
 load runtime.operation
 load mint.lock-guard
 load mint.function
@@ -67,15 +68,17 @@ package Network {
 		 * implement the {Network.Socket} interface. The `Serializer` parameter
 		 * must be a class implementing the {@module network.serializers} interface
 		 * used to detect messages end and convert exchanged data into objects.
-		 * 
-		 * If the `socket` parameter is `none`, the channel is not created.
+		 *
+		 * Raises {Exception.ValueError} if `socket` is not valid.
 		 */
 		const def new(self, socket, Serializer = Network.TextSerializer) {
-			if self.socket = socket {
-				self.request = Serializer()
-				self.reply = Serializer()
-				return self
+			if not socket {
+				raise Exception.ValueError('socket must be valid', socket)
 			}
+			self.socket = socket
+			self.request = Serializer()
+			self.reply = Serializer()
+			return self
 		}
 
 		/**
@@ -86,7 +89,7 @@ package Network {
 		 * If the method returns `false` and the underlying end point enters the {Network.Socket.State.Connecting}
 		 * state, the connection must be finalized later using the {@see finalizeConnection} method.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def connect(self, endpoint) {
 			try {
@@ -109,7 +112,7 @@ package Network {
 		 * {Network.Socket.finalizeConnection} method of the underlying end
 		 * point.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def finalizeConnection(self) {
 			try {
@@ -129,7 +132,7 @@ package Network {
 		 * succeed; otherwise returns `false`. This method calls the {Network.Socket.bind} method of the underlying
 		 * object.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def bind(self, endpoint) {
 			try {
@@ -152,7 +155,7 @@ package Network {
 		 * object. The {Network.ServerSerializer} should be used has serializer class to correctly handle incoming
 		 * connections.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def listen(self, endpoint) {
 			try {
@@ -240,7 +243,7 @@ package Network {
 		 * {Network.Socket.shutdown} method of the underlying object.
 		 * 
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def shutdown(self) {
 			try {
@@ -260,7 +263,7 @@ package Network {
 		 * listening if the channel was opened with {@see listen}. This method calls the {Network.Socket.close} method
 		 * of the underlying object.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def close(self) {
 			try {
@@ -327,7 +330,7 @@ package Network {
 		 * > to perform I/O operations until the current operation's
 		 * > acknowledgment by the peer.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def setNonBlocking(self, enabled) {
 			try {
@@ -365,13 +368,17 @@ package Network {
 	@class AsyncChannel {
 		/**
 		 * Creates a new asynchronous channel to manage exchanges with the asynchronous device described by `socket`.
+		 *
+		 * Raises {Exception.ValueError} if `socket` is not valid.
 		 */
 		const def new(self, socket, Serializer = Network.AsyncTextSerializer) {
-			if self.socket = socket {
-				self.request = Serializer()
-				self.reply = Serializer()
-				return self
+			if not socket {
+				raise Exception.ValueError('socket must be valid', socket)
 			}
+			self.socket = socket
+			self.request = Serializer()
+			self.reply = Serializer()
+			return self
 		}
 
 		/**
@@ -384,7 +391,7 @@ package Network {
 		 * If the method returns `false` and the underlying end point enters the {Network.Socket.State.Connecting}
 		 * state, the connection must be finalized later using the {@see finalizeConnection} method.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const async def connect(self, endpoint) {
 			try {
@@ -406,7 +413,7 @@ package Network {
 		 * succeed; otherwise returns `false`. This method calls the {Network.Socket.bind} method of the underlying
 		 * object.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def bind(self, endpoint) {
 			try {
@@ -429,7 +436,7 @@ package Network {
 		 * object. The {Network.ServerSerializer} should be used has serializer class to correctly handle incoming
 		 * connections.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def listen(self, endpoint) {
 			try {
@@ -596,19 +603,23 @@ package Network {
 		 * implementing the {@module network.serializers} interface used to detect messages end and convert exchanged
 		 * data into objects.
 		 * 
-		 * If the `socket` parameter is `none`, the channel is not created. The call to {Network.Socket.setNonBlocking}
-		 * must succeed to create the channel. The channel is created in non blocking mode and the `socket` parameter is
-		 * configured to call the channel's {@see notifyStateChanged}, {@see notifyReadable}, {@see notifyWritable},
-		 * {@see notifyConnection}, {@see notifyClosed} and {@see notifyError} methods on state change, readability,
-		 * writability, new connection, close and error events respectively.
+		 * The call to {Network.Socket.setNonBlocking} must succeed to create the channel. The channel is created in non
+		 * blocking mode and the `socket` parameter is configured to call the channel's {@see notifyStateChanged},
+		 * {@see notifyReadable}, {@see notifyWritable}, {@see notifyConnection}, {@see notifyClosed} and
+		 * {@see notifyError} methods on state change, readability, writability, new connection, close and error events
+		 * respectively.
+		 *
+		 * Raises {Exception.ValueError} if `socket` is not valid.
 		 */
 		const def new(self, socket, Serializer = Network.TextSerializer) {
-			if self.socket = socket {
-				self.socket.onState = Callback(self, self.notifyStateChanged)
-				self.request = Network.EventChannel.DataQueue(Serializer)
-				self.reply = Network.EventChannel.DataQueue(Serializer)
-				return self
+			if not socket {
+				raise Exception.ValueError('socket must be valid', socket)
 			}
+			self.socket = socket
+			self.socket.onState = Callback(self, self.notifyStateChanged)
+			self.request = Network.EventChannel.DataQueue(Serializer)
+			self.reply = Network.EventChannel.DataQueue(Serializer)
+			return self
 		}
 
 		/**
@@ -633,7 +644,7 @@ package Network {
 		 * finalized if {Network.poll} is called on this instance. On connection success, the {@see onOpen} method will
 		 * be called.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def connect(self, endpoint) {
 			try {
@@ -658,7 +669,7 @@ package Network {
 		 * succeed; otherwise returns `false`. This method calls the {Network.Socket.bind} method of the underlying
 		 * object.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def bind(self, endpoint) {
 			try {
@@ -684,7 +695,7 @@ package Network {
 		 * object. The {Network.ServerSerializer} should be used has serializer class to correctly handle incoming
 		 * connections.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def listen(self, endpoint) {
 			try {
@@ -747,7 +758,7 @@ package Network {
 		 * method of the underlying object. If the socket was successfully closed,
 		 * {@see onClose} is called; otherwise the socket will be closed later.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def close(self) {
 			let closed = false
@@ -851,7 +862,7 @@ package Network {
 		 * > to perform I/O operations until the current operation's
 		 * > acknowledgment by the peer.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def setNonBlocking(self, enabled) {
 			try {
@@ -886,7 +897,7 @@ package Network {
 		 * it to the serializer object. If one or more message can created with
 		 * the data, {@see onMessage} is called.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def notifyReadable(self) {
 			switch self.socket.getState() {
@@ -913,7 +924,7 @@ package Network {
 		 * to the end point. If the underlying end point was connecting, the
 		 * connection is finalized and {@see onOpen} is called.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def notifyWritable(self) {
 			switch self.socket.getState() {
@@ -948,7 +959,7 @@ package Network {
 		 * a new connection request. The end point corrsponding to the new connection
 		 * is pushed to the reply queue and {@see onMessage} is called.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def notifyConnection(self) {
 			switch self.socket.getState() {
@@ -973,7 +984,7 @@ package Network {
 		 * connection is then closed using {Network.Socket.close} and
 		 * {@see onClose} is called.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def notifyClosed(self) {
 			try {

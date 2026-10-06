@@ -25,57 +25,69 @@
 #define LIBMINT_COMPILER_CONTEXT_H
 
 #include "branch.h"
-#include "mint/program/class_register.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/program/symbol.h"
-#include "mint/compiler/build_tools.h"
-#include "mint/memory/global_data.h"
+#include "mint/compiler/build_context.h"
 #include "mint/memory/reference.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
+#include <optional>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 #include <stack>
-#include <list>
 
 namespace mint {
 
-class Branch;
 class ClassDescription;
 
 struct Block;
 
+struct ClassDefinition {
+	std::reference_wrapper<ClassDescription> description;
+	Reference::Flags flags = Reference::default_flags;
+};
+
 struct Context {
 	enum class MetaBlock : std::uint8_t {
 		printer,
-		generator_expression
+		generator_expression,
 	};
 
+	Context* enclosing = nullptr;
 	std::stack<MetaBlock> meta_blocks;
-	std::stack<std::pair<ClassDescription*, Reference::Flags>> classes;
+	std::stack<ClassDefinition> classes;
+	std::vector<std::unique_ptr<Block>> blocks;
+
+	// TODO: staged informations from the control structures conditions to be transferred once the block is created. The
+	// blocks should then starts once the corresponding keyword is found then those attributes could disappear.
 	std::stack<SubBranch> branches;
-	std::list<std::unique_ptr<Block>> blocks;
 	std::unique_ptr<std::vector<const Symbol*>> condition_scoped_symbols;
 	std::unique_ptr<std::vector<const Symbol*>> range_loop_scoped_symbols;
 };
 
 struct Parameter {
-	Reference::Flags flags;
-	const Symbol* symbol;
+	const Symbol* symbol = nullptr;
+	TypeAnnotation type;
+	Reference::Flags flags = Reference::default_flags;
 };
 
-struct Definition : public Context {
+struct FunctionDefinition : Context {
+	FunctionDescription* description = nullptr;
+	Reference::Flags flags = Reference::default_flags;
+	Reference* function = nullptr;
+	std::stack<Parameter> parameters;
 	std::vector<Branch::BackwardNodeIndex> exit_points;
 	std::unordered_map<Symbol, std::size_t> fast_symbol_indexes;
 	std::size_t fast_symbol_count = 0;
-	std::stack<Parameter> parameters;
 	std::size_t begin_offset = invalid_offset;
 	std::size_t retrieve_point_count = 0;
-	Reference* function = nullptr;
-	std::unique_ptr<FunctionData> global_data;
-	std::unique_ptr<Branch> capture;
+	std::optional<SubBranch> capture;
+	TypeAnnotation return_type;
 	bool capture_all: 1 = false;
 	bool with_fast: 1 = true;
 	bool variadic: 1 = false;
@@ -84,9 +96,9 @@ struct Definition : public Context {
 	bool returned: 1 = false;
 };
 
-std::size_t find_fast_symbol_index(const Definition& def, const Symbol& symbol);
-std::size_t create_fast_symbol_index(Definition& def, const Symbol& symbol);
-std::size_t fast_symbol_index(Definition& def, const Symbol& symbol);
+std::size_t find_fast_symbol_index(const FunctionDefinition& def, const Symbol& symbol);
+std::size_t create_fast_symbol_index(FunctionDefinition& def, const Symbol& symbol);
+std::size_t fast_symbol_index(FunctionDefinition& def, const Symbol& symbol);
 
 }
 

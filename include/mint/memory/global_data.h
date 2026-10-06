@@ -24,7 +24,9 @@
 #ifndef MINT_MEMORY_GLOBAL_DATA_H
 #define MINT_MEMORY_GLOBAL_DATA_H
 
-#include "mint/program/class_register.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
+#include "mint/memory/memory_tools.h"
 #include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/class.h"
@@ -38,80 +40,38 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <ranges>
 #include <string>
-#include <unordered_map>
-#include <utility>
 
 namespace mint {
 
 class Program;
 
-class MINT_EXPORT FunctionData : public ClassRegister {
+class MINT_EXPORT PackageData : public MemoryRoot<MemoryRootRegistrationMode::automatic> {
+	SymbolTable _symbols;
+	std::reference_wrapper<Program> _program;
+	std::reference_wrapper<const PackageDescription> _description;
 public:
-	explicit FunctionData(Program& program);
+	PackageData(Program& program, const PackageDescription& description);
 
-	[[nodiscard]] const FunctionData* get_function_data() const override;
-	[[nodiscard]] FunctionData* get_function_data() override;
-};
-
-class MINT_EXPORT PackageData : public ClassRegister, public MemoryRoot {
-public:
-	PackageData(Program& program, const std::string& name);
-	PackageData(const PackageData&) = delete;
-	PackageData(PackageData&&) = delete;
-	~PackageData() override;
-
-	PackageData& operator=(const PackageData&) = delete;
-	PackageData& operator=(PackageData&&) = delete;
-
-	[[nodiscard]] Symbol name() const;
 	[[nodiscard]] std::string full_name() const;
-	[[nodiscard]] Path get_path() const;
-
-	[[nodiscard]] PackageData& get_package(const Symbol& name);
-	[[nodiscard]] PackageData* find_package(const Symbol& name) const;
-
-	[[nodiscard]] auto packages() {
-		return std::views::transform(_packages,
-		    [](auto& item) -> std::pair<Symbol, std::reference_wrapper<PackageData>> {
-			    return {item.first, *item.second};
-		    });
-	}
+	[[nodiscard]] Symbol name() const;
+	[[nodiscard]] const PackageDescription& get_description() const;
 
 	[[nodiscard]] Class* find_class(const Symbol& name) const;
-
-	[[nodiscard]] auto classes() {
-		return std::views::filter(_symbols, [](auto& item) {
-			return item.second.data().format() == Data::Format::object
-			       && item.second.template data<Object>().data == nullptr;
-		}) | std::views::transform([](auto& item) -> std::pair<Symbol, std::reference_wrapper<Class>> {
-			return {item.first, item.second.template data<Object>().metadata};
-		});
-	}
 
 	[[nodiscard]] inline const SymbolTable& symbols() const;
 	[[nodiscard]] inline SymbolTable& symbols();
 
-	[[nodiscard]] ClassRegister* locate(const Symbol& symbol) const override;
+	[[nodiscard]] inline const Program& program() const;
+	[[nodiscard]] inline Program& program();
 
-	[[nodiscard]] const PackageData* get_package_data() const override;
-	[[nodiscard]] PackageData* get_package_data() override;
-
-	void cleanup_memory() override;
-	void cleanup_metadata() override;
 	void mark() override;
-
-private:
-	Symbol _name;
-	std::unordered_map<Symbol, std::unique_ptr<PackageData>> _packages;
-	SymbolTable _symbols;
 };
 
 class MINT_EXPORT GlobalData : public PackageData {
 	friend class Program;
 public:
-	explicit GlobalData(Program& program);
+	explicit GlobalData(Program& program, GlobalDataDescription& description);
 
 	template<class BuiltinClass>
 	BuiltinClass& builtin(Class::Metatype type);
@@ -125,6 +85,23 @@ private:
 	std::array<std::unique_ptr<Class>, Class::builtin_class_count> _builtin;
 };
 
+template<class BuiltinClass>
+BuiltinClass& GlobalData::builtin(Class::Metatype type) {
+	const auto builtin_index = static_cast<std::size_t>(type);
+	if (auto* instance = static_cast<BuiltinClass*>(_builtin[builtin_index].get())) {
+		return *instance;
+	}
+	return *static_cast<BuiltinClass*>((_builtin[builtin_index] = std::make_unique<BuiltinClass>(program())).get());
+}
+
+Class* PackageData::find_class(const Symbol& name) const {
+	if (const auto it = _symbols.find(name); it != _symbols.end() && it->second.data().format() == Data::Format::object
+	                                         && is_class(it->second.data<Object>())) {
+		return &it->second.data<Object>().metadata;
+	}
+	return nullptr;
+}
+
 const SymbolTable& PackageData::symbols() const {
 	return _symbols;
 }
@@ -133,13 +110,12 @@ SymbolTable& PackageData::symbols() {
 	return _symbols;
 }
 
-template<class BuiltinClass>
-BuiltinClass& GlobalData::builtin(Class::Metatype type) {
-	const auto builtin_index = static_cast<std::size_t>(type);
-	if (auto* instance = static_cast<BuiltinClass*>(_builtin[builtin_index].get())) {
-		return *instance;
-	}
-	return *static_cast<BuiltinClass*>((_builtin[builtin_index] = std::make_unique<BuiltinClass>(program())).get());
+const Program& PackageData::program() const {
+	return _program;
+}
+
+Program& PackageData::program() {
+	return _program;
 }
 
 Reference& GlobalData::none_ref() {

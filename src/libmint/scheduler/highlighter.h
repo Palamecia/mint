@@ -24,7 +24,8 @@
 #ifndef MINT_PROCESS_HIGHLIGHTER_H
 #define MINT_PROCESS_HIGHLIGHTER_H
 
-#include "mint/program/class_register.h"
+#include "mint/program/program.h"
+#include "mint/program/symbol.h"
 #include "mint/compiler/lexical_handler.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/reference.h"
@@ -40,7 +41,7 @@
 
 namespace mint {
 
-class PackageData;
+class PackageDescription;
 class ClassDescription;
 
 class Highlighter : public LexicalHandler {
@@ -86,9 +87,8 @@ protected:
 
 	void set_style(Style style);
 
-	[[nodiscard]] const Reference* find_defined_symbol(const std::vector<std::string>& context,
-	    const std::string& token) const;
-	[[nodiscard]] std::optional<std::tuple<const PackageData*, const ClassDescription*>> resolve_path(
+	[[nodiscard]] const Reference* find_defined_symbol(const SymbolPath& context, const Symbol& token) const;
+	[[nodiscard]] std::optional<std::tuple<const PackageDescription*, const ClassDescription*>> resolve_path(
 	    const std::vector<std::string>& context) const;
 
 private:

@@ -35,15 +35,15 @@
 
 namespace mint {
 
-class MemoryRoot;
+class MemoryNode;
 class Object;
 class Reference;
 class RootReference;
 
 class MINT_EXPORT GarbageCollector {
 	friend class Data;
-	friend class MemoryRoot;
 	friend class Destructor;
+	friend class MemoryNode;
 	friend class Reference;
 	friend class RootReference;
 public:
@@ -85,8 +85,8 @@ public:
 protected:
 	void register_data(Data* data);
 	void unregister_data(Data* data);
-	void register_root(MemoryRoot* root);
-	void unregister_root(MemoryRoot* root);
+	void register_root(MemoryNode* root);
+	void unregister_root(MemoryNode* root);
 
 	Data* copy(const Data& other);
 	void free(Data* ptr);
@@ -105,8 +105,8 @@ private:
 	std::unique_ptr<RootReference> _null;
 
 	struct {
-		MemoryRoot* head = nullptr;
-		MemoryRoot* tail = nullptr;
+		MemoryNode* head = nullptr;
+		MemoryNode* tail = nullptr;
 	} _roots;
 
 	struct {
@@ -163,16 +163,16 @@ public:
 	GarbageCollectorDeferScope& operator=(GarbageCollectorDeferScope&&) = delete;
 };
 
-class MINT_EXPORT MemoryRoot {
+class MINT_EXPORT MemoryNode {
 	friend class GarbageCollector;
 public:
-	MemoryRoot();
-	MemoryRoot(MemoryRoot&& other) noexcept;
-	MemoryRoot(const MemoryRoot& other);
-	virtual ~MemoryRoot();
+	MemoryNode();
+	MemoryNode(const MemoryNode&);
+	MemoryNode(MemoryNode&&) noexcept;
+	virtual ~MemoryNode();
 
-	MemoryRoot& operator=(MemoryRoot&&) noexcept;
-	MemoryRoot& operator=(const MemoryRoot& other);
+	MemoryNode& operator=(const MemoryNode&);
+	MemoryNode& operator=(MemoryNode&&) noexcept;
 
 	virtual void mark() = 0;
 
@@ -181,11 +181,39 @@ protected:
 	void unregister_root();
 
 private:
-	MemoryRoot* _prev = nullptr;
-	MemoryRoot* _next = nullptr;
+	MemoryNode* _prev = nullptr;
+	MemoryNode* _next = nullptr;
 #ifdef MINT_BUILD_TYPE_DEBUG
 	bool _registered = false;
 #endif
+};
+
+enum class MemoryRootRegistrationMode {
+	automatic,
+	manual,
+};
+
+template<MemoryRootRegistrationMode mode>
+class MINT_EXPORT MemoryRoot : public MemoryNode {
+	friend class GarbageCollector;
+public:
+	MemoryRoot() {
+		if constexpr (mode == MemoryRootRegistrationMode::automatic) {
+			register_root();
+		}
+	}
+
+	MemoryRoot(const MemoryRoot& other) = default;
+	MemoryRoot(MemoryRoot&& other) = default;
+
+	virtual ~MemoryRoot() {
+		if constexpr (mode == MemoryRootRegistrationMode::automatic) {
+			unregister_root();
+		}
+	}
+
+	MemoryRoot& operator=(const MemoryRoot& other) = default;
+	MemoryRoot& operator=(MemoryRoot&&) = default;
 };
 
 template<class Type, typename... Args>

@@ -1,7 +1,7 @@
-#include "mint/program/class_register.h"
+#include "mint/program/symbol_scope.h"
 #include "mint/program/module.h"
 #include "mint/program/symbol.h"
-#include "mint/compiler/build_tools.h"
+#include "mint/compiler/build_context.h"
 #include "mint/compiler/compiler.h"
 #include "mint/memory/data.h"
 #include "mint/memory/garbage_collector.h"
@@ -25,7 +25,7 @@
 		FAIL() << "Expected exception: " #expected_exception "\n  Actual: different exception type thrown"; \
 	}
 
-TEST(build_tools, resolve_class_description) {
+TEST(build_context, resolve_class_description) {
 
 	auto scheduler = mint::Scheduler({});
 	const auto process = scheduler.enable_testing();
@@ -36,21 +36,21 @@ TEST(build_tools, resolve_class_description) {
 
 	context.start_class_description("A",
 	    mint::Reference::global | mint::Reference::const_address | mint::Reference::const_value);
-	context.create_member(mint::Reference::default_flags, mint::Symbol("mbr"),
+	context.create_member({}, mint::Reference::default_flags, mint::Symbol("mbr"),
 	    mint::GarbageCollector::instance().alloc<mint::None>());
 	context.resolve_class_description();
 
-	mint::ClassDescription* a_desc = scheduler.program().global_data().find_class_description("A");
+	mint::ClassDescription* a_desc = scheduler.program().global_data().find_class("A");
 	ASSERT_NE(nullptr, a_desc);
 	EXPECT_NO_THROW(a_desc->generate());
 
 	context.start_class_description("B",
 	    mint::Reference::global | mint::Reference::const_address | mint::Reference::const_value);
-	context.create_member(mint::Reference::default_flags, mint::Symbol("mbr"),
+	context.create_member({}, mint::Reference::default_flags, mint::Symbol("mbr"),
 	    mint::GarbageCollector::instance().alloc<mint::None>());
 	context.resolve_class_description();
 
-	mint::ClassDescription* b_desc = scheduler.program().global_data().find_class_description("B");
+	mint::ClassDescription* b_desc = scheduler.program().global_data().find_class("B");
 	ASSERT_NE(nullptr, b_desc);
 	EXPECT_NO_THROW(b_desc->generate());
 
@@ -60,11 +60,11 @@ TEST(build_tools, resolve_class_description) {
 	context.save_base_class_path();
 	context.append_symbol_to_base_class_path("B");
 	context.save_base_class_path();
-	context.create_member(mint::Reference::default_flags, mint::Symbol("mbr"),
+	context.create_member({}, mint::Reference::default_flags, mint::Symbol("mbr"),
 	    mint::GarbageCollector::instance().alloc<mint::None>());
 	context.resolve_class_description();
 
-	mint::ClassDescription* c_desc = scheduler.program().global_data().find_class_description("C");
+	mint::ClassDescription* c_desc = scheduler.program().global_data().find_class("C");
 	ASSERT_NE(nullptr, c_desc);
 	EXPECT_NO_THROW(c_desc->generate());
 
@@ -76,7 +76,7 @@ TEST(build_tools, resolve_class_description) {
 	context.save_base_class_path();
 	context.resolve_class_description();
 
-	mint::ClassDescription* d_desc = scheduler.program().global_data().find_class_description("D");
+	mint::ClassDescription* d_desc = scheduler.program().global_data().find_class("D");
 	ASSERT_NE(nullptr, d_desc);
 	EXPECT_THROW_WHAT(d_desc->generate(), mint::MintRuntimeError, "member 'mbr' is ambiguous for class 'D'");
 }

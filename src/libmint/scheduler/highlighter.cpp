@@ -24,7 +24,7 @@
 #include "highlighter.h"
 
 #include "mint/program/program.h"
-#include "mint/program/class_description.h"
+#include "mint/program/descriptions.h"
 #include "mint/program/symbol.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/class.h"
@@ -371,8 +371,7 @@ void Highlighter::set_style(Style style) {
 	}
 }
 
-const Reference* Highlighter::find_defined_symbol(const std::vector<std::string>& context,
-    const std::string& token) const {
+const Reference* Highlighter::find_defined_symbol(const SymbolPath& context, const Symbol& token) const {
 
 	const auto symbol = Symbol(token);
 
@@ -402,22 +401,22 @@ const Reference* Highlighter::find_defined_symbol(const std::vector<std::string>
 	return nullptr;
 }
 
-std::optional<std::tuple<const PackageData*, const ClassDescription*>> Highlighter::resolve_path(
+std::optional<std::tuple<const PackageDescription*, const ClassDescription*>> Highlighter::resolve_path(
     const std::vector<std::string>& context) const {
 
-	const PackageData* pack = nullptr;
+	const PackageDescription* pack = nullptr;
 	const ClassDescription* desc = nullptr;
 
 	for (const std::string& token : context) {
 		const auto symbol = Symbol(token);
 		if (desc) {
-			desc = desc->find_class_description(symbol);
+			desc = desc->find_class(symbol);
 			if (desc == nullptr) {
 				return std::nullopt;
 			}
 		}
 		else if (pack) {
-			desc = pack->find_class_description(symbol);
+			desc = pack->find_class(symbol);
 			if (desc == nullptr) {
 				pack = pack->find_package(symbol);
 				if (pack == nullptr) {
@@ -427,7 +426,7 @@ std::optional<std::tuple<const PackageData*, const ClassDescription*>> Highlight
 		}
 		else {
 			const auto& global_data = _program.get().global_data();
-			desc = global_data.find_class_description(symbol);
+			desc = global_data.find_class(symbol);
 			if (desc == nullptr) {
 				pack = global_data.find_package(symbol);
 				if (pack == nullptr) {

@@ -22,8 +22,6 @@
  */
 
 #include "mint/scheduler/processor.h"
-#include "mint/program/class_register.h"
-#include "mint/program/module.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"

@@ -21,48 +21,47 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/memory/object_printer.h"
-#include "mint/program/program.h"
-#include "mint/program/cursor.h"
-#include "mint/program/module.h"
-#include "mint/program/node.h"
+#ifndef MINT_COMPILER_SYMBOL_SCOPE_H
+#define MINT_COMPILER_SYMBOL_SCOPE_H
+
 #include "mint/program/symbol.h"
-#include "mint/memory/memory_tools.h"
-#include "mint/memory/object.h"
-#include "mint/memory/operator_tools.h"
-#include "mint/memory/reference.h"
-#include "mint/system/error.h"
+#include "mint/config.h"
 
-using namespace mint;
+#include <functional>
+#include <variant>
 
-namespace {
+namespace mint {
 
-class ResultHandler : public Module {
+class ClassDescription;
+class FunctionDescription;
+class PackageDescription;
+class Program;
+class SymbolScope;
+struct VariableDescription;
+
+using SymbolDefinition = std::variant<std::monostate, std::reference_wrapper<const PackageDescription>,
+    std::reference_wrapper<const ClassDescription>, std::reference_wrapper<const FunctionDescription>,
+    std::reference_wrapper<const VariableDescription>>;
+
+class MINT_EXPORT SymbolScope {
+	SymbolScope* _owner = nullptr;
 public:
-	explicit ResultHandler() {
-		push_nodes({Node::Command::unload_reference, Node::Command::exit_module});
-	}
+	explicit SymbolScope(SymbolScope* owner = nullptr);
+	virtual ~SymbolScope() = default;
 
-	static ResultHandler& instance() {
-		static auto g_instance = ResultHandler();
-		return g_instance;
-	}
+	[[nodiscard]] const SymbolScope& get_root_scope() const;
+	[[nodiscard]] SymbolScope& get_root_scope();
+
+	[[nodiscard]] const SymbolScope* get_owner_scope() const;
+	[[nodiscard]] SymbolScope* get_owner_scope();
+
+	[[nodiscard]] SymbolDefinition locate(const SymbolPath& symbols) const;
+	[[nodiscard]] virtual SymbolDefinition locate(const Symbol& symbol) const = 0;
+
+	virtual void cleanup_memory() = 0;
+	virtual void cleanup_metadata() = 0;
 };
 
 }
 
-ObjectPrinter::ObjectPrinter(Cursor& cursor, Reference::Flags flags, Object& object) :
-    _object(flags, object),
-    _cursor(cursor) {}
-
-void ObjectPrinter::print(const Reference& reference) {
-
-	_cursor.get().stack().emplace_back(_object);
-	_cursor.get().stack().emplace_back(reference);
-	_cursor.get().call(ResultHandler::instance(), 0uz, _cursor.get().program().global_data());
-
-	if (!call_overload(_cursor, builtin_symbols::write_method, 1)) [[unlikely]] {
-		_cursor.get().exit_module();
-		error("class '{}' doesn't overload 'write'(1)", type_name(_object));
-	}
-}
+#endif // MINT_COMPILER_SYMBOL_SCOPE_H

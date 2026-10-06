@@ -58,28 +58,36 @@ PUBLIC
 	FILE_SET compiler TYPE HEADERS
 	BASE_DIRS ${MINT_INCLUDE_DIR}
 	FILES
-	${MINT_INCLUDE_DIR}/mint/compiler/build_tools.h
+	${MINT_INCLUDE_DIR}/mint/compiler/build_context.h
+	${MINT_INCLUDE_DIR}/mint/compiler/class_builder.h
 	${MINT_INCLUDE_DIR}/mint/compiler/compiler.h
-	${MINT_INCLUDE_DIR}/mint/compiler/lexical_handler.h
+	${MINT_INCLUDE_DIR}/mint/compiler/descriptions.h
 	${MINT_INCLUDE_DIR}/mint/compiler/lexer.h
+	${MINT_INCLUDE_DIR}/mint/compiler/lexical_handler.h
+	${MINT_INCLUDE_DIR}/mint/compiler/symbol_scope.h
 	${MINT_INCLUDE_DIR}/mint/compiler/token.h
+	${MINT_INCLUDE_DIR}/mint/compiler/type_annotation.h
 PRIVATE
 	${CMAKE_CURRENT_BINARY_DIR}/parser.hpp
 	compiler/block.cpp
 	compiler/block.h
 	compiler/branch.cpp
 	compiler/branch.h
-	compiler/build_tools.cpp
+	compiler/build_context.cpp
 	compiler/case_table.cpp
 	compiler/case_table.h
 	compiler/catch_context.cpp
 	compiler/catch_context.h
+	compiler/class_builder.cpp
 	compiler/compiler.cpp
 	compiler/context.cpp
 	compiler/context.h
+	compiler/descriptions.cpp
 	compiler/lexer.cpp
 	compiler/lexical_handler.cpp
 	compiler/parser.y
+	compiler/symbol_scope.cpp
+	compiler/type_annotation.cpp
 )
 
 target_sources(
@@ -173,8 +181,6 @@ PUBLIC
 	BASE_DIRS ${MINT_INCLUDE_DIR}
 	FILES
 	${MINT_INCLUDE_DIR}/mint/program/bytecode_walker.h
-	${MINT_INCLUDE_DIR}/mint/program/class_description.h
-	${MINT_INCLUDE_DIR}/mint/program/class_register.h
 	${MINT_INCLUDE_DIR}/mint/program/cursor.h
 	${MINT_INCLUDE_DIR}/mint/program/exception.h
 	${MINT_INCLUDE_DIR}/mint/program/file_printer.h
@@ -187,8 +193,6 @@ PUBLIC
 	${MINT_INCLUDE_DIR}/mint/program/saved_state.h
 	${MINT_INCLUDE_DIR}/mint/program/symbol.h
 PRIVATE
-	program/class_description.cpp
-	program/class_register.cpp
 	program/cursor.cpp
 	program/file_printer.cpp
 	program/module.cpp

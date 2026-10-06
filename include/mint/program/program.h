@@ -24,11 +24,14 @@
 #ifndef MINT_PROGRAM_PROGRAM_H
 #define MINT_PROGRAM_PROGRAM_H
 
+#include "mint/compiler/descriptions.h"
+#include "mint/memory/garbage_collector.h"
 #include "mint/program/function_literal.h"
 #include "mint/program/module.h"
 #include "mint/config.h"
 #include "mint/debug/debug_info.h"
 #include "mint/memory/global_data.h"
+#include "mint/program/symbol.h"
 
 #include <concepts>
 #include <cstddef>
@@ -50,7 +53,7 @@ namespace mint {
 class Cursor;
 class Class;
 
-class MINT_EXPORT Program {
+class MINT_EXPORT Program : public MemoryRoot<MemoryRootRegistrationMode::automatic> {
 	friend class Cursor;
 public:
 	Program();
@@ -72,14 +75,11 @@ public:
 	inline void call_builtin_method(std::size_t method, Cursor& cursor);
 
 	ModuleInfo& main();
-	ModuleInfo& create_module(Module::State state);
+	ModuleInfo& create_module(SymbolPath path, Module::State state);
 	ModuleInfo& create_main_module(Module::State state);
 	ModuleInfo& create_module_from_file_path(const std::filesystem::path& file_path, Module::State state);
 	ModuleInfo& load_module(const std::string& module_name);
 	const ModuleInfo& module_info(const std::string& module_name);
-
-	template<std::derived_from<Module> UniqueModule>
-	UniqueModule& unique_module();
 
 	[[nodiscard]] inline const Module* find_module(Module::Id module_id) const;
 	[[nodiscard]] inline const DebugInfo* find_debug_info(Module::Id module_id) const;
@@ -88,12 +88,17 @@ public:
 	[[nodiscard]] Module::Id get_module_id(const Module& module) const;
 	[[nodiscard]] bool is_main(const Module& module) const;
 
+	[[nodiscard]] inline const GlobalDataDescription& global_data_description() const;
+	[[nodiscard]] inline GlobalDataDescription& global_data_description();
+
 	[[nodiscard]] inline const GlobalData& global_data() const;
 	[[nodiscard]] inline GlobalData& global_data();
 
 	void cleanup_memory();
 	void cleanup_metadata();
 	void cleanup_modules();
+
+	void mark() override;
 
 protected:
 	ModuleInfo& builtin_module(std::size_t module_index);
@@ -105,8 +110,9 @@ private:
 	std::deque<ModuleInfo> _modules;
 	std::map<std::filesystem::path, std::reference_wrapper<ModuleInfo>> _module_cache;
 
-	GlobalData _global_data {*this};
-	std::unordered_map<std::type_index, std::unique_ptr<Module>> _unique_modules;
+	GlobalDataDescription _global_data_description = GlobalDataDescription(*this);
+	GlobalData& _global_data = _global_data_description.global_data();
+
 	std::vector<std::reference_wrapper<ModuleInfo>> _builtin_modules;
 	std::vector<GlobalBuiltinMethod> _global_builtin_methods;
 	std::vector<BuiltinMethod> _builtin_methods;
@@ -114,16 +120,6 @@ private:
 
 void Program::call_builtin_method(std::size_t method, Cursor& cursor) {
 	_builtin_methods[method](cursor);
-}
-
-template<std::derived_from<Module> UniqueModule>
-inline UniqueModule& Program::unique_module() {
-	const std::type_index type_index = std::type_index(typeid(UniqueModule));
-	if (const auto it = _unique_modules.find(type_index); it != _unique_modules.end()) {
-		return static_cast<UniqueModule&>(*it->second);
-	}
-	return static_cast<UniqueModule&>(
-	    *_unique_modules.emplace(type_index, std::make_unique<UniqueModule>(*this)).first->second);
 }
 
 const Module* Program::find_module(Module::Id module_id) const {
@@ -136,6 +132,14 @@ const DebugInfo* Program::find_debug_info(Module::Id module_id) const {
 
 const DebugInfo* Program::find_debug_info(const Module& module) const {
 	return find_debug_info(get_module_id(module));
+}
+
+const GlobalDataDescription& Program::global_data_description() const {
+	return _global_data_description;
+}
+
+GlobalDataDescription& Program::global_data_description() {
+	return _global_data_description;
 }
 
 const GlobalData& Program::global_data() const {

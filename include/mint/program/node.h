@@ -32,6 +32,8 @@
 namespace mint {
 
 class ClassDescription;
+class FunctionDescription;
+struct VariableDescription;
 
 union MINT_EXPORT Node {
 	enum class Command : std::uint8_t {
@@ -74,7 +76,9 @@ union MINT_EXPORT Node {
 
 		open_package,
 		close_package,
-		declare_class,
+		register_class,
+		register_function,
+		register_variable,
 
 		move_operator,
 		copy_operator,
@@ -189,6 +193,8 @@ union MINT_EXPORT Node {
 	explicit(false) Node(const Symbol* symbol);
 	explicit(false) Node(const Reference* constant);
 	explicit(false) Node(ClassDescription* class_description);
+	explicit(false) Node(FunctionDescription* function_description);
+	explicit(false) Node(VariableDescription* variable_description);
 
 	[[nodiscard]] Command as_command() const {
 		return command;
@@ -210,11 +216,21 @@ union MINT_EXPORT Node {
 		return *class_description;
 	}
 
+	[[nodiscard]] FunctionDescription& as_function() const {
+		return *function_description;
+	}
+
+	[[nodiscard]] VariableDescription& as_variable() const {
+		return *variable_description;
+	}
+
 	Command command;
 	int parameter;
 	const Symbol* symbol;
 	const Reference* constant;
 	ClassDescription* class_description;
+	FunctionDescription* function_description;
+	VariableDescription* variable_description;
 };
 
 }

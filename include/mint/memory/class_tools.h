@@ -24,7 +24,8 @@
 #ifndef MINT_MEMORY_CLASS_TOOLS_H
 #define MINT_MEMORY_CLASS_TOOLS_H
 
-#include "mint/program/class_register.h"
+#include "mint/compiler/symbol_scope.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/program/module.h"
 #include "mint/program/symbol.h"
 #include "mint/config.h"
@@ -36,51 +37,50 @@
 #include <initializer_list>
 #include <optional>
 #include <span>
-#include <string>
+#include <tuple>
 #include <utility>
 
 namespace mint {
 
-MINT_EXPORT Class& create_enum(Program& program, const std::string& name,
+MINT_EXPORT Class& create_enum(Program& program, Symbol name,
     std::span<const std::pair<Symbol, std::optional<intmax_t>>> values);
-MINT_EXPORT Class& create_enum(Program& program, ModuleInfo& module, const std::string& name,
+MINT_EXPORT Class& create_enum(Program& program, ModuleInfo& module, Symbol name,
     std::span<const std::pair<Symbol, std::optional<intmax_t>>> values);
 
-MINT_EXPORT Class& create_enum(Program& program, const std::string& name,
+MINT_EXPORT Class& create_enum(Program& program, Symbol name,
     std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values);
-MINT_EXPORT Class& create_enum(Program& program, ModuleInfo& module, const std::string& name,
+MINT_EXPORT Class& create_enum(Program& program, ModuleInfo& module, Symbol name,
     std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values);
 
-MINT_EXPORT Class& create_class(Program& program, const std::string& name,
-    std::span<const std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, const std::string& name,
-    std::span<const std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, const std::string& name,
+MINT_EXPORT Class& create_class(Program& program, Symbol name,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, Symbol name,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, Symbol name,
     std::span<const std::reference_wrapper<mint::ClassDescription>> bases,
-    std::span<const std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, const std::string& name,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, Symbol name,
     std::span<const std::reference_wrapper<mint::ClassDescription>> bases,
-    std::span<const std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, const std::string& name,
-    std::span<const mint::ClassRegister::Path> bases, std::span<const std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, const std::string& name,
-    std::span<const mint::ClassRegister::Path> bases, std::span<const std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, const std::string& name,
-    std::initializer_list<std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, const std::string& name,
-    std::initializer_list<std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, const std::string& name,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, Symbol name, std::span<const mint::SymbolPath> bases,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, Symbol name, std::span<const SymbolPath> bases,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, Symbol name,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, Symbol name,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, Symbol name,
     std::initializer_list<std::reference_wrapper<mint::ClassDescription>> bases,
-    std::initializer_list<std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, const std::string& name,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, Symbol name,
     std::initializer_list<std::reference_wrapper<mint::ClassDescription>> bases,
-    std::initializer_list<std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, const std::string& name,
-    std::initializer_list<mint::ClassRegister::Path> bases,
-    std::initializer_list<std::pair<Symbol, Reference>> members);
-MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, const std::string& name,
-    std::initializer_list<mint::ClassRegister::Path> bases,
-    std::initializer_list<std::pair<Symbol, Reference>> members);
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, Symbol name, std::initializer_list<mint::SymbolPath> bases,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members);
+MINT_EXPORT Class& create_class(Program& program, ModuleInfo& module, Symbol name,
+    std::initializer_list<mint::SymbolPath> bases,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members);
 
 }
 

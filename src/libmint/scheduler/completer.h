@@ -36,7 +36,7 @@ namespace mint {
 
 class Cursor;
 class Reference;
-class PackageData;
+class PackageDescription;
 class ClassDescription;
 
 class Completer : public LexicalHandler {
@@ -63,11 +63,11 @@ protected:
 
 	void find_module_recursive_helper(const std::filesystem::path& root_path,
 	    const std::filesystem::path& directory_path, const std::string& token_path);
-	void find_context_symbols_helper(PackageData* pack, ClassDescription* desc, Reference* member,
+	void find_context_symbols_helper(PackageDescription* pack, ClassDescription* desc, Reference* member,
 	    const std::string& token, std::string::size_type offset);
 
 	static bool token_match(const std::string& symbol, const std::string& pattern);
-	bool resolve_path(const std::vector<std::string>& context, PackageData*& pack, ClassDescription*& desc,
+	bool resolve_path(const std::vector<std::string>& context, PackageDescription*& pack, ClassDescription*& desc,
 	    Reference*& member) const;
 };
 

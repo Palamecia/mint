@@ -63,7 +63,7 @@ public:
 	SchedulerContextSwitcher& operator=(SchedulerContextSwitcher&&) = delete;
 };
 
-class MINT_EXPORT TestProcess : public Process {
+class MINT_EXPORT TestProcess final : public Process {
 	std::reference_wrapper<Scheduler> _scheduler;
 	SchedulerContextSwitcher _context;
 public:

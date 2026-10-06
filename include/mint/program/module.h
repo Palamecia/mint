@@ -24,7 +24,7 @@
 #ifndef MINT_PROGRAM_MODULE_H
 #define MINT_PROGRAM_MODULE_H
 
-#include "mint/program/class_register.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
@@ -33,98 +33,24 @@
 #include "mint/memory/garbage_collector.h"
 #include "mint/memory/reference.h"
 
+#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <initializer_list>
 #include <limits>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 namespace mint {
 
-class ClassDescription;
+class Module;
 class PackageData;
-class parser;
-class Program;
-
-struct FunctionHandle;
-
-class MINT_EXPORT Module : public ClassRegister, public MemoryRoot {
-	friend class BubBranch;
-	friend class MainBranch;
-	friend class Program;
-public:
-	using Id = std::size_t;
-
-	static constexpr const char* invalid_name = "unknown";
-	static constexpr const Id invalid_id = std::numeric_limits<std::size_t>::max();
-
-	static constexpr const char* main_name = "main";
-	static constexpr const Id main_id = 0;
-
-	enum class State : std::uint8_t {
-		not_compiled,
-		not_loaded,
-		ready,
-	};
-
-	explicit Module(Program& program);
-	Module(Module&& other) noexcept;
-	Module(const Module& other) = delete;
-	~Module();
-
-	Module& operator=(Module&& other) noexcept;
-	Module& operator=(const Module& other) = delete;
-
-	[[nodiscard]] inline const Node& node_at(std::size_t idx) const;
-	[[nodiscard]] inline Node& node_at(std::size_t idx);
-	[[nodiscard]] inline std::size_t end() const;
-	[[nodiscard]] inline std::size_t next_node_offset() const;
-
-	[[nodiscard]] FunctionHandle* find_handle(std::size_t offset) const;
-	FunctionHandle& get_handle(PackageData& package, std::size_t offset);
-	FunctionHandle& make_handle(PackageData& package, std::size_t offset);
-	FunctionHandle& make_builtin_handle(PackageData& package, std::size_t offset);
-	FunctionHandle& make_builtin_async_handle(PackageData& package, std::size_t offset);
-
-	template<std::derived_from<Data> Type, typename... Args>
-	Reference* make_constant(Args&&... args);
-	Reference* make_constant(Data& data);
-	Symbol* make_symbol(const std::string& name);
-	ClassDescription* make_class(Program& program, const std::string& name);
-
-	void add_internal_register(std::unique_ptr<ClassRegister>&& class_register);
-
-	void cleanup_memory() override;
-	void cleanup_metadata() override;
-
-	void mark() override;
-
-protected:
-	void push_node(const Node& node);
-	void push_nodes(const std::vector<Node>& nodes);
-	void push_nodes(const std::initializer_list<Node>& nodes);
-	void replace_node(std::size_t offset, const Node& node);
-
-private:
-	std::vector<Node> _tree;
-	std::vector<std::unique_ptr<FunctionHandle>> _handles;
-	std::vector<std::unique_ptr<Reference>> _constants;
-	std::vector<std::unique_ptr<ClassDescription>> _classes;
-	std::vector<std::unique_ptr<ClassRegister>> _internal_registers;
-	std::unordered_map<std::string, std::unique_ptr<Symbol>> _symbols;
-};
-
-struct ModuleInfo {
-	Module bytecode;
-	DebugInfo debug_info;
-	Module::Id id = Module::invalid_id;
-	Module::State state = Module::State::not_compiled;
-};
 
 struct FunctionHandle {
 	Module& module;
@@ -136,11 +62,83 @@ struct FunctionHandle {
 	bool async: 1 = false;
 };
 
+class MINT_EXPORT Module {
+	friend class Compiler;
+public:
+	using Id = std::size_t;
+
+	static constexpr auto invalid_name = std::string_view("unknown");
+	static constexpr auto invalid_id = Id {std::numeric_limits<std::size_t>::max()};
+
+	static constexpr auto main_name = std::string_view("main");
+	static constexpr auto main_id = Id {0};
+
+	enum class State : std::uint8_t {
+		not_compiled,
+		not_loaded,
+		ready,
+	};
+
+	Module();
+	Module(const Module&) = delete;
+	Module(Module&&) noexcept;
+	~Module();
+
+	Module& operator=(const Module&) = delete;
+	Module& operator=(Module&&) noexcept;
+
+	[[nodiscard]] inline const Node& node_at(std::size_t idx) const;
+	[[nodiscard]] inline Node& node_at(std::size_t idx);
+	[[nodiscard]] inline std::size_t end() const;
+	[[nodiscard]] inline std::size_t next_node_offset() const;
+
+	[[nodiscard]] FunctionHandle* find_handle(std::size_t offset) const;
+	[[nodiscard]] FunctionHandle& get_handle(PackageData& package, std::size_t offset);
+	[[nodiscard]] FunctionHandle& make_handle(PackageData& package, std::size_t offset);
+	[[nodiscard]] FunctionHandle& make_builtin_handle(PackageData& package, std::size_t offset);
+	[[nodiscard]] FunctionHandle& make_builtin_async_handle(PackageData& package, std::size_t offset);
+
+	template<std::derived_from<Data> Type, typename... Args>
+	[[nodiscard]] Reference* make_constant(Args&&... args);
+	[[nodiscard]] Reference* make_constant(Data* data);
+	[[nodiscard]] Symbol* make_symbol(const std::string& name);
+
+	void mark();
+
+protected:
+	void push_node(const Node& node);
+	void push_nodes(const std::vector<Node>& nodes);
+	void push_nodes(const std::initializer_list<Node>& nodes);
+	void replace_node(std::size_t offset, const Node& node);
+
+private:
+	std::vector<Node> _tree;
+	std::vector<std::unique_ptr<FunctionHandle>> _handles;
+	std::vector<std::unique_ptr<Reference>> _constants;
+	std::unordered_map<std::string, std::unique_ptr<Symbol>> _symbols;
+};
+
+struct ModuleInfo {
+	Module bytecode;
+	DebugInfo debug_info;
+	ModuleDescription description;
+	Module::Id id = Module::invalid_id;
+	Module::State state = Module::State::not_compiled;
+};
+
 const Node& Module::node_at(std::size_t idx) const {
+
+	assert(offset < _tree.size());
+
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 	return _tree[idx];
 }
 
 Node& Module::node_at(std::size_t idx) {
+
+	assert(offset < _tree.size());
+
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 	return _tree[idx];
 }
 

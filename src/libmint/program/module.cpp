@@ -22,45 +22,29 @@
  */
 
 #include "mint/program/module.h"
-#include "mint/program/class_description.h"
-#include "mint/program/class_register.h"
 #include "mint/program/node.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
 
 #include <algorithm>
+#include <cassert>
 #include <initializer_list>
 #include <memory>
 #include <cstring>
 #include <ranges>
 #include <string>
-#include <utility>
 #include <vector>
 
 using namespace mint;
 
-Module::Module(Program& program) :
-    ClassRegister(program) {
-	register_root();
-}
+mint::Module::Module() = default;
 
-Module::Module(Module&& other) noexcept :
-    ClassRegister(std::move(other)),
-    _tree(std::move(other._tree)),
-    _handles(std::move(other._handles)),
-    _constants(std::move(other._constants)),
-    _classes(std::move(other._classes)),
-    _internal_registers(std::move(other._internal_registers)),
-    _symbols(std::move(other._symbols)) {
-	register_root();
-}
+mint::Module::Module(Module&&) noexcept = default;
 
-Module::~Module() {
-	unregister_root();
-}
+mint::Module::~Module() = default;
 
-Module& Module::operator=(Module&& other) noexcept = default;
+mint::Module& mint::Module::operator=(Module&&) noexcept = default;
 
 FunctionHandle* Module::find_handle(std::size_t offset) const {
 	auto handles = std::ranges::reverse_view(_handles);
@@ -109,8 +93,9 @@ FunctionHandle& Module::make_builtin_async_handle(PackageData& package, std::siz
 	}));
 }
 
-Reference* Module::make_constant(Data& data) {
-	return _constants.emplace_back(std::make_unique<Reference>(Reference::const_address | Reference::const_value, data))
+Reference* Module::make_constant(Data* data) {
+	return _constants
+	    .emplace_back(std::make_unique<Reference>(Reference::const_address | Reference::const_value, *data))
 	    .get();
 }
 
@@ -122,36 +107,9 @@ Symbol* Module::make_symbol(const std::string& name) {
 	return it->second.get();
 }
 
-ClassDescription* mint::Module::make_class(Program& program, const std::string& name) {
-	return _classes.emplace_back(std::make_unique<ClassDescription>(program, name)).get();
-}
-
-void Module::add_internal_register(std::unique_ptr<ClassRegister>&& class_register) {
-	_internal_registers.emplace_back(std::move(class_register));
-}
-
-void Module::cleanup_memory() {
-	ClassRegister::cleanup_memory();
-	for (const auto& class_register : _internal_registers) {
-		class_register->cleanup_memory();
-	}
-	_constants.clear();
-}
-
-void Module::cleanup_metadata() {
-	ClassRegister::cleanup_metadata();
-	for (const auto& class_register : _internal_registers) {
-		class_register->cleanup_metadata();
-	}
-	_classes.clear();
-}
-
 void Module::mark() {
 	for (const auto& constant : _constants) {
 		constant->data().mark();
-	}
-	for (const auto& desc : _classes) {
-		desc->mark();
 	}
 }
 
@@ -168,5 +126,9 @@ void Module::push_nodes(const std::initializer_list<Node>& nodes) {
 }
 
 void Module::replace_node(std::size_t offset, const Node& node) {
+
+	assert(offset < _tree.size());
+
+	// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-avoid-unchecked-container-access)
 	_tree[offset] = node;
 }

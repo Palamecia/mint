@@ -29,15 +29,15 @@
 #include <iterator>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "mint/memory/class.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/program/program.h"
-#include "mint/program/class_description.h"
-#include "mint/program/class_register.h"
 #include "mint/program/module.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/data.h"
@@ -171,22 +171,19 @@ Class::Class(PackageData& package, std::string name, Metatype metatype) :
     _package(package),
     _operators({}) {
 	_operators.fill(nullptr);
-	register_root();
 }
 
-Class::~Class() {
-	unregister_root();
-}
+Class::~Class() {}
 
 Symbol Class::name() const {
 	return _description->name();
 }
 
 PackageData& Class::get_package() const {
-	return _package.get();
+	return _package;
 }
 
-ClassDescription& Class::get_description() const {
+const ClassDescription& Class::get_description() const {
 	return *_description;
 }
 
@@ -208,14 +205,6 @@ Class::MemberInfo* Class::find_class(const Symbol& name) {
 	return nullptr;
 }
 
-const std::vector<std::reference_wrapper<Class>>& Class::bases() const {
-	if (_description) {
-		return _description->bases();
-	}
-	static const std::vector<std::reference_wrapper<Class>> g_empty;
-	return g_empty;
-}
-
 std::size_t Class::size() const {
 	return _slots.size();
 }
@@ -231,10 +220,7 @@ bool Class::is_base_of(const Class& other) const {
 }
 
 bool Class::is_base_or_same(const Class& other) const {
-	if (this == &other) {
-		return true;
-	}
-	return is_base_of(other);
+	return is_same(other) || is_base_of(other);
 }
 
 bool Class::is_direct_base_or_same(const Class& other) const {
@@ -245,6 +231,13 @@ bool Class::is_direct_base_or_same(const Class& other) const {
 	return std::ranges::find(other_bases, this, [](const auto& base) {
 		return &base.get();
 	}) != other_bases.end();
+}
+
+std::span<std::reference_wrapper<Class>> Class::bases() const {
+	if (_description == nullptr) {
+		return {};
+	}
+	return _description->generated_bases();
 }
 
 const Class::MemberInfo& Class::make_allocate_method_reference(Program& program) {
@@ -296,7 +289,7 @@ void Class::create_builtin_member(Operator op, Reference&& value) {
 	const auto op_index = static_cast<std::size_t>(op);
 	assert(op_index < _operators.size());
 	assert(_operators[op_index] == nullptr);
-	if (ClassRegister::is_slot(value)) {
+	if (mint::is_slot(value)) {
 		auto info = make_member_info({
 		    .offset = _slots.size(),
 		    .owner = *this,
@@ -334,7 +327,7 @@ void Class::create_builtin_member(Operator op, std::pair<int, FunctionHandle&> m
 
 void Class::create_builtin_member(const Symbol& symbol, Reference&& value) {
 	assert(!_members.contains(symbol));
-	if (ClassRegister::is_slot(value)) {
+	if (mint::is_slot(value)) {
 		auto info = make_member_info({
 		    .offset = _slots.size(),
 		    .owner = *this,

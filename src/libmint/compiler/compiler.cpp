@@ -22,25 +22,33 @@
  */
 
 #include "mint/compiler/compiler.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/memory/builtin/library.h"
 #include "mint/memory/builtin/string.h"
 #include "mint/memory/builtin/regex.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
 #include "mint/memory/cast_tools.h"
+#include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/garbage_collector.h"
 #include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
+#include "mint/program/program.h"
 #include "mint/system/plugin.h"
 #include "mint/system/string.h"
 #include "mint/system/error.h"
 #include <cctype>
-#include <cstddef>
 #include <exception>
+#include <functional>
 #include <iterator>
+#include <memory>
 #include <regex>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 using namespace mint;
 
@@ -191,8 +199,9 @@ Compiler::DataHint data_hint_from_token(const std::string& token) {
 
 }
 
-Compiler::Compiler(Program& program) :
-    _program(program) {}
+Compiler::Compiler(Program& program, ModuleInfo& data) :
+    _program(program),
+    _data(data) {}
 
 bool Compiler::is_printing() const {
 	return _printing;
@@ -200,6 +209,13 @@ bool Compiler::is_printing() const {
 
 void Compiler::set_printing(bool enabled) {
 	_printing = enabled;
+}
+
+Reference* mint::Compiler::make_constant(const std::string& token, DataHint hint) {
+	if (auto* data = make_data(token, hint)) {
+		return _data.get().bytecode.make_constant(data);
+	}
+	return nullptr;
 }
 
 Data* Compiler::make_data(const std::string& token, DataHint hint) {
@@ -213,10 +229,10 @@ Data* Compiler::make_data(const std::string& token, DataHint hint) {
 		break;
 	case DataHint::data_number_hint:
 		try {
-			return GarbageCollector::instance().alloc<Number>(token_to_number(token));
+			return make_data<Number>(token_to_number(token));
 		}
-		catch (std::exception&) {
-			return nullptr;
+		catch (...) {
+			mint::error("token '{}' is not a valid constant", token);
 		}
 	case DataHint::data_string_hint:
 		try {
@@ -224,8 +240,8 @@ Data* Compiler::make_data(const std::string& token, DataHint hint) {
 			string->construct();
 			return string;
 		}
-		catch (std::exception&) {
-			return nullptr;
+		catch (...) {
+			mint::error("token '{}' is not a valid constant", token);
 		}
 	case DataHint::data_regex_hint:
 		try {
@@ -235,62 +251,47 @@ Data* Compiler::make_data(const std::string& token, DataHint hint) {
 			regex->construct();
 			return regex;
 		}
-		catch (std::exception&) {
-			return nullptr;
+		catch (...) {
+			mint::error("token '{}' is not a valid constant", token);
 		}
 	case DataHint::data_true_hint:
-		return GarbageCollector::instance().alloc<Boolean>(true);
+		return make_data<Boolean>(true);
 	case DataHint::data_false_hint:
-		return GarbageCollector::instance().alloc<Boolean>(false);
+		return make_data<Boolean>(false);
 	case DataHint::data_null_hint:
-		return GarbageCollector::instance().alloc<Null>();
+		return make_data<Null>();
 	case DataHint::data_none_hint:
-		return GarbageCollector::instance().alloc<None>();
+		return make_data<None>();
 	}
 
-	return nullptr;
+	mint::error("token '{}' is not a valid constant", token);
 }
 
-Data& Compiler::make_library(const std::string& token) {
+template<>
+Library* Compiler::make_data<Library>(const std::string& token) {
 	try {
 		auto* library = GarbageCollector::instance().alloc<Library>(_program);
 		library->plugin = Plugin::load(token_to_string(token));
 		library->construct();
-		return *library;
+		return library;
 	}
 	catch (const std::exception& error) {
 		mint::error("failed to load plugin {}: {}", token, error.what());
 	}
 }
 
-Data& Compiler::make_package(PackageData& package) {
-	return *GarbageCollector::instance().alloc<Package>(package);
+void mint::Compiler::push_node(const Node& node) {
+	_data.get().bytecode.push_node(node);
 }
 
-Data& Compiler::make_number(double value) {
-	return *GarbageCollector::instance().alloc<Number>(value);
+void mint::Compiler::push_nodes(const std::vector<Node>& nodes) {
+	_data.get().bytecode.push_nodes(nodes);
 }
 
-Data& Compiler::make_boolean(bool value) {
-	return *GarbageCollector::instance().alloc<Boolean>(value);
-}
-
-Data& Compiler::make_array() {
-	auto* array = GarbageCollector::instance().alloc<Array>(_program);
-	array->construct();
-	return *array;
-}
-
-Data& Compiler::make_hash() {
-	auto* hash = GarbageCollector::instance().alloc<Hash>(_program);
-	hash->construct();
-	return *hash;
-}
-
-Data& Compiler::make_none() {
-	return *GarbageCollector::instance().alloc<None>();
-}
-
-Program& Compiler::program() {
+Program& mint::Compiler::program() {
 	return _program;
+}
+
+ModuleInfo& mint::Compiler::data() {
+	return _data;
 }

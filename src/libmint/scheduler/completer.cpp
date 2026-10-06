@@ -24,7 +24,6 @@
 #include "completer.h"
 
 #include "mint/program/symbol.h"
-#include "mint/program/class_description.h"
 #include "mint/memory/data.h"
 #include "mint/memory/global_data.h"
 #include "mint/debug/debug_tools.h"
@@ -90,7 +89,7 @@ bool Completer::on_symbol_token(const std::vector<std::string>& context, const s
 		}
 
 		Reference* member = nullptr;
-		PackageData* pack = nullptr;
+		PackageDescription* pack = nullptr;
 		ClassDescription* desc = nullptr;
 
 		if (resolve_path(context, pack, desc, member)) {
@@ -107,7 +106,7 @@ bool Completer::on_symbol_token(const std::vector<std::string>& context, std::st
 	if (_offset >= offset) {
 
 		Reference* member = nullptr;
-		PackageData* pack = nullptr;
+		PackageDescription* pack = nullptr;
 		ClassDescription* desc = nullptr;
 
 		if (resolve_path(context, pack, desc, member)) {
@@ -135,7 +134,7 @@ void Completer::find_module_recursive_helper(const std::filesystem::path& root_p
 	}
 }
 
-void Completer::find_context_symbols_helper(PackageData* pack, ClassDescription* desc, Reference* member,
+void Completer::find_context_symbols_helper(PackageDescription* pack, ClassDescription* desc, Reference* member,
     const std::string& token, std::string::size_type offset) {
 
 	if (member) {
@@ -197,19 +196,19 @@ bool Completer::token_match(const std::string& symbol, const std::string& patter
 	              == std::strong_ordering::equal;
 }
 
-bool Completer::resolve_path(const std::vector<std::string>& context, PackageData*& pack, ClassDescription*& desc,
-    Reference*& member) const {
+bool Completer::resolve_path(const std::vector<std::string>& context, PackageDescription*& pack,
+    ClassDescription*& desc, Reference*& member) const {
 
 	for (const std::string& token : context) {
 		const auto symbol = Symbol(token);
 		if (desc) {
-			desc = desc->find_class_description(symbol);
+			desc = desc->find_class(symbol);
 			if (desc == nullptr) {
 				return false;
 			}
 		}
 		else if (pack) {
-			desc = pack->find_class_description(symbol);
+			desc = pack->find_class(symbol);
 			if (desc == nullptr) {
 				const auto it = pack->symbols().find(symbol);
 				if (it != pack->symbols().end()) {
@@ -225,7 +224,7 @@ bool Completer::resolve_path(const std::vector<std::string>& context, PackageDat
 		}
 		else {
 			const auto& global_data = _cursor.get().program().global_data();
-			desc = global_data.find_class_description(symbol);
+			desc = global_data.find_class(symbol);
 			if (desc == nullptr) {
 				pack = global_data.find_package(symbol);
 				if (pack == nullptr) {

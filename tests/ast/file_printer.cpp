@@ -106,7 +106,7 @@ TEST(file_printer, print_package) {
 	ASSERT_NE(-1, fd);
 
 	{
-		auto package_data = mint::PackageData(scheduler.program(), "test");
+		auto package_data = mint::PackageDescription(scheduler.program(), "test");
 		const auto package = mint::make_reference<mint::Package>(mint::create_flags, package_data);
 		auto printer = mint::FilePrinter(fd);
 		printer.print(package);

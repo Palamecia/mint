@@ -29,7 +29,6 @@
 #include "mint/memory/memory_pool.h"
 #include "mint/memory/garbage_collector.h"
 #include <concepts>
-#include <cstdint>
 #include <memory>
 #include <utility>
 
@@ -48,7 +47,7 @@ inline constexpr FromCopy copy_from;
 class MINT_EXPORT Reference {
 	friend class GarbageCollector;
 public:
-	using Flags = std::uint16_t;
+	using Flags = unsigned;
 
 	static constexpr Flags default_flags = 0x000;
 	static constexpr Flags const_value = 0x001;
@@ -134,7 +133,7 @@ private:
 	std::shared_ptr<Info> _info;
 };
 
-class MINT_EXPORT RootReference final : public Reference, public MemoryRoot {
+class MINT_EXPORT RootReference final : public Reference, public MemoryRoot<MemoryRootRegistrationMode::automatic> {
 public:
 	RootReference();
 	template<std::derived_from<Data> Type, typename... Args>

@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/program/class_register.h"
+#include "mint/program/symbol_scope.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"

@@ -24,7 +24,6 @@
 #ifndef MINT_MEMORY_MEMORY_TOOLS_H
 #define MINT_MEMORY_MEMORY_TOOLS_H
 
-#include "mint/program/class_register.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
 #include "mint/memory/object.h"
@@ -84,14 +83,14 @@ MINT_EXPORT void reduce_member(Cursor& cursor, Reference&& member);
 MINT_EXPORT std::optional<std::pair<Symbol, std::reference_wrapper<const Class::MemberInfo>>> find_member(Object& object,
     const Reference& member);
 MINT_EXPORT const Class::MemberInfo* find_member_info(Object& object, const Reference& member);
-MINT_EXPORT std::optional<Symbol> find_member_symbol(Object& object, const Class::MemberInfo& member);
+MINT_EXPORT std::optional<Symbol> find_member_symbol(const Object& object, const Class::MemberInfo& member);
 MINT_EXPORT bool is_protected_accessible(const Class& owner, const Class* context);
 MINT_EXPORT bool is_protected_accessible(const Cursor& cursor, const Class& owner);
 MINT_EXPORT bool is_private_accessible(const Cursor& cursor, const Class& owner);
 MINT_EXPORT bool is_package_accessible(const Cursor& cursor, const Class& owner);
 
 MINT_EXPORT Symbol var_symbol(Cursor& cursor);
-MINT_EXPORT void declare_class(Cursor& cursor, ClassDescription& desc, Reference::Flags flags);
+MINT_EXPORT void declare_class(Cursor& cursor, const ClassDescription& desc, Reference::Flags flags);
 MINT_EXPORT void declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags flags);
 MINT_EXPORT void declare_symbol(Cursor& cursor, const Symbol& symbol, std::size_t index, Reference::Flags flags);
 MINT_EXPORT void declare_function(Cursor& cursor, const Symbol& symbol, Reference::Flags flags);

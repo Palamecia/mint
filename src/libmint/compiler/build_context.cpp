@@ -21,9 +21,11 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/compiler/build_tools.h"
+#include "mint/compiler/build_context.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/program/program.h"
-#include "mint/program/class_register.h"
 #include "mint/program/node.h"
 #include "mint/program/symbol.h"
 #include "mint/compiler/compiler.h"
@@ -57,12 +59,11 @@
 
 using namespace mint;
 
-BuildContext::BuildContext(DataStream& stream, Compiler& compiler, ModuleInfo& data) :
-    _data(data),
+BuildContext::BuildContext(DataStream& stream, Compiler& compiler) :
     _compiler(compiler),
     _lexer(stream),
-    _module_context(std::make_unique<Context>()),
-    _main_branch(std::make_unique<MainBranch>(compiler.program(), data)),
+    _module(std::make_unique<Context>()),
+    _main_branch(std::make_unique<MainBranch>(compiler)),
     _branch(*_main_branch) {
 	stream.set_new_line_callback([this](std::size_t line_number) {
 		_branch.get().set_pending_new_line(line_number);
@@ -97,28 +98,28 @@ void BuildContext::commit_expr_result() {
 	}
 }
 
-std::size_t BuildContext::create_fast_scoped_symbol_index(const std::string& symbol) {
+std::size_t BuildContext::create_fast_scoped_symbol_index(const std::string& symbol, TypeAnnotation type) {
 
 	const Symbol* module_symbol = nullptr;
 	Context& context = current_context();
 
 	if (context.condition_scoped_symbols) {
-		module_symbol = _data.get().bytecode.make_symbol(symbol);
+		module_symbol = _compiler.get().data().bytecode.make_symbol(symbol);
 		context.condition_scoped_symbols->emplace_back(module_symbol);
 	}
 	else if (context.range_loop_scoped_symbols) {
-		module_symbol = _data.get().bytecode.make_symbol(symbol);
+		module_symbol = _compiler.get().data().bytecode.make_symbol(symbol);
 		context.range_loop_scoped_symbols->emplace_back(module_symbol);
 	}
 	else if (!context.blocks.empty()) {
 		const auto& block = context.blocks.back();
-		module_symbol = _data.get().bytecode.make_symbol(symbol);
+		module_symbol = _compiler.get().data().bytecode.make_symbol(symbol);
 		block->block_scoped_symbols.push_back(module_symbol);
 	}
 
-	if (Definition* def = current_definition(); def && def->with_fast) {
+	if (auto* def = current_function_definition(); def && def->with_fast) {
 		if (module_symbol == nullptr) {
-			module_symbol = _data.get().bytecode.make_symbol(symbol);
+			module_symbol = _compiler.get().data().bytecode.make_symbol(symbol);
 		}
 		return mint::create_fast_symbol_index(*def, *module_symbol);
 	}
@@ -126,11 +127,11 @@ std::size_t BuildContext::create_fast_scoped_symbol_index(const std::string& sym
 	return invalid_index;
 }
 
-std::size_t BuildContext::create_fast_symbol_index(const std::string& symbol) {
+std::size_t BuildContext::create_fast_symbol_index(const std::string& symbol, TypeAnnotation type) {
 
 	const Symbol* module_symbol = nullptr;
-	if (Definition* def = current_definition(); def && def->with_fast) {
-		module_symbol = _data.get().bytecode.make_symbol(symbol);
+	if (auto* def = current_function_definition(); def && def->with_fast) {
+		module_symbol = _compiler.get().data().bytecode.make_symbol(symbol);
 		return mint::create_fast_symbol_index(*def, *module_symbol);
 	}
 
@@ -139,8 +140,8 @@ std::size_t BuildContext::create_fast_symbol_index(const std::string& symbol) {
 
 std::size_t BuildContext::fast_symbol_index(const std::string& symbol) {
 
-	if (Definition* def = current_definition(); def && def->with_fast) {
-		const Symbol* module_symbol = _data.get().bytecode.make_symbol(symbol);
+	if (auto* def = current_function_definition(); def && def->with_fast) {
+		const Symbol* module_symbol = _compiler.get().data().bytecode.make_symbol(symbol);
 		return mint::fast_symbol_index(*def, *module_symbol);
 	}
 
@@ -148,7 +149,7 @@ std::size_t BuildContext::fast_symbol_index(const std::string& symbol) {
 }
 
 bool BuildContext::has_returned() const {
-	if (const Definition* def = current_definition()) {
+	if (const auto* def = current_function_definition()) {
 		return def->returned;
 	}
 	return false;
@@ -264,19 +265,19 @@ bool BuildContext::is_in_range_loop() const {
 }
 
 bool BuildContext::is_in_function() const {
-	return !_definitions.empty();
+	return !_functions.empty();
 }
 
 bool BuildContext::is_in_nested_function() const {
-	return _definitions.size() >= 2;
+	return _functions.size() >= 2;
 }
 
 bool BuildContext::is_in_async_function() const {
-	return !_definitions.empty() && _definitions.top()->async;
+	return !_functions.empty() && _functions.top()->async;
 }
 
 bool BuildContext::is_in_generator() const {
-	if (const Definition* def = current_definition()) {
+	if (const auto* def = current_function_definition()) {
 		return def->generator;
 	}
 	return false;
@@ -337,7 +338,7 @@ void BuildContext::prepare_break() {
 
 void BuildContext::prepare_return() {
 
-	if (Definition* def = current_definition()) {
+	if (auto* def = current_function_definition()) {
 
 		for (const auto& block : def->blocks) {
 			if (block->type == BlockType::range_loop_type) {
@@ -360,7 +361,7 @@ void BuildContext::prepare_return() {
 
 void BuildContext::register_retrieve_point() {
 
-	if (Definition* definition = current_definition()) {
+	if (auto* definition = current_function_definition()) {
 		definition->retrieve_point_count++;
 	}
 	if (Block* block = current_breakable_block()) {
@@ -370,7 +371,7 @@ void BuildContext::register_retrieve_point() {
 
 void BuildContext::unregister_retrieve_point() {
 
-	if (Definition* definition = current_definition()) {
+	if (auto* definition = current_function_definition()) {
 		definition->retrieve_point_count--;
 	}
 	if (Block* block = current_breakable_block()) {
@@ -384,7 +385,7 @@ void BuildContext::set_exception_symbol(const std::string& symbol) {
 	const auto& block = context.blocks.back();
 
 	if (CatchContext* catch_context = block->catch_context.get()) {
-		catch_context->symbol = _data.get().bytecode.make_symbol(symbol);
+		catch_context->symbol = _compiler.get().data().bytecode.make_symbol(symbol);
 	}
 }
 
@@ -440,7 +441,7 @@ void BuildContext::build_case_table() {
 
 		if (case_table->default_label) {
 			push_node(Node::Command::load_constant);
-			push_node(Compiler::make_boolean(true));
+			push_node(_compiler.get().make_constant<Boolean>(true));
 			push_node(Node::Command::case_jump);
 			push_node(static_cast<int>(*case_table->default_label));
 		}
@@ -487,214 +488,17 @@ void BuildContext::resolve_jump_backward() {
 	_branch.get().resolve_jump_backward();
 }
 
-void BuildContext::start_definition() {
-	_definitions.push(std::make_unique<Definition>(Definition {
-	    .begin_offset = _branch.get().next_node_offset(),
-	    .function = _data.get().bytecode.make_constant<Function>(),
-	}));
-}
-
-void BuildContext::start_async_definition() {
-	_definitions.push(std::make_unique<Definition>(Definition {
-	    .begin_offset = _branch.get().next_node_offset(),
-	    .function = _data.get().bytecode.make_constant<Function>(),
-	    .async = true,
-	}));
-}
-
-bool BuildContext::add_parameter(const std::string& symbol, Reference::Flags flags) {
-
-	Definition* def = current_definition();
-	assert(def);
-
-	if (def->variadic) {
-		parse_error("unexpected parameter after '...' token");
-		return false;
-	}
-
-	const auto* s = _data.get().bytecode.make_symbol(symbol);
-	const auto index = static_cast<int>(def->fast_symbol_count++);
-	def->fast_symbol_indexes.emplace(*s, index);
-	def->parameters.push({
-	    .flags = flags,
-	    .symbol = s,
-	});
-	return true;
-}
-
-bool BuildContext::set_variadic() {
-
-	Definition* def = current_definition();
-	assert(def);
-
-	if (def->variadic) {
-		parse_error("unexpected parameter after '...' token");
-		return false;
-	}
-
-	const auto* s = _data.get().bytecode.make_symbol("va_args");
-	const auto index = static_cast<int>(def->fast_symbol_count++);
-	def->fast_symbol_indexes.emplace(*s, index);
-	def->parameters.push({
-	    .flags = Reference::default_flags,
-	    .symbol = s,
-	});
-	def->variadic = true;
-
-	if (!def->function->data<Function>().mapping.empty()) {
-		push_node(Node::Command::init_iterator);
-		push_node(0);
-	}
-
-	return true;
-}
-
-void BuildContext::set_generator() {
-
-	Definition* def = current_definition();
-	assert(def);
-
-	for (const auto exit_point : def->exit_points) {
-		_branch.get().replace_node(exit_point, Node::Command::yield_exit_generator);
-	}
-
-	def->generator = true;
-}
-
-void BuildContext::set_exit_point() {
-	current_definition()->exit_points.emplace_back(_branch.get().next_node_offset());
-}
-
-bool BuildContext::save_parameters() {
-
-	auto* def = current_definition();
-	assert(def);
-
-	if (def->variadic && def->parameters.empty()) {
-		parse_error("expected parameter before '...' token");
-		return false;
-	}
-
-	const auto count = static_cast<int>(def->parameters.size());
-	const int signature = def->variadic ? ~(count - 1) : count;
-	FunctionHandle& handle = _data.get().bytecode.make_handle(current_package(), def->begin_offset);
-
-	if (def->capture) {
-		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateful>(handle));
-	}
-	else {
-		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateless>(handle));
-	}
-
-	while (!def->parameters.empty()) {
-		const auto& param = def->parameters.top();
-		push_node(Node::Command::init_parameter);
-		push_node(param.symbol);
-		push_node(param.flags);
-		push_node(mint::fast_symbol_index(*def, *param.symbol));
-		def->parameters.pop();
-	}
-
-	return true;
-}
-
-bool BuildContext::add_definition_signature() {
-
-	auto* def = current_definition();
-	assert(def);
-
-	if (def->variadic) {
-		parse_error("unexpected parameter after '...' token");
-	}
-
-	const auto signature = static_cast<int>(def->parameters.size());
-	FunctionHandle& handle = _data.get().bytecode.make_handle(current_package(), def->begin_offset);
-
-	if (def->capture) {
-		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateful>(handle));
-	}
-	else {
-		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateless>(handle));
-	}
-
-	def->begin_offset = _branch.get().next_node_offset();
-	return true;
-}
-
-void BuildContext::save_definition(std::string name) {
-
-	auto* def = current_definition();
-	assert(def);
-
-	_data.get().debug_info.register_function({
-	    .name = std::move(name),
-	    .begin_offset = def->begin_offset,
-	    .end_offset = next_offset(),
-	});
-
-	for (auto& signature : def->function->data<Function>().mapping) {
-		signature.second.handle().fast_count = def->fast_symbol_count;
-		signature.second.handle().generator = def->generator;
-		signature.second.handle().async = def->async;
-	}
-
-	if (def->global_data) {
-		_data.get().bytecode.add_internal_register(std::move(def->global_data));
-	}
-
-	push_node(Node::Command::load_constant);
-	push_node(def->function);
-
-	if (def->capture) {
-		def->capture->build();
-	}
-
-	assert(def->blocks.empty());
-	_definitions.pop();
-}
-
-Function& BuildContext::retrieve_definition(std::string name) {
-
-	assert(!_definitions.empty());
-
-	const auto def = std::move(_definitions.top());
-	_definitions.pop();
-
-	if (const auto& classes = current_context().classes; !classes.empty()) {
-		name = classes.top().first->full_name() + '.' + std::move(name);
-	}
-	_data.get().debug_info.register_function({
-	    .name = std::move(name),
-	    .begin_offset = def->begin_offset,
-	    .end_offset = next_offset(),
-	});
-
-	auto& data = def->function->data<Function>();
-	for (auto& signature : data.mapping) {
-		signature.second.handle().fast_count = def->fast_symbol_count;
-		signature.second.handle().generator = def->generator;
-		signature.second.handle().async = def->async;
-	}
-
-	if (def->global_data) {
-		_data.get().bytecode.add_internal_register(std::move(def->global_data));
-	}
-
-	assert(def->blocks.empty());
-	return data;
-}
-
-PackageData& BuildContext::current_package() const {
+PackageDescription& BuildContext::current_package() const {
 	if (_packages.empty()) {
-		return _compiler.get().program().global_data();
+		return _compiler.get().program().global_data_description();
 	}
 	return _packages.top().get();
 }
 
 void BuildContext::open_package(const std::string& name) {
-	PackageData& package = current_package().get_package(Symbol(name));
+	PackageDescription& package = current_package().get_or_create_package(_compiler.get().program(), Symbol(name));
 	push_node(Node::Command::open_package);
-	push_node(Compiler::make_package(package));
+	push_node(_compiler.get().make_constant<Package>(package.data()));
 	_packages.emplace(package);
 }
 
@@ -705,41 +509,33 @@ void BuildContext::close_package() {
 }
 
 void BuildContext::start_class_description(const std::string& name, Reference::Flags flags) {
+
+	auto& context = current_context();
+
+	const auto symbol = Symbol(name);
 	_class_base.clear();
-	current_context().classes.emplace(_data.get().bytecode.make_class(_compiler.get().program(), name), flags);
+
+	if (!context.classes.empty()) {
+		assert(flags & Reference::global);
+		current_context().classes.emplace(context.classes.top().description.get().create_class(symbol, flags), flags);
+	}
+	else if (flags & Reference::global) {
+		current_context().classes.emplace(current_package().create_class(symbol, flags), flags);
+	}
+	else if (const auto* def = current_function_definition()) {
+		current_context().classes.emplace(def->description->create_class(symbol), flags);
+	}
+	else {
+		current_context().classes.emplace(_compiler.get().data().description.create_class(symbol), flags);
+	}
 }
 
 void BuildContext::append_symbol_to_base_class_path(const std::string& symbol) {
-	_class_base.append_symbol(Symbol(symbol));
+	_class_base.emplace_back(symbol);
 }
 
 void BuildContext::save_base_class_path() {
-	current_context().classes.top().first->add_base(_class_base);
-	_class_base.clear();
-}
-
-bool BuildContext::create_member(Reference::Flags flags, const Symbol& symbol, Data* value) {
-	if (value == nullptr) {
-		parse_error(symbol.str() + ": member value is not a valid constant");
-		return false;
-	}
-	return create_member(flags, symbol, *value);
-}
-
-bool BuildContext::create_member(Reference::Flags flags, const Symbol& symbol, Data& value) {
-	if (!current_context().classes.top().first->create_member(symbol, Reference(flags, value))) {
-		parse_error(symbol.str() + ": member was already defined");
-		return false;
-	}
-	return true;
-}
-
-bool BuildContext::update_member(Reference::Flags flags, const Symbol& symbol, Data& value) {
-	if (!current_context().classes.top().first->update_member(symbol, Reference(flags, value))) {
-		parse_error(symbol.str() + ": member was already defined");
-		return false;
-	}
-	return true;
+	current_context().classes.top().description.get().add_base(std::exchange(_class_base, {}));
 }
 
 void BuildContext::resolve_class_description() {
@@ -749,26 +545,17 @@ void BuildContext::resolve_class_description() {
 	context.classes.pop();
 
 	if (context.classes.empty()) {
-		if (flags & Reference::global) {
-			current_package().register_class_description(*desc, flags);
-		}
-		else if (auto* def = current_definition()) {
-			if (!def->global_data) {
-				def->global_data = std::make_unique<FunctionData>(_compiler.get().program());
-			}
-			def->global_data->register_class_description(*desc, flags);
-		}
-		else {
-			_data.get().bytecode.register_class_description(*desc, flags);
-		}
-		push_node(Node::Command::declare_class);
-		push_node(desc);
+		push_node(Node::Command::register_class);
+		push_node(&desc.get());
 		push_node(flags);
 	}
-	else {
-		assert(flags & Reference::global);
-		context.classes.top().first->register_class_description(*desc, flags);
-	}
+}
+
+void BuildContext::create_attribute(const std::string& name, TypeAnnotation type, Reference::Flags flags,
+    Reference* value) {
+	ClassDescription& class_description = current_context().classes.top().description;
+	auto& description = class_description.create_attribute(Symbol(name), std::move(type), flags);
+	description.data = value;
 }
 
 void BuildContext::start_enum_description(const std::string& name, Reference::Flags flags) {
@@ -788,6 +575,261 @@ void BuildContext::resolve_enum_description() {
 	resolve_class_description();
 }
 
+void BuildContext::start_function_description() {
+	auto* enclosing = current_function_definition();
+	auto definition = std::make_unique<FunctionDefinition>(FunctionDefinition {
+	    .function = _compiler.get().data().bytecode.make_constant<Function>(),
+	    .begin_offset = _branch.get().next_node_offset(),
+	});
+	definition->enclosing = enclosing;
+	_functions.emplace(std::move(definition));
+}
+
+void BuildContext::start_async_function_description() {
+	auto* enclosing = current_function_definition();
+	auto definition = std::make_unique<FunctionDefinition>(FunctionDefinition {
+	    .function = _compiler.get().data().bytecode.make_constant<Function>(),
+	    .begin_offset = _branch.get().next_node_offset(),
+	    .async = true,
+	});
+	definition->enclosing = enclosing;
+	_functions.emplace(std::move(definition));
+}
+
+void BuildContext::add_parameter(const std::string& name, TypeAnnotation type, Reference::Flags flags) {
+
+	auto* def = current_function_definition();
+	assert(def);
+
+	if (def->variadic) {
+		parse_error("unexpected parameter after '...' token");
+	}
+
+	const auto* symbol = _compiler.get().data().bytecode.make_symbol(name);
+	const auto index = static_cast<int>(def->fast_symbol_count++);
+	def->fast_symbol_indexes.emplace(*symbol, index);
+	def->parameters.push({
+	    .symbol = symbol,
+	    .type = std::move(type),
+	    .flags = flags,
+	});
+}
+
+void BuildContext::set_variadic() {
+
+	auto* def = current_function_definition();
+	assert(def);
+
+	if (def->variadic) {
+		parse_error("unexpected parameter after '...' token");
+	}
+
+	const auto* symbol = _compiler.get().data().bytecode.make_symbol("va_args");
+	const auto index = static_cast<int>(def->fast_symbol_count++);
+	def->fast_symbol_indexes.emplace(*symbol, index);
+	def->parameters.push({
+	    .symbol = symbol,
+	    .type = BuiltinTypeKind::iterator,
+	    .flags = Reference::default_flags,
+	});
+	def->variadic = true;
+
+	if (!def->function->data<Function>().mapping.empty()) {
+		push_node(Node::Command::init_iterator);
+		push_node(0);
+	}
+}
+
+void BuildContext::set_generator() {
+
+	auto* def = current_function_definition();
+	assert(def);
+
+	for (const auto exit_point : def->exit_points) {
+		_branch.get().replace_node(exit_point, Node::Command::yield_exit_generator);
+	}
+
+	def->generator = true;
+}
+
+void BuildContext::set_exit_point() {
+	current_function_definition()->exit_points.emplace_back(_branch.get().next_node_offset());
+}
+
+void mint::BuildContext::resolve_method_description() {
+
+	const auto* def = current_function_definition();
+	assert(def != nullptr);
+
+	_compiler.get().data().debug_info.register_function({
+	    .description = *def->description,
+	    .begin_offset = def->begin_offset,
+	    .end_offset = next_offset(),
+	});
+
+	for (auto& signature : def->function->data<Function>().mapping) {
+		signature.second.handle().fast_count = def->fast_symbol_count;
+		signature.second.handle().generator = def->generator;
+		signature.second.handle().async = def->async;
+	}
+
+	assert(def->blocks.empty());
+	_functions.pop();
+}
+
+void BuildContext::resolve_function_description() {
+
+	auto* def = current_function_definition();
+	assert(def != nullptr);
+
+	_compiler.get().data().debug_info.register_function({
+	    .description = *def->description,
+	    .begin_offset = def->begin_offset,
+	    .end_offset = next_offset(),
+	});
+
+	for (auto& signature : def->function->data<Function>().mapping) {
+		signature.second.handle().fast_count = def->fast_symbol_count;
+		signature.second.handle().generator = def->generator;
+		signature.second.handle().async = def->async;
+	}
+
+	push_node(Node::Command::load_constant);
+	push_node(def->function);
+
+	if (def->capture) {
+		def->capture->build();
+	}
+
+	assert(def->blocks.empty());
+	_functions.pop();
+}
+
+void mint::BuildContext::register_function_description() {
+
+	const auto* def = current_function_definition();
+	assert(def);
+
+	if (def->flags & Reference::global) {
+		push_node(Node::Command::register_function);
+		push_node(def->description);
+		push_node(def->flags);
+	}
+	else if (const auto name = def->description->name()) {
+		push_node(Node::Command::declare_function);
+		push_node(name->str().c_str());
+		push_node(def->flags);
+	}
+	else {
+		std::unreachable();
+	}
+}
+
+void BuildContext::save_method_signature(const std::string& name, TypeAnnotation return_type, Reference::Flags flags) {
+
+	auto* def = current_function_definition();
+	assert(def != nullptr);
+
+	def->flags = flags;
+
+	if (auto* enclosing = def->enclosing) {
+		def->description = &enclosing->classes.top().description.get().create_method(Symbol(name), flags);
+	}
+	else {
+		def->description = &_module->classes.top().description.get().create_method(Symbol(name), flags);
+	}
+
+	def->description->set_return_type(std::move(return_type));
+	def->description->set_data(def->function);
+	save_function_signatures(def);
+}
+
+void mint::BuildContext::save_method_signature(Class::Operator op, TypeAnnotation return_type, Reference::Flags flags) {
+
+	auto* def = current_function_definition();
+	assert(def != nullptr);
+
+	def->flags = flags;
+
+	if (auto* enclosing = def->enclosing) {
+		def->description = &enclosing->classes.top().description.get().create_method(get_operator_symbol(op), flags);
+	}
+	else {
+		def->description = &_module->classes.top().description.get().create_method(get_operator_symbol(op), flags);
+	}
+
+	def->description->set_return_type(std::move(return_type));
+	def->description->set_data(def->function);
+	save_function_signatures(def);
+}
+
+void BuildContext::save_function_signatures(const std::string& name, TypeAnnotation return_type,
+    Reference::Flags flags) {
+
+	auto* def = current_function_definition();
+	assert(def != nullptr);
+
+	def->flags = flags;
+
+	if (def->flags & Reference::global) {
+		def->description = &current_package().create_function(Symbol(name));
+	}
+	else if (const auto* parent = static_cast<FunctionDefinition*>(def->enclosing)) {
+		def->description = &parent->description->create_function(Symbol(name));
+	}
+	else {
+		def->description = &compiler().data().description.create_function(Symbol(name));
+	}
+
+	def->description->set_return_type(std::move(return_type));
+	def->description->set_data(def->function);
+	save_function_signatures(def);
+}
+
+void mint::BuildContext::save_function_signatures(TypeAnnotation return_type, Reference::Flags flags) {
+	auto* def = current_function_definition();
+	assert(def != nullptr);
+
+	def->flags = flags;
+
+	if (def->flags & Reference::global) {
+		def->description = &current_package().create_function();
+	}
+	else if (const auto* parent = static_cast<FunctionDefinition*>(def->enclosing)) {
+		def->description = &parent->description->create_function();
+	}
+	else {
+		def->description = &compiler().data().description.create_function();
+	}
+
+	def->description->set_return_type(std::move(return_type));
+	def->description->set_data(def->function);
+
+	save_function_signatures(def);
+}
+
+void BuildContext::add_function_signature() {
+
+	auto* def = current_function_definition();
+	assert(def);
+
+	if (def->variadic) {
+		parse_error("unexpected parameter after '...' token");
+	}
+
+	const auto signature = static_cast<int>(def->parameters.size());
+	FunctionHandle& handle = _compiler.get().data().bytecode.make_handle(current_package().data(), def->begin_offset);
+
+	if (def->capture) {
+		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateful>(handle));
+	}
+	else {
+		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateless>(handle));
+	}
+
+	def->begin_offset = _branch.get().next_node_offset();
+}
+
 void BuildContext::start_call() {
 	_calls.push(std::make_unique<Call>());
 }
@@ -802,59 +844,53 @@ void BuildContext::resolve_call() {
 }
 
 void BuildContext::start_capture() {
-	Definition* def = current_definition();
-	def->capture = std::make_unique<SubBranch>(_branch);
+	auto* def = current_function_definition();
+	def->capture.emplace(_branch);
 	def->with_fast = false;
 	push_branch(*def->capture);
 	push_node(Node::Command::init_capture);
 }
 
 void BuildContext::resolve_capture() {
-	Definition* def = current_definition();
+	auto* def = current_function_definition();
 	def->with_fast = true;
 	pop_branch();
 }
 
-bool BuildContext::capture_as(const std::string& symbol) {
+void BuildContext::capture_as(const std::string& symbol) {
 
-	const auto* def = current_definition();
+	const auto* def = current_function_definition();
 
 	if (def->capture_all) {
 		parse_error("unexpected parameter after '...' token");
-		return false;
 	}
 
 	push_node(Node::Command::capture_as);
 	push_node(symbol.c_str());
-	return true;
 }
 
-bool BuildContext::capture(const std::string& symbol) {
+void BuildContext::capture(const std::string& symbol) {
 
-	const auto* def = current_definition();
+	const auto* def = current_function_definition();
 
 	if (def->capture_all) {
 		parse_error("unexpected parameter after '...' token");
-		return false;
 	}
 
 	push_node(Node::Command::capture_symbol);
 	push_node(symbol.c_str());
-	return true;
 }
 
-bool BuildContext::capture_all() {
+void BuildContext::capture_all() {
 
-	Definition* def = current_definition();
+	auto* def = current_function_definition();
 
 	if (def->capture_all) {
 		parse_error("unexpected parameter after '...' token");
-		return false;
 	}
 
 	push_node(Node::Command::capture_all);
 	def->capture_all = true;
-	return true;
 }
 
 void BuildContext::open_generator_expression() {
@@ -921,15 +957,15 @@ void BuildContext::open_sub_branch() {
 	push_branch(context.branches.top());
 }
 
-void BuildContext::close_sub_branch() {
-	pop_branch();
-}
-
 void BuildContext::build_sub_branch() {
 	Context& context = current_context();
 	SubBranch branch = std::move(context.branches.top());
 	context.branches.pop();
 	branch.build();
+}
+
+void BuildContext::close_sub_branch() {
+	pop_branch();
 }
 
 void BuildContext::push_node(Node::Command command) {
@@ -940,23 +976,39 @@ void BuildContext::push_node(int parameter) {
 	_branch.get().push_node(parameter);
 }
 
+void BuildContext::push_node(Reference::Flags parameter) {
+	_branch.get().push_node(static_cast<int>(parameter));
+}
+
 void BuildContext::push_node(std::size_t parameter) {
 	_branch.get().push_node(static_cast<int>(parameter));
 }
 
 void BuildContext::push_node(const char* symbol) {
-	_branch.get().push_node(_data.get().bytecode.make_symbol(symbol));
+	_branch.get().push_node(_compiler.get().data().bytecode.make_symbol(symbol));
 }
 
 void BuildContext::push_node(const Symbol* symbol) {
 	_branch.get().push_node(symbol);
 }
 
-void BuildContext::push_node(Data& constant) {
-	_branch.get().push_node(_data.get().bytecode.make_constant(constant));
+void BuildContext::push_node(Reference* constant) {
+	_branch.get().push_node(constant);
+}
+
+void BuildContext::push_node(Data* constant) {
+	_branch.get().push_node(_compiler.get().data().bytecode.make_constant(constant));
 }
 
 void BuildContext::push_node(ClassDescription* desc) {
+	_branch.get().push_node(desc);
+}
+
+void BuildContext::push_node(FunctionDescription* desc) {
+	_branch.get().push_node(desc);
+}
+
+void BuildContext::push_node(VariableDescription* desc) {
 	_branch.get().push_node(desc);
 }
 
@@ -989,13 +1041,6 @@ Class::Operator BuildContext::retrieve_operator() {
 	return op;
 }
 
-Symbol BuildContext::retrieve_operator_symbol() {
-	assert(!_operators.empty());
-	const auto op = _operators.top();
-	_operators.pop();
-	return get_operator_symbol(op);
-}
-
 void BuildContext::start_modifiers(Reference::Flags flags) {
 	_modifiers.push(flags);
 }
@@ -1015,6 +1060,27 @@ Reference::Flags BuildContext::retrieve_modifiers() {
 	const auto flags = _modifiers.top();
 	_modifiers.pop();
 	return flags;
+}
+
+void mint::BuildContext::start_type_annotation(TypeAnnotation annotation) {
+	_annotations.push(std::move(annotation));
+}
+
+void mint::BuildContext::add_type_annotation(TypeAnnotation annotation) {
+	assert(!_annotations.empty());
+	_annotations.top().add_type(std::move(annotation));
+}
+
+TypeAnnotation mint::BuildContext::get_type_annotation() const {
+	assert(!_annotations.empty());
+	return _annotations.top();
+}
+
+TypeAnnotation BuildContext::retrieve_type_annotation() {
+	assert(!_annotations.empty());
+	const auto annotation = _annotations.top();
+	_annotations.pop();
+	return annotation;
 }
 
 Compiler& mint::BuildContext::compiler() {
@@ -1073,35 +1139,35 @@ const Block* BuildContext::current_continuable_block() const {
 }
 
 Context& BuildContext::current_context() {
-	if (_definitions.empty()) {
-		return *_module_context;
+	if (_functions.empty()) {
+		return *_module;
 	}
-	return *_definitions.top();
+	return *_functions.top();
 }
 
 const Context& BuildContext::current_context() const {
-	if (_definitions.empty()) {
-		return *_module_context;
+	if (_functions.empty()) {
+		return *_module;
 	}
-	return *_definitions.top();
+	return *_functions.top();
 }
 
-Definition* BuildContext::current_definition() {
-	if (_definitions.empty()) {
+FunctionDefinition* BuildContext::current_function_definition() {
+	if (_functions.empty()) {
 		return nullptr;
 	}
-	return _definitions.top().get();
+	return _functions.top().get();
 }
 
-const Definition* BuildContext::current_definition() const {
-	if (_definitions.empty()) {
+const FunctionDefinition* BuildContext::current_function_definition() const {
+	if (_functions.empty()) {
 		return nullptr;
 	}
-	return _definitions.top().get();
+	return _functions.top().get();
 }
 
 std::size_t BuildContext::find_fast_symbol_index(const Symbol& symbol) const {
-	if (const Definition* def = current_definition(); def && def->with_fast) {
+	if (const auto* def = current_function_definition(); def && def->with_fast) {
 		return mint::find_fast_symbol_index(*def, symbol);
 	}
 	return invalid_index;
@@ -1119,5 +1185,32 @@ void BuildContext::reset_scoped_symbols(const std::vector<const Symbol*>& symbol
 			push_node(Node::Command::reset_symbol);
 			push_node(symbol);
 		}
+	}
+}
+
+void mint::BuildContext::save_function_signatures(FunctionDefinition* def) {
+
+	if (def->variadic && def->parameters.empty()) {
+		parse_error("expected parameter before '...' token");
+	}
+
+	const auto count = static_cast<int>(def->parameters.size());
+	const int signature = def->variadic ? ~(count - 1) : count;
+	FunctionHandle& handle = _compiler.get().data().bytecode.make_handle(current_package().data(), def->begin_offset);
+
+	if (def->capture) {
+		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateful>(handle));
+	}
+	else {
+		def->function->data<Function>().mapping.emplace(signature, std::make_unique<Function::Stateless>(handle));
+	}
+
+	while (!def->parameters.empty()) {
+		const auto& param = def->parameters.top();
+		push_node(Node::Command::init_parameter);
+		push_node(param.symbol);
+		push_node(param.flags);
+		push_node(mint::fast_symbol_index(*def, *param.symbol));
+		def->parameters.pop();
 	}
 }

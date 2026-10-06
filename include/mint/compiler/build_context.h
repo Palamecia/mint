@@ -21,20 +21,22 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_COMPILER_BUILD_TOOLS_H
-#define MINT_COMPILER_BUILD_TOOLS_H
+#ifndef MINT_COMPILER_BUILD_CONTEXT_H
+#define MINT_COMPILER_BUILD_CONTEXT_H
 
-#include "mint/program/class_description.h"
-#include "mint/program/module.h"
-#include "mint/program/node.h"
-#include "mint/program/symbol.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/compiler/lexer.h"
+#include "mint/compiler/symbol_scope.h"
 #include "mint/config.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
+#include "mint/program/module.h"
+#include "mint/program/node.h"
+#include "mint/program/symbol.h"
 #include "mint/system/data_stream.h"
+#include "type_annotation.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -52,9 +54,9 @@ class Compiler;
 class MainBranch;
 
 struct Block;
-struct Context;
 struct CaseTable;
-struct Definition;
+struct Context;
+struct FunctionDefinition;
 
 constexpr inline std::size_t invalid_offset = std::numeric_limits<std::size_t>::max();
 constexpr inline std::size_t invalid_index = std::numeric_limits<std::size_t>::max();
@@ -71,10 +73,10 @@ public:
 		else_type,
 		try_type,
 		catch_type,
-		print_type
+		print_type,
 	};
 
-	BuildContext(DataStream& stream, Compiler& compiler, ModuleInfo& data);
+	BuildContext(DataStream& stream, Compiler& compiler);
 	BuildContext(BuildContext&&) = delete;
 	BuildContext(const BuildContext& other) = delete;
 	~BuildContext();
@@ -85,8 +87,8 @@ public:
 	void commit_line();
 	void commit_expr_result();
 
-	[[nodiscard]] std::size_t create_fast_scoped_symbol_index(const std::string& symbol);
-	[[nodiscard]] std::size_t create_fast_symbol_index(const std::string& symbol);
+	[[nodiscard]] std::size_t create_fast_scoped_symbol_index(const std::string& symbol, TypeAnnotation type);
+	[[nodiscard]] std::size_t create_fast_symbol_index(const std::string& symbol, TypeAnnotation type);
 	[[nodiscard]] std::size_t fast_symbol_index(const std::string& symbol);
 	[[nodiscard]] bool has_returned() const;
 
@@ -130,33 +132,41 @@ public:
 	void shift_jump_backward();
 	void resolve_jump_backward();
 
-	void start_definition();
-	void start_async_definition();
-	bool add_parameter(const std::string& symbol, Reference::Flags flags = Reference::default_flags);
-	bool set_variadic();
-	void set_generator();
-	void set_exit_point();
-	bool save_parameters();
-	bool add_definition_signature();
-	void save_definition(std::string name);
-	Function& retrieve_definition(std::string name);
-
-	[[nodiscard]] PackageData& current_package() const;
+	[[nodiscard]] PackageDescription& current_package() const;
 	void open_package(const std::string& name);
 	void close_package();
 
 	void start_class_description(const std::string& name, Reference::Flags flags);
 	void append_symbol_to_base_class_path(const std::string& symbol);
 	void save_base_class_path();
-	bool create_member(Reference::Flags flags, const Symbol& symbol, Data* value);
-	bool create_member(Reference::Flags flags, const Symbol& symbol, Data& value);
-	bool update_member(Reference::Flags flags, const Symbol& symbol, Data& value);
+
 	void resolve_class_description();
+
+	void create_attribute(const std::string& name, TypeAnnotation type, Reference::Flags flags, Reference* value);
 
 	void start_enum_description(const std::string& name, Reference::Flags flags);
 	void set_current_enum_value(int value);
 	int next_enum_value();
+
 	void resolve_enum_description();
+
+	void start_function_description();
+	void start_async_function_description();
+
+	void add_parameter(const std::string& name, TypeAnnotation type, Reference::Flags flags = Reference::default_flags);
+	void set_variadic();
+	void set_generator();
+	void set_exit_point();
+
+	void resolve_method_description();
+	void resolve_function_description();
+	void register_function_description();
+
+	void save_method_signature(const std::string& name, TypeAnnotation return_type, Reference::Flags flags);
+	void save_method_signature(Class::Operator op, TypeAnnotation return_type, Reference::Flags flags);
+	void save_function_signatures(const std::string& name, TypeAnnotation return_type, Reference::Flags flags);
+	void save_function_signatures(TypeAnnotation return_type, Reference::Flags flags);
+	void add_function_signature();
 
 	void start_call();
 	void add_to_call();
@@ -164,9 +174,9 @@ public:
 
 	void start_capture();
 	void resolve_capture();
-	bool capture_as(const std::string& symbol);
-	bool capture(const std::string& symbol);
-	bool capture_all();
+	void capture_as(const std::string& symbol);
+	void capture(const std::string& symbol);
+	void capture_all();
 
 	void open_generator_expression();
 	void close_generator_expression();
@@ -182,25 +192,33 @@ public:
 	void resolve_condition();
 
 	void open_sub_branch();
-	void close_sub_branch();
 	void build_sub_branch();
+	void close_sub_branch();
 
 	void push_node(Node::Command command);
 	void push_node(int parameter);
+	void push_node(Reference::Flags parameter);
 	void push_node(std::size_t parameter);
 	void push_node(const char* symbol);
-	void push_node(Data& constant);
+	void push_node(Reference* constant);
+	void push_node(Data* constant);
 	void push_node(ClassDescription* desc);
+	void push_node(FunctionDescription* desc);
+	void push_node(VariableDescription* desc);
 	[[nodiscard]] std::size_t next_offset() const;
 
 	void start_operator(Class::Operator op);
 	Class::Operator retrieve_operator();
-	Symbol retrieve_operator_symbol();
 
 	void start_modifiers(Reference::Flags flags);
 	void add_modifiers(Reference::Flags flags);
 	[[nodiscard]] Reference::Flags get_modifiers() const;
 	Reference::Flags retrieve_modifiers();
+
+	void start_type_annotation(TypeAnnotation annotation);
+	void add_type_annotation(TypeAnnotation annotation);
+	[[nodiscard]] TypeAnnotation get_type_annotation() const;
+	TypeAnnotation retrieve_type_annotation();
 
 	Compiler& compiler();
 
@@ -208,7 +226,7 @@ public:
 	int next_token(std::string* token);
 	[[noreturn]] void parse_error(const std::string& error_msg) const;
 
-protected:
+private:
 	void push_node(const Reference* constant);
 	void push_node(const Symbol* symbol);
 
@@ -219,41 +237,43 @@ protected:
 		int argc = 0;
 	};
 
-	Block* current_breakable_block();
+	[[nodiscard]] Block* current_breakable_block();
 	[[nodiscard]] const Block* current_breakable_block() const;
 
-	Block* current_continuable_block();
+	[[nodiscard]] Block* current_continuable_block();
 	[[nodiscard]] const Block* current_continuable_block() const;
 
-	Context& current_context();
+	[[nodiscard]] Context& current_context();
 	[[nodiscard]] const Context& current_context() const;
 
-	Definition* current_definition();
-	[[nodiscard]] const Definition* current_definition() const;
+	[[nodiscard]] FunctionDefinition* current_function_definition();
+	[[nodiscard]] const FunctionDefinition* current_function_definition() const;
 
 	[[nodiscard]] std::size_t find_fast_symbol_index(const Symbol& symbol) const;
 	void reset_scoped_symbols(const std::vector<const Symbol*>& symbols);
 
-private:
-	std::reference_wrapper<ModuleInfo> _data;
+	void save_function_signatures(FunctionDefinition* def);
+
 	std::reference_wrapper<Compiler> _compiler;
 	Lexer _lexer;
 
-	std::unique_ptr<Context> _module_context;
+	std::unique_ptr<Context> _module;
 	std::unique_ptr<MainBranch> _main_branch;
 	std::reference_wrapper<Branch> _branch;
 
-	std::stack<std::reference_wrapper<PackageData>, std::vector<std::reference_wrapper<PackageData>>> _packages;
-	std::stack<std::unique_ptr<Definition>, std::vector<std::unique_ptr<Definition>>> _definitions;
+	std::stack<std::reference_wrapper<PackageDescription>, std::vector<std::reference_wrapper<PackageDescription>>>
+	    _packages;
+	std::stack<std::unique_ptr<FunctionDefinition>, std::vector<std::unique_ptr<FunctionDefinition>>> _functions;
 	std::stack<std::reference_wrapper<Branch>, std::vector<std::reference_wrapper<Branch>>> _branches;
 	std::stack<std::unique_ptr<Call>, std::vector<std::unique_ptr<Call>>> _calls;
 
 	int _next_enum_value = 0;
-	ClassDescription::Path _class_base;
+	SymbolPath _class_base;
 	std::stack<Class::Operator> _operators;
 	std::stack<Reference::Flags> _modifiers;
+	std::stack<TypeAnnotation> _annotations;
 };
 
 }
 
-#endif // MINT_COMPILER_BUILD_TOOLS_H
+#endif // MINT_COMPILER_BUILD_CONTEXT_H

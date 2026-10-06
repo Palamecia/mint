@@ -25,7 +25,7 @@
 #define BLOCK_H
 
 #include "mint/program/symbol.h"
-#include "mint/compiler/build_tools.h"
+#include "mint/compiler/build_context.h"
 #include "case_table.h"
 #include "catch_context.h"
 #include "branch.h"
@@ -36,7 +36,8 @@
 namespace mint {
 
 struct Block {
-	Block(BuildContext::BlockType type);
+	// TODO: replace with specialized block structures and make `Block` an abstract base.
+	explicit Block(BuildContext::BlockType type);
 	Block(const Block&) = delete;
 	Block(Block&&) = delete;
 	~Block();

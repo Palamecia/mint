@@ -22,7 +22,6 @@
  */
 
 #include "mint/memory/memory_tools.h"
-#include "mint/program/class_description.h"
 #include "mint/program/printer.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/class.h"
@@ -616,8 +615,8 @@ Reference mint::get_symbol(SymbolTable& symbols, const Symbol& symbol) {
 		return it->second;
 	}
 	if (const auto* metadata = symbols.get_metadata()) {
-		if (const auto* locals = metadata->get_description().get_root_register().get_function_data()) {
-			if (auto* desc = locals->find_class_description(symbol)) {
+		if (const auto* locals = metadata->get_description().get_root_scope().get_function_data()) {
+			if (auto* desc = locals->find_class(symbol)) {
 				return create_alias(desc->generate());
 			}
 		}
@@ -633,7 +632,7 @@ std::tuple<Reference, Class*> mint::get_member(Cursor& cursor, const Reference& 
 
 	switch (reference.data().format()) {
 	case Data::Format::package:
-		for (PackageData* package = &reference.data<Package>().data; package != nullptr;
+		for (auto* package = &reference.data<Package>().data; package != nullptr;
 		    package = package->get_owner_package()) {
 			if (const auto it = package->symbols().find(member); it != package->symbols().end()) {
 				return {it->second, nullptr};
@@ -662,7 +661,7 @@ std::tuple<Reference, Class*> mint::get_member(Cursor& cursor, const Reference& 
 				return {result, &info->owner.get()};
 			}
 
-			for (PackageData* package = &object.metadata.get_package(); package != nullptr;
+			for (auto* package = &object.metadata.get_package(); package != nullptr;
 			    package = package->get_owner_package()) {
 				if (const auto it = package->symbols().find(member); it != package->symbols().end()) {
 					return {Reference(Reference::const_address | Reference::const_value, it->second.data()), nullptr};
@@ -776,7 +775,7 @@ const Class::MemberInfo* mint::find_member_info(Object& object, const Reference&
 	return nullptr;
 }
 
-std::optional<Symbol> mint::find_member_symbol(Object& object, const Class::MemberInfo& member) {
+std::optional<Symbol> mint::find_member_symbol(const Object& object, const Class::MemberInfo& member) {
 	for (auto [symbol, info] : object.metadata.members()) {
 		if (&member == &info.get()) {
 			return symbol;
@@ -804,10 +803,10 @@ bool mint::is_package_accessible(const Cursor& cursor, const Class& owner) {
 Symbol mint::var_symbol(Cursor& cursor) {
 	const auto var = std::move(cursor.stack().back());
 	cursor.stack().pop_back();
-	return Symbol(to_string(var));
+	return {to_string(var)};
 }
 
-void mint::declare_class(Cursor& cursor, ClassDescription& desc, Reference::Flags flags) {
+void mint::declare_class(Cursor& cursor, const ClassDescription& desc, Reference::Flags flags) {
 
 	auto&& symbol = desc.name();
 	auto& symbols = (flags & Reference::global) ? cursor.symbols().get_package().symbols() : cursor.symbols();
@@ -823,7 +822,7 @@ void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, Reference::Flags
 
 	if (flags & Reference::global) {
 
-		PackageData& package = cursor.symbols().get_package();
+		auto& package = cursor.symbols().get_package();
 
 		if (!ensure_not_defined(symbol, package.symbols())) [[unlikely]] {
 			error("symbol '{}' was already defined in global context", symbol.str());
@@ -845,7 +844,7 @@ void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, std::size_t inde
 
 	if (flags & Reference::global) {
 
-		PackageData& package = cursor.symbols().get_package();
+		auto& package = cursor.symbols().get_package();
 
 		if (!ensure_not_defined(symbol, package.symbols())) [[unlikely]] {
 			error("symbol '{}' was already defined in global context", symbol.str());
@@ -866,8 +865,8 @@ void mint::declare_symbol(Cursor& cursor, const Symbol& symbol, std::size_t inde
 
 void mint::declare_function(Cursor& cursor, const Symbol& symbol, Reference::Flags flags) {
 
-	PackageData& package = cursor.symbols().get_package();
-	SymbolTable& symbols = (flags & Reference::global) ? package.symbols() : cursor.symbols();
+	auto& package = cursor.symbols().get_package();
+	auto& symbols = (flags & Reference::global) ? package.symbols() : cursor.symbols();
 
 	auto it = symbols.find(symbol);
 	if (it != symbols.end()) {

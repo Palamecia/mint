@@ -107,7 +107,7 @@ std::optional<mint::Reference> SymbolEvaluator::get_member_reference(const mint:
     const mint::Symbol& member) {
 	switch (reference.data().format()) {
 	case mint::Data::Format::package:
-		for (mint::PackageData* package_data = &reference.data<mint::Package>().data; package_data != nullptr;
+		for (mint::PackageDescription* package_data = &reference.data<mint::Package>().data; package_data != nullptr;
 		    package_data = package_data->get_owner_package()) {
 			if (const auto it = package_data->symbols().find(member); it != package_data->symbols().end()) {
 				return it->second;
@@ -131,7 +131,7 @@ std::optional<mint::Reference> SymbolEvaluator::get_member_reference(const mint:
 				return info->value;
 			}
 
-			for (mint::PackageData* package = &object.metadata.get_package(); package != nullptr;
+			for (mint::PackageDescription* package = &object.metadata.get_package(); package != nullptr;
 			    package = package->get_owner_package()) {
 				if (const auto it = package->symbols().find(member); it != package->symbols().end()) {
 					constexpr auto flags = mint::Reference::const_address | mint::Reference::const_value;

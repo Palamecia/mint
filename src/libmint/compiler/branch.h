@@ -24,7 +24,6 @@
 #ifndef BRANCH_H
 #define BRANCH_H
 
-#include "mint/program/class_register.h"
 #include "mint/program/node.h"
 #include "mint/program/module.h"
 
@@ -108,7 +107,7 @@ Branch::BackwardNodeIndex* Branch::next_jump_backward() {
 
 class MainBranch : public Branch {
 public:
-	MainBranch(Program& program, ModuleInfo& data);
+	explicit MainBranch(Compiler& compiler);
 
 	void push_node(const Node& node) override;
 	void push_nodes(const std::vector<Node>& nodes) override;
@@ -125,8 +124,7 @@ private:
 #ifdef MINT_BUILD_TYPE_DEBUG
 	std::size_t _offset;
 #endif
-	std::reference_wrapper<Program> _program;
-	std::reference_wrapper<ModuleInfo> _data;
+	std::reference_wrapper<Compiler> _compiler;
 };
 
 class SubBranch : public Branch {

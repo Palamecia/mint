@@ -62,7 +62,7 @@ std::size_t DebugInfo::to_executable_line_number(std::size_t line_number) const 
 		}
 		executable_line_numbers.insert(executable_line_number);
 	}
-	if (auto it = executable_line_numbers.lower_bound(line_number); it != executable_line_numbers.end()) {
+	if (const auto it = executable_line_numbers.lower_bound(line_number); it != executable_line_numbers.end()) {
 		return *it;
 	}
 	return 0;

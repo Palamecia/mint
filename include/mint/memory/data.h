@@ -48,7 +48,7 @@ public:
 		object,
 		package,
 		function,
-		coroutine
+		coroutine,
 	};
 
 	Data();

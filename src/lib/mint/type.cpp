@@ -22,7 +22,7 @@
  */
 
 #include "mint/program/symbol.h"
-#include "mint/program/class_description.h"
+#include "mint/program/descriptions.h"
 #include "mint/memory/data.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
@@ -30,7 +30,7 @@
 #include "mint/memory/reference.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
-#include "mint/program/class_register.h"
+#include "mint/program/symbol_scope.h"
 #include "mint/system/plugin.h"
 #include <ranges>
 #include <string_view>
@@ -82,7 +82,7 @@ mint::Reference mint_lang_get_type(mint::Cursor& /*cursor*/, const mint::Referen
 mint::Reference mint_lang_create_type(mint::Cursor& cursor, const mint::Reference& type, const mint::Reference& bases,
     const mint::Reference& members) {
 
-	auto base_list = std::vector<mint::ClassRegister::Path>();
+	auto base_list = std::vector<mint::SymbolPath>();
 
 	for (const mint::Reference& base : mint::to_array(bases)) {
 		switch (base.data().format()) {

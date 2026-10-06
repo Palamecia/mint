@@ -34,6 +34,7 @@
 #include "mint/memory/cast_tools.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/reference.h"
+#include "mint/program/symbol.h"
 #include "mint/scheduler/input_stream.h"
 #include "mint/scheduler/output.h"
 #include "mint/scheduler/processor.h"
@@ -65,7 +66,7 @@ using namespace mint;
 
 namespace {
 
-class ReplProcess : public Process {
+class ReplProcess final : public Process {
 public:
 	ReplProcess(Scheduler& scheduler, std::unique_ptr<Cursor>&& cursor) :
 	    Process(scheduler, std::move(cursor)) {}
@@ -84,11 +85,11 @@ private:
 	bool read_next() {
 		for (;;) {
 			try {
-				auto compiler = Compiler(cursor().program());
+				auto compiler = Compiler(cursor().program(), cursor().program().main());
 				compiler.set_printing(true);
 				cursor().resume();
 				InputStream::instance().next();
-				return compiler.build(InputStream::instance(), cursor().program().main());
+				return compiler.build(InputStream::instance());
 			}
 			catch (const MintRuntimeError& error) {
 				print_error(error.what());
@@ -113,12 +114,10 @@ std::unique_ptr<Process> Process::from_main_file(Scheduler& scheduler, const std
 		                                                   ? file
 		                                                   : FileSystem::instance().get_script_path(file);
 
-		auto& program = scheduler.program();
-		auto compiler = Compiler(program);
-		auto stream = FileStream(module_file_path);
-
-		if (stream.is_valid()) {
-			if (auto& module = program.create_main_module(Module::State::ready); compiler.build(stream, module)) {
+		if (auto stream = FileStream(module_file_path); stream.is_valid()) {
+			auto& program = scheduler.program();
+			auto& module = program.create_main_module(Module::State::ready);
+			if (auto compiler = Compiler(program, module); compiler.build(stream)) {
 				FileSystem::instance().set_main_module_path(module_file_path);
 				return std::make_unique<Process>(scheduler, std::make_unique<Cursor>(program, module.bytecode));
 			}
@@ -135,14 +134,10 @@ std::unique_ptr<Process> Process::from_main_file(Scheduler& scheduler, const std
 std::unique_ptr<Process> Process::from_file(Scheduler& scheduler, const std::filesystem::path& file) {
 
 	try {
-
-		auto& program = scheduler.program();
-		auto compiler = Compiler(program);
-		auto stream = FileStream(file);
-
-		if (stream.is_valid()) {
-			if (auto& module = program.create_module_from_file_path(file, Module::State::ready);
-			    compiler.build(stream, module)) {
+		if (auto stream = FileStream(file); stream.is_valid()) {
+			auto& program = scheduler.program();
+			auto& module = program.create_module_from_file_path(file, Module::State::ready);
+			if (auto compiler = Compiler(program, module); compiler.build(stream)) {
 				return std::make_unique<Process>(scheduler, std::make_unique<Cursor>(program, module.bytecode));
 			}
 		}
@@ -158,12 +153,10 @@ std::unique_ptr<Process> Process::from_file(Scheduler& scheduler, const std::fil
 std::unique_ptr<Process> Process::from_buffer(Scheduler& scheduler, const std::string& buffer) {
 
 	try {
-		auto& program = scheduler.program();
-		auto compiler = Compiler(program);
-		auto stream = BufferStream(buffer);
-
-		if (stream.is_valid()) {
-			if (auto& module = program.create_module(Module::State::ready); compiler.build(stream, module)) {
+		if (auto stream = BufferStream(buffer); stream.is_valid()) {
+			auto& program = scheduler.program();
+			auto& module = program.create_module(Symbol(Module::invalid_name), Module::State::ready);
+			if (auto compiler = Compiler(program, module); compiler.build(stream)) {
 				return std::make_unique<Process>(scheduler, std::make_unique<Cursor>(program, module.bytecode));
 			}
 		}
@@ -181,7 +174,7 @@ std::unique_ptr<Process> Process::from_standard_input(Scheduler& scheduler) {
 	if (InputStream::instance().is_valid()) {
 
 		Program& program = scheduler.program();
-		auto& module = program.create_main_module(Module::State::ready);
+		const auto& module = program.create_main_module(Module::State::ready);
 		auto process = std::make_unique<ReplProcess>(scheduler, std::make_unique<Cursor>(program, module.bytecode));
 		process->cursor().open_printer(std::make_unique<Output>(program));
 

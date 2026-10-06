@@ -70,7 +70,7 @@ std::string execution_location(const DebugInfo* debug_info, const std::string& m
 	}
 
 	if (const auto* function = debug_info->find_function_from_line_number(line_number)) {
-		return function->name + "()";
+		return function->description.get().full_name() + "()";
 	}
 
 	return module_name;

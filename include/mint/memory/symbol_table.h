@@ -92,7 +92,7 @@ public:
 	inline void clear();
 
 	void mark() {
-		for (auto& symbol : _symbols) {
+		for (const auto& symbol : _symbols) {
 			symbol.second.data().mark();
 		}
 	}

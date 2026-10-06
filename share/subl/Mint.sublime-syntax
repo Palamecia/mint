@@ -201,6 +201,8 @@ contexts:
       scope: keyword.control.load.mn
       push:
         - module_path_rule
+    - match: (?={{modifier_token}}\s+{{symbol_token}}\s*:)
+      push: typed_local_modifier_rule
     - match: '{{try_token}}'
       scope: keyword.control.try.mn
       push:
@@ -311,6 +313,26 @@ contexts:
     - include: class_desc_rule
     - include: enum_desc_rule
     - include: expr_rule
+
+  typed_local_modifier_rule:
+    - match: '{{modifier_token}}'
+      scope: storage.modifier.mn
+      set: typed_local_name_rule
+    - include: else_error
+
+  typed_local_name_rule:
+    - match: '{{symbol_token}}'
+      scope: variable.other.readwrite.mn
+      set: typed_local_tail_rule
+
+  typed_local_tail_rule:
+    - match: ':'
+      scope: punctuation.separator.type.mn
+      push: type_annotation_rule
+    - match: '='
+      scope: keyword.operator.assignment.mn
+      set: expect_expr_rule
+    - include: else_pop
 
   stmt_block_rule:
     - match: '\{'
@@ -491,6 +513,9 @@ contexts:
     - match: '{{symbol_token}}'
       scope: entity.name.member.mn
       push:
+        - match: ':'
+          scope: punctuation.separator.type.mn
+          push: type_annotation_rule
         - match: '='
           scope: keyword.operator.assignment.mn
           set: member_init_rule
@@ -638,6 +663,13 @@ contexts:
           pop: true        
         - match: '{{modifier_token}}'
           scope: storage.modifier.mn
+        - match: '{{symbol_token}}(?=\s*:)'
+          scope: variable.other.readwrite.mn
+          push:
+            - match: ':'
+              scope: punctuation.separator.type.mn
+              push: type_annotation_rule
+            - include: else_pop
         - include: expr_rule
     - match: '{{modifier_token}}'
       scope: storage.modifier.mn
@@ -649,6 +681,13 @@ contexts:
             - match: '\)'
               scope: punctuation.section.group.end.mn
               pop: true
+            - match: '{{symbol_token}}(?=\s*:)'
+              scope: variable.other.readwrite.mn
+              push:
+                - match: ':'
+                  scope: punctuation.separator.type.mn
+                  push: type_annotation_rule
+                - include: else_pop
             - match: '{{symbol_token}}'
               scope: variable.other.readwrite.mn
             - match: ','
@@ -659,6 +698,9 @@ contexts:
         - match: '{{symbol_token}}'
           scope: variable.other.readwrite.mn
           set:
+            - match: ':'
+              scope: punctuation.separator.type.mn
+              push: type_annotation_rule
             - match: ','
               scope: punctuation.separator.comma.mn
             - match: '{{symbol_token}}'
@@ -674,6 +716,9 @@ contexts:
     - match: '{{symbol_token}}'
       scope: variable.other.readwrite.mn
       set:
+        - match: ':'
+          scope: punctuation.separator.type.mn
+          push: type_annotation_rule
         - match: ','
           scope: punctuation.separator.comma.mn
         - match: '{{symbol_token}}'
@@ -1365,8 +1410,29 @@ contexts:
       set:
         - match: \)
           scope: punctuation.section.group.end.mn
-          pop: true
+          set: def_return_type_rule
         - include: def_arg_list_rule
+
+  def_return_type_rule:
+    - match: '->'
+      scope: keyword.operator.type.mn
+      push: type_annotation_rule
+    - include: else_pop
+
+  type_annotation_rule:
+    - match: '{{symbol_token}}'
+      scope: entity.name.type.mn
+      set: type_annotation_tail_rule
+    - include: else_pop
+
+  type_annotation_tail_rule:
+    - match: '\.'
+      scope: punctuation.accessor.mn
+      set: type_annotation_rule
+    - match: '\|'
+      scope: keyword.operator.type.mn
+      set: type_annotation_rule
+    - include: else_pop
 
   def_meta_rule:
     - meta_scope: meta.function.mn
@@ -1382,6 +1448,9 @@ contexts:
     - match: 'self{{identifier_break}}'
       scope: variable.language.self.mn
       push:
+        - match: ':'
+          scope: punctuation.separator.type.mn
+          push: type_annotation_rule
         - match: ','
           scope: punctuation.separator.comma.mn
           pop: true
@@ -1389,6 +1458,9 @@ contexts:
     - match: '{{symbol_token}}'
       scope: variable.parameter.function.mn
       push:
+        - match: ':'
+          scope: punctuation.separator.type.mn
+          push: type_annotation_rule
         - match: '='
           scope: keyword.operator.assignment.mn
           set: def_arg_default_value_rule
@@ -1402,6 +1474,9 @@ contexts:
         - match: 'self{{identifier_break}}'
           scope: variable.language.self.mn
           set:
+            - match: ':'
+              scope: punctuation.separator.type.mn
+              push: type_annotation_rule
             - match: ','
               scope: punctuation.separator.comma.mn
               pop: true
@@ -1409,6 +1484,9 @@ contexts:
         - match: '{{symbol_token}}'
           scope: variable.parameter.function.mn
           set:
+            - match: ':'
+              scope: punctuation.separator.type.mn
+              push: type_annotation_rule
             - match: '='
               scope: keyword.operator.assignment.mn
               set: def_arg_default_value_rule

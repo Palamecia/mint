@@ -24,7 +24,6 @@
 #ifndef MINT_MEMORY_FUNCTION_TOOLS_H
 #define MINT_MEMORY_FUNCTION_TOOLS_H
 
-#include "mint/program/class_register.h"
 #include "mint/program/cursor.h"
 #include "mint/program/function_literal.h"
 #include "mint/program/module.h"

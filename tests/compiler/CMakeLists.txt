@@ -5,7 +5,7 @@ add_executable(test-compiler)
 target_sources(
 	test-compiler
 PRIVATE
-	build_tools.cpp
+	build_context.cpp
 	compiler.cpp
 	lexer.cpp
 	lexical_handler.cpp

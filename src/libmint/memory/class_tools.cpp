@@ -22,9 +22,9 @@
  */
 
 #include "mint/memory/class_tools.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/program/program.h"
-#include "mint/program/class_description.h"
-#include "mint/program/class_register.h"
 #include "mint/program/module.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/object.h"
@@ -38,141 +38,143 @@
 #include <optional>
 #include <ranges>
 #include <span>
-#include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 using namespace mint;
 
-Class& mint::create_enum(Program& program, const std::string& name,
+Class& mint::create_enum(Program& program, Symbol name,
     std::span<const std::pair<Symbol, std::optional<std::intmax_t>>> values) {
-	return create_enum(program, program.main(), name, values);
+	return create_enum(program, program.main(), std::move(name), values);
 }
 
-Class& mint::create_enum(Program& program, ModuleInfo& module, const std::string& name,
+Class& mint::create_enum(Program& program, ModuleInfo& module, Symbol name,
     std::span<const std::pair<Symbol, std::optional<std::intmax_t>>> values) {
 
 	std::size_t next_enum_value = 0;
-	auto* desc = module.bytecode.make_class(program, name);
+	auto& desc = module.description.create_class(std::move(name));
 	const Reference::Flags flags = Reference::const_value | Reference::const_address | Reference::global;
 
 	for (const auto& [symbol, value] : values) {
 		if (value.has_value()) {
-			if (!desc->create_member(symbol, make_reference<Number>(flags, *value))) {
-				error("{}: member was already defined for enum '{}'", symbol.str(), name);
+			if (!desc.create_member(symbol, PrimitiveTypeKind::number, make_reference<Number>(flags, *value))) {
+				error("{}: member was already defined for enum '{}'", symbol.str(), desc.name().str());
 			}
 			next_enum_value = static_cast<std::size_t>(*value) + 1;
 		}
 		else {
-			if (!desc->create_member(symbol, make_reference<Number>(flags, next_enum_value++))) {
-				error("{}: member was already defined for enum '{}'", symbol.str(), name);
+			if (!desc.create_member(symbol, PrimitiveTypeKind::number,
+			        make_reference<Number>(flags, next_enum_value++))) {
+				error("{}: member was already defined for enum '{}'", symbol.str(), desc.name().str());
 			}
 		}
 	}
 
-	return desc->generate();
+	return desc.generate();
 }
 
-Class& mint::create_enum(Program& program, const std::string& name,
+Class& mint::create_enum(Program& program, Symbol name,
     std::initializer_list<std::pair<Symbol, std::optional<std::intmax_t>>> values) {
-	return create_enum(program, program.main(), name, std::span(values.begin(), values.end()));
+	return create_enum(program, program.main(), std::move(name), std::span(values.begin(), values.end()));
 }
 
-Class& mint::create_enum(Program& program, ModuleInfo& module, const std::string& name,
+Class& mint::create_enum(Program& program, ModuleInfo& module, Symbol name,
     std::initializer_list<std::pair<Symbol, std::optional<intmax_t>>> values) {
-	return create_enum(program, module, name, std::span(values.begin(), values.end()));
+	return create_enum(program, module, std::move(name), std::span(values.begin(), values.end()));
 }
 
-Class& mint::create_class(Program& program, const std::string& name,
-    std::span<const std::pair<Symbol, Reference>> members) {
-	return create_class(program, program.main(), name, std::span<ClassRegister::Path>(), members);
+Class& mint::create_class(Program& program, Symbol name,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	return create_class(program, program.main(), std::move(name), std::span<SymbolPath>(), members);
 }
 
-Class& mint::create_class(Program& program, ModuleInfo& module, const std::string& name,
-    std::span<const std::pair<Symbol, Reference>> members) {
-	return create_class(program, module, name, std::span<ClassRegister::Path>(), members);
+Class& mint::create_class(Program& program, ModuleInfo& module, Symbol name,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	return create_class(program, module, std::move(name), std::span<SymbolPath>(), members);
 }
 
-Class& mint::create_class(Program& program, const std::string& name,
+Class& mint::create_class(Program& program, Symbol name,
     std::span<const std::reference_wrapper<ClassDescription>> bases,
-    std::span<const std::pair<Symbol, Reference>> members) {
-	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	auto bases_path = std::vector<SymbolPath>(std::from_range,
 	    std::views::transform(bases, &ClassDescription::get_path));
-	return create_class(program, program.main(), name, std::span(bases_path), members);
+	return create_class(program, program.main(), std::move(name), std::span(bases_path), members);
 }
 
-Class& mint::create_class(Program& program, ModuleInfo& module, const std::string& name,
+Class& mint::create_class(Program& program, ModuleInfo& module, Symbol name,
     std::span<const std::reference_wrapper<mint::ClassDescription>> bases,
-    std::span<const std::pair<Symbol, Reference>> members) {
-	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	auto bases_path = std::vector<SymbolPath>(std::from_range,
 	    std::views::transform(bases, &ClassDescription::get_path));
-	return create_class(program, module, name, std::span(bases_path), members);
+	return create_class(program, module, std::move(name), std::span(bases_path), members);
 }
 
-Class& mint::create_class(Program& program, const std::string& name, std::span<const ClassRegister::Path> bases,
-    std::span<const std::pair<Symbol, Reference>> members) {
-	return create_class(program, program.main(), name, bases, members);
+Class& mint::create_class(Program& program, Symbol name, std::span<const SymbolPath> bases,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	return create_class(program, program.main(), std::move(name), bases, members);
 }
 
-Class& mint::create_class(Program& program, ModuleInfo& module, const std::string& name,
-    std::span<const ClassRegister::Path> bases, std::span<const std::pair<Symbol, Reference>> members) {
+Class& mint::create_class(Program& program, ModuleInfo& module, Symbol name, std::span<const SymbolPath> bases,
+    std::span<const std::tuple<Symbol, Reference, TypeAnnotation>> members) {
 
-	auto* desc = module.bytecode.make_class(program, name);
+	auto& desc = module.description.create_class(std::move(name));
 
 	for (const auto& base : bases) {
-		desc->add_base(base);
+		desc.add_base(base);
 	}
 
-	for (const auto& [symbol, member] : members) {
+	for (const auto& [symbol, member, type] : members) {
 		if (is_stateful_function(member)) [[unlikely]] {
 			error("{}: members can not use stateful functions", symbol.str());
 		}
-		if (!desc->create_member(symbol, member)) [[unlikely]] {
-			error("{}: member was already defined for class '{}'", symbol.str(), name);
+		if (!desc.create_member(symbol, type, member)) [[unlikely]] {
+			error("{}: member was already defined for class '{}'", symbol.str(), desc.name().str());
 		}
 	}
 
-	return desc->generate();
+	return desc.generate();
 }
 
-Class& mint::create_class(Program& program, const std::string& name,
-    std::initializer_list<std::pair<Symbol, Reference>> members) {
-	return create_class(program, program.main(), name, std::span<ClassRegister::Path>(),
+Class& mint::create_class(Program& program, Symbol name,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	return create_class(program, program.main(), std::move(name), std::span<SymbolPath>(),
 	    std::span(members.begin(), members.end()));
 }
 
-Class& mint::create_class(Program& program, ModuleInfo& module, const std::string& name,
-    std::initializer_list<std::pair<Symbol, Reference>> members) {
-	return create_class(program, module, name, std::span<ClassRegister::Path>(),
+Class& mint::create_class(Program& program, ModuleInfo& module, Symbol name,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	return create_class(program, module, std::move(name), std::span<SymbolPath>(),
 	    std::span(members.begin(), members.end()));
 }
 
-Class& mint::create_class(Program& program, const std::string& name,
+Class& mint::create_class(Program& program, Symbol name,
     std::initializer_list<std::reference_wrapper<mint::ClassDescription>> bases,
-    std::initializer_list<std::pair<Symbol, Reference>> members) {
-	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	auto bases_path = std::vector<SymbolPath>(std::from_range,
 	    std::views::transform(bases, &ClassDescription::get_path));
-	return create_class(program, program.main(), name, std::span(bases_path), std::span(members.begin(), members.end()));
-}
-
-Class& mint::create_class(Program& program, ModuleInfo& module, const std::string& name,
-    std::initializer_list<std::reference_wrapper<mint::ClassDescription>> bases,
-    std::initializer_list<std::pair<Symbol, Reference>> members) {
-	auto bases_path = std::vector<ClassRegister::Path>(std::from_range,
-	    std::views::transform(bases, &ClassDescription::get_path));
-	return create_class(program, module, name, std::span(bases_path), std::span(members.begin(), members.end()));
-}
-
-Class& mint::create_class(Program& program, const std::string& name,
-    std::initializer_list<mint::ClassRegister::Path> bases,
-    std::initializer_list<std::pair<Symbol, Reference>> members) {
-	return create_class(program, program.main(), name, std::span(bases.begin(), bases.end()),
+	return create_class(program, program.main(), std::move(name), std::span(bases_path),
 	    std::span(members.begin(), members.end()));
 }
 
-Class& mint::create_class(Program& program, ModuleInfo& module, const std::string& name,
-    std::initializer_list<mint::ClassRegister::Path> bases,
-    std::initializer_list<std::pair<Symbol, Reference>> members) {
-	return create_class(program, module, name, std::span(bases.begin(), bases.end()),
+Class& mint::create_class(Program& program, ModuleInfo& module, Symbol name,
+    std::initializer_list<std::reference_wrapper<mint::ClassDescription>> bases,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	auto bases_path = std::vector<SymbolPath>(std::from_range,
+	    std::views::transform(bases, &ClassDescription::get_path));
+	return create_class(program, module, std::move(name), std::span(bases_path),
+	    std::span(members.begin(), members.end()));
+}
+
+Class& mint::create_class(Program& program, Symbol name, std::initializer_list<mint::SymbolPath> bases,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	return create_class(program, program.main(), std::move(name), std::span(bases.begin(), bases.end()),
+	    std::span(members.begin(), members.end()));
+}
+
+Class& mint::create_class(Program& program, ModuleInfo& module, Symbol name,
+    std::initializer_list<mint::SymbolPath> bases,
+    std::initializer_list<std::tuple<Symbol, Reference, TypeAnnotation>> members) {
+	return create_class(program, module, std::move(name), std::span(bases.begin(), bases.end()),
 	    std::span(members.begin(), members.end()));
 }

@@ -22,6 +22,7 @@
  */
 
 #include "mint/program/program.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/program/cursor.h"
 #include "mint/program/function_literal.h"
 #include "mint/program/module.h"
@@ -31,6 +32,7 @@
 #include "mint/debug/debug_tools.h"
 #include "mint/memory/class.h"
 #include "mint/memory/object.h"
+#include "mint/program/symbol.h"
 #include "mint/system/buffer_stream.h"
 #include "mint/system/error.h"
 #include "mint/system/file_stream.h"
@@ -58,22 +60,22 @@ Program::~Program() {
 void Program::cleanup_memory() {
 
 	// cleanup global data
-	_global_data.cleanup_memory();
+	_global_data.get_description().cleanup_memory();
 
 	// cleanup modules
 	for (auto& module : _modules) {
-		module.bytecode.cleanup_memory();
+		module.description.cleanup_memory();
 	}
 }
 
 void Program::cleanup_metadata() {
 
 	// cleanup global data
-	_global_data.cleanup_metadata();
+	_global_data.get_description().cleanup_metadata();
 
 	// cleanup modules
 	for (auto& module : _modules) {
-		module.bytecode.cleanup_metadata();
+		module.description.cleanup_metadata();
 	}
 
 	// cleanup builtin data
@@ -100,8 +102,9 @@ std::pair<int, FunctionHandle&> Program::create_global_builtin_method(Class& typ
 	const std::size_t index = _global_builtin_methods.size();
 	_global_builtin_methods.emplace_back(method);
 
+	auto compiler = Compiler(*this, module);
 	// clang-format off
-	module.bytecode.push_nodes({
+	compiler.push_nodes({
 		Node::Command::jump, static_cast<int>(offset) + 5,
 		Node::Command::load_constant, module.bytecode.make_constant<Object>(type),
 		Node::Command::call_global_builtin, static_cast<int>(index),
@@ -118,9 +121,9 @@ std::pair<int, FunctionHandle&> Program::create_builtin_method(const Class& type
 	auto& module = builtin_module(builtin_index);
 	const auto offset = module.bytecode.end() + 3;
 
-	auto compiler = Compiler(*this);
+	auto compiler = Compiler(*this, module);
 	auto stream = BufferStream(std::string(method.script));
-	compiler.build(stream, module);
+	compiler.build(stream);
 
 	return {method.signature, module.bytecode.get_handle(type.get_package(), offset)};
 }
@@ -134,8 +137,9 @@ std::pair<int, FunctionHandle&> Program::create_builtin_method(const Class& type
 	const std::size_t index = _builtin_methods.size();
 	_builtin_methods.emplace_back(method);
 
+	auto compiler = Compiler(*this, module);
 	// clang-format off
-	module.bytecode.push_nodes({
+	compiler.push_nodes({
 		Node::Command::jump, static_cast<int>(offset) + 3,
 		Node::Command::call_builtin, static_cast<int>(index),
 		Node::Command::exit_call, Node::Command::exit_module,
@@ -155,8 +159,9 @@ std::pair<int, FunctionHandle&> Program::create_builtin_async_method(const Class
 	const std::size_t index = _builtin_methods.size();
 	_builtin_methods.emplace_back(method);
 
+	auto compiler = Compiler(*this, module);
 	// clang-format off
-	module.bytecode.push_nodes({
+	compiler.push_nodes({
 		Node::Command::jump, static_cast<int>(offset) + 3,
 		Node::Command::call_builtin, static_cast<int>(index),
 		Node::Command::resume_coroutine, Node::Command::exit_module,
@@ -174,14 +179,14 @@ void Program::call_global_builtin_method(std::size_t method, Cursor& cursor) {
 
 ModuleInfo& Program::main() {
 	if (_modules.empty()) {
-		return create_module(Module::State::not_compiled);
+		return create_module(Symbol(Module::main_name), Module::State::not_compiled);
 	}
 	return _modules.front();
 }
 
-ModuleInfo& Program::create_module(Module::State state) {
+ModuleInfo& Program::create_module(SymbolPath path, Module::State state) {
 	return _modules.emplace_back(ModuleInfo {
-	    .bytecode = Module(*this),
+	    .description = ModuleDescription(std::move(path)),
 	    .id = _modules.size(),
 	    .state = state,
 	});
@@ -189,7 +194,7 @@ ModuleInfo& Program::create_module(Module::State state) {
 
 ModuleInfo& Program::create_main_module(Module::State state) {
 	if (_modules.empty()) {
-		return create_module(state);
+		return create_module(Symbol(Module::main_name), state);
 	}
 	_modules.front().state = state;
 	return _modules.front();
@@ -201,7 +206,7 @@ ModuleInfo& Program::create_module_from_file_path(const std::filesystem::path& f
 		if (_modules.empty()) [[unlikely]] {
 			create_main_module(Module::State::not_compiled);
 		}
-		auto& module = create_module(state);
+		auto& module = create_module(SymbolPath(to_module_path(file_path)), state);
 		_module_cache.emplace(file_path, std::ref(module));
 		return module;
 	}
@@ -211,20 +216,20 @@ ModuleInfo& Program::create_module_from_file_path(const std::filesystem::path& f
 
 ModuleInfo& Program::load_module(const std::string& module_name) {
 
-	const auto path = FileSystem::instance().get_module_path(module_name);
-	if (path.empty()) [[unlikely]] {
+	const auto file_path = FileSystem::instance().get_module_path(module_name);
+	if (file_path.empty()) [[unlikely]] {
 		error("module '{}' not found", module_name);
 	}
 
-	auto it = _module_cache.find(path);
+	auto it = _module_cache.find(file_path);
 	if (it == _module_cache.end()) {
-		it = _module_cache.emplace(path, create_module(Module::State::not_compiled)).first;
+		it = _module_cache.emplace(file_path, create_module(SymbolPath(module_name), Module::State::not_compiled)).first;
 	}
 
 	if (it->second.get().state == Module::State::not_compiled) {
-		auto compiler = Compiler(*this);
-		auto stream = FileStream(path);
-		compiler.build(stream, it->second.get());
+		auto compiler = Compiler(*this, it->second.get());
+		auto stream = FileStream(file_path);
+		compiler.build(stream);
 		it->second.get().state = Module::State::not_loaded;
 	}
 
@@ -234,7 +239,7 @@ ModuleInfo& Program::load_module(const std::string& module_name) {
 const ModuleInfo& Program::module_info(const std::string& module_name) {
 
 	static const auto invalid_module_info = ModuleInfo {
-	    .bytecode = Module(*this),
+	    .description = ModuleDescription(Symbol(Module::invalid_name)),
 	};
 
 	if (module_name == Module::main_name) {
@@ -254,7 +259,7 @@ const ModuleInfo& Program::module_info(const std::string& module_name) {
 		if (_modules.empty()) [[unlikely]] {
 			create_main_module(Module::State::not_compiled);
 		}
-		auto& module = create_module(Module::State::not_compiled);
+		auto& module = create_module(SymbolPath(module_name), Module::State::not_compiled);
 		_module_cache.emplace(path, module);
 		return module;
 	}
@@ -263,15 +268,14 @@ const ModuleInfo& Program::module_info(const std::string& module_name) {
 }
 
 std::string Program::get_module_name(const Module& module) const {
-	if (is_main(module)) {
-		return Module::main_name;
+	if (const auto it = std::ranges::find(_modules, &module,
+	        [](const auto& module) {
+		        return &module.bytecode;
+	        });
+	    it != _modules.end()) {
+		return it->description.get_path().to_string();
 	}
-	for (const auto& [file_path, cached_module] : _module_cache) {
-		if (&module == &cached_module.get().bytecode) {
-			return to_module_path(file_path);
-		}
-	}
-	return Module::invalid_name;
+	return std::string(Module::invalid_name);
 }
 
 Module::Id Program::get_module_id(const Module& module) const {
@@ -288,9 +292,16 @@ bool Program::is_main(const Module& module) const {
 	return !_modules.empty() && (&module == &_modules.front().bytecode);
 }
 
+void mint::Program::mark() {
+	for (auto& module : _modules) {
+		module.bytecode.mark();
+		module.description.mark();
+	}
+}
+
 ModuleInfo& Program::builtin_module(std::size_t module_index) {
 	for (std::size_t i = _builtin_modules.size(); i <= module_index; ++i) {
-		_builtin_modules.emplace_back(create_module(Module::State::ready));
+		_builtin_modules.emplace_back(create_module(SymbolPath(Module::invalid_name), Module::State::ready));
 	}
 	return _builtin_modules[module_index];
 }

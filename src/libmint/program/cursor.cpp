@@ -86,9 +86,9 @@ std::vector<Reference>* create_stack() {
 	return stack.release();
 }
 
-void dump_module(LineInfoList& dumped_infos, Program& program, const Module& module, std::size_t offset) {
+void dump_module(LineInfoList& dumped_infos, const Program& program, const Module& module, std::size_t offset) {
 
-	if (&module != &ThreadEntryPoint::instance(program)) {
+	if (&module != &ThreadEntryPoint::instance()) {
 
 		const Module::Id module_id = program.get_module_id(module);
 		const std::string module_name = program.get_module_name(module);
@@ -182,7 +182,7 @@ Cursor::Cursor(Program& program, const Module& module, Cursor* parent) :
 }
 
 Cursor::Cursor(Program& program, Cursor* parent) :
-    Cursor(program, ThreadEntryPoint::instance(program), parent) {}
+    Cursor(program, ThreadEntryPoint::instance(), parent) {}
 
 Cursor::~Cursor() {
 
@@ -214,10 +214,10 @@ bool Cursor::is_thread() const {
 	}
 
 	if (_call_stack.empty()) {
-		return &_current_stack_frame->module == &ThreadEntryPoint::instance(_program);
+		return &_current_stack_frame->module == &ThreadEntryPoint::instance();
 	}
 
-	return &_call_stack.front()->module == &ThreadEntryPoint::instance(_program);
+	return &_call_stack.front()->module == &ThreadEntryPoint::instance();
 }
 
 void Cursor::jmp(std::size_t pos) {
@@ -225,7 +225,7 @@ void Cursor::jmp(std::size_t pos) {
 }
 
 bool Cursor::call_in_progress() const {
-	if (&_current_stack_frame->module != &ThreadEntryPoint::instance(_program)) {
+	if (&_current_stack_frame->module != &ThreadEntryPoint::instance()) {
 		return !_call_stack.empty();
 	}
 	return false;

@@ -24,18 +24,33 @@
 #ifndef MINT_COMPILER_COMPILER_H
 #define MINT_COMPILER_COMPILER_H
 
-#include "mint/program/class_register.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
 #include "mint/config.h"
+#include "mint/memory/builtin/array.h"
+#include "mint/memory/builtin/hash.h"
+#include "mint/memory/builtin/library.h"
+#include "mint/memory/class.h"
 #include "mint/memory/data.h"
+#include "mint/memory/garbage_collector.h"
+#include "mint/memory/object.h"
+#include "mint/memory/reference.h"
+#include "mint/program/node.h"
 #include "mint/system/data_stream.h"
 #include "mint/program/module.h"
+#include <concepts>
 #include <cstdint>
 #include <functional>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace mint {
 
 class MINT_EXPORT Compiler {
+	std::reference_wrapper<Program> _program;
+	std::reference_wrapper<ModuleInfo> _data;
+	bool _printing = false;
 public:
 	enum class DataHint : std::uint8_t {
 		data_unknown_hint,
@@ -48,28 +63,39 @@ public:
 		data_none_hint,
 	};
 
-	explicit Compiler(Program& program);
+	Compiler(Program& program, ModuleInfo& data);
 
 	[[nodiscard]] bool is_printing() const;
 	void set_printing(bool enabled);
 
-	bool build(DataStream& stream, ModuleInfo& node);
+	bool build(DataStream& stream);
 
+	Reference* make_constant(const std::string& token, DataHint hint);
 	Data* make_data(const std::string& token, DataHint hint);
-	Data& make_library(const std::string& token);
-	static Data& make_package(PackageData& package);
-	static Data& make_number(double value);
-	static Data& make_boolean(bool value);
-	Data& make_array();
-	Data& make_hash();
-	static Data& make_none();
+
+	template<std::derived_from<Data> T, typename... Args>
+	Reference* make_constant(Args&&... args) {
+		return data().bytecode.make_constant(make_data<T>(std::forward<Args>(args)...));
+	}
+
+	template<std::derived_from<Data> T, typename... Args>
+	T* make_data(Args&&... args) {
+		auto* data = GarbageCollector::instance().alloc<T>(std::forward<Args>(args)...);
+		if constexpr (std::derived_from<T, Object>) {
+			data->construct();
+		}
+		return data;
+	}
+
+	void push_node(const Node& node);
+	void push_nodes(const std::vector<Node>& nodes);
 
 	Program& program();
-
-private:
-	std::reference_wrapper<Program> _program;
-	bool _printing = false;
+	ModuleInfo& data();
 };
+
+template<>
+Library* Compiler::make_data<Library>(const std::string& token);
 
 }
 

@@ -25,7 +25,7 @@
 #ifndef MINT_COMPILER_PARSER_HPP
 #define MINT_COMPILER_PARSER_HPP
 
-#include "mint/compiler/build_tools.h"
+#include "mint/compiler/build_context.h"
 #include "mint/compiler/compiler.h"
 #include <memory>
 
@@ -83,6 +83,7 @@ using namespace mint;
 %token at_token
 %token sharp_token
 %token back_slash_token
+%token minus_right_angled_token
 
 %left comma_token
 %left dbl_pipe_token
@@ -212,7 +213,7 @@ stmt_rule:
 	}
 	| print_token open_parenthesis_token expr_rule close_parenthesis_token line_end_token {
 		context.push_node(Node::Command::load_constant);
-		context.push_node(Compiler::make_number(1.));
+		context.push_node(context.compiler().make_constant<Number>(1.));
 		context.open_printer();
 		context.commit_expr_result();
 		context.close_printer();
@@ -328,7 +329,7 @@ stmt_rule:
 	}
 	| exit_token line_end_token {
 		context.push_node(Node::Command::load_constant);
-		context.push_node(Compiler::make_number(0.));
+		context.push_node(context.compiler().make_constant<Number>(0.));
 		context.push_node(Node::Command::exit_exec);
 		context.commit_line();
 	}
@@ -356,7 +357,7 @@ stmt_rule:
 		context.commit_expr_result();
 		context.commit_line();
 	}
-	| modifier_rule def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
+	| def_signature_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
 			if (!context.is_in_async_function()) {
 				context.push_node(Node::Command::exit_generator);
@@ -368,51 +369,18 @@ stmt_rule:
 		else if (!context.has_returned()) {
 			if (context.is_in_async_function()) {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::resume_coroutine);
 			}
 			else {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::exit_call);
 			}
 		}
-		const auto flags = Reference::const_address | context.retrieve_modifiers();
 		context.resolve_jump_forward();
-		context.push_node(Node::Command::declare_function);
-		context.push_node($4.c_str());
-		context.push_node(flags);
-		context.save_definition($4);
-		context.push_node(Node::Command::function_overload);
-		context.push_node(Node::Command::unload_reference);
-	}
-	| def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		const auto flags = Reference::const_address;
-		context.resolve_jump_forward();
-		context.push_node(Node::Command::declare_function);
-		context.push_node($3.c_str());
-		context.push_node(flags);
-		context.save_definition($3);
+		context.register_function_description();
+		context.resolve_function_description();
 		context.push_node(Node::Command::function_overload);
 		context.push_node(Node::Command::unload_reference);
 	}
@@ -465,6 +433,40 @@ module_path_rule:
 	}
 	| module_path_rule dot_token module_name_rule {
 		$$ = $1 + $2 + $3;
+	};
+
+type_name_rule:
+	symbol_token {
+		$$ = $1;
+	}
+	| type_name_rule dot_token symbol_token {
+		$$ = $1 + $2 + $3;
+	};
+
+type_annotation_rule:
+	type_name_rule {
+		context.start_type_annotation(make_type_annotation($1));
+	}
+	| type_annotation_rule pipe_token type_name_rule {
+		context.add_type_annotation(make_type_annotation($3));
+	};
+
+def_signature_rule:
+	modifier_rule def_start_rule def_capture_rule symbol_token def_args_rule {
+		const auto type = context.retrieve_type_annotation();
+		const auto flags = Reference::const_address | context.retrieve_modifiers();
+		context.save_function_signatures($4, type, flags);
+	}
+	| def_start_rule def_capture_rule symbol_token def_args_rule {
+		const auto type = context.retrieve_type_annotation();
+		const auto flags = Reference::const_address;
+		context.save_function_signatures($3, type, flags);
+	};
+
+decl_type_rule:
+	colon_token type_annotation_rule
+	| {
+		context.start_type_annotation({});
 	};
 
 package_rule:
@@ -563,60 +565,51 @@ desc_list_rule:
 
 desc_rule:
     member_desc_rule line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), Compiler::make_none())) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_constant<None>());
 		context.commit_line();
 	}
 	| member_desc_rule equal_token constant_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_data($3, Compiler::DataHint::data_unknown_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_constant($3, Compiler::DataHint::data_unknown_hint));
 		context.commit_line();
 	}
 	| member_desc_rule equal_token string_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_data($3, Compiler::DataHint::data_string_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_constant($3, Compiler::DataHint::data_string_hint));
 		context.commit_line();
 	}
 	| member_desc_rule equal_token regex_rule line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_data($3, Compiler::DataHint::data_regex_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_constant($3, Compiler::DataHint::data_regex_hint));
 		context.commit_line();
 	}
 	| member_desc_rule equal_token regex_rule regex_rule symbol_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_data($3 + $4, Compiler::DataHint::data_regex_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_constant($3 + $4, Compiler::DataHint::data_regex_hint));
 		context.commit_line();
 	}
 	| member_desc_rule equal_token number_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_data($3, Compiler::DataHint::data_number_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_constant($3, Compiler::DataHint::data_number_hint));
 		context.commit_line();
 	}
 	| member_desc_rule equal_token open_bracket_token close_bracket_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_array())) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_constant<Array>());
 		context.commit_line();
 	}
 	| member_desc_rule equal_token open_brace_token close_brace_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_hash())) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_constant<Hash>());
 		context.commit_line();
 	}
 	| member_desc_rule equal_token lib_token open_parenthesis_token string_token close_parenthesis_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_library($5))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_constant<Library>($5));
 		context.commit_line();
 	}
-	| member_desc_rule equal_token def_start_rule def_args_rule stmt_bloc_rule {
+	| member_def_signature_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
 			if (!context.is_in_async_function()) {
 				context.push_node(Node::Command::exit_generator);
@@ -628,211 +621,17 @@ desc_rule:
 		else if (!context.has_returned()) {
 			if (context.is_in_async_function()) {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::resume_coroutine);
 			}
 			else {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::exit_call);
 			}
 		}
 		context.resolve_jump_forward();
-
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.retrieve_definition($1))) {
-			YYERROR;
-		}
-	}
-	| member_desc_rule plus_equal_token def_start_rule def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (!context.update_member(context.retrieve_modifiers(), Symbol($1), context.retrieve_definition($1))) {
-			YYERROR;
-		}
-	}
-	| def_start_rule symbol_token def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (!context.update_member(Reference::default_flags, Symbol($2), context.retrieve_definition($2))) {
-			YYERROR;
-		}
-	}
-	| def_start_rule await_token def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (!context.update_member(Reference::default_flags, Symbol($2), context.retrieve_definition($2))) {
-			YYERROR;
-		}
-	}
-	| def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (const auto symbol = context.retrieve_operator_symbol();
-		    !context.update_member(Reference::default_flags, symbol, context.retrieve_definition(symbol.str()))) {
-			YYERROR;
-		}
-	}
-	| desc_modifier_rule def_start_rule symbol_token def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (!context.update_member(context.retrieve_modifiers(), Symbol($3), context.retrieve_definition($3))) {
-			YYERROR;
-		}
-	}
-	| desc_modifier_rule def_start_rule await_token def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (!context.update_member(context.retrieve_modifiers(), Symbol($3), context.retrieve_definition($3))) {
-			YYERROR;
-		}
-	}
-	| desc_modifier_rule def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (const auto symbol = context.retrieve_operator_symbol();
-		    !context.update_member(context.retrieve_modifiers(), symbol, context.retrieve_definition(symbol.str()))) {
-			YYERROR;
-		}
+		context.resolve_method_description();
 	}
 	| member_class_desc_rule
 	| member_enum_desc_rule
@@ -840,12 +639,41 @@ desc_rule:
 		context.commit_line();
 	};
 
+member_def_signature_rule:
+	member_desc_rule equal_token def_start_rule def_args_rule {
+		// TODO: reset method signature ?
+		context.save_method_signature($1, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| member_desc_rule plus_equal_token def_start_rule def_args_rule {
+		context.save_method_signature($1, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| def_start_rule symbol_token def_args_rule {
+		context.save_method_signature($2, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| def_start_rule await_token def_args_rule {
+		context.save_method_signature($2, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| def_start_rule operator_desc_rule def_args_rule {
+		context.save_method_signature(context.retrieve_operator(), context.retrieve_type_annotation(),
+		    context.retrieve_modifiers());
+	}
+	| desc_modifier_rule def_start_rule symbol_token def_args_rule {
+		context.save_method_signature($3, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| desc_modifier_rule def_start_rule await_token def_args_rule {
+		context.save_method_signature($3, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| desc_modifier_rule def_start_rule operator_desc_rule def_args_rule {
+		context.save_method_signature(context.retrieve_operator(), context.retrieve_type_annotation(),
+		    context.retrieve_modifiers());
+	};
+
 member_desc_rule:
-    symbol_token {
+    symbol_token decl_type_rule {
 		context.start_modifiers(Reference::default_flags);
 		$$ = $1;
 	}
-	| desc_modifier_rule symbol_token {
+	| desc_modifier_rule symbol_token decl_type_rule {
 		$$ = $2;
 	};
 
@@ -1006,16 +834,15 @@ enum_list_rule:
 enum_item_rule:
     symbol_token equal_token number_token {
 		constexpr auto flags = Reference::const_value | Reference::const_address | Reference::global;
-		if (!context.create_member(flags, Symbol($1), context.compiler().make_data($3, Compiler::DataHint::data_number_hint))) {
-			YYERROR;
-		}
-		context.set_current_enum_value(atoi($3.c_str()));
+		context.create_attribute($1, PrimitiveTypeKind::number, flags,
+		    context.compiler().make_constant($3, Compiler::DataHint::data_number_hint));
+		context.set_current_enum_value(std::stoi($3));
 	}
 	| symbol_token {
 		constexpr auto flags = Reference::const_value | Reference::const_address | Reference::global;
-		if (!context.create_member(flags, Symbol($1), context.compiler().make_data(std::to_string(context.next_enum_value()), Compiler::DataHint::data_number_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, PrimitiveTypeKind::number, flags,
+		    context.compiler().make_constant(std::to_string(context.next_enum_value()),
+			Compiler::DataHint::data_number_hint));
 	}
 	| line_end_token {
 		context.commit_line();
@@ -1343,36 +1170,24 @@ case_constant_rule:
 	constant_rule {
 		if (Data *data = context.compiler().make_data($1, Compiler::DataHint::data_unknown_hint)) {
 			context.push_node(Node::Command::load_constant);
-			context.push_node(*data);
+			context.push_node(data);
 			$$ = $1;
-		}
-		else {
-			error("token '" + $1 + "' is not a valid constant");
-			YYERROR;
 		}
 	}
 	| plus_token number_token {
 		if (Data *data = context.compiler().make_data($2, Compiler::DataHint::data_number_hint)) {
 			context.push_node(Node::Command::load_constant);
-			context.push_node(*data);
+			context.push_node(data);
 			context.push_node(Node::Command::pos_operator);
 			$$ = $2;
-		}
-		else {
-			error("token '" + $2 + "' is not a valid constant");
-			YYERROR;
 		}
 	}
 	| minus_token number_token {
 		if (Data *data = context.compiler().make_data($2, Compiler::DataHint::data_number_hint)) {
 			context.push_node(Node::Command::load_constant);
-			context.push_node(*data);
+			context.push_node(data);
 			context.push_node(Node::Command::neg_operator);
 			$$ = $1 + $2;
-		}
-		else {
-			error("token '" + $2 + "' is not a valid constant");
-			YYERROR;
 		}
 	};
 
@@ -1641,13 +1456,13 @@ for_rule:
 	};
 
 for_in_expr_rule:
-    for_expr_rule ident_rule in_token {
+    for_expr_rule decl_rule in_token {
 		context.resolve_range_loop();
 		context.start_condition();
 	};
 
 for_in_rule:
-    for_rule ident_rule in_token {
+    for_rule decl_rule in_token {
 		context.resolve_range_loop();
 		context.start_condition();
 	};
@@ -1800,17 +1615,17 @@ iterator_end_rule:
 	};
 
 ident_iterator_item_rule:
-	ident_iterator_item_rule ident_rule separator_rule {
+	ident_iterator_item_rule decl_rule separator_rule {
 		context.add_to_call();
 	}
-	| ident_rule separator_rule {
+	| decl_rule separator_rule {
 		context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
 		context.add_to_call();
 	};
 
 ident_iterator_end_rule:
-	ident_rule {
+	decl_rule {
 		context.push_node(Node::Command::init_iterator);
 		context.add_to_call();
 		context.resolve_call();
@@ -1831,8 +1646,8 @@ create_ident_iterator_rule:
 	| modifier_rule create_ident_iterator_item_rule create_ident_iterator_end_rule;
 
 create_ident_iterator_scoped_item_rule:
-    create_ident_iterator_scoped_item_rule symbol_token comma_token {
-		const auto index = context.create_fast_scoped_symbol_index($2);
+    create_ident_iterator_scoped_item_rule symbol_token decl_type_rule comma_token {
+		const auto index = context.create_fast_scoped_symbol_index($2, context.retrieve_type_annotation());
 		if (index != invalid_index) {
 			context.push_node(Node::Command::declare_fast);
 			context.push_node($2.c_str());
@@ -1846,10 +1661,10 @@ create_ident_iterator_scoped_item_rule:
 		}
 		context.add_to_call();
 	}
-	| open_parenthesis_token symbol_token comma_token {
+	| open_parenthesis_token symbol_token decl_type_rule comma_token {
 		context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
-		const auto index = context.create_fast_scoped_symbol_index($2);
+		const auto index = context.create_fast_scoped_symbol_index($2, context.retrieve_type_annotation());
 		if (index != invalid_index) {
 			context.push_node(Node::Command::declare_fast);
 			context.push_node($2.c_str());
@@ -1865,8 +1680,8 @@ create_ident_iterator_scoped_item_rule:
 	};
 
 create_ident_iterator_scoped_end_rule:
-    symbol_token close_parenthesis_token {
-		const auto index = context.create_fast_scoped_symbol_index($1);
+    symbol_token decl_type_rule close_parenthesis_token {
+		const auto index = context.create_fast_scoped_symbol_index($1, context.retrieve_type_annotation());
 		if (index != invalid_index) {
 			context.push_node(Node::Command::declare_fast);
 			context.push_node($1.c_str());
@@ -1884,8 +1699,8 @@ create_ident_iterator_scoped_end_rule:
 	};
 
 create_ident_iterator_item_rule:
-    create_ident_iterator_item_rule symbol_token comma_token {
-		const auto index = context.create_fast_symbol_index($2);
+    create_ident_iterator_item_rule symbol_token decl_type_rule comma_token {
+		const auto index = context.create_fast_symbol_index($2, context.retrieve_type_annotation());
 		if (index != invalid_index) {
 			context.push_node(Node::Command::declare_fast);
 			context.push_node($2.c_str());
@@ -1899,10 +1714,10 @@ create_ident_iterator_item_rule:
 		}
 		context.add_to_call();
 	}
-	| open_parenthesis_token symbol_token comma_token {
+	| open_parenthesis_token symbol_token decl_type_rule comma_token {
 		context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
-		const auto index = context.create_fast_symbol_index($2);
+		const auto index = context.create_fast_symbol_index($2, context.retrieve_type_annotation());
 		if (index != invalid_index) {
 			context.push_node(Node::Command::declare_fast);
 			context.push_node($2.c_str());
@@ -1918,8 +1733,8 @@ create_ident_iterator_item_rule:
 	};
 
 create_ident_iterator_end_rule:
-    symbol_token close_parenthesis_token {
-		const auto index = context.create_fast_symbol_index($1);
+    symbol_token decl_type_rule close_parenthesis_token {
+		const auto index = context.create_fast_symbol_index($1, context.retrieve_type_annotation());
 		if (index != invalid_index) {
 			context.push_node(Node::Command::declare_fast);
 			context.push_node($1.c_str());
@@ -1948,7 +1763,7 @@ print_bloc_target_rule:
 	}
 	| {
 		context.push_node(Node::Command::load_constant);
-		context.push_node(Compiler::make_number(1.));
+		context.push_node(context.compiler().make_constant<Number>(1.));
 		context.open_printer();
 		context.open_block(BuildContext::BlockType::print_type);
 	};
@@ -2123,8 +1938,9 @@ expr_rule:
 	}
 	| expr_rule subscript_rule
 	| member_ident_rule
+	| lib_start_rule call_args_rule
 	| ident_rule call_args_rule
-	| def_rule call_args_rule
+	| def_expr_rule call_args_rule
 	| expr_rule subscript_rule call_args_rule
 	| expr_rule dot_token call_member_args_rule
 	| expr_rule question_dot_token call_defined_member_args_rule
@@ -2231,7 +2047,7 @@ expr_rule:
 	| start_hash_rule hash_item_rule empty_lines_rule stop_hash_rule
 	| start_hash_rule hash_item_rule stop_hash_rule
 	| start_hash_rule stop_hash_rule
-	| def_rule
+	| def_expr_rule
 	| ident_rule;
 
 subscript_rule:
@@ -2330,8 +2146,8 @@ call_arg_rule:
 		context.push_node(Node::Command::load_extra_arguments);
 	};
 
-def_rule:
-	def_start_rule def_capture_rule def_args_rule stmt_bloc_rule {
+def_expr_rule:
+	def_expr_signature_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
 			if (!context.is_in_async_function()) {
 				context.push_node(Node::Command::exit_generator);
@@ -2343,45 +2159,29 @@ def_rule:
 		else if (!context.has_returned()) {
 			if (context.is_in_async_function()) {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::resume_coroutine);
 			}
 			else {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::exit_call);
 			}
 		}
 		context.resolve_jump_forward();
-		context.save_definition("<unknown>");
+		context.resolve_function_description();
+	};
+
+def_expr_signature_rule:
+	def_start_rule def_capture_rule def_args_rule {
+		context.save_function_signatures(context.retrieve_type_annotation(), Reference::default_flags);
 	}
-	| def_start_rule def_capture_rule def_no_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-		context.save_definition("<unknown>");
+	| def_start_rule def_capture_rule {
+		context.save_function_signatures({}, Reference::default_flags);
 	};
 
 def_arrow_rule:
-    def_start_rule def_capture_rule def_args_rule def_arrow_stmt_rule {
+    def_arrow_signature_rule def_arrow_stmt_rule {
 	    context.set_exit_point();
 		if (context.is_in_async_function()) {
 			context.push_node(Node::Command::resume_coroutine);
@@ -2390,19 +2190,24 @@ def_arrow_rule:
 			context.push_node(Node::Command::exit_call);
 		}
 		context.resolve_jump_forward();
-		context.save_definition("<unknown>");
+		context.resolve_function_description();
+	};
+
+def_arrow_signature_rule:
+	def_start_rule def_capture_rule def_args_rule {
+		context.save_function_signatures(context.retrieve_type_annotation(), Reference::default_flags);
 	};
 
 def_start_rule:
     def_token {
 		context.push_node(Node::Command::jump);
 		context.start_jump_forward();
-		context.start_definition();
+		context.start_function_description();
 	}
 	| async_token def_token {
 		context.push_node(Node::Command::jump);
 		context.start_jump_forward();
-		context.start_async_definition();
+		context.start_async_function_description();
 	};
 
 def_capture_rule:
@@ -2421,36 +2226,19 @@ def_capture_stop_rule:
 
 def_capture_list_rule:
     symbol_token equal_token expr_rule separator_rule def_capture_list_rule {
-		if (!context.capture_as($1)) {
-			YYERROR;
-		}
+		context.capture_as($1);
 	}
 	| symbol_token equal_token expr_rule {
-		if (!context.capture_as($1)) {
-			YYERROR;
-		}
+		context.capture_as($1);
 	}
 	| symbol_token separator_rule def_capture_list_rule {
-		if (!context.capture($1)) {
-			YYERROR;
-		}
+		context.capture($1);
 	}
 	| symbol_token {
-		if (!context.capture($1)) {
-			YYERROR;
-		}
+		context.capture($1);
 	}
 	| tpl_dot_token {
-		if (!context.capture_all()) {
-			YYERROR;
-		}
-	};
-
-def_no_args_rule:
-	{
-		if (!context.save_parameters()) {
-			YYERROR;
-		}
+		context.capture_all();
 	};
 
 def_args_rule:
@@ -2460,10 +2248,9 @@ def_arg_start_rule:
     open_parenthesis_token;
 
 def_arg_stop_rule:
-    close_parenthesis_token {
-		if (!context.save_parameters()) {
-			YYERROR;
-		}
+	close_parenthesis_token minus_right_angled_token type_annotation_rule
+	| close_parenthesis_token {
+		context.start_type_annotation({});
 	};
 
 def_arg_list_rule:
@@ -2472,36 +2259,22 @@ def_arg_list_rule:
 	| ;
 
 def_arg_rule:
-    symbol_token {
-		if (!context.add_parameter($1)) {
-			YYERROR;
-		}
+    symbol_token decl_type_rule {
+		context.add_parameter($1, context.retrieve_type_annotation());
 	}
-	| symbol_token equal_token expr_rule {
-		if (!context.add_definition_signature()) {
-			YYERROR;
-		}
-		if (!context.add_parameter($1)) {
-			YYERROR;
-		}
+	| symbol_token decl_type_rule equal_token expr_rule {
+		context.add_function_signature();
+		context.add_parameter($1, context.retrieve_type_annotation());
 	}
-	| modifier_rule symbol_token {
-		if (!context.add_parameter($2, context.retrieve_modifiers())) {
-			YYERROR;
-		}
+	| modifier_rule symbol_token decl_type_rule {
+		context.add_parameter($2, context.retrieve_type_annotation(), context.retrieve_modifiers());
 	}
-	| modifier_rule symbol_token equal_token expr_rule {
-		if (!context.add_definition_signature()) {
-			YYERROR;
-		}
-		if (!context.add_parameter($2, context.retrieve_modifiers())) {
-			YYERROR;
-		}
+	| modifier_rule symbol_token decl_type_rule equal_token expr_rule {
+		context.add_function_signature();
+		context.add_parameter($2, context.retrieve_type_annotation(), context.retrieve_modifiers());
 	}
 	| tpl_dot_token {
-		if (!context.set_variadic()) {
-			YYERROR;
-		}
+		context.set_variadic();
 	};
 
 def_arrow_stmt_rule:
@@ -2554,27 +2327,52 @@ defined_symbol_rule:
 	| constant_rule {
 		context.push_node(Node::Command::load_constant);
 		if (Data *data = context.compiler().make_data($1, Compiler::DataHint::data_unknown_hint)) {
-			context.push_node(*data);
-		}
-		else {
-			error("token '" + $1 + "' is not a valid constant");
-			YYERROR;
+			context.push_node(data);
 		}
 	};
 
-ident_rule:
-	constant_rule {
-		context.push_node(Node::Command::load_constant);
-		if (Data *data = context.compiler().make_data($1, Compiler::DataHint::data_unknown_hint)) {
-			context.push_node(*data);
+decl_rule:
+	let_token modifier_rule symbol_token decl_type_rule {
+		const auto index = context.create_fast_scoped_symbol_index($3, context.retrieve_type_annotation());
+		if (index != invalid_index) {
+			context.push_node(Node::Command::declare_fast);
+			context.push_node($3.c_str());
+			context.push_node(index);
+			context.push_node(context.retrieve_modifiers());
 		}
 		else {
-			error("token '" + $1 + "' is not a valid constant");
-			YYERROR;
+			context.push_node(Node::Command::declare_symbol);
+			context.push_node($3.c_str());
+			context.push_node(context.retrieve_modifiers());
 		}
 	}
-	| lib_token {
-		context.push_node(Node::Command::create_lib);
+	| modifier_rule symbol_token decl_type_rule {
+		const auto index = context.create_fast_symbol_index($2, context.retrieve_type_annotation());
+		if (index != invalid_index) {
+			context.push_node(Node::Command::declare_fast);
+			context.push_node($2.c_str());
+			context.push_node(index);
+			context.push_node(context.retrieve_modifiers());
+		}
+		else {
+			context.push_node(Node::Command::declare_symbol);
+			context.push_node($2.c_str());
+			context.push_node(context.retrieve_modifiers());
+		}
+	}
+	| let_token symbol_token decl_type_rule {
+		const auto index = context.create_fast_scoped_symbol_index($2, context.retrieve_type_annotation());
+		if (index != invalid_index) {
+			context.push_node(Node::Command::declare_fast);
+			context.push_node($2.c_str());
+			context.push_node(index);
+			context.push_node(Reference::default_flags);
+		}
+		else {
+			context.push_node(Node::Command::declare_symbol);
+			context.push_node($2.c_str());
+			context.push_node(Reference::default_flags);
+		}
 	}
 	| var_symbol_rule {
 		context.push_node(Node::Command::load_var_symbol);
@@ -2590,48 +2388,34 @@ ident_rule:
 			context.push_node(Node::Command::load_symbol);
 			context.push_node($1.c_str());
 		}
-	}
-	| let_token symbol_token {
-		const auto index = context.create_fast_scoped_symbol_index($2);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($2.c_str());
-			context.push_node(index);
-			context.push_node(Reference::default_flags);
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($2.c_str());
-			context.push_node(Reference::default_flags);
+	};
+
+ident_rule:
+	constant_rule {
+		context.push_node(Node::Command::load_constant);
+		if (Data *data = context.compiler().make_data($1, Compiler::DataHint::data_unknown_hint)) {
+			context.push_node(data);
 		}
 	}
-	| modifier_rule symbol_token {
-		const auto index = context.create_fast_symbol_index($2);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($2.c_str());
-			context.push_node(index);
-			context.push_node(context.retrieve_modifiers());
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($2.c_str());
-			context.push_node(context.retrieve_modifiers());
-		}
+	| var_symbol_rule {
+		context.push_node(Node::Command::load_var_symbol);
 	}
-	| let_token modifier_rule symbol_token {
-		const auto index = context.create_fast_scoped_symbol_index($3);
+	| symbol_token {
+		const auto index = context.fast_symbol_index($1);
 		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($3.c_str());
+			context.push_node(Node::Command::load_fast);
+			context.push_node($1.c_str());
 			context.push_node(index);
-			context.push_node(context.retrieve_modifiers());
 		}
 		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($3.c_str());
-			context.push_node(context.retrieve_modifiers());
+			context.push_node(Node::Command::load_symbol);
+			context.push_node($1.c_str());
 		}
+	};
+
+lib_start_rule:
+	lib_token {
+		context.push_node(Node::Command::create_lib);
 	};
 
 constant_rule:
@@ -2726,9 +2510,9 @@ int BuildContext::next_token(std::string* token) {
 	return type;
 }
 
-bool Compiler::build(DataStream& stream, ModuleInfo& node) {
+bool Compiler::build(DataStream& stream) {
 
-	auto context = BuildContext(stream, *this, node);
+	auto context = BuildContext(stream, *this);
 	auto parser = mint::parser(context);
 
 	if (is_printing()) {

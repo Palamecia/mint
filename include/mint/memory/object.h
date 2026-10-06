@@ -24,10 +24,10 @@
 #ifndef MINT_MEMORY_OBJECT_H
 #define MINT_MEMORY_OBJECT_H
 
-#include "mint/program/saved_state.h"
 #include "mint/config.h"
 #include "mint/program/symbol.h"
 #include "mint/program/module.h"
+#include "mint/program/saved_state.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/memory_pool.h"
@@ -153,7 +153,7 @@ class MINT_EXPORT Function : public Data {
 public:
 	class MINT_EXPORT Context {
 	public:
-		Context(FunctionHandle& handle) :
+		explicit Context(FunctionHandle& handle) :
 		    _handle(handle) {}
 
 		Context(Context&& other) = default;
@@ -182,7 +182,7 @@ public:
 
 	class MINT_EXPORT Stateless : public Context {
 	public:
-		Stateless(FunctionHandle& handle) :
+		explicit Stateless(FunctionHandle& handle) :
 		    Context(handle) {}
 
 		void call(int signature, Class* metadata, Cursor& cursor) override;
@@ -196,7 +196,7 @@ public:
 
 	class MINT_EXPORT Stateful : public Context {
 	public:
-		Stateful(FunctionHandle& handle) :
+		explicit Stateful(FunctionHandle& handle) :
 		    Context(handle) {}
 
 		void capture(const Symbol& symbol, const Reference& reference) {
@@ -222,10 +222,10 @@ public:
 	class MINT_EXPORT Signature {
 		std::unique_ptr<Context> _context;
 	public:
-		Signature(std::unique_ptr<Stateless>&& context) :
+		explicit(false) Signature(std::unique_ptr<Stateless>&& context) :
 		    _context(std::move(context)) {}
 
-		Signature(std::unique_ptr<Stateful>&& context) :
+		explicit(false) Signature(std::unique_ptr<Stateful>&& context) :
 		    _context(std::move(context)) {}
 
 		Signature(const Signature& other) :
@@ -330,7 +330,7 @@ public:
 		running,
 		waiting,
 		completed,
-		failed
+		failed,
 	};
 
 	Coroutine(std::unique_ptr<SavedState>&& state, std::size_t stack_size);

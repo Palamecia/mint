@@ -351,7 +351,7 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, const
 
 namespace {
 
-class Future : public Process {
+class Future final : public Process {
 public:
 	struct ResultHandle {
 		Reference result;

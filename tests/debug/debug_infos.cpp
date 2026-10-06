@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
+#include "mint/compiler/descriptions.h"
+#include "mint/program/descriptions.h"
 #include "mint/program/program.h"
-#include "mint/program/class_register.h"
+#include "mint/program/symbol_scope.h"
 #include "mint/program/module.h"
 #include "mint/program/node.h"
 #include "mint/compiler/compiler.h"
@@ -75,9 +77,10 @@ TEST(debug_infos, new_line_from_source) {
 
 	auto program = mint::Program();
 	auto module = mint::ModuleInfo {
-	    .bytecode = mint::Module(program),
+	    .bytecode = mint::Module(),
+	    .description = mint::ModuleDescription("test"),
 	};
-	auto compiler = mint::Compiler(program);
+	auto compiler = mint::Compiler(program, module);
 
 	auto stream = mint::BufferStream(R"""(/* comment */
 
@@ -88,7 +91,7 @@ if defined symbol {
 }
 )""");
 
-	ASSERT_TRUE(compiler.build(stream, module));
+	ASSERT_TRUE(compiler.build(stream));
 	EXPECT_EQ(3, module.debug_info.line_number(0));
 	EXPECT_EQ(3, module.debug_info.line_number(1));
 	EXPECT_EQ(5, module.debug_info.line_number(2));

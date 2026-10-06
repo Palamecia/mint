@@ -22,7 +22,6 @@
  */
 
 #include "mint/memory/function_tools.h"
-#include "mint/program/class_register.h"
 #include "mint/program/cursor.h"
 #include "mint/program/function_literal.h"
 #include "mint/program/module.h"
@@ -116,9 +115,8 @@ Reference mint::create_function(Program& program, ModuleInfo& module, const Func
 
 	const std::size_t offset = module.bytecode.end() + 3;
 
-	auto compiler = Compiler(program);
 	auto stream = BufferStream(std::string(function.script));
-	if (!compiler.build(stream, module)) {
+	if (auto compiler = Compiler(program, module); !compiler.build(stream)) {
 		return {};
 	}
 

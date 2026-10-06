@@ -23,7 +23,7 @@
 
 #include "highlighter.h"
 
-#include "mint/program/class_description.h"
+#include "mint/program/descriptions.h"
 #include "mint/program/symbol.h"
 #include "mint/compiler/lexical_handler.h"
 #include "mint/compiler/token.h"
@@ -407,22 +407,22 @@ protected:
 		return nullptr;
 	}
 
-	[[nodiscard]] std::optional<std::tuple<const mint::PackageData*, const mint::ClassDescription*>> resolve_path(
+	[[nodiscard]] std::optional<std::tuple<const mint::PackageDescription*, const mint::ClassDescription*>> resolve_path(
 	    const std::vector<std::string>& context) const {
 
-		const mint::PackageData* pack = nullptr;
+		const mint::PackageDescription* pack = nullptr;
 		const mint::ClassDescription* desc = nullptr;
 
 		for (const std::string& token : context) {
 			const auto symbol = mint::Symbol(token);
 			if (desc) {
-				desc = desc->find_class_description(symbol);
+				desc = desc->find_class(symbol);
 				if (desc == nullptr) {
 					return std::nullopt;
 				}
 			}
 			else if (pack) {
-				desc = pack->find_class_description(symbol);
+				desc = pack->find_class(symbol);
 				if (desc == nullptr) {
 					pack = pack->find_package(symbol);
 					if (pack == nullptr) {
@@ -432,7 +432,7 @@ protected:
 			}
 			else {
 				const mint::GlobalData& global_data = _global_data;
-				desc = global_data.find_class_description(symbol);
+				desc = global_data.find_class(symbol);
 				if (desc == nullptr) {
 					pack = global_data.find_package(symbol);
 					if (pack == nullptr) {

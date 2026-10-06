@@ -49,7 +49,7 @@ namespace mint {
 struct SavedState;
 class Program;
 
-class MINT_EXPORT Cursor : public MemoryRoot {
+class MINT_EXPORT Cursor : public MemoryRoot<MemoryRootRegistrationMode::manual> {
 	friend class CursorDebugger;
 	friend struct SavedState;
 public:

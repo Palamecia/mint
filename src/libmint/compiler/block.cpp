@@ -22,7 +22,7 @@
  */
 
 #include "block.h"
-#include "mint/compiler/build_tools.h"
+#include "mint/compiler/build_context.h"
 
 using namespace mint;
 

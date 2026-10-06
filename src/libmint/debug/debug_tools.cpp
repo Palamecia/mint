@@ -22,7 +22,6 @@
  */
 
 #include "mint/debug/debug_tools.h"
-#include "mint/program/class_description.h"
 #include "mint/program/module.h"
 #include "mint/program/node.h"
 #include "mint/program/symbol.h"
@@ -66,7 +65,7 @@ std::string escape_sequence(std::string_view c) {
 			return std::format("{:02X}", static_cast<int>(ch));
 		}) | std::views::join);
 	}
-	switch (const auto ch = c[0]) {
+	switch (const auto ch = c.at(0)) {
 	case '\0':
 		return "0";
 	case '\a':
@@ -93,7 +92,7 @@ std::string escape_sequence(std::string_view c) {
 class DumpCommand {
 	std::reference_wrapper<std::ostream> _stream;
 public:
-	DumpCommand(std::ostream& stream) :
+	explicit DumpCommand(std::ostream& stream) :
 	    _stream(stream) {}
 
 	Node::Command walk(Cursor& cursor) {
@@ -844,7 +843,7 @@ std::filesystem::path mint::to_system_path(const std::string& module) {
 std::string mint::to_module_path(const std::filesystem::path& file_path) {
 	if (const std::filesystem::path main_module_path = FileSystem::instance().get_main_module_path();
 	    !main_module_path.empty() && std::filesystem::equivalent(file_path, main_module_path)) {
-		return Module::main_name;
+		return std::string(Module::main_name);
 	}
 	if (const std::filesystem::path root_path = std::filesystem::current_path();
 	    FileSystem::is_subpath(file_path, root_path)) {
@@ -908,34 +907,34 @@ std::string mint::to_debug_string(std::string_view command) {
 std::string mint::to_debug_string(Reference::Flags flags) {
 	std::string buffer = "(";
 	if (flags & Reference::private_visibility) {
-		buffer += "-";
+		buffer += '-';
 	}
 	if (flags & Reference::protected_visibility) {
-		buffer += "#";
+		buffer += '#';
 	}
 	if (flags & Reference::package_visibility) {
-		buffer += "~";
+		buffer += '~';
 	}
 	if (flags & Reference::global) {
-		buffer += "@";
+		buffer += '@';
 	}
 	if (flags & Reference::const_value) {
-		buffer += "%";
+		buffer += '%';
 	}
 	if (flags & Reference::const_address) {
-		buffer += "$";
+		buffer += '$';
 	}
-	buffer += ")";
+	buffer += ')';
 	return buffer;
 }
 
 std::string mint::to_debug_string(const Number& number) {
-	double intpart = 0.;
-	const auto fracpart = std::modf(number.value, &intpart);
-	if (fracpart != 0.) {
-		return std::to_string(intpart + fracpart);
+	double int_part = 0.;
+	const auto frac_part = std::modf(number.value, &int_part);
+	if (frac_part != 0.) {
+		return std::to_string(int_part + frac_part);
 	}
-	return std::to_string(to_signed_integer(intpart));
+	return std::to_string(to_signed_integer(int_part));
 }
 
 std::string mint::to_debug_string(const Boolean& boolean) {
@@ -946,11 +945,11 @@ std::string mint::to_debug_string(const String& string) {
 	std::string escaped;
 	for (const auto& code_point : views::utf8(string.str)) {
 		if (!utf8_is_print(code_point)) {
-			escaped += "\\";
+			escaped += '\\';
 			escaped += escape_sequence(code_point);
 		}
 		else if (code_point == "\\" || code_point == "'") {
-			escaped += "\\";
+			escaped += '\\';
 			escaped += code_point;
 		}
 		else {

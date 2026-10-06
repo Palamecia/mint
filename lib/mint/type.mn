@@ -30,7 +30,7 @@
  * returned; otherwise, if it provides a `toNumber` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-@def [g_lib = lib('libmint-mint')] number(value = 0) {
+@def [g_lib = lib('libmint-mint')] number(value = 0) -> number {
 	if typeof value == 'number' {
 		return value
 	}
@@ -51,7 +51,7 @@
  * returned; otherwise, if it provides a `toBoolean` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-@def [g_lib = lib('libmint-mint')] boolean(value = false) {
+@def [g_lib = lib('libmint-mint')] boolean(value = false) -> boolean {
 	if typeof value == 'boolean' {
 		return value
 	}
@@ -72,7 +72,7 @@
  * returned; otherwise, if it provides a `toString` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-@def [g_lib = lib('libmint-mint')] string(value = '') {
+@def [g_lib = lib('libmint-mint')] string(value = '') -> string {
 	if typeof value == 'string' {
 		return value
 	}
@@ -93,7 +93,7 @@
  * returned; otherwise, if it provides a `toRegex` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-@def [g_lib = lib('libmint-mint')] regex(value = /.*/) {
+@def [g_lib = lib('libmint-mint')] regex(value = /.*/) -> regex {
 	if typeof value == 'regex' {
 		return value
 	}
@@ -114,7 +114,7 @@
  * returned; otherwise, if it provides a `toArray` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-@def [g_lib = lib('libmint-mint')] array(value = []) {
+@def [g_lib = lib('libmint-mint')] array(value = []) -> array {
 	if typeof value == 'array' {
 		return value
 	}
@@ -135,7 +135,7 @@
  * returned; otherwise, if it provides a `toHash` method, the result of the
  * method call is returned; otherwise, a built-in cast is performed.
  */
-@def [g_lib = lib('libmint-mint')] hash(value = {}) {
+@def [g_lib = lib('libmint-mint')] hash(value = {}) -> hash {
 	if typeof value == 'hash' {
 		return value
 	}

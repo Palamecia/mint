@@ -58,7 +58,7 @@ std::string reference_value(const Program& program, const Reference& reference) 
 	case Data::Format::package:
 		return std::format(MINT_TERM_STR(
 		                       MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "package:" MINT_TERM_OPT(MINT_TERM_RESET) " {}"),
-		    reference.data<Package>().data.full_name());
+		    reference.data<Package>().data.get_full_name());
 	case Data::Format::function:
 		return std::format(MINT_TERM_STR(
 		                       MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "function:" MINT_TERM_OPT(MINT_TERM_RESET) " {}"),
@@ -79,11 +79,11 @@ std::string reference_value(const Program& program, const Reference& reference) 
 			if (mint::is_class(reference.data<Object>())) {
 				return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "class:" MINT_TERM_OPT(
 				                       MINT_TERM_RESET) " {}"),
-				    reference.data<Object>().metadata.full_name());
+				    reference.data<Object>().metadata.get_full_name());
 			}
 			return std::format(MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_MAGENTA) "object:" MINT_TERM_OPT(
 			                       MINT_TERM_RESET) " {} " MINT_TERM_OPT(MINT_TERM_DARK) "({})"),
-			    reference.data<Object>().metadata.full_name(), to_string(&reference.data()));
+			    reference.data<Object>().metadata.get_full_name(), to_string(&reference.data()));
 		case Class::Metatype::string:
 			return MINT_TERM_STR(MINT_TERM_OPT(MINT_TERM_FG_YELLOW) "'" + to_string(reference) + "'");
 		case Class::Metatype::regex:

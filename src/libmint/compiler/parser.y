@@ -1,4 +1,3 @@
-%{
 /**
  * Copyright (c) 2026 Gauvain CHÉRY.
  *
@@ -22,84 +21,114 @@
  * IN THE SOFTWARE.
  */
 
-#ifndef MINT_COMPILER_PARSER_HPP
-#define MINT_COMPILER_PARSER_HPP
+%define api.namespace {mint}
+%define api.value.type variant
+%define api.token.constructor
 
-#include "mint/compiler/build_tools.h"
+%parse-param {mint::BuildContext& context}
+%lex-param {mint::BuildContext& context}
+
+%code requires {
+#include "mint/compiler/build_context.h"
+#include "mint/compiler/parser_data.h"
+
+namespace mint {
+
+using token_t = std::string;
+using data_t = ParserData;
+using call_t = BuildContext::Call;
+
+}
+}
+
+%code {
+#include "mint/compiler/build_context.h"
 #include "mint/compiler/compiler.h"
+#include "mint/compiler/parser_data.h"
 #include <memory>
-
-#define yylex context.next_token
 
 using namespace mint;
 
-%}
+parser::symbol_type yylex(mint::BuildContext& context);
+}
 
-%define api.namespace {mint}
-%define api.value.type {std::string}
-%parse-param {mint::BuildContext& context}
+%token <token_t> assert_token
+%token <token_t> async_token
+%token <token_t> break_token
+%token <token_t> case_token
+%token <token_t> catch_token
+%token <token_t> class_token
+%token <token_t> const_token
+%token <token_t> continue_token
+%token <token_t> def_token
+%token <token_t> default_token
+%token <token_t> elif_token
+%token <token_t> else_token
+%token <token_t> enum_token
+%token <token_t> exit_token
+%token <token_t> final_token
+%token <token_t> for_token
+%token <token_t> if_token
+%token <token_t> let_token
+%token <token_t> lib_token
+%token <token_t> load_token
+%token <token_t> override_token
+%token <token_t> package_token
+%token <token_t> print_token
+%token <token_t> raise_token
+%token <token_t> return_token
+%token <token_t> switch_token
+%token <token_t> try_token
+%token <token_t> while_token
+%token <token_t> yield_token
+%token <token_t> var_token
+%token <token_t> constant_token
+%token <token_t> string_token
+%token <token_t> number_token
+%token <token_t> symbol_token
 
-%token assert_token
-%token async_token
-%token break_token
-%token case_token
-%token catch_token
-%token class_token
-%token const_token
-%token continue_token
-%token def_token
-%token default_token
-%token elif_token
-%token else_token
-%token enum_token
-%token exit_token
-%token final_token
-%token for_token
-%token if_token
-%token in_token
-%token let_token
-%token lib_token
-%token load_token
-%token override_token
-%token package_token
-%token print_token
-%token raise_token
-%token return_token
-%token switch_token
-%token try_token
-%token while_token
-%token yield_token
-%token var_token
-%token constant_token
-%token string_token
-%token number_token
-%token symbol_token
+%token <token_t> no_line_end_token
+%token <token_t> line_end_token
+%token <token_t> file_end_token
+%token <token_t> comment_token
+%token <token_t> dollar_token
+%token <token_t> at_token
+%token <token_t> sharp_token
+%token <token_t> back_slash_token
+%token <token_t> minus_right_angled_token
 
-%token no_line_end_token
-%token line_end_token
-%token file_end_token
-%token comment_token
-%token dollar_token
-%token at_token
-%token sharp_token
-%token back_slash_token
+%left <token_t> comma_token
+%left <token_t> dbl_pipe_token
+%left <token_t> dbl_amp_token
+%left <token_t> pipe_token
+%left <token_t> caret_token
+%left <token_t> amp_token
+%right <token_t> equal_token question_token colon_token colon_equal_token equal_colon_token close_bracket_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token equal_right_angled_token
+%left <token_t> dbl_equal_token exclamation_equal_token is_token in_token equal_tilde_token exclamation_tilde_token tpl_equal_token exclamation_dbl_equal_token
+%left <token_t> dbl_dot_token tpl_dot_token
+%left <token_t> left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
+%left <token_t> dbl_left_angled_token dbl_right_angled_token
+%left <token_t> plus_token minus_token
+%left <token_t> asterisk_token slash_token percent_token
+%right <token_t> prefix_dbl_plus_token prefix_dbl_minus_token prefix_plus_token prefix_minus_token exclamation_token tilde_token await_token typeof_token membersof_token defined_token
+%left <token_t> dbl_plus_token dbl_minus_token dbl_asterisk_token
+%left <token_t> dot_token question_dot_token open_parenthesis_token close_parenthesis_token open_bracket_token close_bracket_token open_brace_token close_brace_token
 
-%left comma_token
-%left dbl_pipe_token
-%left dbl_amp_token
-%left pipe_token
-%left caret_token
-%left amp_token
-%right equal_token question_token colon_token colon_equal_token equal_colon_token close_bracket_equal_token plus_equal_token minus_equal_token asterisk_equal_token slash_equal_token percent_equal_token dbl_left_angled_equal_token dbl_right_angled_equal_token amp_equal_token pipe_equal_token caret_equal_token equal_right_angled_token
-%left dbl_equal_token exclamation_equal_token is_token in_token equal_tilde_token exclamation_tilde_token tpl_equal_token exclamation_dbl_equal_token
-%left dbl_dot_token tpl_dot_token
-%left left_angled_token right_angled_token left_angled_equal_token right_angled_equal_token
-%left dbl_left_angled_token dbl_right_angled_token
-%left plus_token minus_token
-%left asterisk_token slash_token percent_token
-%right prefix_dbl_plus_token prefix_dbl_minus_token prefix_plus_token prefix_minus_token exclamation_token tilde_token await_token typeof_token membersof_token defined_token
-%left dbl_plus_token dbl_minus_token dbl_asterisk_token
-%left dot_token question_dot_token open_parenthesis_token close_parenthesis_token open_bracket_token close_bracket_token open_brace_token close_brace_token
+%type <token_t> module_name_rule module_path_rule
+%type <token_t> type_name_rule
+%type <token_t> constant_rule regex_rule
+%type <token_t> member_desc_rule
+
+%type <data_t> def_expr_rule expr_with_decl_rule cond_expr_rule generator_expr_rule def_arrow_rule expr_rule
+%type <data_t> def_signature_rule def_expr_signature_rule def_arrow_signature_rule
+%type <data_t> decl_rule explicit_decl_rule implicit_decl_rule
+%type <data_t> ident_rule member_ident_rule defined_symbol_rule
+%type <data_t> case_constant_rule
+%type <data_t> subscript_rule
+
+%type <call_t> stop_hash_rule stop_array_rule ident_iterator_end_rule create_ident_iterator_scoped_end_rule create_ident_iterator_end_rule
+%type <call_t> call_args_rule call_member_args_rule call_arg_stop_rule call_member_arg_stop_rule
+%type <call_t> case_constant_list_end_rule
 
 %%
 
@@ -188,7 +217,6 @@ stmt_rule:
 	| break_token line_end_token {
 		if (!context.is_in_loop() && !context.is_in_switch()) {
 			context.parse_error("break statement not within loop or switch");
-			YYERROR;
 		}
 		context.prepare_break();
 		context.push_node(Node::Command::jump);
@@ -198,7 +226,6 @@ stmt_rule:
 	| continue_token line_end_token {
 		if (!context.is_in_loop()) {
 			context.parse_error("continue statement not within loop");
-			YYERROR;
 		}
 		context.prepare_continue();
 		context.push_node(Node::Command::jump);
@@ -212,7 +239,7 @@ stmt_rule:
 	}
 	| print_token open_parenthesis_token expr_rule close_parenthesis_token line_end_token {
 		context.push_node(Node::Command::load_constant);
-		context.push_node(Compiler::make_number(1.));
+		context.push_node(context.compiler().make_constant<Number>(1.));
 		context.open_printer();
 		context.commit_expr_result();
 		context.close_printer();
@@ -250,7 +277,6 @@ stmt_rule:
 		}
 		else {
 			context.parse_error("unexpected 'yield' statement outside of function");
-			YYERROR;
 		}
 	}
 	| return_rule generator_expr_rule line_end_token {
@@ -307,7 +333,6 @@ stmt_rule:
 		}
 		else {
 			context.parse_error("no active exception to reraise");
-			YYERROR;
 		}
 	}
 	| raise_token line_end_token {
@@ -318,7 +343,6 @@ stmt_rule:
 		}
 		else {
 			context.parse_error("no active exception to reraise");
-			YYERROR;
 		}
 	    
 	}
@@ -328,7 +352,7 @@ stmt_rule:
 	}
 	| exit_token line_end_token {
 		context.push_node(Node::Command::load_constant);
-		context.push_node(Compiler::make_number(0.));
+		context.push_node(context.compiler().make_constant<Number>(0.));
 		context.push_node(Node::Command::exit_exec);
 		context.commit_line();
 	}
@@ -352,11 +376,11 @@ stmt_rule:
 		context.commit_expr_result();
 		context.commit_line();
 	}
-	| expr_rule line_end_token {
+	| expr_with_decl_rule line_end_token {
 		context.commit_expr_result();
 		context.commit_line();
 	}
-	| modifier_rule def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
+	| def_signature_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
 			if (!context.is_in_async_function()) {
 				context.push_node(Node::Command::exit_generator);
@@ -368,51 +392,18 @@ stmt_rule:
 		else if (!context.has_returned()) {
 			if (context.is_in_async_function()) {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::resume_coroutine);
 			}
 			else {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::exit_call);
 			}
 		}
-		const auto flags = Reference::const_address | context.retrieve_modifiers();
 		context.resolve_jump_forward();
-		context.push_node(Node::Command::declare_function);
-		context.push_node($4.c_str());
-		context.push_node(flags);
-		context.save_definition($4);
-		context.push_node(Node::Command::function_overload);
-		context.push_node(Node::Command::unload_reference);
-	}
-	| def_start_rule def_capture_rule symbol_token def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		const auto flags = Reference::const_address;
-		context.resolve_jump_forward();
-		context.push_node(Node::Command::declare_function);
-		context.push_node($3.c_str());
-		context.push_node(flags);
-		context.save_definition($3);
+		context.register_function_description();
+		context.resolve_function_description();
 		context.push_node(Node::Command::function_overload);
 		context.push_node(Node::Command::unload_reference);
 	}
@@ -467,6 +458,40 @@ module_path_rule:
 		$$ = $1 + $2 + $3;
 	};
 
+type_name_rule:
+	symbol_token {
+		$$ = $1;
+	}
+	| type_name_rule dot_token symbol_token {
+		$$ = $1 + $2 + $3;
+	};
+
+type_annotation_rule:
+	type_name_rule {
+		context.start_type_annotation(make_type_annotation($1));
+	}
+	| type_annotation_rule pipe_token type_name_rule {
+		context.add_type_annotation(make_type_annotation($3));
+	};
+
+def_signature_rule:
+	modifier_rule def_start_rule def_capture_rule symbol_token def_args_rule {
+		const auto type = context.retrieve_type_annotation();
+		const auto flags = Reference::const_address | context.retrieve_modifiers();
+		$$ = context.save_function_signatures($4, type, flags);
+	}
+	| def_start_rule def_capture_rule symbol_token def_args_rule {
+		const auto type = context.retrieve_type_annotation();
+		const auto flags = Reference::const_address;
+		$$ = context.save_function_signatures($3, type, flags);
+	};
+
+decl_type_rule:
+	colon_token type_annotation_rule
+	| %empty {
+		context.start_type_annotation({});
+	};
+
 package_rule:
     package_token symbol_token {
 		context.open_package($2);
@@ -487,7 +512,7 @@ class_rule:
 
 parent_rule:
     colon_token parent_list_rule
-	| ;
+	| %empty;
 
 parent_list_rule:
 	parent_ident_rule {
@@ -563,60 +588,51 @@ desc_list_rule:
 
 desc_rule:
     member_desc_rule line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), Compiler::make_none())) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_data<None>());
 		context.commit_line();
 	}
 	| member_desc_rule equal_token constant_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_data($3, Compiler::DataHint::data_unknown_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_data($3, Compiler::DataHint::data_unknown_hint));
 		context.commit_line();
 	}
 	| member_desc_rule equal_token string_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_data($3, Compiler::DataHint::data_string_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_data($3, Compiler::DataHint::data_string_hint));
 		context.commit_line();
 	}
 	| member_desc_rule equal_token regex_rule line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_data($3, Compiler::DataHint::data_regex_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_data($3, Compiler::DataHint::data_regex_hint));
 		context.commit_line();
 	}
 	| member_desc_rule equal_token regex_rule regex_rule symbol_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_data($3 + $4, Compiler::DataHint::data_regex_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_data($3 + $4, Compiler::DataHint::data_regex_hint));
 		context.commit_line();
 	}
 	| member_desc_rule equal_token number_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_data($3, Compiler::DataHint::data_number_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_data($3, Compiler::DataHint::data_number_hint));
 		context.commit_line();
 	}
 	| member_desc_rule equal_token open_bracket_token close_bracket_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_array())) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_data<Array>());
 		context.commit_line();
 	}
 	| member_desc_rule equal_token open_brace_token close_brace_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_hash())) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_data<Hash>());
 		context.commit_line();
 	}
 	| member_desc_rule equal_token lib_token open_parenthesis_token string_token close_parenthesis_token line_end_token {
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.compiler().make_library($5))) {
-			YYERROR;
-		}
+		context.create_attribute($1, context.retrieve_type_annotation(), context.retrieve_modifiers(),
+		    context.compiler().make_data<Library>($5));
 		context.commit_line();
 	}
-	| member_desc_rule equal_token def_start_rule def_args_rule stmt_bloc_rule {
+	| member_def_signature_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
 			if (!context.is_in_async_function()) {
 				context.push_node(Node::Command::exit_generator);
@@ -628,211 +644,17 @@ desc_rule:
 		else if (!context.has_returned()) {
 			if (context.is_in_async_function()) {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::resume_coroutine);
 			}
 			else {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::exit_call);
 			}
 		}
 		context.resolve_jump_forward();
-
-		if (!context.create_member(context.retrieve_modifiers(), Symbol($1), context.retrieve_definition($1))) {
-			YYERROR;
-		}
-	}
-	| member_desc_rule plus_equal_token def_start_rule def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (!context.update_member(context.retrieve_modifiers(), Symbol($1), context.retrieve_definition($1))) {
-			YYERROR;
-		}
-	}
-	| def_start_rule symbol_token def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (!context.update_member(Reference::default_flags, Symbol($2), context.retrieve_definition($2))) {
-			YYERROR;
-		}
-	}
-	| def_start_rule await_token def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (!context.update_member(Reference::default_flags, Symbol($2), context.retrieve_definition($2))) {
-			YYERROR;
-		}
-	}
-	| def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (const auto symbol = context.retrieve_operator_symbol();
-		    !context.update_member(Reference::default_flags, symbol, context.retrieve_definition(symbol.str()))) {
-			YYERROR;
-		}
-	}
-	| desc_modifier_rule def_start_rule symbol_token def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (!context.update_member(context.retrieve_modifiers(), Symbol($3), context.retrieve_definition($3))) {
-			YYERROR;
-		}
-	}
-	| desc_modifier_rule def_start_rule await_token def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (!context.update_member(context.retrieve_modifiers(), Symbol($3), context.retrieve_definition($3))) {
-			YYERROR;
-		}
-	}
-	| desc_modifier_rule def_start_rule operator_desc_rule def_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-
-		if (const auto symbol = context.retrieve_operator_symbol();
-		    !context.update_member(context.retrieve_modifiers(), symbol, context.retrieve_definition(symbol.str()))) {
-			YYERROR;
-		}
+		context.resolve_method_description();
 	}
 	| member_class_desc_rule
 	| member_enum_desc_rule
@@ -840,12 +662,40 @@ desc_rule:
 		context.commit_line();
 	};
 
+member_def_signature_rule:
+	member_desc_rule equal_token def_start_rule def_args_rule {
+		// TODO: reset method signature ?
+		context.save_method_signature($1, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| member_desc_rule plus_equal_token def_start_rule def_args_rule {
+		context.save_method_signature($1, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| def_start_rule symbol_token def_args_rule {
+		context.save_method_signature($2, context.retrieve_type_annotation());
+	}
+	| def_start_rule await_token def_args_rule {
+		context.save_method_signature($2, context.retrieve_type_annotation());
+	}
+	| def_start_rule operator_desc_rule def_args_rule {
+		context.save_method_signature(context.retrieve_operator(), context.retrieve_type_annotation());
+	}
+	| desc_modifier_rule def_start_rule symbol_token def_args_rule {
+		context.save_method_signature($3, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| desc_modifier_rule def_start_rule await_token def_args_rule {
+		context.save_method_signature($3, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| desc_modifier_rule def_start_rule operator_desc_rule def_args_rule {
+		context.save_method_signature(context.retrieve_operator(), context.retrieve_type_annotation(),
+		    context.retrieve_modifiers());
+	};
+
 member_desc_rule:
-    symbol_token {
+    symbol_token decl_type_rule {
 		context.start_modifiers(Reference::default_flags);
 		$$ = $1;
 	}
-	| desc_modifier_rule symbol_token {
+	| desc_modifier_rule symbol_token decl_type_rule {
 		$$ = $2;
 	};
 
@@ -1006,16 +856,15 @@ enum_list_rule:
 enum_item_rule:
     symbol_token equal_token number_token {
 		constexpr auto flags = Reference::const_value | Reference::const_address | Reference::global;
-		if (!context.create_member(flags, Symbol($1), context.compiler().make_data($3, Compiler::DataHint::data_number_hint))) {
-			YYERROR;
-		}
-		context.set_current_enum_value(atoi($3.c_str()));
+		context.create_attribute($1, PrimitiveTypeKind::number, flags,
+		    context.compiler().make_data($3, Compiler::DataHint::data_number_hint));
+		context.set_current_enum_value(std::stoi($3));
 	}
 	| symbol_token {
 		constexpr auto flags = Reference::const_value | Reference::const_address | Reference::global;
-		if (!context.create_member(flags, Symbol($1), context.compiler().make_data(std::to_string(context.next_enum_value()), Compiler::DataHint::data_number_hint))) {
-			YYERROR;
-		}
+		context.create_attribute($1, PrimitiveTypeKind::number, flags,
+		    context.compiler().make_data(std::to_string(context.next_enum_value()),
+			Compiler::DataHint::data_number_hint));
 	}
 	| line_end_token {
 		context.commit_line();
@@ -1032,23 +881,27 @@ generator_expr_rule:
 		context.resolve_jump_forward();
 		context.close_block();
 		context.close_generator_expression();
+		$$ = {}; // TODO: build from statements
 	}
 	| open_parenthesis_token if_generator_bloc_rule else_rule generator_stmt_bloc_rule close_parenthesis_token {
 		context.reset_scoped_symbols();
 		context.resolve_jump_forward();
 		context.close_block();
 		context.close_generator_expression();
+		$$ = {}; // TODO: build from statements
 	}
 	| open_parenthesis_token if_generator_bloc_rule elif_generator_bloc_rule close_parenthesis_token {
 		context.resolve_jump_forward();
 		context.close_block();
 		context.close_generator_expression();
+		$$ = {}; // TODO: build from statements
 	}
 	| open_parenthesis_token if_generator_bloc_rule elif_generator_bloc_rule else_rule generator_stmt_bloc_rule close_parenthesis_token {
 		context.reset_scoped_symbols();
 		context.resolve_jump_forward();
 		context.close_block();
 		context.close_generator_expression();
+		$$ = {}; // TODO: build from statements
 	}
 	| switch_cond_generator_rule open_brace_token case_list_rule close_brace_token {
 		context.reset_scoped_symbols();
@@ -1059,6 +912,7 @@ generator_expr_rule:
 		context.resolve_jump_forward();
 		context.close_block();
 		context.close_generator_expression();
+		$$ = {}; // TODO: build from statements
 	}
 	| while_cond_generator_rule generator_stmt_bloc_rule {
 		context.reset_scoped_symbols();
@@ -1067,6 +921,7 @@ generator_expr_rule:
 		context.resolve_jump_forward();
 		context.close_block();
 		context.close_generator_expression();
+		$$ = {}; // TODO: build from statements
 	}
 	| for_cond_generator_rule generator_stmt_bloc_rule {
 		context.reset_scoped_symbols();
@@ -1075,6 +930,7 @@ generator_expr_rule:
 		context.resolve_jump_forward();
 		context.close_block();
 		context.close_generator_expression();
+		$$ = {}; // TODO: build from statements
 	};
 
 try_rule:
@@ -1165,7 +1021,6 @@ stmt_bloc_rule:
 		}
 		else {	
 			context.parse_error("unexpected 'yield' statement outside of function");
-			YYERROR;
 		}
 	}
 	| open_brace_token return_rule generator_expr_rule close_brace_token {
@@ -1218,7 +1073,6 @@ stmt_bloc_rule:
 		}
 		else {
 			context.parse_error("no active exception to reraise");
-			YYERROR;
 		}
 	}
 	| open_brace_token raise_token close_brace_token {
@@ -1228,7 +1082,6 @@ stmt_bloc_rule:
 		}
 		else {
 			context.parse_error("no active exception to reraise");
-			YYERROR;
 		}
 	}
 	| open_brace_token expr_rule close_brace_token {
@@ -1244,7 +1097,7 @@ generator_stmt_bloc_rule:
 	| stmt_bloc_rule;
 
 if_cond_rule:
-	if_rule expr_rule {
+	if_rule cond_expr_rule {
 		context.resolve_condition();
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
@@ -1252,7 +1105,7 @@ if_cond_rule:
 	};
 
 if_cond_generator_rule:
-	if_generator_rule expr_rule {
+	if_generator_rule cond_expr_rule {
 		context.resolve_condition();
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
@@ -1260,7 +1113,7 @@ if_cond_generator_rule:
 	};
 
 elif_cond_rule:
-	elif_rule expr_rule {
+	elif_rule cond_expr_rule {
 		context.resolve_condition();
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
@@ -1300,13 +1153,13 @@ else_rule:
 	};
 
 switch_cond_rule:
-	switch_rule expr_rule {
+	switch_rule cond_expr_rule {
 		context.resolve_condition();
 		context.open_block(BuildContext::BlockType::switch_type);
 	};
 
 switch_cond_generator_rule:
-	switch_expr_rule expr_rule {
+	switch_expr_rule cond_expr_rule {
 		context.resolve_condition();
 		context.open_block(BuildContext::BlockType::switch_type);
 	};
@@ -1331,77 +1184,86 @@ case_symbol_rule:
     symbol_token {
 		context.push_node(Node::Command::load_symbol);
 		context.push_node($1.c_str());
-		$$ = $1;
+		context.add_to_case_label($1);
 	}
 	| case_symbol_rule dot_token symbol_token {
 		context.push_node(Node::Command::load_member);
 		context.push_node($3.c_str());
-		$$ = $1 + $2 + $3;
+		context.add_to_case_label($2);
+		context.add_to_case_label($3);
 	};
 
 case_constant_rule:
 	constant_rule {
-		if (Data *data = context.compiler().make_data($1, Compiler::DataHint::data_unknown_hint)) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(*data);
-			$$ = $1;
-		}
-		else {
-			error("token '" + $1 + "' is not a valid constant");
-			YYERROR;
-		}
+		auto* data = context.compiler().make_data($1, Compiler::DataHint::data_unknown_hint);
+		context.push_node(Node::Command::load_constant);
+		context.push_node(data);
+		context.add_to_case_label($1);
+		$$ = to_parser_data(data);
 	}
 	| plus_token number_token {
-		if (Data *data = context.compiler().make_data($2, Compiler::DataHint::data_number_hint)) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(*data);
-			context.push_node(Node::Command::pos_operator);
-			$$ = $2;
-		}
-		else {
-			error("token '" + $2 + "' is not a valid constant");
-			YYERROR;
-		}
+		auto* data = context.compiler().make_data($2, Compiler::DataHint::data_number_hint);
+		context.push_node(Node::Command::load_constant);
+		context.push_node(data);
+		context.push_node(Node::Command::pos_operator);
+		context.add_to_case_label($2);
+		$$ = to_parser_data(data);
 	}
 	| minus_token number_token {
-		if (Data *data = context.compiler().make_data($2, Compiler::DataHint::data_number_hint)) {
-			context.push_node(Node::Command::load_constant);
-			context.push_node(*data);
-			context.push_node(Node::Command::neg_operator);
-			$$ = $1 + $2;
-		}
-		else {
-			error("token '" + $2 + "' is not a valid constant");
-			YYERROR;
-		}
+		auto* data = context.compiler().make_data($2, Compiler::DataHint::data_number_hint);
+		context.push_node(Node::Command::load_constant);
+		context.push_node(data);
+		context.push_node(Node::Command::neg_operator);
+		context.add_to_case_label($1);
+		context.add_to_case_label($2);
+		$$ = to_parser_data(data);
+	};
+
+case_in_rule:
+	in_token {
+		context.add_to_case_label($1);
+	};
+
+case_inclusive_range_rule:
+	dbl_dot_token {
+		context.add_to_case_label($1);
+	};
+
+case_exclusive_range_rule:
+	tpl_dot_token {
+		context.add_to_case_label($1);
+	};
+
+case_is_rule:
+	is_token {
+		context.add_to_case_label($1);
 	};
 
 case_constant_list_rule:
     case_constant_list_rule case_constant_rule comma_token {
-		context.add_to_call();
-		$$ = $1 + $2 + $3;
+		context.add_to_call($2);
+		context.add_to_case_label($3);
 	}
 	| case_constant_rule comma_token {
 		context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
-		context.add_to_call();
-		$$ = $1 + $2;
+		context.add_to_call($1);
+		context.add_to_case_label($2);
 	};
 
 case_constant_list_end_rule:
 	case_constant_rule {
 		context.push_node(Node::Command::init_iterator);
-		context.add_to_call();
-		context.resolve_call();
-		$$ = $1;
+		context.add_to_call($1);
+		$$ = context.resolve_call();
 	}
-	| {
+	| %empty {
 		context.push_node(Node::Command::init_iterator);
-		context.resolve_call();
+		$$ = context.resolve_call();
 	};
 
 case_label_rule:
-    case_rule in_token case_constant_rule dbl_dot_token case_constant_rule {
+    case_rule case_in_rule case_constant_rule case_inclusive_range_rule case_constant_rule {
 		context.push_node(Node::Command::inclusive_range_operator);
 		context.start_jump_backward();
 		context.push_node(Node::Command::find_next);
@@ -1410,9 +1272,9 @@ case_label_rule:
 		context.push_node(Node::Command::jump);
 		context.resolve_jump_backward();
 		context.resolve_jump_forward();
-		context.resolve_case_label($3 + $4 + $5);
+		context.resolve_case_label();
 	}
-	| case_rule in_token case_constant_rule tpl_dot_token case_constant_rule {
+	| case_rule case_in_rule case_constant_rule case_exclusive_range_rule case_constant_rule {
 		context.push_node(Node::Command::exclusive_range_operator);
 		context.start_jump_backward();
 		context.push_node(Node::Command::find_next);
@@ -1421,9 +1283,9 @@ case_label_rule:
 		context.push_node(Node::Command::jump);
 		context.resolve_jump_backward();
 		context.resolve_jump_forward();
-		context.resolve_case_label($3 + $4 + $5);
+		context.resolve_case_label();
 	}
-	| case_rule in_token case_constant_list_rule case_constant_list_end_rule {
+	| case_rule case_in_rule case_constant_list_rule case_constant_list_end_rule {
 		context.start_jump_backward();
 		context.push_node(Node::Command::find_next);
 		context.push_node(Node::Command::find_check);
@@ -1431,9 +1293,9 @@ case_label_rule:
 		context.push_node(Node::Command::jump);
 		context.resolve_jump_backward();
 		context.resolve_jump_forward();
-		context.resolve_case_label($3 + $4);
+		context.resolve_case_label();
 	}
-	| case_rule in_token case_constant_rule {
+	| case_rule case_in_rule case_constant_rule {
 		context.push_node(Node::Command::find_operator);
 		context.push_node(Node::Command::find_init);
 		context.start_jump_backward();
@@ -1443,9 +1305,9 @@ case_label_rule:
 		context.push_node(Node::Command::jump);
 		context.resolve_jump_backward();
 		context.resolve_jump_forward();
-		context.resolve_case_label($3);
+		context.resolve_case_label();
 	}
-	| case_rule in_token case_symbol_rule {
+	| case_rule case_in_rule case_symbol_rule {
 		context.push_node(Node::Command::find_operator);
 		context.push_node(Node::Command::find_init);
 		context.start_jump_backward();
@@ -1455,23 +1317,23 @@ case_label_rule:
 		context.push_node(Node::Command::jump);
 		context.resolve_jump_backward();
 		context.resolve_jump_forward();
-		context.resolve_case_label($3);
+		context.resolve_case_label();
 	}
-	| case_rule is_token case_constant_rule {
+	| case_rule case_is_rule case_constant_rule {
 		context.push_node(Node::Command::is_operator);
-		context.resolve_case_label($3);
+		context.resolve_case_label();
 	}
-	| case_rule is_token case_symbol_rule {
+	| case_rule case_is_rule case_symbol_rule {
 		context.push_node(Node::Command::is_operator);
-		context.resolve_case_label($3);
+		context.resolve_case_label();
 	}
 	| case_rule case_constant_rule {
 		context.push_node(Node::Command::eq_operator);
-		context.resolve_case_label($2);
+		context.resolve_case_label();
 	}
 	| case_rule case_symbol_rule {
 		context.push_node(Node::Command::eq_operator);
-		context.resolve_case_label($2);
+		context.resolve_case_label();
 	};
 
 default_rule:
@@ -1537,7 +1399,7 @@ case_list_rule:
 	};
 
 while_cond_rule:
-    while_rule expr_rule {
+    while_rule cond_expr_rule {
 		context.resolve_condition();
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
@@ -1545,7 +1407,7 @@ while_cond_rule:
 	};
 
 while_cond_generator_rule:
-	while_expr_rule expr_rule {
+	while_expr_rule cond_expr_rule {
 		context.resolve_condition();
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
@@ -1641,13 +1503,13 @@ for_rule:
 	};
 
 for_in_expr_rule:
-    for_expr_rule ident_rule in_token {
+    for_expr_rule decl_rule in_token {
 		context.resolve_range_loop();
 		context.start_condition();
 	};
 
 for_in_rule:
-    for_rule ident_rule in_token {
+    for_rule decl_rule in_token {
 		context.resolve_range_loop();
 		context.start_condition();
 	};
@@ -1673,7 +1535,7 @@ for_iterator_in_rule:
 	};
 
 range_init_rule:
-    expr_rule comma_token {
+    expr_with_decl_rule comma_token {
 		context.push_node(Node::Command::unload_reference);
 		context.push_node(Node::Command::jump);
 		context.start_jump_forward();
@@ -1684,7 +1546,7 @@ range_init_rule:
 	};
 
 range_cond_rule:
-	expr_rule comma_token {
+	cond_expr_rule comma_token {
 		context.push_node(Node::Command::zero_jump);
 		context.start_jump_forward();
 		context.close_sub_branch();
@@ -1701,7 +1563,6 @@ return_rule:
     return_token {
 		if (!context.is_in_function()) {
 			context.parse_error("unexpected 'return' statement outside of function");
-			YYERROR;
 		}
 		context.prepare_return();
 	};
@@ -1715,15 +1576,15 @@ start_hash_rule:
 stop_hash_rule:
     close_brace_token {
 		context.push_node(Node::Command::init_hash);
-		context.resolve_call();
+		$$ = context.resolve_call();
 	};
 
 hash_item_rule:
     hash_item_rule separator_rule expr_rule colon_token expr_rule {
-		context.add_to_call();
+		context.add_to_call($3);
 	}
 	| expr_rule colon_token expr_rule {
-		context.add_to_call();
+		context.add_to_call($1);
 	};
 
 start_array_rule:
@@ -1735,7 +1596,7 @@ start_array_rule:
 stop_array_rule:
     close_bracket_token {
 		context.push_node(Node::Command::init_array);
-		context.resolve_call();
+		$$ = context.resolve_call();
 	};
 
 array_item_list_rule:
@@ -1744,7 +1605,7 @@ array_item_list_rule:
 
 array_item_rule:
 	expr_rule {
-		context.add_to_call();
+		context.add_to_call($1);
 	}
 	| asterisk_token expr_rule {
 		context.push_node(Node::Command::in_operator);
@@ -1760,12 +1621,12 @@ array_item_rule:
 
 iterator_item_rule:
 	iterator_item_rule expr_rule separator_rule {
-		context.add_to_call();
+		context.add_to_call($2);
 	}
 	| expr_rule separator_rule {
 		context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
-		context.add_to_call();
+		context.add_to_call($1);
 	}
 	| iterator_item_rule asterisk_token expr_rule separator_rule {
 		context.push_node(Node::Command::in_operator);
@@ -1791,33 +1652,33 @@ iterator_item_rule:
 iterator_end_rule:
 	expr_rule {
 		context.push_node(Node::Command::init_iterator);
-		context.add_to_call();
+		context.add_to_call($1);
 		context.resolve_call();
 	}
-	| {
+	| %empty {
 		context.push_node(Node::Command::init_iterator);
 		context.resolve_call();
 	};
 
 ident_iterator_item_rule:
-	ident_iterator_item_rule ident_rule separator_rule {
-		context.add_to_call();
+	ident_iterator_item_rule decl_rule separator_rule {
+		context.add_to_call($2);
 	}
-	| ident_rule separator_rule {
+	| decl_rule separator_rule {
 		context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
-		context.add_to_call();
+		context.add_to_call($1);
 	};
 
 ident_iterator_end_rule:
-	ident_rule {
+	decl_rule {
 		context.push_node(Node::Command::init_iterator);
-		context.add_to_call();
-		context.resolve_call();
+		context.add_to_call($1);
+		$$ = context.resolve_call();
 	}
-	| {
+	| %empty {
 		context.push_node(Node::Command::init_iterator);
-		context.resolve_call();
+		$$ = context.resolve_call();
 	};
 
 let_modifier_rule:
@@ -1831,109 +1692,43 @@ create_ident_iterator_rule:
 	| modifier_rule create_ident_iterator_item_rule create_ident_iterator_end_rule;
 
 create_ident_iterator_scoped_item_rule:
-    create_ident_iterator_scoped_item_rule symbol_token comma_token {
-		const auto index = context.create_fast_scoped_symbol_index($2);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($2.c_str());
-			context.push_node(index);
-			context.push_node(context.get_modifiers());
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($2.c_str());
-			context.push_node(context.get_modifiers());
-		}
-		context.add_to_call();
+    create_ident_iterator_scoped_item_rule symbol_token decl_type_rule comma_token {
+		auto param = context.create_fast_scoped_symbol($2, context.retrieve_type_annotation(), context.get_modifiers());
+		context.add_to_call(param);
 	}
-	| open_parenthesis_token symbol_token comma_token {
+	| open_parenthesis_token symbol_token decl_type_rule comma_token {
 		context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
-		const auto index = context.create_fast_scoped_symbol_index($2);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($2.c_str());
-			context.push_node(index);
-			context.push_node(context.get_modifiers());
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($2.c_str());
-			context.push_node(context.get_modifiers());
-		}
-		context.add_to_call();
+		auto param = context.create_fast_scoped_symbol($2, context.retrieve_type_annotation(), context.get_modifiers());
+		context.add_to_call(param);
 	};
 
 create_ident_iterator_scoped_end_rule:
-    symbol_token close_parenthesis_token {
-		const auto index = context.create_fast_scoped_symbol_index($1);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($1.c_str());
-			context.push_node(index);
-			context.push_node(context.retrieve_modifiers());
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($1.c_str());
-			context.push_node(context.retrieve_modifiers());
-		}
+    symbol_token decl_type_rule close_parenthesis_token {
+		auto param = context.create_fast_scoped_symbol($1, context.retrieve_type_annotation(), context.retrieve_modifiers());
 		context.push_node(Node::Command::init_iterator);
-		context.add_to_call();
-		context.resolve_call();
+		context.add_to_call(param);
+		$$ = context.resolve_call();
 	};
 
 create_ident_iterator_item_rule:
-    create_ident_iterator_item_rule symbol_token comma_token {
-		const auto index = context.create_fast_symbol_index($2);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($2.c_str());
-			context.push_node(index);
-			context.push_node(context.get_modifiers());
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($2.c_str());
-			context.push_node(context.get_modifiers());
-		}
-		context.add_to_call();
+    create_ident_iterator_item_rule symbol_token decl_type_rule comma_token {
+		auto param = context.create_fast_symbol($2, context.retrieve_type_annotation(), context.get_modifiers());
+		context.add_to_call(param);
 	}
-	| open_parenthesis_token symbol_token comma_token {
+	| open_parenthesis_token symbol_token decl_type_rule comma_token {
 		context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
-		const auto index = context.create_fast_symbol_index($2);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($2.c_str());
-			context.push_node(index);
-			context.push_node(context.get_modifiers());
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($2.c_str());
-			context.push_node(context.get_modifiers());
-		}
-		context.add_to_call();
+		auto param = context.create_fast_symbol($2, context.retrieve_type_annotation(), context.get_modifiers());
+		context.add_to_call(param);
 	};
 
 create_ident_iterator_end_rule:
-    symbol_token close_parenthesis_token {
-		const auto index = context.create_fast_symbol_index($1);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($1.c_str());
-			context.push_node(index);
-			context.push_node(context.retrieve_modifiers());
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($1.c_str());
-			context.push_node(context.retrieve_modifiers());
-		}
+    symbol_token decl_type_rule close_parenthesis_token {
+		auto param = context.create_fast_symbol($1, context.retrieve_type_annotation(), context.retrieve_modifiers());
 		context.push_node(Node::Command::init_iterator);
-		context.add_to_call();
-		context.resolve_call();
+		context.add_to_call(param);
+		$$ = context.resolve_call();
 	};
 
 print_stmt_sep_rule:
@@ -1946,57 +1741,163 @@ print_bloc_target_rule:
 		context.open_printer();
 		context.open_block(BuildContext::BlockType::print_type);
 	}
-	| {
+	| %empty {
 		context.push_node(Node::Command::load_constant);
-		context.push_node(Compiler::make_number(1.));
+		context.push_node(context.compiler().make_constant<Number>(1.));
 		context.open_printer();
 		context.open_block(BuildContext::BlockType::print_type);
 	};
 
+expr_with_decl_rule:
+	explicit_decl_rule equal_token generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1, $3);
+		context.push_node(Node::Command::move_operator);
+	}
+	| explicit_decl_rule equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1, $3);
+		context.push_node(Node::Command::move_operator);
+	}
+	| explicit_decl_rule colon_equal_token generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $1, $3);
+		context.push_node(Node::Command::copy_operator);
+	}
+	| explicit_decl_rule colon_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $1, $3);
+		context.push_node(Node::Command::copy_operator);
+	}
+	| explicit_decl_rule equal_colon_token {
+	    context.push_node(Node::Command::alloc_iterator);
+		context.start_call();
+		context.add_to_call($1);
+		context.push_node(Node::Command::init_iterator);
+		context.resolve_call();
+	} generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $1, $4);
+	    context.push_node(Node::Command::copy_operator);
+	}
+	| expr_rule {
+		$$ = $1;
+	};
+
+cond_expr_rule:
+	defined_token explicit_decl_rule equal_token generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $2, $4);
+		context.push_node(Node::Command::move_operator);
+		context.push_node(Node::Command::check_defined);
+	}
+	| defined_token explicit_decl_rule equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $2, $4);
+		context.push_node(Node::Command::move_operator);
+		context.push_node(Node::Command::check_defined);
+	}
+	| defined_token explicit_decl_rule colon_equal_token generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $2, $4);
+		context.push_node(Node::Command::copy_operator);
+		context.push_node(Node::Command::check_defined);
+	}
+	| defined_token explicit_decl_rule colon_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $2, $4);
+		context.push_node(Node::Command::copy_operator);
+		context.push_node(Node::Command::check_defined);
+	}
+	| defined_token explicit_decl_rule equal_colon_token {
+	    context.push_node(Node::Command::alloc_iterator);
+		context.start_call();
+		context.add_to_call($2);
+		context.push_node(Node::Command::init_iterator);
+		context.resolve_call();
+	} generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $2, $5);
+	    context.push_node(Node::Command::copy_operator);
+		context.push_node(Node::Command::check_defined);
+	}
+	| explicit_decl_rule equal_token generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1, $3);
+		context.push_node(Node::Command::move_operator);
+	}
+	| explicit_decl_rule equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1, $3);
+		context.push_node(Node::Command::move_operator);
+	}
+	| explicit_decl_rule colon_equal_token generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $1, $3);
+		context.push_node(Node::Command::copy_operator);
+	}
+	| explicit_decl_rule colon_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $1, $3);
+		context.push_node(Node::Command::copy_operator);
+	}
+	| explicit_decl_rule equal_colon_token {
+	    context.push_node(Node::Command::alloc_iterator);
+		context.start_call();
+		context.add_to_call($1);
+		context.push_node(Node::Command::init_iterator);
+		context.resolve_call();
+	} generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $1, $4);
+	    context.push_node(Node::Command::copy_operator);
+	}
+	| expr_rule {
+		$$ = $1;
+	};
+
 expr_rule:
     expr_rule equal_token generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1, $3);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1, $3);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule colon_equal_token generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $1, $3);
 		context.push_node(Node::Command::copy_operator);
 	}
 	| expr_rule colon_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $1, $3);
 		context.push_node(Node::Command::copy_operator);
 	}
 	| expr_rule equal_colon_token {
 	    context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
-		context.add_to_call();
+		context.add_to_call($1);
 		context.push_node(Node::Command::init_iterator);
 		context.resolve_call();
 	} generator_expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::copy_operator, $1, $4);
 	    context.push_node(Node::Command::copy_operator);
 	}
 	| expr_rule plus_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::add_operator, $1, $3);
 		context.push_node(Node::Command::add_operator);
 	}
 	| expr_rule minus_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::sub_operator, $1, $3);
 		context.push_node(Node::Command::sub_operator);
 	}
 	| expr_rule asterisk_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::mul_operator, $1, $3);
 		context.push_node(Node::Command::mul_operator);
 	}
 	| expr_rule slash_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::div_operator, $1, $3);
 		context.push_node(Node::Command::div_operator);
 	}
 	| expr_rule percent_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::mod_operator, $1, $3);
 		context.push_node(Node::Command::mod_operator);
 	}
 	| expr_rule dbl_asterisk_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::pow_operator, $1, $3);
 		context.push_node(Node::Command::pow_operator);
 	}
 	| expr_rule is_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::is_operator, $1, $3);
 		context.push_node(Node::Command::is_operator);
 	}
 	| expr_rule in_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::in_operator, $1, $3);
 		context.push_node(Node::Command::find_operator);
 		context.push_node(Node::Command::find_init);
 		context.start_jump_backward();
@@ -2008,6 +1909,7 @@ expr_rule:
 		context.resolve_jump_forward();
 	}
 	| expr_rule exclamation_token in_token expr_rule %prec in_token {
+		$$ = context.check_operation(BuildContext::BinaryOperation::in_operator, $1, $4);
 		context.push_node(Node::Command::find_operator);
 		context.push_node(Node::Command::find_init);
 		context.start_jump_backward();
@@ -2020,58 +1922,74 @@ expr_rule:
 		context.push_node(Node::Command::not_operator);
 	}
 	| expr_rule dbl_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::eq_operator, $1, $3);
 		context.push_node(Node::Command::eq_operator);
 	}
 	| expr_rule exclamation_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::ne_operator, $1, $3);
 		context.push_node(Node::Command::ne_operator);
 	}
 	| expr_rule left_angled_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::lt_operator, $1, $3);
 		context.push_node(Node::Command::lt_operator);
 	}
 	| expr_rule right_angled_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::gt_operator, $1, $3);
 		context.push_node(Node::Command::gt_operator);
 	}
 	| expr_rule left_angled_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::le_operator, $1, $3);
 		context.push_node(Node::Command::le_operator);
 	}
 	| expr_rule right_angled_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::ge_operator, $1, $3);
 		context.push_node(Node::Command::ge_operator);
 	}
 	| expr_rule dbl_left_angled_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::shift_left_operator, $1, $3);
 		context.push_node(Node::Command::shift_left_operator);
 	}
 	| expr_rule dbl_right_angled_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::shift_right_operator, $1, $3);
 		context.push_node(Node::Command::shift_right_operator);
 	}
 	| expr_rule dbl_dot_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::inclusive_range_operator, $1, $3);
 		context.push_node(Node::Command::inclusive_range_operator);
 	}
 	| expr_rule tpl_dot_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::exclusive_range_operator, $1, $3);
 		context.push_node(Node::Command::exclusive_range_operator);
 	}
 	| dbl_plus_token expr_rule %prec prefix_dbl_plus_token {
+		$$ = context.check_operation(BuildContext::UnaryOperation::inc_operator, $2);
 		context.push_node(Node::Command::inc_operator);
 	}
 	| dbl_minus_token expr_rule %prec prefix_dbl_minus_token {
+		$$ = context.check_operation(BuildContext::UnaryOperation::dec_operator, $2);
 		context.push_node(Node::Command::dec_operator);
 	}
 	| expr_rule dbl_plus_token {
+		$$ = context.check_operation(BuildContext::UnaryOperation::inc_operator, $1);
 	    context.push_node(Node::Command::clone_reference);
 		context.push_node(Node::Command::inc_operator);
 		context.push_node(Node::Command::unload_reference);
 	}
 	| expr_rule dbl_minus_token {
+		$$ = context.check_operation(BuildContext::UnaryOperation::dec_operator, $1);
 	    context.push_node(Node::Command::clone_reference);
 		context.push_node(Node::Command::dec_operator);
 		context.push_node(Node::Command::unload_reference);
 	}
 	| exclamation_token expr_rule {
+		$$ = context.check_operation(BuildContext::UnaryOperation::not_operator, $2);
 		context.push_node(Node::Command::not_operator);
 	}
 	| expr_rule dbl_pipe_token {
 		context.push_node(Node::Command::or_pre_check);
 		context.start_jump_forward();
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::or_operator, $1, $4);
 		context.push_node(Node::Command::or_operator);
 		context.resolve_jump_forward();
 	}
@@ -2079,126 +1997,214 @@ expr_rule:
 		context.push_node(Node::Command::and_pre_check);
 		context.start_jump_forward();
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::and_operator, $1, $4);
 		context.push_node(Node::Command::and_operator);
 		context.resolve_jump_forward();
 	}
 	| expr_rule pipe_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::bor_operator, $1, $3);
 		context.push_node(Node::Command::bor_operator);
 	}
 	| expr_rule amp_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::band_operator, $1, $3);
 		context.push_node(Node::Command::band_operator);
 	}
 	| expr_rule caret_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::xor_operator, $1, $3);
 		context.push_node(Node::Command::xor_operator);
 	}
 	| tilde_token expr_rule {
+		$$ = context.check_operation(BuildContext::UnaryOperation::compl_operator, $2);
 		context.push_node(Node::Command::compl_operator);
 	}
 	| plus_token expr_rule %prec prefix_plus_token {
+		$$ = context.check_operation(BuildContext::UnaryOperation::pos_operator, $2);
 		context.push_node(Node::Command::pos_operator);
 	}
 	| minus_token expr_rule %prec prefix_minus_token {
+		$$ = context.check_operation(BuildContext::UnaryOperation::neg_operator, $2);
 		context.push_node(Node::Command::neg_operator);
 	}
 	| await_token expr_rule {
+		$$ = context.check_operation(BuildContext::UnaryOperation::await_operator, $2);
 		if (context.is_in_async_function()) {
 			context.push_node(Node::Command::await);
 		}
 		else {
 			context.parse_error("unexpected 'await' statement outside of async function");
-			YYERROR;
 		}
 	}
 	| typeof_token expr_rule {
+		$$ = context.check_operation(BuildContext::UnaryOperation::typeof_operator, $2);
 		context.push_node(Node::Command::typeof_operator);
 	}
 	| membersof_token expr_rule {
+		$$ = context.check_operation(BuildContext::UnaryOperation::membersof_operator, $2);
 		context.push_node(Node::Command::membersof_operator);
 	}
 	| defined_token defined_symbol_rule {
+		$$ = context.check_operation(BuildContext::UnaryOperation::defined_operator, $2);
 		context.push_node(Node::Command::check_defined);
 	}
 	| expr_rule open_bracket_token expr_rule close_bracket_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::TernaryOperation::subscript_move_operator, $1, $3, $5);
 		context.push_node(Node::Command::subscript_move_operator);
 	}
-	| expr_rule subscript_rule
-	| member_ident_rule
-	| ident_rule call_args_rule
-	| def_rule call_args_rule
-	| expr_rule subscript_rule call_args_rule
-	| expr_rule dot_token call_member_args_rule
-	| expr_rule question_dot_token call_defined_member_args_rule
-	| open_parenthesis_token expr_rule close_parenthesis_token call_args_rule
+	| expr_rule subscript_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::subscript_operator, $1, $2);
+	}
+	| member_ident_rule {
+		$$ = $1;
+	}
+	| lib_start_rule call_args_rule {
+		$$ = context.check_function_call(BuiltinTypeKind::library, std::move($2));
+	}
+	| ident_rule call_args_rule {
+		$$ = context.check_function_call($1, std::move($2));
+	}
+	| def_expr_rule call_args_rule {
+		$$ = context.check_function_call($1, std::move($2));
+	}
+	| expr_rule subscript_rule call_args_rule {
+		$$ = context.check_function_call(context.check_operation(BuildContext::BinaryOperation::subscript_operator, $1, $2), std::move($3));
+	}
+	| expr_rule dot_token symbol_token {
+		context.push_node(Node::Command::init_member_call);
+		context.push_node($3.c_str());
+	} call_member_args_rule {
+		$$ = context.check_method_call(context.get_member($1, $3), std::move($5));
+	}
+	| expr_rule dot_token operator_desc_rule {
+		context.push_node(Node::Command::init_operator_call);
+		context.push_node(context.get_operator());
+	} call_member_args_rule {
+		$$ = context.check_method_call(context.get_operator($1, context.retrieve_operator()), std::move($5));
+	}
+	| expr_rule dot_token var_symbol_rule {
+		context.push_node(Node::Command::init_var_member_call);
+	} call_member_args_rule {
+		$$ = context.check_method_call(context.get_member($1, {}), std::move($5));
+	}
+    | expr_rule question_dot_token symbol_token {
+		context.push_node(Node::Command::init_defined_member_call);
+		context.push_node($3.c_str());
+		context.start_jump_forward();
+	} call_member_args_rule {
+		$$ = context.check_method_call(context.get_member($1, $3), std::move($5));
+		context.resolve_jump_forward();
+	}
+	| expr_rule question_dot_token operator_desc_rule {
+		context.push_node(Node::Command::init_defined_operator_call);
+		context.push_node(context.get_operator());
+		context.start_jump_forward();
+	} call_member_args_rule {
+		$$ = context.check_method_call(context.get_operator($1, context.retrieve_operator()), std::move($5));
+		context.resolve_jump_forward();
+	}
+	| expr_rule question_dot_token var_symbol_rule {
+		context.push_node(Node::Command::init_defined_var_member_call);
+		context.start_jump_forward();
+	} call_member_args_rule {
+		$$ = context.check_method_call(context.get_member($1, {}), std::move($5));
+		context.resolve_jump_forward();
+	}
+	| open_parenthesis_token expr_rule close_parenthesis_token call_args_rule {
+		$$ = context.check_function_call($2, std::move($4));
+	}
 	| expr_rule plus_equal_token {
 		context.push_node(Node::Command::reload_reference);
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1,
+		    context.check_operation(BuildContext::BinaryOperation::add_operator, $1, $4));
 		context.push_node(Node::Command::add_operator);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule minus_equal_token {
 		context.push_node(Node::Command::reload_reference);
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1,
+		    context.check_operation(BuildContext::BinaryOperation::sub_operator, $1, $4));
 		context.push_node(Node::Command::sub_operator);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule asterisk_equal_token {
 		context.push_node(Node::Command::reload_reference);
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1,
+		    context.check_operation(BuildContext::BinaryOperation::mul_operator, $1, $4));
 		context.push_node(Node::Command::mul_operator);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule slash_equal_token {
 		context.push_node(Node::Command::reload_reference);
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1,
+		    context.check_operation(BuildContext::BinaryOperation::div_operator, $1, $4));
 		context.push_node(Node::Command::div_operator);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule percent_equal_token {
 		context.push_node(Node::Command::reload_reference);
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1,
+		    context.check_operation(BuildContext::BinaryOperation::mod_operator, $1, $4));
 		context.push_node(Node::Command::mod_operator);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule dbl_left_angled_equal_token {
 		context.push_node(Node::Command::reload_reference);
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1,
+		    context.check_operation(BuildContext::BinaryOperation::shift_left_operator, $1, $4));
 		context.push_node(Node::Command::shift_left_operator);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule dbl_right_angled_equal_token {
 		context.push_node(Node::Command::reload_reference);
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1,
+		    context.check_operation(BuildContext::BinaryOperation::shift_right_operator, $1, $4));
 		context.push_node(Node::Command::shift_right_operator);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule amp_equal_token {
 		context.push_node(Node::Command::reload_reference);
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1,
+		    context.check_operation(BuildContext::BinaryOperation::band_operator, $1, $4));
 		context.push_node(Node::Command::band_operator);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule pipe_equal_token {
 		context.push_node(Node::Command::reload_reference);
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1,
+		    context.check_operation(BuildContext::BinaryOperation::bor_operator, $1, $4));
 		context.push_node(Node::Command::bor_operator);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule caret_equal_token {
 		context.push_node(Node::Command::reload_reference);
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::move_operator, $1,
+		    context.check_operation(BuildContext::BinaryOperation::xor_operator, $1, $4));
 		context.push_node(Node::Command::xor_operator);
 		context.push_node(Node::Command::move_operator);
 	}
 	| expr_rule equal_tilde_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::regex_match_operator, $1, $3);
 		context.push_node(Node::Command::regex_match);
 	}
 	| expr_rule exclamation_tilde_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::regex_unmatch_operator, $1, $3);
 		context.push_node(Node::Command::regex_unmatch);
 	}
 	| expr_rule tpl_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::strict_eq_operator, $1, $3);
 		context.push_node(Node::Command::strict_eq_operator);
 	}
 	| expr_rule exclamation_dbl_equal_token expr_rule {
+		$$ = context.check_operation(BuildContext::BinaryOperation::strict_ne_operator, $1, $3);
 		context.push_node(Node::Command::strict_ne_operator);
 	}
 	| expr_rule question_token {
@@ -2210,48 +2216,85 @@ expr_rule:
 		context.shift_jump_forward();
 		context.resolve_jump_forward();
 	} expr_rule {
+		$$ = context.check_operation(BuildContext::TernaryOperation::conditional_operator, $1, $4, $7);
 		context.resolve_jump_forward();
 	}
 	| open_parenthesis_token close_parenthesis_token {
+		$$ = BuiltinTypeKind::iterator;
 		context.push_node(Node::Command::alloc_iterator);
 		context.start_call();
 		context.push_node(Node::Command::init_iterator);
 		context.resolve_call();
 	}
-	| open_parenthesis_token expr_rule close_parenthesis_token
-	| open_parenthesis_token generator_expr_rule close_parenthesis_token
-	| open_parenthesis_token iterator_item_rule iterator_end_rule close_parenthesis_token
-	| start_array_rule empty_lines_rule array_item_list_rule empty_lines_rule stop_array_rule
-	| start_array_rule empty_lines_rule array_item_list_rule stop_array_rule
-	| start_array_rule array_item_list_rule empty_lines_rule stop_array_rule
-	| start_array_rule array_item_list_rule stop_array_rule
-	| start_array_rule stop_array_rule
-	| start_hash_rule empty_lines_rule hash_item_rule empty_lines_rule stop_hash_rule
-	| start_hash_rule empty_lines_rule hash_item_rule stop_hash_rule
-	| start_hash_rule hash_item_rule empty_lines_rule stop_hash_rule
-	| start_hash_rule hash_item_rule stop_hash_rule
-	| start_hash_rule stop_hash_rule
-	| def_rule
-	| ident_rule;
+	| open_parenthesis_token expr_rule close_parenthesis_token {
+		$$ = $2;
+	}
+	| open_parenthesis_token generator_expr_rule close_parenthesis_token {
+		$$ = $2;
+	}
+	| open_parenthesis_token iterator_item_rule iterator_end_rule close_parenthesis_token {
+		$$ = BuiltinTypeKind::iterator;
+	}
+	| start_array_rule empty_lines_rule array_item_list_rule empty_lines_rule stop_array_rule {
+		$$ = BuiltinTypeKind::array;
+	}
+	| start_array_rule empty_lines_rule array_item_list_rule stop_array_rule {
+		$$ = BuiltinTypeKind::array;
+	}
+	| start_array_rule array_item_list_rule empty_lines_rule stop_array_rule {
+		$$ = BuiltinTypeKind::array;
+	}
+	| start_array_rule array_item_list_rule stop_array_rule {
+		$$ = BuiltinTypeKind::array;
+	}
+	| start_array_rule stop_array_rule {
+		$$ = BuiltinTypeKind::array;
+	}
+	| start_hash_rule empty_lines_rule hash_item_rule empty_lines_rule stop_hash_rule {
+		$$ = BuiltinTypeKind::hash;
+	}
+	| start_hash_rule empty_lines_rule hash_item_rule stop_hash_rule {
+		$$ = BuiltinTypeKind::hash;
+	}
+	| start_hash_rule hash_item_rule empty_lines_rule stop_hash_rule {
+		$$ = BuiltinTypeKind::hash;
+	}
+	| start_hash_rule hash_item_rule stop_hash_rule {
+		$$ = BuiltinTypeKind::hash;
+	}
+	| start_hash_rule stop_hash_rule {
+		$$ = BuiltinTypeKind::hash;
+	}
+	| def_expr_rule {
+		$$ = $1;
+	}
+	| ident_rule {
+		$$ = $1;
+	};
 
 subscript_rule:
     open_bracket_token expr_rule close_bracket_token {
+		$$ = $2;
 		context.push_node(Node::Command::subscript_operator);
 	};
 
 call_args_rule:
-	call_arg_start_rule call_arg_list_rule call_arg_stop_rule
-	| call_args_rule call_arg_start_rule call_arg_list_rule call_arg_stop_rule;
+	call_arg_start_rule call_arg_list_rule call_arg_stop_rule {
+		$$ = std::move($3);
+	}
+	| call_args_rule call_arg_start_rule call_arg_list_rule call_arg_stop_rule {
+		// TODO: check subsequent calls
+		$$ = std::move($1);
+	};
 
 call_member_args_rule:
-	call_member_arg_start_rule call_arg_list_rule call_member_arg_stop_rule
-	| call_member_args_rule call_arg_start_rule call_arg_list_rule call_arg_stop_rule;
-
-call_defined_member_args_rule:
-	call_defined_member_arg_start_rule call_arg_list_rule call_member_arg_stop_rule {
-		context.resolve_jump_forward();
+	call_member_arg_start_rule call_arg_list_rule call_member_arg_stop_rule {
+		$$ = std::move($3);
 	}
-	| call_defined_member_args_rule call_arg_start_rule call_arg_list_rule call_arg_stop_rule;
+	| call_member_args_rule call_arg_start_rule call_arg_list_rule call_arg_stop_rule {
+		// TODO: check subsequent calls
+		$$ = std::move($1);
+	};
 
 call_arg_start_rule:
     open_parenthesis_token {
@@ -2262,64 +2305,34 @@ call_arg_start_rule:
 call_arg_stop_rule:
     close_parenthesis_token {
 		context.push_node(Node::Command::call);
-		context.resolve_call();
+		$$ = context.resolve_call();
 	};
 
 call_member_arg_start_rule:
-    symbol_token open_parenthesis_token {
-		context.push_node(Node::Command::init_member_call);
-		context.push_node($1.c_str());
-		context.start_call();
-	}
-	| operator_desc_rule open_parenthesis_token {
-		context.push_node(Node::Command::init_operator_call);
-		context.push_node(context.retrieve_operator());
-		context.start_call();
-	}
-	| var_symbol_rule open_parenthesis_token {
-		context.push_node(Node::Command::init_var_member_call);
-		context.start_call();
-	};
-
-call_defined_member_arg_start_rule:
-    symbol_token open_parenthesis_token {
-		context.push_node(Node::Command::init_defined_member_call);
-		context.push_node($1.c_str());
-		context.start_jump_forward();
-		context.start_call();
-	}
-	| operator_desc_rule open_parenthesis_token {
-		context.push_node(Node::Command::init_defined_operator_call);
-		context.push_node(context.retrieve_operator());
-		context.start_jump_forward();
-		context.start_call();
-	}
-	| var_symbol_rule open_parenthesis_token {
-		context.push_node(Node::Command::init_defined_var_member_call);
-		context.start_jump_forward();
+    open_parenthesis_token {
 		context.start_call();
 	};
 
 call_member_arg_stop_rule:
     close_parenthesis_token {
 		context.push_node(Node::Command::call_member);
-		context.resolve_call();
+		$$ = context.resolve_call();
 	};
 
 call_arg_list_rule:
 	call_arg_list_rule separator_rule call_arg_rule
 	| call_arg_rule
-	| ;
+	| %empty;
 
 call_arg_rule:
 	expr_rule {
-		context.add_to_call();
+		context.add_to_call($1);
 	}
 	| def_arrow_rule {
-	    context.add_to_call();
+	    context.add_to_call($1);
 	}
 	| generator_expr_rule {
-	    context.add_to_call();
+	    context.add_to_call($1);
 	}
 	| asterisk_token expr_rule {
 		context.push_node(Node::Command::in_operator);
@@ -2330,8 +2343,8 @@ call_arg_rule:
 		context.push_node(Node::Command::load_extra_arguments);
 	};
 
-def_rule:
-	def_start_rule def_capture_rule def_args_rule stmt_bloc_rule {
+def_expr_rule:
+	def_expr_signature_rule stmt_bloc_rule {
 		if (context.is_in_generator()) {
 			if (!context.is_in_async_function()) {
 				context.push_node(Node::Command::exit_generator);
@@ -2343,45 +2356,30 @@ def_rule:
 		else if (!context.has_returned()) {
 			if (context.is_in_async_function()) {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::resume_coroutine);
 			}
 			else {
 				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
+				context.push_node(context.compiler().make_constant<None>());
 				context.push_node(Node::Command::exit_call);
 			}
 		}
 		context.resolve_jump_forward();
-		context.save_definition("<unknown>");
+		context.resolve_function_description();
+		$$ = $1;
+	};
+
+def_expr_signature_rule:
+	def_start_rule def_capture_rule def_args_rule {
+		$$ = context.save_function_signatures(context.retrieve_type_annotation());
 	}
-	| def_start_rule def_capture_rule def_no_args_rule stmt_bloc_rule {
-		if (context.is_in_generator()) {
-			if (!context.is_in_async_function()) {
-				context.push_node(Node::Command::exit_generator);
-			}
-			else if (!context.has_returned()) {
-				context.push_node(Node::Command::exit_async_generator);
-			}
-		}
-		else if (!context.has_returned()) {
-			if (context.is_in_async_function()) {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::resume_coroutine);
-			}
-			else {
-				context.push_node(Node::Command::load_constant);
-				context.push_node(Compiler::make_none());
-				context.push_node(Node::Command::exit_call);
-			}
-		}
-		context.resolve_jump_forward();
-		context.save_definition("<unknown>");
+	| def_start_rule def_capture_rule {
+		$$ = context.save_function_signatures(TypeAnnotation());
 	};
 
 def_arrow_rule:
-    def_start_rule def_capture_rule def_args_rule def_arrow_stmt_rule {
+    def_arrow_signature_rule def_arrow_stmt_rule {
 	    context.set_exit_point();
 		if (context.is_in_async_function()) {
 			context.push_node(Node::Command::resume_coroutine);
@@ -2390,24 +2388,30 @@ def_arrow_rule:
 			context.push_node(Node::Command::exit_call);
 		}
 		context.resolve_jump_forward();
-		context.save_definition("<unknown>");
+		context.resolve_function_description();
+		$$ = $1;
+	};
+
+def_arrow_signature_rule:
+	def_start_rule def_capture_rule def_args_rule {
+		$$ = context.save_function_signatures(context.retrieve_type_annotation());
 	};
 
 def_start_rule:
     def_token {
 		context.push_node(Node::Command::jump);
 		context.start_jump_forward();
-		context.start_definition();
+		context.start_function_description();
 	}
 	| async_token def_token {
 		context.push_node(Node::Command::jump);
 		context.start_jump_forward();
-		context.start_async_definition();
+		context.start_async_function_description();
 	};
 
 def_capture_rule:
 	def_capture_start_rule def_capture_list_rule def_capture_stop_rule
-	| ;
+	| %empty;
 
 def_capture_start_rule:
     open_bracket_token {
@@ -2421,36 +2425,19 @@ def_capture_stop_rule:
 
 def_capture_list_rule:
     symbol_token equal_token expr_rule separator_rule def_capture_list_rule {
-		if (!context.capture_as($1)) {
-			YYERROR;
-		}
+		context.capture_as($1);
 	}
 	| symbol_token equal_token expr_rule {
-		if (!context.capture_as($1)) {
-			YYERROR;
-		}
+		context.capture_as($1);
 	}
 	| symbol_token separator_rule def_capture_list_rule {
-		if (!context.capture($1)) {
-			YYERROR;
-		}
+		context.capture($1);
 	}
 	| symbol_token {
-		if (!context.capture($1)) {
-			YYERROR;
-		}
+		context.capture($1);
 	}
 	| tpl_dot_token {
-		if (!context.capture_all()) {
-			YYERROR;
-		}
-	};
-
-def_no_args_rule:
-	{
-		if (!context.save_parameters()) {
-			YYERROR;
-		}
+		context.capture_all();
 	};
 
 def_args_rule:
@@ -2460,48 +2447,33 @@ def_arg_start_rule:
     open_parenthesis_token;
 
 def_arg_stop_rule:
-    close_parenthesis_token {
-		if (!context.save_parameters()) {
-			YYERROR;
-		}
+	close_parenthesis_token minus_right_angled_token type_annotation_rule
+	| close_parenthesis_token {
+		context.start_type_annotation({});
 	};
 
 def_arg_list_rule:
 	def_arg_rule separator_rule def_arg_list_rule
 	| def_arg_rule
-	| ;
+	| %empty;
 
 def_arg_rule:
-    symbol_token {
-		if (!context.add_parameter($1)) {
-			YYERROR;
-		}
+    symbol_token decl_type_rule {
+		context.add_parameter($1, context.retrieve_type_annotation());
 	}
-	| symbol_token equal_token expr_rule {
-		if (!context.add_definition_signature()) {
-			YYERROR;
-		}
-		if (!context.add_parameter($1)) {
-			YYERROR;
-		}
+	| symbol_token decl_type_rule equal_token expr_rule {
+		context.add_function_signature();
+		context.add_parameter($1, context.retrieve_type_annotation());
 	}
-	| modifier_rule symbol_token {
-		if (!context.add_parameter($2, context.retrieve_modifiers())) {
-			YYERROR;
-		}
+	| modifier_rule symbol_token decl_type_rule {
+		context.add_parameter($2, context.retrieve_type_annotation(), context.retrieve_modifiers());
 	}
-	| modifier_rule symbol_token equal_token expr_rule {
-		if (!context.add_definition_signature()) {
-			YYERROR;
-		}
-		if (!context.add_parameter($2, context.retrieve_modifiers())) {
-			YYERROR;
-		}
+	| modifier_rule symbol_token decl_type_rule equal_token expr_rule {
+		context.add_function_signature();
+		context.add_parameter($2, context.retrieve_type_annotation(), context.retrieve_modifiers());
 	}
 	| tpl_dot_token {
-		if (!context.set_variadic()) {
-			YYERROR;
-		}
+		context.set_variadic();
 	};
 
 def_arrow_stmt_rule:
@@ -2514,25 +2486,31 @@ def_arrow_stmt_start_rule:
 
 member_ident_rule:
     expr_rule dot_token symbol_token {
+		$$ = context.get_member($1, $3);
 		context.push_node(Node::Command::load_member);
 		context.push_node($3.c_str());
 	}
 	| expr_rule dot_token operator_desc_rule {
+		$$ = context.get_operator($1, context.get_operator());
 		context.push_node(Node::Command::load_operator);
 		context.push_node(context.retrieve_operator());
 	}
 	| expr_rule dot_token var_symbol_rule {
+		$$ = {};
 		context.push_node(Node::Command::load_var_member);
 	}
 	| expr_rule question_dot_token symbol_token {
+		$$ = context.get_member($1, $3);
 		context.push_node(Node::Command::load_defined_member);
 		context.push_node($3.c_str());
 	}
 	| expr_rule question_dot_token operator_desc_rule {
+		$$ = context.get_operator($1, context.get_operator());
 		context.push_node(Node::Command::load_defined_operator);
 		context.push_node(context.retrieve_operator());
 	}
 	| expr_rule question_dot_token var_symbol_rule {
+		$$ = {};
 		context.push_node(Node::Command::load_defined_var_member);
 	};
 
@@ -2540,98 +2518,74 @@ defined_symbol_rule:
     symbol_token {
 		context.push_node(Node::Command::find_defined_symbol);
 		context.push_node($1.c_str());
+		$$ = {};
 	}
 	| defined_symbol_rule dot_token symbol_token {
 		context.push_node(Node::Command::find_defined_member);
 		context.push_node($3.c_str());
+		$$ = {};
 	}
 	| var_symbol_rule {
 		context.push_node(Node::Command::find_defined_var_symbol);
+		$$ = {};
 	}
 	| defined_symbol_rule dot_token var_symbol_rule {
 		context.push_node(Node::Command::find_defined_var_member);
+		$$ = {};
 	}
 	| constant_rule {
 		context.push_node(Node::Command::load_constant);
-		if (Data *data = context.compiler().make_data($1, Compiler::DataHint::data_unknown_hint)) {
-			context.push_node(*data);
-		}
-		else {
-			error("token '" + $1 + "' is not a valid constant");
-			YYERROR;
-		}
+		auto* data = context.compiler().make_data($1, Compiler::DataHint::data_unknown_hint);
+		context.push_node(data);
+		$$ = to_parser_data(data);
+	};
+
+decl_rule:
+	explicit_decl_rule {
+		$$ = $1;
+	}
+	| implicit_decl_rule {
+		$$ = $1;
+	};
+
+explicit_decl_rule:
+	let_token modifier_rule symbol_token decl_type_rule {
+		$$ = context.create_fast_scoped_symbol($3, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| modifier_rule symbol_token decl_type_rule {
+		$$ = context.create_fast_symbol($2, context.retrieve_type_annotation(), context.retrieve_modifiers());
+	}
+	| let_token symbol_token decl_type_rule {
+		$$ = context.create_fast_scoped_symbol($2, context.retrieve_type_annotation());
+	};
+
+implicit_decl_rule:
+	var_symbol_rule {
+		context.push_node(Node::Command::load_var_symbol);
+		$$ = {};
+	}
+	| symbol_token {
+		$$ = context.load_fast_symbol($1);
 	};
 
 ident_rule:
 	constant_rule {
 		context.push_node(Node::Command::load_constant);
-		if (Data *data = context.compiler().make_data($1, Compiler::DataHint::data_unknown_hint)) {
-			context.push_node(*data);
-		}
-		else {
-			error("token '" + $1 + "' is not a valid constant");
-			YYERROR;
-		}
-	}
-	| lib_token {
-		context.push_node(Node::Command::create_lib);
+		auto* data = context.compiler().make_data($1, Compiler::DataHint::data_unknown_hint);
+		context.push_node(data);
+		$$ = to_parser_data(data);
 	}
 	| var_symbol_rule {
 		context.push_node(Node::Command::load_var_symbol);
+		$$ = {};
 	}
 	| symbol_token {
-		const auto index = context.fast_symbol_index($1);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::load_fast);
-			context.push_node($1.c_str());
-			context.push_node(index);
-		}
-		else {
-			context.push_node(Node::Command::load_symbol);
-			context.push_node($1.c_str());
-		}
-	}
-	| let_token symbol_token {
-		const auto index = context.create_fast_scoped_symbol_index($2);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($2.c_str());
-			context.push_node(index);
-			context.push_node(Reference::default_flags);
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($2.c_str());
-			context.push_node(Reference::default_flags);
-		}
-	}
-	| modifier_rule symbol_token {
-		const auto index = context.create_fast_symbol_index($2);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($2.c_str());
-			context.push_node(index);
-			context.push_node(context.retrieve_modifiers());
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($2.c_str());
-			context.push_node(context.retrieve_modifiers());
-		}
-	}
-	| let_token modifier_rule symbol_token {
-		const auto index = context.create_fast_scoped_symbol_index($3);
-		if (index != invalid_index) {
-			context.push_node(Node::Command::declare_fast);
-			context.push_node($3.c_str());
-			context.push_node(index);
-			context.push_node(context.retrieve_modifiers());
-		}
-		else {
-			context.push_node(Node::Command::declare_symbol);
-			context.push_node($3.c_str());
-			context.push_node(context.retrieve_modifiers());
-		}
+		$$ = context.load_fast_symbol($1);
+	};
+
+lib_start_rule:
+	lib_token {
+		context.push_node(Node::Command::create_lib);
 	};
 
 constant_rule:
@@ -2652,7 +2606,7 @@ constant_rule:
 	};
 
 regex_rule:
-    slash_token {
+    slash_token <token_t> {
 		$$ = $1 + context.read_regex();
 	} slash_token {
 		$$ = $2 + $1;
@@ -2712,30 +2666,6 @@ void parser::error(const std::string &msg) {
 	context.parse_error(msg);
 }
 
-int BuildContext::next_token(std::string* token) {
-
-	int type = parser::token::file_end_token;
-	if (_lexer.at_end()) {
-	    return type;
-	}
-
-	std::tie(*token, type) = _lexer.next_token();
-	while (type == parser::token::comment_token || type == parser::token::no_line_end_token) {
-		std::tie(*token, type) = _lexer.next_token();
-	}
-	return type;
+parser::symbol_type yylex(mint::BuildContext& context) {
+	return std::make_from_tuple<parser::symbol_type>(context.next_token());
 }
-
-bool Compiler::build(DataStream& stream, ModuleInfo& node) {
-
-	auto context = BuildContext(stream, *this, node);
-	auto parser = mint::parser(context);
-
-	if (is_printing()) {
-		context.force_printer();
-	}
-
-	return !parser.parse();
-}
-
-#endif // MINT_COMPILER_PARSER_HPP

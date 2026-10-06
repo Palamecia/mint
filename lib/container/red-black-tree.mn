@@ -98,7 +98,7 @@ package Container {
 	 */
 	const def remove(self, key) {
 		if self.root {
-			if isDefined(var node = self.root.find(key, self.comparator)) {
+			if defined let node = self.root.find(key, self.comparator) {
 				self.root = node.deleteOneChild()
 				return true
 			}

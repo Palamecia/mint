@@ -19,17 +19,17 @@ TEST(destructor, is_destructor) {
 
 	auto scheduler = mint::Scheduler({});
 	mint::Program& program = scheduler.program();
-	auto& module = program.create_module(mint::Module::State::ready);
+	auto& module = program.create_module({}, mint::Module::State::ready);
 
 	const auto thread = scheduler.enable_testing();
 	ASSERT_NE(nullptr, thread);
 	EXPECT_FALSE(is_destructor(*thread));
 
-	mint::Class& test_class = mint::create_class(program, "__test_class__",
+	const auto& test_class = mint::create_class(program, "__test_class__",
 	    {
 	        {
-	            mint::builtin_symbols::delete_method,
-	            mint::create_function(program, module, R"(
+	            .symbol = mint::builtin_symbols::delete_method,
+	            .value = mint::create_function(program, module, R"(
 					def (self) {}
 				)"),
 	        },
@@ -38,7 +38,7 @@ TEST(destructor, is_destructor) {
 	const auto object = scheduler.invoke(test_class);
 	ASSERT_EQ(mint::Data::Format::object, object.data().format());
 
-	mint::Class::MemberInfo* member = object.data<mint::Object>().metadata.find_operator(mint::Class::delete_operator);
+	const auto* member = object.data<mint::Object>().metadata.find_operator(mint::Class::delete_operator);
 	ASSERT_NE(nullptr, member);
 
 	const auto& member_ref = mint::Class::MemberInfo::get(*member, object.data<mint::Object>().data);

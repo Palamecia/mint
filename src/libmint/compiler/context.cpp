@@ -23,25 +23,25 @@
 
 #include "context.h"
 #include "mint/program/symbol.h"
-#include "mint/compiler/build_tools.h"
+#include "mint/compiler/build_context.h"
 #include <cstddef>
 
 using namespace mint;
 
-std::size_t mint::find_fast_symbol_index(const Definition& def, const Symbol& symbol) {
-	if (auto i = def.fast_symbol_indexes.find(symbol); i != def.fast_symbol_indexes.end()) {
+std::size_t mint::find_fast_symbol_index(const FunctionDefinition& def, const Symbol& symbol) {
+	if (const auto i = def.fast_symbol_indexes.find(symbol); i != def.fast_symbol_indexes.end()) {
 		return i->second;
 	}
 	return invalid_index;
 }
 
-std::size_t mint::create_fast_symbol_index(Definition& def, const Symbol& symbol) {
+std::size_t mint::create_fast_symbol_index(FunctionDefinition& def, const Symbol& symbol) {
 	const auto index = def.fast_symbol_count++;
 	return def.fast_symbol_indexes[symbol] = index;
 }
 
-std::size_t mint::fast_symbol_index(Definition& def, const Symbol& symbol) {
-	if (auto i = def.fast_symbol_indexes.find(symbol); i != def.fast_symbol_indexes.end()) {
+std::size_t mint::fast_symbol_index(FunctionDefinition& def, const Symbol& symbol) {
+	if (const auto i = def.fast_symbol_indexes.find(symbol); i != def.fast_symbol_indexes.end()) {
 		return i->second;
 	}
 	const auto index = def.fast_symbol_count++;

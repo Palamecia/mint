@@ -365,7 +365,8 @@ mint::Reference mint_ip_socket_setup_options(mint::Cursor& /*cursor*/, const min
 #define BIND_MCAST_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = _option
 #define BIND_MCAST_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef MCAST_JOIN_GROUP
 	BIND_MCAST_VALUE(ip_socket_option, MCAST_JOIN_GROUP);
@@ -406,7 +407,8 @@ mint::Reference mint_ipv4_socket_setup_options(mint::Cursor& /*cursor*/, const m
 #define BIND_IP_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = IP_##_option
 #define BIND_IP_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef IP_HEADERSINCL
 	BIND_IP_VALUE(ip_v4_socket_option, HDRINCL);
@@ -871,7 +873,8 @@ mint::Reference mint_ipv6_socket_setup_options(mint::Cursor& /*cursor*/, const m
 #define BIND_IPV6_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = IPV6_##_option
 #define BIND_IPV6_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef IPV6_CHECKSUM
 	BIND_IPV6_VALUE(ip_v6_socket_option, CHECKSUM);

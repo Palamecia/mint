@@ -30,13 +30,19 @@ TEST(class, created_class_exposes_members_slots_and_metadata) {
 
 	mint::Class& type = mint::create_class(scheduler.program(), "__class_api_test__",
 	    {
-	        {mint::Symbol("slot"), mint::Reference(mint::Reference::default_flags)},
-	        {mint::Symbol("constant"), mint::create_number(7357)},
+	        {
+	            .symbol = mint::Symbol("slot"),
+	            .value = mint::Reference(mint::Reference::default_flags),
+	        },
+	        {
+	            .symbol = mint::Symbol("constant"),
+	            .value = mint::create_number(7357),
+	        },
 	    });
 
 	EXPECT_EQ(mint::Class::Metatype::object, type.metatype());
-	EXPECT_EQ("__class_api_test__", type.full_name());
-	EXPECT_EQ("__class_api_test__", type.name().str());
+	EXPECT_EQ("__class_api_test__", type.get_full_name());
+	EXPECT_EQ("__class_api_test__", type.get_name().str());
 	EXPECT_EQ(&scheduler.program().global_data(), &type.get_package());
 	EXPECT_EQ(1, type.size());
 	EXPECT_TRUE(type.is_trivially_copyable());

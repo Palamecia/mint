@@ -134,12 +134,6 @@ load mint.stacktrace
 /**
  * Returns `true` if `expr` is defined; otherwise returns `false`. This function
  * allow to apply the `defined` operator to the result of an expression.
- * 
- * ```mn
- * if isDefined(var = object.getOptionalValue()) {
- *     // use var
- * }
- * ```
  */
 @def isDefined(expr) {
 	return defined expr

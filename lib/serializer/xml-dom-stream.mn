@@ -1470,7 +1470,7 @@ Serializer.XmlDomException.Messages = {
 	 * Removes the first attribute with the given `qualifiedName`.
 	 */
 	const def removeNamedItem(self, const qualifiedName) {
-		if isDefined(var index = self.indexOf(qualifiedName)) {
+		if defined let index = self.indexOf(qualifiedName) {
 			self.attributes.remove(index)
 		}
 	}
@@ -1480,7 +1480,7 @@ Serializer.XmlDomException.Messages = {
 	 * `localName`.
 	 */
 	const def removeNamedItemNS(self, const namespaceUri, const localName) {
-		if isDefined(var index = self.indexOfNS(namespaceUri, localName)) {
+		if defined let index = self.indexOfNS(namespaceUri, localName) {
 			self.attributes.remove(index)
 		}
 	}
@@ -1537,7 +1537,7 @@ Serializer.XmlDomException.Messages = {
 	const def new(self, qualifiedName) {
 		self.qualifiedName = qualifiedName
 		self.attributes = Serializer.XmlDomNamedNodeMap()
-		if isDefined(var pos = qualifiedName.indexOf(':')) {
+		if defined let pos = qualifiedName.indexOf(':') {
 			self.namespaceUri = qualifiedName[0...pos]
 			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
 		} else {
@@ -1553,7 +1553,7 @@ Serializer.XmlDomException.Messages = {
 		self.namespaceUri = namespaceUri
 		self.qualifiedName = qualifiedName
 		self.attributes = Serializer.XmlDomNamedNodeMap()
-		if isDefined(var pos = qualifiedName.indexOf(':')) {
+		if defined let pos = qualifiedName.indexOf(':') {
 			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
 		} else {
 			self.localName = qualifiedName

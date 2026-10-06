@@ -239,7 +239,7 @@ package Container {
 	 */
 	const def data(const self) {
 		var content = []
-		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+		for (let node = self.firstNode(), defined node, node = node.getNext()) {
 			content << node.getValue()
 		}
 		return content
@@ -249,7 +249,7 @@ package Container {
 	 * Returns an `iterator` on the elements of the list.
 	 */
 	const def in(const self) {
-		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+		for (let node = self.firstNode(), defined node, node = node.getNext()) {
 			yield node.getValue()
 		}
 	}
@@ -258,7 +258,7 @@ package Container {
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
 	const def in(const self, const value) {
-		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+		for (let node = self.firstNode(), defined node, node = node.getNext()) {
 			if value == node.getValue() {
 				return true
 			}
@@ -270,7 +270,7 @@ package Container {
 	 * Apply the `func` function to each elements of the list.
 	 */
 	const def each(const self, func) {
-		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+		for (let node = self.firstNode(), defined node, node = node.getNext()) {
 			func(node.getValue())
 		}
 	}
@@ -286,7 +286,7 @@ package Container {
 	 * Returns `true` if the list contains `value`; otherwise returns `false`.
 	 */
 	const def contains(const self, value) {
-		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+		for (let node = self.firstNode(), defined node, node = node.getNext()) {
 			if value == node.getValue() {
 				return true
 			}
@@ -299,7 +299,7 @@ package Container {
 	 */
 	const def count(const self, value) {
 		var found = 0
-		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+		for (let node = self.firstNode(), defined node, node = node.getNext()) {
 			if value == node.getValue() {
 				found++
 			}
@@ -312,7 +312,7 @@ package Container {
 	 */
 	const def size(const self) {
 		var found = 0
-		for (var node = self.firstNode(), defined node, node = node.getNext()) {
+		for (let node = self.firstNode(), defined node, node = node.getNext()) {
 			found++
 		}
 		return found

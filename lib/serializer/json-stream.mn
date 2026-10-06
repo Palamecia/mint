@@ -427,7 +427,7 @@ package Serializer {
 				self.discardToken()
 				return number(token)
 			} else {
-				for (var c = self.nextChar(), c =~ /[a-z]/, c = self.nextChar()) {
+				for (let c = self.nextChar(), c =~ /[a-z]/, c = self.nextChar()) {
 					token << c
 				}
 				self.discardToken()

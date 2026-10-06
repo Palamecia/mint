@@ -22,7 +22,6 @@
  */
 
 #include "mint/program/symbol.h"
-#include "mint/program/class_description.h"
 #include "mint/memory/data.h"
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/object.h"
@@ -30,7 +29,6 @@
 #include "mint/memory/reference.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
-#include "mint/program/class_register.h"
 #include "mint/system/plugin.h"
 #include <ranges>
 #include <string_view>
@@ -82,7 +80,7 @@ mint::Reference mint_lang_get_type(mint::Cursor& /*cursor*/, const mint::Referen
 mint::Reference mint_lang_create_type(mint::Cursor& cursor, const mint::Reference& type, const mint::Reference& bases,
     const mint::Reference& members) {
 
-	auto base_list = std::vector<mint::ClassRegister::Path>();
+	auto base_list = std::vector<mint::SymbolPath>();
 
 	for (const mint::Reference& base : mint::to_array(bases)) {
 		switch (base.data().format()) {
@@ -95,7 +93,7 @@ mint::Reference mint_lang_create_type(mint::Cursor& cursor, const mint::Referenc
 		}
 	}
 
-	auto member_list = std::vector<std::pair<mint::Symbol, mint::Reference>>();
+	auto member_list = std::vector<mint::CreateMember>();
 
 	for (auto& member : to_hash(members)) {
 		if (is_instance_of(member.first, symbols::member_info)) {
@@ -103,14 +101,21 @@ mint::Reference mint_lang_create_type(mint::Cursor& cursor, const mint::Referenc
 			    to_string(get_member_ignore_visibility(member.first.data<mint::Object>(), symbols::name)));
 			const auto flags = to_integer<mint::Reference::Flags>(cursor,
 			    get_member_ignore_visibility(member.first.data<mint::Object>(), symbols::flags));
-			member_list.emplace_back(symbol, mint::Reference(flags, member.second.data()));
+			member_list.push_back({
+			    .symbol = symbol,
+			    .value = mint::Reference(flags, member.second.data()),
+			});
 		}
 		else {
-			member_list.emplace_back(mint::Symbol(to_string(member.first)), std::move(member.second));
+			member_list.push_back({
+			    .symbol = mint::Symbol(to_string(member.first)),
+			    .value = std::move(member.second),
+			});
 		}
 	}
 
-	return mint::create_alias(mint::create_class(cursor.program(), to_string(type), base_list, member_list));
+	return mint::create_alias(
+	    mint::create_class(cursor.program(), mint::Symbol(to_string(type)), base_list, member_list));
 }
 
 mint::Reference mint_type_get_member_info(mint::Cursor& cursor, const mint::Reference& type,
@@ -182,9 +187,10 @@ mint::Reference mint_type_is_object(mint::Cursor& /*cursor*/, const mint::Refere
 mint::Reference mint_type_super(mint::Cursor& cursor, const mint::Reference& type) {
 	if (type.data().format() == mint::Data::Format::object) {
 		return mint::create_array(cursor.program(),
-		    {std::from_range, std::views::transform(type.data<mint::Object>().metadata.bases(), [](mint::Class& base) {
-			     return mint::create_alias(base);
-		     })});
+		    std::vector(std::from_range,
+		        std::views::transform(type.data<mint::Object>().metadata.bases(), [](const auto& base) {
+			        return mint::create_alias(base);
+		        })));
 	}
 	return mint::create_array(cursor.program());
 }

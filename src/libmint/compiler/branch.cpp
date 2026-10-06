@@ -22,8 +22,8 @@
  */
 
 #include "branch.h"
+#include "mint/compiler/compiler.h"
 #include "mint/program/node.h"
-#include "mint/compiler/build_tools.h"
 #include "mint/program/module.h"
 #include <cstddef>
 #include <functional>
@@ -127,52 +127,51 @@ void Branch::forward_jumps(Branch& parent, std::size_t offset) {
 	_jump_backward.clear();
 }
 
-MainBranch::MainBranch(Program& program, ModuleInfo& data) :
+MainBranch::MainBranch(Compiler& compiler) :
 #ifdef MINT_BUILD_TYPE_DEBUG
-    _offset(data.bytecode.next_node_offset()),
+    _offset(compiler.data().bytecode.next_node_offset()),
 #endif
-    _program(program),
-    _data(data) {
+    _compiler(compiler) {
 }
 
 void MainBranch::push_node(const Node& node) {
-	_data.get().bytecode.push_node(node);
+	_compiler.get().push_node(node);
 }
 
 void MainBranch::push_nodes(const std::vector<Node>& nodes) {
-	_data.get().bytecode.push_nodes(nodes);
+	_compiler.get().push_nodes(nodes);
 }
 
 void MainBranch::replace_node(std::size_t offset, const Node& node) {
-	_data.get().bytecode.node_at(offset) = node;
+	_compiler.get().data().bytecode.node_at(offset) = node;
 }
 
 std::size_t MainBranch::next_node_offset() const {
-	return _data.get().bytecode.next_node_offset();
+	return _compiler.get().data().bytecode.next_node_offset();
 }
 
 Node& MainBranch::node_at(std::size_t offset) {
-	return _data.get().bytecode.node_at(offset);
+	return _compiler.get().data().bytecode.node_at(offset);
 }
 
 void MainBranch::on_new_line(std::size_t offset, std::size_t line_number) {
-	_data.get().debug_info.new_line(offset, line_number);
+	_compiler.get().data().debug_info.new_line(offset, line_number);
 }
 
 void MainBranch::on_new_line(std::size_t line_number) {
-	_data.get().debug_info.new_line(_data.get().bytecode, line_number);
+	_compiler.get().data().debug_info.new_line(_compiler.get().data().bytecode, line_number);
 }
 
 void MainBranch::build() {
 #if defined(MINT_BUILD_TYPE_DEBUG) && defined(MINT_DUMP_ASSEMBLY)
-	if (_data.get().id != Module::invalid_id) {
-		const auto& bytecode = _data.get().bytecode;
+	if (_compiler.get().data().id != Module::invalid_id) {
+		const auto& bytecode = _compiler.get().data().bytecode;
 		auto cursor = Cursor(_program, bytecode);
 		mint::print(stdout,
-		    std::format("## MODULE: {} ({})\n", _data.get().id, _program.get().get_module_name(bytecode)));
+		    std::format("## MODULE: {} ({})\n", _compiler.get().data().id, _program.get().get_module_name(bytecode)));
 		cursor.jmp(_offset);
 		for (std::size_t offset = cursor.offset(); offset < bytecode.next_node_offset(); offset = cursor.offset()) {
-			mint::print(stdout, std::format("LINE {} ", _data.get().debug_info.line_number(offset)));
+			mint::print(stdout, std::format("LINE {} ", _compiler.get().data().debug_info.line_number(offset)));
 			if (dump_command(cursor, std::cout) == Node::Command::exit_module) {
 				cursor.jmp(bytecode.next_node_offset());
 			}

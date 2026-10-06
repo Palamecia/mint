@@ -589,7 +589,8 @@ mint::Reference mint_tcp_socket_setup_options(mint::Cursor& /*cursor*/, const mi
 #define BIND_TCP_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = TCP_##_option
 #define BIND_TCP_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef TCP_MAXSEG
 	BIND_TCP_VALUE(tcp_socket_option, MAXSEG);

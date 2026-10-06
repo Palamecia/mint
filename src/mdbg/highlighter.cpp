@@ -23,7 +23,9 @@
 
 #include "highlighter.h"
 
-#include "mint/program/class_description.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
+#include "mint/config.h"
 #include "mint/program/symbol.h"
 #include "mint/compiler/lexical_handler.h"
 #include "mint/compiler/token.h"
@@ -35,6 +37,7 @@
 #include "mint/memory/reference.h"
 #include "mint/system/string.h"
 #include "mint/system/terminal.h"
+#include "utils.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -43,10 +46,12 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <tuple>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace {
@@ -55,13 +60,21 @@ constexpr bool is_standard_symbol(std::string_view token) {
 	return token == "self" || token == "va_args";
 }
 
+mint::SymbolPath make_path(const std::vector<std::string>& context, const std::string& token) {
+	return {context | std::views::transform([](const auto& symbol) {
+		        return mint::Symbol(symbol);
+	        }) | std::ranges::to<mint::SymbolPath>(),
+	    mint::Symbol(token)};
+}
+
 class Highlighter : public mint::LexicalHandler {
 public:
-	Highlighter(std::size_t from_line, std::size_t to_line, std::size_t current_line, mint::GlobalData& global_data) :
+	Highlighter(std::size_t from_line, std::size_t to_line, std::size_t current_line,
+	    mint::GlobalDataDescription& global_data_description) :
 	    _from_line(from_line),
 	    _to_line(to_line),
 	    _current_line(current_line),
-	    _global_data(global_data) {}
+	    _global_data_description(global_data_description) {}
 
 protected:
 	bool on_script_end() override {
@@ -72,38 +85,29 @@ protected:
 
 	bool on_symbol_token(const std::vector<std::string>& context, const std::string& token,
 	    std::string::size_type /*offset*/) override {
-		if (const auto* reference = find_defined_symbol(context, token)) {
-			switch (reference->data().format()) {
-			case mint::Data::Format::none:
-			case mint::Data::Format::null:
-			case mint::Data::Format::number:
-			case mint::Data::Format::boolean:
-				set_style(Style::constant);
-				break;
-			case mint::Data::Format::function:
-			case mint::Data::Format::coroutine:
-				set_style(Style::function);
-				break;
-			case mint::Data::Format::object:
-				if (mint::is_instance_of(*reference, mint::Class::Metatype::object)
-				    && mint::is_class(reference->data<mint::Object>())) {
-					set_style(Style::user_type);
-				}
-				else {
-					set_style(Style::constant);
-				}
-				break;
-			case mint::Data::Format::package:
-				set_style(Style::user_type);
-				break;
-			}
-		}
-		else if (is_standard_symbol(token)) {
-			set_style(Style::standard_symbol);
-		}
-		else {
-			set_style(Style::text);
-		}
+		std::visit(mint::Overloaded {
+		               [&](std::monostate) {
+			               if (is_standard_symbol(token)) {
+				               set_style(Style::standard_symbol);
+			               }
+			               else {
+				               set_style(Style::text);
+			               }
+		               },
+		               [&](std::reference_wrapper<const mint::PackageDescription> /*definition*/) {
+			               set_style(Style::user_type);
+		               },
+		               [&](std::reference_wrapper<const mint::ClassDescription> /*definition*/) {
+			               set_style(Style::user_type);
+		               },
+		               [&](std::reference_wrapper<const mint::FunctionDescription> /*definition*/) {
+			               set_style(Style::function);
+		               },
+		               [&](std::reference_wrapper<const mint::VariableDescription> /*definition*/) {
+			               set_style(Style::constant);
+		               },
+		           },
+		    find_defined_symbol(make_path(context, token)));
 		return true;
 	}
 
@@ -371,78 +375,8 @@ protected:
 		}
 	}
 
-	[[nodiscard]] const mint::Reference* find_defined_symbol(const std::vector<std::string>& context,
-	    const std::string& token) const {
-
-		const auto symbol = mint::Symbol(token);
-
-		try {
-			auto location = resolve_path(context);
-			if (!location) {
-				return nullptr;
-			}
-
-			auto [pack, desc] = *location;
-			if (desc) {
-				if (const auto* reference = desc->find_member(symbol)) {
-					return reference;
-				}
-				return nullptr;
-			}
-			if (pack) {
-				if (const auto it = pack->symbols().find(symbol); it != pack->symbols().end()) {
-					return std::addressof(it->second);
-				}
-				return nullptr;
-			}
-		}
-		catch (...) {
-			return nullptr;
-		}
-
-		const mint::GlobalData& global_data = _global_data;
-		if (const auto it = global_data.symbols().find(symbol); it != global_data.symbols().end()) {
-			return std::addressof(it->second);
-		}
-		return nullptr;
-	}
-
-	[[nodiscard]] std::optional<std::tuple<const mint::PackageData*, const mint::ClassDescription*>> resolve_path(
-	    const std::vector<std::string>& context) const {
-
-		const mint::PackageData* pack = nullptr;
-		const mint::ClassDescription* desc = nullptr;
-
-		for (const std::string& token : context) {
-			const auto symbol = mint::Symbol(token);
-			if (desc) {
-				desc = desc->find_class_description(symbol);
-				if (desc == nullptr) {
-					return std::nullopt;
-				}
-			}
-			else if (pack) {
-				desc = pack->find_class_description(symbol);
-				if (desc == nullptr) {
-					pack = pack->find_package(symbol);
-					if (pack == nullptr) {
-						return std::nullopt;
-					}
-				}
-			}
-			else {
-				const mint::GlobalData& global_data = _global_data;
-				desc = global_data.find_class_description(symbol);
-				if (desc == nullptr) {
-					pack = global_data.find_package(symbol);
-					if (pack == nullptr) {
-						return std::nullopt;
-					}
-				}
-			}
-		}
-
-		return std::make_tuple(pack, desc);
+	[[nodiscard]] mint::SymbolDefinition find_defined_symbol(const mint::SymbolPath& symbols) const {
+		return _global_data_description.get().locate(symbols);
 	}
 
 private:
@@ -450,14 +384,14 @@ private:
 	std::size_t _from_line;
 	std::size_t _to_line;
 	std::size_t _current_line;
-	std::reference_wrapper<mint::GlobalData> _global_data;
+	std::reference_wrapper<mint::GlobalDataDescription> _global_data_description;
 };
 
 }
 
 void print_highlighted(std::size_t from_line, std::size_t to_line, std::size_t current_line,
-    mint::GlobalData& global_data, std::ifstream&& script) {
-	Highlighter highlighter(from_line, to_line, current_line, global_data);
+    mint::GlobalDataDescription& global_data_description, std::ifstream&& script) {
+	auto highlighter = Highlighter(from_line, to_line, current_line, global_data_description);
 	std::ifstream stream = std::move(script);
 	highlighter.parse(stream);
 }

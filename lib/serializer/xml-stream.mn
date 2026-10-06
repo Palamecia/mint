@@ -51,7 +51,7 @@ package Serializer {
 	const def new(self, qualifiedName, value) {
 		self.qualifiedName = qualifiedName
 		self.value = value
-		if isDefined(var pos = qualifiedName.indexOf(':')) {
+		if defined let pos = qualifiedName.indexOf(':') {
 			self.namespaceUri = qualifiedName[0...pos]
 			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
 		} else {
@@ -68,7 +68,7 @@ package Serializer {
 		self.namespaceUri = namespaceUri
 		self.qualifiedName = qualifiedName
 		self.value = value
-		if isDefined(var pos = qualifiedName.indexOf(':')) {
+		if defined let pos = qualifiedName.indexOf(':') {
 			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
 		} else {
 			self.localName = qualifiedName
@@ -374,7 +374,7 @@ package Serializer {
 	 * Removes the first attribute with the given `qualifiedName`.
 	 */
 	const def remove(self, const qualifiedName) {
-		if isDefined(var index = self.indexOf(qualifiedName)) {
+		if defined let index = self.indexOf(qualifiedName) {
 			self.attributes.remove(index)
 		}
 	}
@@ -384,7 +384,7 @@ package Serializer {
 	 * `localName`.
 	 */
 	const def removeNS(self, const namespaceUri, const localName) {
-		if isDefined(var index = self.indexOfNS(namespaceUri, localName)) {
+		if defined let index = self.indexOfNS(namespaceUri, localName) {
 			self.attributes.remove(index)
 		}
 	}
@@ -462,7 +462,7 @@ package Serializer {
 	 * Returns the local name corresponding to the given `qualifiedName`.
 	 */
 	@const def toLocalName(qualifiedName) {
-		if isDefined(var pos = qualifiedName.indexOf(':')) {
+		if defined let pos = qualifiedName.indexOf(':') {
 			return qualifiedName[(pos + 1)...qualifiedName.size()]
 		}
 		return qualifiedName
@@ -1657,7 +1657,7 @@ package Serializer {
 		 * Returns the namespace URI for the given `prefix`.
 		 */
 		- final const def namespaceForPrefix(self, prefix) {
-			for (var i = self.namespaces.size() - 1, i >= 0, --i) {
+			for (let i = self.namespaces.size() - 1, i >= 0, --i) {
 				let nsd = self.namespaces[i]
 				if nsd.prefix == prefix {
 					return nsd.uri
@@ -1673,7 +1673,7 @@ package Serializer {
 		 */
 		- final const def resolveNamespaces(self) {
 
-			if isDefined(var pos = self.qualifiedName.indexOf(':')) {
+			if defined let pos = self.qualifiedName.indexOf(':') {
 				self.namespaceUri = self.namespaceForPrefix(self.qualifiedName[0...pos])
 			} else {
 				self.namespaceUri = self.namespaceForPrefix('')

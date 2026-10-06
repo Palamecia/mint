@@ -23,9 +23,11 @@
 
 #include "completer.h"
 
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
+#include "mint/compiler/type_annotation.h"
+#include "mint/config.h"
 #include "mint/program/symbol.h"
-#include "mint/program/class_description.h"
-#include "mint/memory/data.h"
 #include "mint/memory/global_data.h"
 #include "mint/debug/debug_tools.h"
 #include "mint/memory/object.h"
@@ -37,11 +39,63 @@
 
 #include <compare>
 #include <filesystem>
+#include <format>
+#include <functional>
+#include <ranges>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 using namespace mint;
+
+namespace {
+
+SymbolPath make_path(const std::vector<std::string>& context) {
+	return context | std::views::transform([](const auto& symbol) {
+		return Symbol(symbol);
+	}) | std::ranges::to<SymbolPath>();
+}
+
+std::string to_return_type_hint(const TypeAnnotation& type) {
+	if (type.is_undefined()) {
+		return {};
+	}
+	return std::format(" -> {}", type.to_string());
+}
+
+std::string to_type_hint(const TypeAnnotation& type) {
+	if (type.is_undefined()) {
+		return {};
+	}
+	return std::format(": {}", type.to_string());
+}
+
+std::string to_hint(const VariableDescription& description) {
+	return to_type_hint(description.type);
+}
+
+std::string to_hint(const FunctionDescription& description) {
+	return std::format("def ({}){}",
+	    description.parameters() | std::views::transform([](const ParameterDescription& parameter) {
+		    return std::format("{}{}", parameter.name.str(), to_type_hint(parameter.type));
+	    }) | std::views::join_with(std::string(", ")),
+	    to_return_type_hint(description.get_return_type()));
+}
+
+std::string to_hint(const MemberDescriptionEntry& entry) {
+	return std::visit(Overloaded {
+	                      [](const VariableDescription& description) {
+		                      return to_hint(description);
+	                      },
+	                      [](const FunctionDescription& description) {
+		                      return to_hint(description);
+	                      },
+	                  },
+	    entry.description);
+}
+
+}
 
 Completer::Completer(std::string_view::size_type offset, const Cursor& cursor) :
     _offset(offset),
@@ -89,13 +143,7 @@ bool Completer::on_symbol_token(const std::vector<std::string>& context, const s
 			}
 		}
 
-		Reference* member = nullptr;
-		PackageData* pack = nullptr;
-		ClassDescription* desc = nullptr;
-
-		if (resolve_path(context, pack, desc, member)) {
-			find_context_symbols_helper(pack, desc, member, token, offset);
-		}
+		find_context_symbols_helper(find_defined_symbol(make_path(context)), token, offset);
 	}
 	return false;
 }
@@ -105,14 +153,7 @@ bool Completer::on_symbol_token(const std::vector<std::string>& context, std::st
 		return true;
 	}
 	if (_offset >= offset) {
-
-		Reference* member = nullptr;
-		PackageData* pack = nullptr;
-		ClassDescription* desc = nullptr;
-
-		if (resolve_path(context, pack, desc, member)) {
-			find_context_symbols_helper(pack, desc, member, {}, offset);
-		}
+		find_context_symbols_helper(find_defined_symbol(make_path(context)), {}, offset);
 	}
 	return false;
 }
@@ -135,60 +176,42 @@ void Completer::find_module_recursive_helper(const std::filesystem::path& root_p
 	}
 }
 
-void Completer::find_context_symbols_helper(PackageData* pack, ClassDescription* desc, Reference* member,
-    const std::string& token, std::string::size_type offset) {
-
-	if (member) {
-		if (member->data().format() == Data::Format::object) {
-			for (const auto& [symbol, _] : member->data<Object>().metadata.members()) {
-				if (token_match(symbol.str(), token)) {
-					_completions.push_back({
-					    .offset = offset,
-					    .token = symbol.str(),
-					    .hint = {},
-					});
-				}
-			}
-		}
-	}
-
-	if (desc) {
-		Class& metadata = desc->generate();
-		for (const auto& [symbol, _] : metadata.globals()) {
-			if (token_match(symbol.str(), token)) {
-				_completions.push_back({
-				    .offset = offset,
-				    .token = symbol.str(),
-				    .hint = {},
-				});
-			}
-		}
-		return;
-	}
-
-	if (pack) {
-		for (auto& [symbol, _] : pack->symbols()) {
-			if (token_match(symbol.str(), token)) {
-				_completions.push_back({
-				    .offset = offset,
-				    .token = symbol.str(),
-				    .hint = {},
-				});
-			}
-		}
-		return;
-	}
-
-	const auto& global_data = _cursor.get().program().global_data();
-	for (const auto& [symbol, _] : global_data.symbols()) {
-		if (token_match(symbol.str(), token)) {
-			_completions.push_back({
-			    .offset = offset,
-			    .token = symbol.str(),
-			    .hint = {},
-			});
-		}
-	}
+void Completer::find_context_symbols_helper(const SymbolDefinition& definition, const std::string& token,
+    std::string::size_type offset) {
+	std::visit(Overloaded {
+	               [&](std::monostate) {},
+	               [&](std::reference_wrapper<const PackageDescription> definition) {
+		               for (const auto& variable : definition.get().variables()) {
+			               if (token_match(variable.name.str(), token)) {
+				               _completions.push_back({
+				                   .offset = offset,
+				                   .token = variable.name.str(),
+				                   .hint = to_hint(variable),
+				               });
+			               }
+		               }
+	               },
+	               [&](std::reference_wrapper<const ClassDescription> definition) {
+		               for (const auto& member : definition.get().all_members()) {
+			               if (token_match(member.get_name().str(), token)) {
+				               _completions.push_back({
+				                   .offset = offset,
+				                   .token = member.get_name().str(),
+				                   .hint = to_hint(member),
+				               });
+			               }
+		               }
+	               },
+	               [&](std::reference_wrapper<const FunctionDescription> /*definition*/) {},
+	               [&](std::reference_wrapper<const VariableDescription> definition) {
+		               if (const auto* type = std::get_if<UserType>(&definition.get().type.definition)) {
+			               find_context_symbols_helper(_cursor.get().program().global_data_description().locate(
+			                                               type->path),
+			                   token, offset);
+		               }
+	               },
+	           },
+	    definition);
 }
 
 bool Completer::token_match(const std::string& symbol, const std::string& pattern) {
@@ -197,43 +220,6 @@ bool Completer::token_match(const std::string& symbol, const std::string& patter
 	              == std::strong_ordering::equal;
 }
 
-bool Completer::resolve_path(const std::vector<std::string>& context, PackageData*& pack, ClassDescription*& desc,
-    Reference*& member) const {
-
-	for (const std::string& token : context) {
-		const auto symbol = Symbol(token);
-		if (desc) {
-			desc = desc->find_class_description(symbol);
-			if (desc == nullptr) {
-				return false;
-			}
-		}
-		else if (pack) {
-			desc = pack->find_class_description(symbol);
-			if (desc == nullptr) {
-				const auto it = pack->symbols().find(symbol);
-				if (it != pack->symbols().end()) {
-					member = &it->second;
-				}
-				else {
-					pack = pack->find_package(symbol);
-					if (pack == nullptr) {
-						return false;
-					}
-				}
-			}
-		}
-		else {
-			const auto& global_data = _cursor.get().program().global_data();
-			desc = global_data.find_class_description(symbol);
-			if (desc == nullptr) {
-				pack = global_data.find_package(symbol);
-				if (pack == nullptr) {
-					return false;
-				}
-			}
-		}
-	}
-
-	return true;
+SymbolDefinition Completer::find_defined_symbol(const SymbolPath& symbols) const {
+	return _cursor.get().program().global_data_description().locate(symbols);
 }

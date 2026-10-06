@@ -197,7 +197,7 @@ Reference Scheduler::invoke(const Reference& function, std::vector<Reference>& p
 	return result;
 }
 
-Reference Scheduler::invoke(Class& type, std::vector<Reference>& parameters) {
+Reference Scheduler::invoke(const Class& type, std::vector<Reference>& parameters) {
 
 	if (!_running || g_current.process.empty()) [[unlikely]] {
 		return {};
@@ -351,7 +351,7 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, const
 
 namespace {
 
-class Future : public Process {
+class Future final : public Process {
 public:
 	struct ResultHandle {
 		Reference result;

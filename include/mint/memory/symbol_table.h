@@ -51,7 +51,7 @@ public:
 	using iterator = std::unordered_map<Symbol, Reference>::iterator;
 	using const_iterator = std::unordered_map<Symbol, Reference>::const_iterator;
 
-	explicit SymbolTable(GlobalData& global_data, Class* metadata = nullptr);
+	explicit SymbolTable(GlobalData& global_data, const Class* metadata = nullptr);
 	SymbolTable(const SymbolTable&) = delete;
 	SymbolTable(SymbolTable&&) = delete;
 	~SymbolTable() = default;
@@ -59,7 +59,7 @@ public:
 	SymbolTable& operator=(const SymbolTable&) = delete;
 	SymbolTable& operator=(SymbolTable&&) = delete;
 
-	[[nodiscard]] Class* get_metadata() const;
+	[[nodiscard]] const Class* get_metadata() const;
 	[[nodiscard]] PackageData& get_package() const;
 	[[nodiscard]] GlobalData& get_global_data() const;
 
@@ -92,7 +92,7 @@ public:
 	inline void clear();
 
 	void mark() {
-		for (auto& symbol : _symbols) {
+		for (const auto& symbol : _symbols) {
 			symbol.second.data().mark();
 		}
 	}
@@ -104,7 +104,7 @@ private:
 	std::unique_ptr<std::unique_ptr<Reference>[]> _fasts;
 	std::unordered_map<Symbol, Reference> _symbols;
 
-	Class* _metadata;
+	const Class* _metadata;
 	std::reference_wrapper<GlobalData> _global_data;
 	std::vector<std::reference_wrapper<PackageData>> _package;
 };

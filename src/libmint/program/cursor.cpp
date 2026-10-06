@@ -86,9 +86,9 @@ std::vector<Reference>* create_stack() {
 	return stack.release();
 }
 
-void dump_module(LineInfoList& dumped_infos, Program& program, const Module& module, std::size_t offset) {
+void dump_module(LineInfoList& dumped_infos, const Program& program, const Module& module, std::size_t offset) {
 
-	if (&module != &ThreadEntryPoint::instance(program)) {
+	if (&module != &ThreadEntryPoint::instance()) {
 
 		const Module::Id module_id = program.get_module_id(module);
 		const std::string module_name = program.get_module_name(module);
@@ -132,15 +132,15 @@ void Cursor::Call::set_flags(Flags flags) {
 	_flags = flags;
 }
 
-Class* Cursor::Call::get_metadata() const {
+const Class* Cursor::Call::get_metadata() const {
 	return _metadata;
 }
 
-void Cursor::Call::set_metadata(Class* metadata) {
+void Cursor::Call::set_metadata(const Class* metadata) {
 	_metadata = metadata;
 }
 
-void mint::Cursor::Call::set_metadata(Class& metadata) {
+void mint::Cursor::Call::set_metadata(const Class& metadata) {
 	_metadata = &metadata;
 }
 
@@ -182,7 +182,7 @@ Cursor::Cursor(Program& program, const Module& module, Cursor* parent) :
 }
 
 Cursor::Cursor(Program& program, Cursor* parent) :
-    Cursor(program, ThreadEntryPoint::instance(program), parent) {}
+    Cursor(program, ThreadEntryPoint::instance(), parent) {}
 
 Cursor::~Cursor() {
 
@@ -214,10 +214,10 @@ bool Cursor::is_thread() const {
 	}
 
 	if (_call_stack.empty()) {
-		return &_current_stack_frame->module == &ThreadEntryPoint::instance(_program);
+		return &_current_stack_frame->module == &ThreadEntryPoint::instance();
 	}
 
-	return &_call_stack.front()->module == &ThreadEntryPoint::instance(_program);
+	return &_call_stack.front()->module == &ThreadEntryPoint::instance();
 }
 
 void Cursor::jmp(std::size_t pos) {
@@ -225,7 +225,7 @@ void Cursor::jmp(std::size_t pos) {
 }
 
 bool Cursor::call_in_progress() const {
-	if (&_current_stack_frame->module != &ThreadEntryPoint::instance(_program)) {
+	if (&_current_stack_frame->module != &ThreadEntryPoint::instance()) {
 		return !_call_stack.empty();
 	}
 	return false;
@@ -276,7 +276,7 @@ void Cursor::call_async_generator_expression(std::size_t offset) {
 	expression_stack_frame->coroutine->data<Coroutine>().await(*this, Reference(*expression_stack_frame->coroutine));
 }
 
-void Cursor::call(const FunctionHandle& handle, int signature, Class* metadata) {
+void Cursor::call(const FunctionHandle& handle, int signature, const Class* metadata) {
 
 	const auto stack_base = _stack->size() - static_cast<std::size_t>(signature >= 0 ? signature : (~signature) + 1);
 
@@ -321,7 +321,7 @@ void Cursor::call(const FunctionHandle& handle, int signature, Class* metadata) 
 	}
 }
 
-void Cursor::call(const Module& module, std::size_t pos, PackageData& package, Class* metadata) {
+void Cursor::call(const Module& module, std::size_t pos, PackageData& package, const Class* metadata) {
 
 	_call_stack.emplace_back(_current_stack_frame);
 

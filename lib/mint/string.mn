@@ -40,7 +40,7 @@ load mint.lang
  * Returns a new string after removing any leading and trailing whitespaces.
  */
 @def trim(self) {
-	if isDefined(var from = self.indexOf(/\S/)) {
+	if defined let from = self.indexOf(/\S/) {
 		var to = self.lastIndexOf(/\S/)
 		if from == to {
 			return self[from]
@@ -54,7 +54,7 @@ load mint.lang
  * Returns a new string after removing any leading whitespaces.
  */
 @def ltrim(self) {
-	if isDefined(var from = self.indexOf(/\S/)) {
+	if defined let from = self.indexOf(/\S/) {
 		return self[from...self.size()]
 	}
 	return ''
@@ -64,7 +64,7 @@ load mint.lang
  * Returns a new string after removing any trailing whitespaces.
  */
 @def rtrim(self) {
-	if isDefined(var to = self.lastIndexOf(/\S/)) {
+	if defined let to = self.lastIndexOf(/\S/) {
 		if to == 0 {
 			return self[to]
 		}

@@ -22,36 +22,161 @@
  */
 
 #include "block.h"
-#include "mint/compiler/build_tools.h"
+#include "context.h"
+#include "mint/compiler/build_context.h"
+#include "mint/program/symbol.h"
+#include <algorithm>
+#include <iterator>
+#include <memory>
+#include <utility>
+#include <vector>
 
 using namespace mint;
 
-Block::Block(BuildContext::BlockType type) :
-    type(type) {}
+std::vector<const Symbol*>* mint::Block::get_condition_scoped_symbols() const {
+	return nullptr;
+}
 
-Block::~Block() {}
+std::vector<const Symbol*>* mint::Block::get_range_loop_scoped_symbols() const {
+	return nullptr;
+}
 
-bool Block::is_breakable() const {
-	switch (type) {
-	case BuildContext::BlockType::conditional_loop_type:
-	case BuildContext::BlockType::custom_range_loop_type:
-	case BuildContext::BlockType::range_loop_type:
-	case BuildContext::BlockType::switch_type:
-		return true;
-	default:
-		break;
-	}
+bool mint::Block::is_breakable() const {
 	return false;
 }
 
-bool Block::is_continuable() const {
-	switch (type) {
-	case BuildContext::BlockType::conditional_loop_type:
-	case BuildContext::BlockType::custom_range_loop_type:
-	case BuildContext::BlockType::range_loop_type:
-		return true;
-	default:
-		break;
-	}
+bool mint::Block::is_continuable() const {
 	return false;
+}
+
+mint::ConditionalLoopBlock::ConditionalLoopBlock(Context& context) :
+    condition_scoped_symbols(std::move(context.condition_scoped_symbols)) {
+	std::ranges::move(*condition_scoped_symbols, std::back_inserter(block_scoped_symbols));
+}
+
+BuildContext::BlockType mint::ConditionalLoopBlock::type() const {
+	return BuildContext::BlockType::conditional_loop_type;
+}
+
+std::vector<const Symbol*>* mint::ConditionalLoopBlock::get_condition_scoped_symbols() const {
+	return condition_scoped_symbols.get();
+}
+
+bool mint::ConditionalLoopBlock::is_breakable() const {
+	return true;
+}
+
+bool mint::ConditionalLoopBlock::is_continuable() const {
+	return true;
+}
+
+mint::CustomRangeLoopBlock::CustomRangeLoopBlock(Context& context) :
+    condition_scoped_symbols(std::move(context.condition_scoped_symbols)),
+    range_loop_scoped_symbols(std::move(context.range_loop_scoped_symbols)) {
+	std::ranges::move(*condition_scoped_symbols, std::back_inserter(block_scoped_symbols));
+}
+
+BuildContext::BlockType mint::CustomRangeLoopBlock::type() const {
+	return BuildContext::BlockType::custom_range_loop_type;
+}
+
+std::vector<const Symbol*>* mint::CustomRangeLoopBlock::get_condition_scoped_symbols() const {
+	return condition_scoped_symbols.get();
+}
+
+std::vector<const Symbol*>* mint::CustomRangeLoopBlock::get_range_loop_scoped_symbols() const {
+	return range_loop_scoped_symbols.get();
+}
+
+bool mint::CustomRangeLoopBlock::is_breakable() const {
+	return true;
+}
+
+bool mint::CustomRangeLoopBlock::is_continuable() const {
+	return true;
+}
+
+mint::RangeLoopBlock::RangeLoopBlock(Context& context) :
+    condition_scoped_symbols(std::move(context.condition_scoped_symbols)),
+    range_loop_scoped_symbols(std::move(context.range_loop_scoped_symbols)) {
+	std::ranges::move(*condition_scoped_symbols, std::back_inserter(block_scoped_symbols));
+}
+
+BuildContext::BlockType mint::RangeLoopBlock::type() const {
+	return BuildContext::BlockType::range_loop_type;
+}
+
+std::vector<const Symbol*>* mint::RangeLoopBlock::get_condition_scoped_symbols() const {
+	return condition_scoped_symbols.get();
+}
+
+std::vector<const Symbol*>* mint::RangeLoopBlock::get_range_loop_scoped_symbols() const {
+	return range_loop_scoped_symbols.get();
+}
+
+bool mint::RangeLoopBlock::is_breakable() const {
+	return true;
+}
+
+bool mint::RangeLoopBlock::is_continuable() const {
+	return true;
+}
+
+mint::SwitchBlock::SwitchBlock(Context& context) :
+    condition_scoped_symbols(std::move(context.condition_scoped_symbols)) {
+	std::ranges::move(*condition_scoped_symbols, std::back_inserter(block_scoped_symbols));
+}
+
+BuildContext::BlockType mint::SwitchBlock::type() const {
+	return BuildContext::BlockType::switch_type;
+}
+
+std::vector<const Symbol*>* mint::SwitchBlock::get_condition_scoped_symbols() const {
+	return condition_scoped_symbols.get();
+}
+
+bool mint::SwitchBlock::is_breakable() const {
+	return true;
+}
+
+mint::IfBlock::IfBlock(Context& context) :
+    condition_scoped_symbols(std::move(context.condition_scoped_symbols)) {
+	std::ranges::move(*condition_scoped_symbols, std::back_inserter(block_scoped_symbols));
+}
+
+BuildContext::BlockType mint::IfBlock::type() const {
+	return BuildContext::BlockType::if_type;
+}
+
+std::vector<const Symbol*>* mint::IfBlock::get_condition_scoped_symbols() const {
+	return condition_scoped_symbols.get();
+}
+
+mint::ElifBlock::ElifBlock(Context& context) :
+    condition_scoped_symbols(std::move(context.condition_scoped_symbols)) {
+	std::ranges::move(*condition_scoped_symbols, std::back_inserter(block_scoped_symbols));
+}
+
+BuildContext::BlockType mint::ElifBlock::type() const {
+	return BuildContext::BlockType::elif_type;
+}
+
+std::vector<const Symbol*>* mint::ElifBlock::get_condition_scoped_symbols() const {
+	return condition_scoped_symbols.get();
+}
+
+BuildContext::BlockType mint::ElseBlock::type() const {
+	return BuildContext::BlockType::else_type;
+}
+
+BuildContext::BlockType mint::TryBlock::type() const {
+	return BuildContext::BlockType::try_type;
+}
+
+BuildContext::BlockType mint::CatchBlock::type() const {
+	return BuildContext::BlockType::catch_type;
+}
+
+BuildContext::BlockType mint::PrintBlock::type() const {
+	return BuildContext::BlockType::print_type;
 }

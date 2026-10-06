@@ -22,147 +22,53 @@
  */
 
 #include "mint/memory/global_data.h"
-#include "mint/program/program.h"
-#include "mint/program/class_description.h"
-#include "mint/program/class_register.h"
-#include "mint/program/symbol.h"
-#include "mint/memory/data.h"
-#include "mint/memory/object.h"
-#include "mint/memory/reference.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/memory/memory_tools.h"
-#include "mint/memory/class.h"
-
+#include "mint/memory/object.h"
+#include "mint/program/program.h"
+#include "mint/program/symbol.h"
 #include <algorithm>
-#include <cassert>
-#include <iterator>
-#include <memory>
 #include <string>
-#include <utility>
 
 using namespace mint;
 
-FunctionData::FunctionData(Program& program) :
-    ClassRegister(program) {}
+mint::PackageData::PackageData(Program& program, const PackageDescription& description) :
+    _symbols(program.global_data()),
+    _program(program),
+    _description(description) {}
 
-const FunctionData* FunctionData::get_function_data() const {
-	return this;
+std::string mint::PackageData::get_full_name() const {
+	return _description.get().get_path().to_string();
 }
 
-FunctionData* FunctionData::get_function_data() {
-	return this;
+Symbol mint::PackageData::get_name() const {
+	return _description.get().get_name();
 }
 
-PackageData::PackageData(Program& program, const std::string& name) :
-    ClassRegister(program),
-    _name(name),
-    _symbols(program.global_data()) {
-	register_root();
+const PackageDescription& mint::PackageData::get_description() const {
+	return _description;
 }
 
-PackageData::~PackageData() {
-	unregister_root();
-}
-
-Symbol PackageData::name() const {
-	return _name;
-}
-
-std::string PackageData::full_name() const {
-	if (const auto* package = get_owner_package(); package && package != &program().global_data()) {
-		return package->full_name() + "." + name().str();
-	}
-	return name().str();
-}
-
-PackageData::Path PackageData::get_path() const {
-	if (const auto* package = get_owner_package()) {
-		return {package->get_path(), name()};
-	}
-	return {name()};
-}
-
-PackageData& PackageData::get_package(const Symbol& name) {
-	auto it = _packages.find(name);
-	if (it == _packages.end()) {
-		constexpr auto flags = Reference::global | Reference::const_address | Reference::const_value;
-		auto package = std::make_unique<PackageData>(program(), name.str());
-		package->set_owner_register(this);
-		_symbols.emplace(name, make_reference<Package>(flags, *package));
-		it = _packages.emplace(name, std::move(package)).first;
-	}
-	return *it->second;
-}
-
-PackageData* PackageData::find_package(const Symbol& name) const {
-	if (const auto it = _packages.find(name); it != _packages.end()) {
-		return it->second.get();
+PackageData* mint::PackageData::get_owner_package() {
+	if (const auto* owner = _description.get().get_owner_package()) {
+		return &owner->data();
 	}
 	return nullptr;
 }
 
-Class* PackageData::find_class(const Symbol& name) const {
-	if (const auto it = _symbols.find(name); it != _symbols.end() && it->second.data().format() == Data::Format::object
-	                                         && is_class(it->second.data<Object>())) {
+const Class* PackageData::find_class(const Symbol& name) const {
+	if (const auto it = _symbols.find(name); it != _symbols.end() && is_class(it->second)) {
 		return &it->second.data<Object>().metadata;
 	}
 	return nullptr;
-}
-
-ClassRegister* PackageData::locate(const Symbol& symbol) const {
-	if (auto* class_description = find_class_description(symbol)) {
-		return class_description;
-	}
-	if (auto* child_package = find_package(symbol)) {
-		return child_package;
-	}
-	return nullptr;
-}
-
-const PackageData* PackageData::get_package_data() const {
-	return this;
-}
-
-PackageData* PackageData::get_package_data() {
-	return this;
-}
-
-void PackageData::cleanup_memory() {
-
-	ClassRegister::cleanup_memory();
-
-	for (const auto& package : _packages) {
-		package.second->cleanup_memory();
-	}
-
-	for (auto symbol = _symbols.begin(); symbol != _symbols.end();) {
-		if (is_class(symbol->second)) {
-			symbol = next(symbol);
-		}
-		else {
-			symbol = _symbols.erase(symbol);
-		}
-	}
-}
-
-void PackageData::cleanup_metadata() {
-
-	ClassRegister::cleanup_metadata();
-
-	_symbols.clear();
-
-	for (const auto& package : _packages) {
-		package.second->cleanup_metadata();
-	}
-
-	_packages.clear();
 }
 
 void PackageData::mark() {
 	_symbols.mark();
 }
 
-GlobalData::GlobalData(Program& program) :
-    PackageData(program, "(default)") {}
+GlobalData::GlobalData(Program& program, GlobalDataDescription& description) :
+    PackageData(program, description) {}
 
 void GlobalData::cleanup_builtin() {
 	// cleanup builtin classes

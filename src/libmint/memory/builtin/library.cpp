@@ -46,6 +46,10 @@ LibraryClass& LibraryClass::instance(Program& program) {
 Library::Library(Program& program) :
     Object(LibraryClass::instance(program)) {}
 
+Library::Library(Program& program, const std::string& plugin) :
+    Object(LibraryClass::instance(program)),
+    plugin(Plugin::load(plugin)) {}
+
 Library::Library(Library&& other) noexcept :
     Object(other.metadata),
     plugin(std::move(other.plugin)) {}

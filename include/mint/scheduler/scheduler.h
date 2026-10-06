@@ -63,7 +63,7 @@ public:
 	SchedulerContextSwitcher& operator=(SchedulerContextSwitcher&&) = delete;
 };
 
-class MINT_EXPORT TestProcess : public Process {
+class MINT_EXPORT TestProcess final : public Process {
 	std::reference_wrapper<Scheduler> _scheduler;
 	SchedulerContextSwitcher _context;
 public:
@@ -99,8 +99,8 @@ public:
 	Reference invoke(const Reference& function, std::vector<Reference>& parameters);
 
 	template<class... Args>
-	Reference invoke(Class& type, Args... args);
-	Reference invoke(Class& type, std::vector<Reference>& parameters);
+	Reference invoke(const Class& type, Args... args);
+	Reference invoke(const Class& type, std::vector<Reference>& parameters);
 
 	template<class... Args>
 	Reference invoke(const Reference& object, const Symbol& method, Args... args);
@@ -168,7 +168,7 @@ Reference Scheduler::invoke(const Reference& function, Args... args) {
 }
 
 template<class... Args>
-Reference Scheduler::invoke(Class& type, Args... args) {
+Reference Scheduler::invoke(const Class& type, Args... args) {
 	std::vector<Reference> parameters;
 	parameters.reserve(sizeof...(args));
 	(parameters.emplace_back(std::forward<Args>(args)), ...);

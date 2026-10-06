@@ -268,7 +268,7 @@ package Container {
 	 * is returned instead.
 	 */
 	const def get(const self, key, defaultValue = none) {
-		if isDefined(var node = self.root.find(Container.Map.Node(key))) {
+		if defined let node = self.root.find(Container.Map.Node(key)) {
 			return node.value
 		}
 		return defaultValue
@@ -282,7 +282,7 @@ package Container {
 	 * the givens `key` and `value`.
 	 */
 	const def set(self, key, value) {
-		if isDefined(var node = self.root.find(Container.Map.Node(key))) {
+		if defined let node = self.root.find(Container.Map.Node(key)) {
 			node.value = value
 		} else {
 			self.root.insert(Container.Map.Node(key, value))

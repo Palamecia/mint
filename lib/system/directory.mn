@@ -112,7 +112,7 @@ package System {
 		 * Returns the name of the directory, excluding the path.
 		 */
 		const def getName(const self) {
-			if isDefined(var index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)) {
+			if defined let index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern) {
 				return self.path[(index + 1)...self.path.size()]
 			}
 			return self.path

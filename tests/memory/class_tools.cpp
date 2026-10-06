@@ -14,7 +14,10 @@ TEST(class_tools, create_class_with_builtin_member) {
 
 	mint::Class& type = mint::create_class(scheduler.program(), "__class_api_test__",
 	    {
-	        {mint::Symbol("member"), mint::create_number(42)},
+	        {
+	            .symbol = mint::Symbol("member"),
+	            .value = mint::create_number(42),
+	        },
 	    });
 
 	auto* member = type.find_member("member");

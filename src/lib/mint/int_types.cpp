@@ -21,7 +21,6 @@
  * IN THE SOFTWARE.
  */
 
-#include "mint/program/class_register.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
@@ -33,11 +32,9 @@
 #include "mint/memory/reference.h"
 #include "mint/system/error.h"
 #include "mint/system/string.h"
-#include <cinttypes>
 #include <cmath>
 #include <concepts>
 #include <cstdint>
-#include <string>
 #include <string_view>
 #include <utility>
 

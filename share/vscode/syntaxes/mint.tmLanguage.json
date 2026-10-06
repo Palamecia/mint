@@ -25,6 +25,9 @@
           "include": "#comment"
         },
         {
+          "include": "#function_signature_rule"
+        },
+        {
           "match": "\\b(assert)\\b(?!\\$)",
           "name": "keyword.mn"
         },
@@ -34,10 +37,6 @@
         },
         {
           "match": "\\b(break|continue|while)\\b(?!\\$)",
-          "name": "keyword.control.loop.mn"
-        },
-        {
-          "match": "\\b(for)\\b(?!\\$)",
           "name": "keyword.control.loop.mn"
         },
         {
@@ -55,6 +54,81 @@
         {
           "match": "\\b(print)\\b(?!\\$)",
           "name": "keyword.control.print.mn"
+        },
+        {
+          "begin": "(\\bfor\\b)(\\s+)(?:(\\b(?:let|var|const)\\b|[@$%])\\s+)?([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)(\\s*)(:)",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.loop.mn"
+            },
+            "3": {
+              "name": "storage.modifier.mn"
+            },
+            "4": {
+              "name": "variable.other.readwrite.mn"
+            },
+            "6": {
+              "name": "punctuation.separator.type.mn"
+            }
+          },
+          "end": "(?=\\bin\\b)",
+          "patterns": [
+            {
+              "include": "#type_annotation_rule"
+            },
+            {
+              "include": "#comment"
+            }
+          ]
+        },
+        {
+          "begin": "(\\bfor\\b)(\\s*)(?:(\\b(?:let|var|const)\\b|[@$%])\\s*)?(\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.loop.mn"
+            },
+            "3": {
+              "name": "storage.modifier.mn"
+            },
+            "4": {
+              "name": "punctuation.section.group.begin.mn"
+            }
+          },
+          "end": "(\\))(?=\\s*\\bin\\b)",
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.section.group.end.mn"
+            }
+          },
+          "patterns": [
+            {
+              "begin": "(:)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.separator.type.mn"
+                }
+              },
+              "end": "(?=,|\\))",
+              "patterns": [
+                {
+                  "include": "#type_annotation_rule"
+                }
+              ]
+            },
+            {
+              "include": "#comment"
+            },
+            {
+              "include": "#expr_rule"
+            }
+          ]
+        },
+        {
+          "match": "\\b(for)\\b(?!\\$)",
+          "name": "keyword.control.loop.mn"
+        },
+        {
+          "include": "#typed_local_declaration_rule"
         },
         {
           "include": "#declaration"
@@ -204,6 +278,9 @@
               "include": "#comment"
             },
             {
+              "include": "#member_type_annotation_rule"
+            },
+            {
               "include": "#desc_block_rule"
             }
           ]
@@ -231,6 +308,9 @@
           "patterns": [
             {
               "include": "#comment"
+            },
+            {
+              "include": "#member_type_annotation_rule"
             },
             {
               "include": "#desc_block_rule"
@@ -336,6 +416,9 @@
     "function_rule": {
       "patterns": [
         {
+          "include": "#function_signature_rule"
+        },
+        {
           "match": "\\b(async)\\b(?!\\$)",
           "name": "storage.type.async.mn"
         },
@@ -355,6 +438,223 @@
 				},
         {
           "include": "#expr_rule"
+        }
+      ]
+    },
+    "function_signature_rule": {
+      "patterns": [
+        {
+          "name": "meta.function.declaration.mn",
+          "begin": "(\\bdef\\b)(?=\\s*(?:\\[(?:[^\\[\\]]|\\[[^\\[\\]]*\\])*\\]\\s*)?(?:[^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*|in\\b|:=|\\|\\||&&|\\||\\^|&|==|!=|<<|>>|<=|>=|<|>|\\+\\+|--|\\*\\*|/|%|!|~|\\+|-|\\*|\\(\\)|\\[\\]=|\\[\\]|\\.\\.\\.|\\.\\.)\\s*\\()",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.function.mn"
+            }
+          },
+          "end": "(?=\\{|=>)",
+          "patterns": [
+            {
+              "name": "meta.function.capture.mn",
+              "begin": "(\\[)",
+              "beginCaptures": {
+                "1": {
+                  "name": "punctuation.section.brackets.begin.mn"
+                }
+              },
+              "end": "(\\])",
+              "endCaptures": {
+                "1": {
+                  "name": "punctuation.section.brackets.end.mn"
+                }
+              },
+              "patterns": [
+                {
+                  "include": "#comment"
+                },
+                {
+                  "include": "#expr_rule"
+                }
+              ]
+            },
+            {
+              "name": "meta.function.parameters.mn",
+              "begin": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)(\\s*)(\\()",
+              "beginCaptures": {
+                "1": {
+                  "name": "entity.name.function.mn"
+                },
+                "3": {
+                  "name": "punctuation.section.group.begin.mn"
+                }
+              },
+              "end": "(\\))",
+              "endCaptures": {
+                "1": {
+                  "name": "punctuation.section.group.end.mn"
+                }
+              },
+              "patterns": [
+                {
+                  "begin": "((?:(?:\\b(?:let|var|const)\\b|[+#~@$%])\\s+)?)(self)(\\s*)(:)",
+                  "beginCaptures": {
+                    "1": {
+                      "name": "storage.modifier.mn"
+                    },
+                    "2": {
+                      "name": "variable.language.mn"
+                    },
+                    "4": {
+                      "name": "punctuation.separator.type.mn"
+                    }
+                  },
+                  "end": "(?=,|=|\\))",
+                  "patterns": [
+                    {
+                      "include": "#type_annotation_rule"
+                    }
+                  ]
+                },
+                {
+                  "match": "((?:\\b(?:let|var|const)\\b|[+#~@$%])\\s+)?(self)(?=\\s*(?:,|=|\\)))",
+                  "captures": {
+                    "1": {
+                      "name": "storage.modifier.mn"
+                    },
+                    "2": {
+                      "name": "variable.language.mn"
+                    }
+                  }
+                },
+                {
+                  "begin": "((?:(?:\\b(?:let|var|const)\\b|[+#~@$%])\\s+)?)([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)(\\s*)(:)",
+                  "beginCaptures": {
+                    "1": {
+                      "name": "storage.modifier.mn"
+                    },
+                    "2": {
+                      "name": "variable.parameter.function.mn"
+                    },
+                    "4": {
+                      "name": "punctuation.separator.type.mn"
+                    }
+                  },
+                  "end": "(?=,|=|\\))",
+                  "patterns": [
+                    {
+                      "include": "#type_annotation_rule"
+                    }
+                  ]
+                },
+                {
+                  "match": "((?:\\b(?:let|var|const)\\b|[+#~@$%])\\s+)?([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)(?=\\s*(?:,|=|\\)))",
+                  "captures": {
+                    "1": {
+                      "name": "storage.modifier.mn"
+                    },
+                    "2": {
+                      "name": "variable.parameter.function.mn"
+                    }
+                  }
+                },
+                {
+                  "include": "#comment"
+                },
+                {
+                  "include": "#expr_rule"
+                }
+              ]
+            },
+            {
+              "begin": "(->)",
+              "beginCaptures": {
+                "1": {
+                  "name": "keyword.operator.type.mn"
+                }
+              },
+              "end": "(?=\\{|=>)",
+              "patterns": [
+                {
+                  "include": "#type_annotation_rule"
+                },
+                {
+                  "include": "#comment"
+                }
+              ]
+            },
+            {
+              "include": "#comment"
+            },
+            {
+              "include": "#expr_rule"
+            }
+          ]
+        }
+      ]
+    },
+    "member_type_annotation_rule": {
+      "patterns": [
+        {
+          "begin": "([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)(\\s*)(:)",
+          "beginCaptures": {
+            "1": {
+              "name": "variable.mn"
+            },
+            "3": {
+              "name": "punctuation.separator.type.mn"
+            }
+          },
+          "end": "(?==|;|$|\\})",
+          "patterns": [
+            {
+              "include": "#type_annotation_rule"
+            },
+            {
+              "include": "#comment"
+            }
+          ]
+        }
+      ]
+    },
+    "type_annotation_rule": {
+      "patterns": [
+        {
+          "match": "([^\\s.!|,=(){}]+)",
+          "name": "entity.name.type.mn"
+        },
+        {
+          "match": "(\\.)",
+          "name": "punctuation.accessor.mn"
+        },
+        {
+          "match": "(\\|)",
+          "name": "keyword.operator.type.mn"
+        }
+      ]
+    },
+    "typed_local_declaration_rule": {
+      "patterns": [
+        {
+          "begin": "((?:\\b(?:let|var|const)\\b|[@$%])\\s+)([^\\s!-@\\[-^`\\{-~][^\\s!-\\/:-@\\[-^`\\{-~]*)(\\s*)(:)",
+          "beginCaptures": {
+            "1": {
+              "name": "storage.type.mn"
+            },
+            "2": {
+              "name": "variable.other.readwrite.mn"
+            },
+            "4": {
+              "name": "punctuation.separator.type.mn"
+            }
+          },
+          "end": "(?==|;|$|\\})",
+          "patterns": [
+            {
+              "include": "#type_annotation_rule"
+            },
+            {
+              "include": "#comment"
+            }
+          ]
         }
       ]
     },
@@ -442,6 +742,9 @@
 				{
 					"include": "#enum_rule"
 				},
+        {
+          "include": "#function_signature_rule"
+        },
         {
           "match": "(\\+|-|#|~)",
           "name": "storage.type.mn"
@@ -573,6 +876,9 @@
     },
     "expr_rule": {
       "patterns": [
+        {
+          "include": "#typed_local_declaration_rule"
+        },
         {
           "include": "#strings"
         },

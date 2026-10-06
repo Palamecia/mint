@@ -45,6 +45,7 @@
 			<context attribute="Normal" lineEndContext="#stay" name="stmt_rule">
 				<IncludeRules context="comments"/>
 				<!-- Declaration rules -->
+				<RegExpr String="(\b(let|var|const)\b|[@$%])(?=\s+(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b))\s*:)" attribute="Modifier" context="local_decl_rule"/>
 				<RegExpr String="\b(load)\b" attribute="Keyword" context="module_path_rule"/>
 				<RegExpr String="\b(package)\b" attribute="Keyword" context="package_name_rule"/>
 				<RegExpr String="\b(class)\b" attribute="Keyword" context="class_name_rule"/>
@@ -59,6 +60,7 @@
 				<RegExpr String="\b(elif)\b" attribute="ControlFlow" context="#stay"/>
 				<RegExpr String="\b(else)\b" attribute="ControlFlow" context="#stay"/>
 				<RegExpr String="\b(exit)\b" attribute="ControlFlow" context="#stay"/>
+				<RegExpr String="\b(for)\b(?=\s+(?:\b(let|var|const)\b\s+)?\((?:(?!\)).)*(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b)\s*:)|\s+(?:\b(let|var|const)\b\s+)?(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b)\s*:))" attribute="ControlFlow" context="for_typed_variable_rule"/>
 				<RegExpr String="\b(for)\b" attribute="ControlFlow" context="#stay"/>
 				<RegExpr String="\b(if)\b" attribute="ControlFlow" context="#stay"/>
 				<RegExpr String="\b(lib)\b" attribute="Keyword" context="#stay"/>
@@ -86,6 +88,7 @@
 				<RegExpr String="\bvar\b|\bconst\b|@|\$|%" attribute="Modifier" context="#stay"/>
 				<RegExpr String="\b(async)\b" attribute="Keyword" context="#stay"/>
 				<RegExpr String="\b(def)\b" attribute="Keyword" context="def_rule"/>
+				<RegExpr String="(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b))(?=\s*:)" attribute="Symbol" context="member_annotation_prefix_rule"/>
 				<RegExpr String="(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b))" attribute="Symbol" context="expr_stmt_rule"/>
 				<RegExpr String="(\[)" attribute="Punctuation" context="desc_sub_script_rule"/>
 				<RegExpr String="(\()" attribute="Punctuation" context="desc_sub_expr_rule"/>
@@ -138,6 +141,7 @@
 				<IncludeRules context="comments"/>
 			</context>
 			<context attribute="Normal" lineEndContext="#stay" name="def_rule">
+				<RegExpr String="(-&gt;)" attribute="Operator" context="def_return_type_rule"/>
 				<RegExpr String="(=&gt;)" attribute="Punctuation" context="#pop"/>
 				<RegExpr String="(in\b|:=|\|\||&amp;&amp;|\||\^|&amp;|==|!=|&lt;&lt;|&gt;&gt;|&lt;=|&gt;=|&lt;|&gt;|\+\+|--|\*\*|\/(?:(?!\/))|%|!|~|\+|-|\*|\(\)|\[\]=|\[\]|\.\.\.|\.\.)" attribute="Function" context="#stay"/>
 				<RegExpr String="({)" attribute="Punctuation" context="#pop!stmt_block_rule"/>
@@ -155,7 +159,83 @@
 			<context attribute="Normal" lineEndContext="#stay" name="def_parameter_rule">
 				<RegExpr String="(\))" attribute="Punctuation" context="#pop"/>
 				<RegExpr String="(,)" attribute="Punctuation" context="#stay"/>
+				<RegExpr String="(\b(let|var|const)\b|[@$%])(?=\s+(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b))\s*:)" attribute="Modifier" context="parameter_modifier_rule"/>
+				<RegExpr String="(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b))(?=\s*:)" attribute="Variable" context="#stay"/>
+				<RegExpr String="(:)" attribute="Punctuation" context="def_parameter_type_rule"/>
 				<IncludeRules context="expr_rule"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="def_parameter_type_rule">
+				<RegExpr String="(,)" attribute="Punctuation" context="#pop"/>
+				<RegExpr String="(=)" attribute="Operator" context="#pop"/>
+				<RegExpr String="(\))" attribute="Punctuation" context="#pop#pop"/>
+				<IncludeRules context="type_annotation_tokens"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="local_decl_rule">
+				<RegExpr String="(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b))" attribute="Variable" context="#stay"/>
+				<RegExpr String="(:)" attribute="Punctuation" context="local_decl_type_rule"/>
+				<RegExpr String="(=)" attribute="Operator" context="#pop"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop#pop" name="local_decl_type_rule">
+				<IncludeRules context="type_annotation_tokens"/>
+				<RegExpr String="(=)" attribute="Operator" context="#pop#pop"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="member_annotation_prefix_rule">
+				<RegExpr String="(:)" attribute="Punctuation" context="type_annotation_rule"/>
+				<RegExpr String="(=)" attribute="Operator" context="#pop!desc_rule"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="parameter_modifier_rule">
+				<RegExpr String="(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b))" attribute="Variable" context="#pop"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="for_typed_variable_rule">
+				<RegExpr String="(\b(let|var|const)\b|[@$%])" attribute="Modifier" context="#stay"/>
+				<RegExpr String="(\()" attribute="Punctuation" context="for_typed_iterator_rule"/>
+				<RegExpr String="(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b))" attribute="Variable" context="for_annotation_prefix_rule"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="for_annotation_prefix_rule">
+				<RegExpr String="(:)" attribute="Punctuation" context="for_type_annotation_rule"/>
+				<RegExpr String="(\bin\b)" attribute="Operator" context="#pop"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop#pop#pop" name="for_type_annotation_rule">
+				<IncludeRules context="type_annotation_tokens"/>
+				<RegExpr String="(\bin\b)" attribute="Operator" context="#pop#pop#pop"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="for_typed_iterator_rule">
+				<RegExpr String="(\))" attribute="Punctuation" context="for_typed_in_rule"/>
+				<RegExpr String="(,)" attribute="Punctuation" context="#stay"/>
+				<RegExpr String="(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b))" attribute="Variable" context="for_list_annotation_prefix_rule"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="for_list_annotation_prefix_rule">
+				<RegExpr String="(:)" attribute="Punctuation" context="type_annotation_rule"/>
+				<RegExpr String="(,)" attribute="Punctuation" context="#pop!for_typed_iterator_rule"/>
+				<RegExpr String="(\))" attribute="Punctuation" context="#pop!for_typed_in_rule"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="for_typed_in_rule">
+				<RegExpr String="(\bin\b)" attribute="Operator" context="#pop"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="type_annotation_tokens">
+				<RegExpr String="(?:(?!(and|async|await|assert|break|case|catch|class|const|continue|def|default|defined|elif|else|enum|exit|false|final|for|if|in|is|let|lib|load|membersof|none|not|null|or|override|package|print|raise|return|switch|true|try|typeof|while|xor|yield|var)\b)(?:[^\s\x{0021}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}][^\s\x{0021}-\/\x{003a}-\x{0040}\[-\x{005e}\x{0060}\{-\x{007e}]*\b))" attribute="Type" context="#stay"/>
+				<RegExpr String="(\.)" attribute="Punctuation" context="#stay"/>
+				<RegExpr String="(\|)" attribute="Operator" context="#stay"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#stay" name="def_return_type_rule">
+				<IncludeRules context="type_annotation_tokens"/>
+				<RegExpr String="({)" attribute="Punctuation" context="#pop#pop!stmt_block_rule"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
+			</context>
+			<context attribute="Normal" lineEndContext="#pop" name="type_annotation_rule">
+				<IncludeRules context="type_annotation_tokens"/>
+				<RegExpr String="(?=\S)" context="#pop" lookAhead="true"/>
 			</context>
 			<context attribute="Normal" lineEndContext="#stay" name="stmt_expr_rule">
 				<RegExpr String="\b(elif)\b" attribute="ControlFlow" context="#stay"/>
@@ -228,6 +308,7 @@
 			<itemData defStyleNum="dsConstant" name="Constant"/>
 			<itemData defStyleNum="dsFloat" name="Numeric"/>
 			<itemData defStyleNum="dsDataType" name="Class"/>
+			<itemData defStyleNum="dsDataType" name="Type"/>
 			<itemData defStyleNum="dsFunction" name="Function"/>
 			<itemData defStyleNum="dsBuiltIn" name="Variable"/>
 			<itemData defStyleNum="dsImport" name="Module"/>

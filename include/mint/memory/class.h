@@ -24,13 +24,12 @@
 #ifndef MINT_MEMORY_CLASS_H
 #define MINT_MEMORY_CLASS_H
 
-#include "mint/program/module.h"
-#include "mint/program/symbol.h"
 #include "mint/config.h"
 #include "mint/memory/data.h"
 #include "mint/memory/garbage_collector.h"
 #include "mint/memory/object.h"
 #include "mint/memory/reference.h"
+#include "mint/program/symbol.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -47,10 +46,14 @@
 
 namespace mint {
 
+class ClassBuilder;
 class ClassDescription;
+class PackageData;
+class Program;
+struct FunctionHandle;
 
-class MINT_EXPORT Class : public MemoryRoot {
-	friend class ClassDescription;
+class MINT_EXPORT Class : public MemoryRoot<MemoryRootRegistrationMode::automatic> {
+	friend class ClassBuilder;
 public:
 	enum class Metatype : std::uint8_t {
 		object,
@@ -66,6 +69,7 @@ public:
 
 	static constexpr const std::size_t builtin_class_count = static_cast<std::size_t>(Metatype::libobject) + 1;
 
+	// NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
 	enum Operator : std::uint8_t {
 		new_operator,
 		delete_operator,
@@ -108,9 +112,9 @@ public:
 	struct MemberInfo {
 
 		static constexpr const std::size_t invalid_offset = std::numeric_limits<std::size_t>::max();
-		static inline const Reference& get(const MemberInfo& member, Reference* data);
+		static inline const Reference& get(const MemberInfo& member, const Reference* data);
 		static inline Reference& get(MemberInfo& member, Reference* data);
-		static inline const Reference& get(const MemberInfo& member, Object& object);
+		static inline const Reference& get(const MemberInfo& member, const Object& object);
 		static inline Reference& get(MemberInfo& member, Object& object);
 
 		std::size_t offset = invalid_offset;
@@ -127,10 +131,11 @@ public:
 	Class& operator=(const Class&) = delete;
 
 	[[nodiscard]] inline Metatype metatype() const;
-	[[nodiscard]] inline const std::string& full_name() const;
-	[[nodiscard]] Symbol name() const;
+	[[nodiscard]] Symbol get_name() const;
+	[[nodiscard]] inline const std::string& get_full_name() const;
 	[[nodiscard]] PackageData& get_package() const;
-	[[nodiscard]] ClassDescription& get_description() const;
+	[[nodiscard]] const ClassDescription& get_description() const;
+
 	[[nodiscard]] inline const MemberInfo* find_operator(Operator op) const;
 	[[nodiscard]] inline MemberInfo* find_operator(Operator op);
 	[[nodiscard]] inline const MemberInfo* find_member(const Symbol& symbol) const;
@@ -140,39 +145,19 @@ public:
 	[[nodiscard]] const MemberInfo* find_class(const Symbol& name) const;
 	[[nodiscard]] MemberInfo* find_class(const Symbol& name);
 
-	[[nodiscard]] inline const std::vector<std::reference_wrapper<const MemberInfo>>& slots() const;
 	[[nodiscard]] std::size_t size() const;
 
-	[[nodiscard]] auto members() {
-		return std::views::transform(_members,
-		    [](auto& item) -> std::pair<Symbol, std::reference_wrapper<const MemberInfo>> {
-			    return {item.first, *item.second};
-		    });
-	}
+	[[nodiscard]] auto slots() const;
+	[[nodiscard]] auto members() const;
+	[[nodiscard]] auto globals() const;
+	[[nodiscard]] auto classes() const;
 
-	[[nodiscard]] auto globals() {
-		return std::views::transform(_globals,
-		    [](auto& item) -> std::pair<Symbol, std::reference_wrapper<const MemberInfo>> {
-			    return {item.first, *item.second};
-		    });
-	}
-
-	[[nodiscard]] auto classes() {
-		return std::views::filter(_globals, [](auto& item) {
-			return item.second->value.data().format() == Data::Format::object
-			       && item.second->value.template data<Object>().data == nullptr;
-		}) | std::views::transform([](auto& item) -> std::pair<Symbol, std::reference_wrapper<const MemberInfo>> {
-			return {item.first, *item.second};
-		});
-	}
-
-	[[nodiscard]] const std::vector<std::reference_wrapper<Class>>& bases() const;
+	[[nodiscard]] auto bases() const;
 	[[nodiscard]] bool is_same(const Class& other) const;
 	[[nodiscard]] bool is_base_of(const Class& other) const;
 	[[nodiscard]] bool is_base_or_same(const Class& other) const;
 	[[nodiscard]] bool is_direct_base_or_same(const Class& other) const;
 
-	[[nodiscard]] const Class::MemberInfo& make_allocate_method_reference(Program& program);
 	[[nodiscard]] bool is_trivially_copyable() const;
 	void disable_trivial_copy();
 
@@ -200,7 +185,9 @@ private:
 
 	std::string _name;
 	std::reference_wrapper<PackageData> _package;
-	ClassDescription* _description = nullptr;
+	std::vector<std::reference_wrapper<Class>> _bases;
+
+	const ClassDescription* _description = nullptr;
 
 	std::array<MemberInfo*, operator_count> _operators;
 	std::vector<std::reference_wrapper<const MemberInfo>> _slots;
@@ -208,7 +195,7 @@ private:
 	std::unordered_map<Symbol, std::unique_ptr<MemberInfo>> _globals;
 };
 
-const Reference& Class::MemberInfo::get(const MemberInfo& member, Reference* data) {
+const Reference& Class::MemberInfo::get(const MemberInfo& member, const Reference* data) {
 	return member.offset == invalid_offset ? member.value : data[member.offset];
 }
 
@@ -216,7 +203,7 @@ Reference& Class::MemberInfo::get(MemberInfo& member, Reference* data) {
 	return member.offset == invalid_offset ? member.value : data[member.offset];
 }
 
-const Reference& Class::MemberInfo::get(const MemberInfo& member, Object& object) {
+const Reference& Class::MemberInfo::get(const MemberInfo& member, const Object& object) {
 	return member.offset == invalid_offset ? member.value : object.data[member.offset];
 }
 
@@ -228,7 +215,7 @@ Class::Metatype Class::metatype() const {
 	return _metatype;
 }
 
-const std::string& Class::full_name() const {
+const std::string& Class::get_full_name() const {
 	return _name;
 }
 
@@ -268,8 +255,37 @@ Class::MemberInfo* Class::find_global(const Symbol& symbol) {
 	return nullptr;
 }
 
-const std::vector<std::reference_wrapper<const Class::MemberInfo>>& Class::slots() const {
-	return _slots;
+inline auto Class::slots() const {
+	return _slots | std::views::transform([](const auto& item) -> const MemberInfo& {
+		return item;
+	});
+}
+
+inline auto Class::members() const {
+	return _members | std::views::transform([](const auto& item) -> std::pair<const Symbol&, const MemberInfo&> {
+		return {item.first, *item.second};
+	});
+}
+
+inline auto Class::globals() const {
+	return _globals | std::views::transform([](const auto& item) -> std::pair<const Symbol&, const MemberInfo&> {
+		return {item.first, *item.second};
+	});
+}
+
+inline auto Class::classes() const {
+	return _globals | std::views::filter([](const auto& item) {
+		return item.second->value.data().format() == Data::Format::object
+		       && item.second->value.template data<Object>().data == nullptr;
+	}) | std::views::transform([](const auto& item) -> std::pair<const Symbol&, const MemberInfo&> {
+		return {item.first, *item.second};
+	});
+}
+
+inline auto Class::bases() const {
+	return std::views::transform(_bases, [](const auto& base) -> const Class& {
+		return base;
+	});
 }
 
 inline std::unique_ptr<Class::MemberInfo> make_member_info(Class::MemberInfo member) {
@@ -278,6 +294,12 @@ inline std::unique_ptr<Class::MemberInfo> make_member_info(Class::MemberInfo mem
 
 MINT_EXPORT Symbol get_operator_symbol(Class::Operator op);
 MINT_EXPORT std::optional<Class::Operator> get_symbol_operator(const Symbol& symbol);
+
+inline bool is_slot(const Reference& member) {
+	return ((member.flags() & (Reference::const_address | Reference::const_value))
+	           != (Reference::const_address | Reference::const_value))
+	       || member.data().format() == Data::Format::none;
+}
 
 }
 

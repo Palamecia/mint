@@ -24,11 +24,11 @@
 #ifndef MDBG_HIGHLIGHTER_H
 #define MDBG_HIGHLIGHTER_H
 
-#include "mint/memory/global_data.h"
+#include "mint/compiler/descriptions.h"
 #include <cstddef>
 #include <fstream>
 
 void print_highlighted(std::size_t from_line, std::size_t to_line, std::size_t current_line,
-    mint::GlobalData& global_data, std::ifstream&& script);
+    mint::GlobalDataDescription& global_data_description, std::ifstream&& script);
 
 #endif // MDBG_HIGHLIGHTER_H

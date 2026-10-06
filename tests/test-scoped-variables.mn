@@ -1,0 +1,71 @@
+load test.case
+
+@class ScopedVariablesTest : Test.Case {
+
+	// Regression: two sequential loops declaring the same names (loop variables and
+	// `if let` variables). The second loop must use its own variables and reset them
+	// at the end of each iteration.
+	const def testSequentialLoopsReuseNames(self) {
+		var total = 0
+		for let x in [1, 2, 3] {
+			if let y = x {
+				total = total + y
+			}
+		}
+		for let x in [10, 20] {
+			if let y = x {
+				total = total + y
+			}
+		}
+		self.expectEqual(total, 36)
+	}
+
+	const def testSequentialNestedLoopsReuseNames(self) {
+		var total = 0
+		for let i in [1, 2] {
+			for let j in [1, 2] {
+				total = total + i * j
+			}
+		}
+		for let i in [3, 4] {
+			for let j in [3, 4] {
+				total = total + i * j
+			}
+		}
+		self.expectEqual(total, 58)
+	}
+
+	// Several iterations: a variable declared in the body must be declared again at
+	// each iteration, which fails if the end of the iteration resets another slot.
+	const def testBodyVariableIsDeclaredAtEachIteration(self) {
+		var total = 0
+		for let x in [1, 2, 3] {
+			let doubled = x * 2
+			total = total + doubled
+		}
+		for let x in [4, 5, 6] {
+			let doubled = x * 2
+			total = total + doubled
+		}
+		self.expectEqual(total, 42)
+	}
+
+	const def testSequentialLoopsInAFunction(self) {
+		self.expectEqual(ScopedVariablesTest.sum([1, 2, 3], [10, 20]), 36)
+	}
+
+	@def sum(first, second) {
+		var total = 0
+		for let x in first {
+			if let y = x {
+				total = total + y
+			}
+		}
+		for let x in second {
+			if let y = x {
+				total = total + y
+			}
+		}
+		return total
+	}
+}

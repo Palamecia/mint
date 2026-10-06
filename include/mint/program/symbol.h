@@ -30,10 +30,12 @@
 #include <cstddef>
 #include <cstdlib>
 #include <functional>
+#include <initializer_list>
 #include <new>
 #include <string_view>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace mint {
 
@@ -41,10 +43,10 @@ class MINT_EXPORT Symbol {
 public:
 	using hash_t = std::size_t;
 
-	constexpr Symbol(const char* symbol) noexcept :
+	constexpr explicit(false) Symbol(const char* symbol) noexcept :
 	    Symbol(std::string_view(symbol)) {}
 
-	constexpr Symbol(std::string_view symbol) noexcept :
+	constexpr explicit(false) Symbol(std::string_view symbol) noexcept :
 	    _hash(make_symbol_hash(symbol)),
 	    _size(symbol.length()) {
 		try {
@@ -82,6 +84,9 @@ public:
 	}
 
 	Symbol& operator=(const Symbol& other) {
+		if (this == &other) [[unlikely]] {
+			return *this;
+		}
 		_size = other._size;
 		_hash = other._hash;
 		delete[] _symbol;
@@ -138,6 +143,62 @@ private:
 	hash_t _hash;
 	std::size_t _size;
 	char* _symbol {nullptr};
+};
+
+class MINT_EXPORT SymbolPath {
+	std::vector<Symbol> _symbols;
+public:
+	using iterator = std::vector<Symbol>::iterator;
+	using const_iterator = std::vector<Symbol>::const_iterator;
+
+	SymbolPath() = default;
+	explicit(false) SymbolPath(const Symbol& symbol);
+	explicit(false) SymbolPath(const std::string& path);
+	SymbolPath(std::initializer_list<Symbol> path);
+	SymbolPath(const SymbolPath& other, const Symbol& symbol);
+
+	bool operator==(const SymbolPath&) const = default;
+
+	[[nodiscard]] size_t size() const noexcept;
+	[[nodiscard]] bool empty() const noexcept;
+	[[nodiscard]] size_t capacity() const noexcept;
+
+	void reserve(size_t new_cap);
+	void shrink_to_fit();
+
+	void push_back(const Symbol& value);
+	void push_back(Symbol&& value);
+
+	template<typename... Args>
+	decltype(auto) emplace_back(Args&&... args) {
+		return _symbols.emplace_back(std::forward<Args>(args)...);
+	}
+
+	void pop_back();
+	void clear() noexcept;
+
+	[[nodiscard]] Symbol& operator[](std::size_t index) noexcept;
+	[[nodiscard]] const Symbol& operator[](std::size_t index) const noexcept;
+
+	[[nodiscard]] Symbol& at(std::size_t index);
+	[[nodiscard]] const Symbol& at(std::size_t index) const;
+
+	[[nodiscard]] Symbol& front() noexcept;
+	[[nodiscard]] const Symbol& front() const noexcept;
+
+	[[nodiscard]] Symbol& back() noexcept;
+	[[nodiscard]] const Symbol& back() const noexcept;
+
+	[[nodiscard]] iterator begin() noexcept;
+	[[nodiscard]] iterator end() noexcept;
+
+	[[nodiscard]] const_iterator begin() const noexcept;
+	[[nodiscard]] const_iterator end() const noexcept;
+
+	[[nodiscard]] const_iterator cbegin() const noexcept;
+	[[nodiscard]] const_iterator cend() const noexcept;
+
+	[[nodiscard]] std::string to_string() const;
 };
 
 namespace builtin_symbols {

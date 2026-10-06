@@ -96,7 +96,7 @@ Plugin::~Plugin() {}
 std::unique_ptr<Plugin> Plugin::load(const std::string& plugin) {
 
 	const auto path = FileSystem::instance().get_plugin_path(plugin);
-	if (path.empty()) {
+	if (path.empty()) [[unlikely]] {
 		throw std::runtime_error(std::format("plugin '{}' not found", plugin));
 	}
 

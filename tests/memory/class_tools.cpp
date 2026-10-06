@@ -9,12 +9,15 @@
 
 TEST(class_tools, create_class_with_builtin_member) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	mint::Class& type = mint::create_class(scheduler.program(), "__class_api_test__",
 	    {
-	        {mint::Symbol("member"), mint::create_number(42)},
+	        {
+	            .symbol = mint::Symbol("member"),
+	            .value = mint::create_number(42),
+	        },
 	    });
 
 	auto* member = type.find_member("member");

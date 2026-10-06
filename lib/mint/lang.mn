@@ -41,7 +41,7 @@ load mint.stacktrace
  * Returns an array of strings containing the path of each directory used by the
  * `load` keyword to search modules.
  */
-@def [g_lib = lib('libmint-mint')] modulesRoots() {
+@def [g_lib: library = lib('libmint-mint')] modulesRoots() {
 	return g_lib.call('mint_lang_modules_roots')
 }
 
@@ -53,14 +53,14 @@ load mint.stacktrace
  * module found under the directory recursively. If the path is empty, the array
  * will contains the full list of modules installed on the system.
  */
-@def [g_lib = lib('libmint-mint')] modulesList(const modulePath = none) {
+@def [g_lib: library = lib('libmint-mint')] modulesList(const modulePath = none) {
 	return g_lib.call('mint_lang_modules_list', modulePath)
 }
 
 /**
  * Returns the module path of the main module.
  */
-@def [g_lib = lib('libmint-mint')] mainModulePath() {
+@def [g_lib: library = lib('libmint-mint')] mainModulePath() {
 	return g_lib.call('mint_lang_main_module_path').toModulePath()
 }
 
@@ -69,14 +69,14 @@ load mint.stacktrace
  * file is not a module (i.e. is not a mint script or is not located in an
  * accessible location).
  */
-@def [g_lib = lib('libmint-mint')] toModulePath(const filePath) {
+@def [g_lib: library = lib('libmint-mint')] toModulePath(const filePath) {
 	return g_lib.call('mint_lang_to_module_path', filePath)
 }
 
 /**
  * Returns the file path of the main module.
  */
-@def [g_lib = lib('libmint-mint')] mainModuleFilePath() {
+@def [g_lib: library = lib('libmint-mint')] mainModuleFilePath() {
 	return g_lib.call('mint_lang_main_module_path')
 }
 
@@ -84,14 +84,14 @@ load mint.stacktrace
  * Returns the file path of the module identified by `modulePath` or `none` if the
  * module does not exists.
  */
-@def [g_lib = lib('libmint-mint')] toFilePath(const modulePath) {
+@def [g_lib: library = lib('libmint-mint')] toFilePath(const modulePath) {
 	return g_lib.call('mint_lang_to_file_path', modulePath)
 }
 
 /**
  * Loads the module with the path given by `modulePath`.
  */
-@def [g_lib = lib('libmint-mint')] loadModule(const modulePath) {
+@def [g_lib: library = lib('libmint-mint')] loadModule(const modulePath) {
 	g_lib.call('mint_lang_load_module', modulePath)
 }
 
@@ -100,7 +100,7 @@ load mint.stacktrace
  * `object` is given, the variables are the public members of the given object;
  * otherwise the variables of the current context are used.
  */
-@def [g_lib = lib('libmint-mint')] locals(object = none) {
+@def [g_lib: library = lib('libmint-mint')] locals(object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_get_object_locals', object)
 	}
@@ -112,7 +112,7 @@ load mint.stacktrace
  * `object` is given, the variables are the public members of the given object;
  * otherwise the variables of the root package are used.
  */
-@def [g_lib = lib('libmint-mint')] globals(object = none) {
+@def [g_lib: library = lib('libmint-mint')] globals(object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_get_object_globals', object)
 	}
@@ -124,7 +124,7 @@ load mint.stacktrace
  * is given, the types are the public member class of the given object; otherwise
  * the types of the root package are used.
  */
-@def [g_lib = lib('libmint-mint')] types(object = none) {
+@def [g_lib: library = lib('libmint-mint')] types(object = none) {
 	if defined object {
 		return g_lib.call('mint_lang_get_object_types', object)
 	}
@@ -134,12 +134,6 @@ load mint.stacktrace
 /**
  * Returns `true` if `expr` is defined; otherwise returns `false`. This function
  * allow to apply the `defined` operator to the result of an expression.
- * 
- * ```mn
- * if isDefined(var = object.getOptionalValue()) {
- *     // use var
- * }
- * ```
  */
 @def isDefined(expr) {
 	return defined expr
@@ -149,7 +143,7 @@ load mint.stacktrace
  * Returns `true` if the current module is the main module; otherwise returns
  * `false`.
  */
-@def [g_lib = lib('libmint-mint')] isMain() {
+@def [g_lib: library = lib('libmint-mint')] isMain() {
 	return g_lib.call('mint_lang_is_main')
 }
 
@@ -163,7 +157,7 @@ load mint.stacktrace
  * })
  * ```
  */
-@def [g_lib = lib('libmint-mint')] atExit(callback) {
+@def [g_lib: library = lib('libmint-mint')] atExit(callback) {
 	g_lib.call('mint_at_exit', callback)
 }
 
@@ -183,7 +177,7 @@ load mint.stacktrace
  * })
  * ```
  */
-@def [g_lib = lib('libmint-mint')] atError(callback) {
+@def [g_lib: library = lib('libmint-mint')] atError(callback) {
 	g_lib.call('mint_at_error', callback)
 }
 
@@ -194,7 +188,7 @@ load mint.stacktrace
  * 
  * Returns `true` on execution success or `false` on error.
  */
-@def [g_lib = lib('libmint-mint')] exec(src, context = none) {
+@def [g_lib: library = lib('libmint-mint')] exec(src, context = none) {
 	return g_lib.call('mint_lang_exec', src, context)
 }
 
@@ -205,6 +199,6 @@ load mint.stacktrace
  * 
  * Returns statement result.
  */
-@def [g_lib = lib('libmint-mint')] eval(src, context = none) {
+@def [g_lib: library = lib('libmint-mint')] eval(src, context = none) {
 	return g_lib.call('mint_lang_eval', src, context)
 }

@@ -39,19 +39,19 @@ package Codec {
 		 * `read` method, the result of this method is used instead. The mime
 		 * type contains the type of the data and the encoding if any.
 		 */
-		@const def fromData(data) {
+		@const def fromData(data) -> string {
 			if defined data.read {
 				data = data.read()
 			}
 			switch typeof data {
 			case 'Serializer.DataStream':
-				return Codec.MimeTypes.g_lib.call('mint_mime_type_from_buffer', data.to_std_vector_uint8_t())
+				return Codec.MimeTypes.g_lib.callAsString('mint_mime_type_from_buffer', data.to_std_vector_uint8_t())
 			default:
-				return Codec.MimeTypes.g_lib.call('mint_mime_type_from_string', data.toString())
+				return Codec.MimeTypes.g_lib.callAsString('mint_mime_type_from_string', data.toString())
 			}
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-codec')
+		- @const g_lib: library = lib('libmint-codec')
 	}
 }

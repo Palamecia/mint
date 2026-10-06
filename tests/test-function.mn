@@ -18,22 +18,22 @@ load mint.function
 	const def testCallbackCall(self) {
 		object = FunctionTest.MyClass('success')
 		func = Callback(object, object.myMethod)
-		self.expectEqual('success', func())
+		self.expectEqual(func(), 'success')
 		object = FunctionTest.MyClass('test')
 		func = Callback(object, object.myMethod)
-		self.expectEqual('test', func())
+		self.expectEqual(func(), 'test')
 	}
 
 	const def testSignalConnect(self) {
 		var sig = Signal()
 		var first = def {}
 		var second = def {}
-		self.expectEqual(true, sig.connect(first))
-		self.expectEqual(true, sig.connect(second))
-		self.expectEqual(false, sig.connect(first))
-		self.expectEqual(true, sig.disconnect(first))
-		self.expectEqual(false, sig.disconnect(first))
-		self.expectEqual(true, sig.connect(first))
+		self.expectEqual(sig.connect(first), true)
+		self.expectEqual(sig.connect(second), true)
+		self.expectEqual(sig.connect(first), false)
+		self.expectEqual(sig.disconnect(first), true)
+		self.expectEqual(sig.disconnect(first), false)
+		self.expectEqual(sig.connect(first), true)
 	}
 
 	const def testSignalCount(self) {
@@ -49,7 +49,7 @@ load mint.function
 			++activation
 		})
 		sig()
-		self.expectEqual(3, activation)
+		self.expectEqual(activation, 3)
 	}
 
 	const def testSignalOrder(self) {
@@ -66,15 +66,15 @@ load mint.function
 			third = ++activation
 		})
 		sig()
-		self.expectEqual(3, activation)
-		self.expectEqual(1, first)
-		self.expectEqual(2, second)
-		self.expectEqual(3, third)
+		self.expectEqual(activation, 3)
+		self.expectEqual(first, 1)
+		self.expectEqual(second, 2)
+		self.expectEqual(third, 3)
 	}
 
 	const def testToString(self) {
 		object = FunctionTest.MyClass('success')
 		func = Callback(object, object.myMethod)
-		self.expectEqual('FunctionTest.MyClass.myMethod', func.toString())
+		self.expectEqual(func.toString(), 'FunctionTest.MyClass.myMethod')
 	}
 }

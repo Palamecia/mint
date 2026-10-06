@@ -13,25 +13,18 @@ jobs:
     - name: Install dependencies
       run: |
         sudo DEBIAN_FRONTEND=noninteractive apt -y install bison autoconf-archive libmagic-dev
-        git clone https://github.com/microsoft/vcpkg.git
+
+        git clone https://github.com/microsoft/vcpkg.git --depth 1
         pushd vcpkg
         ./bootstrap-vcpkg.sh
         popd
   
-    - name: Install GCC 15
-      run: |
-        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-        sudo apt-get update
-        sudo apt-get install -y gcc-15 g++-15
-
     - name: Configure
       run: |
         export VCPKG_ROOT=$PWD/vcpkg
         export PATH=$VCPKG_ROOT:$PATH
         cmake --preset=vcpkg \
               -DMINT_COPY_MODULE_SOURCES_TO_BUILD_DIR=ON \
-              -DCMAKE_C_COMPILER="gcc-15" \
-              -DCMAKE_CXX_COMPILER="g++-15" \
               -DCMAKE_BUILD_TYPE=Release
 
     - name: Build
@@ -43,7 +36,6 @@ jobs:
       run: ctest
 
     - name: Run library tests
-      working-directory: ./tests
       env:
         MINT_LIBRARY_PATH: ${{ github.workspace }}/build/out/lib/mint
-      run: ${{ github.workspace }}/build/out/bin/mint ./test.mn
+      run: ${{ github.workspace }}/build/out/bin/mint ./tests

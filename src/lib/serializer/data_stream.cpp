@@ -296,35 +296,35 @@ mint::Reference mint_data_stream_get(mint::Cursor& /*cursor*/, const mint::Refer
 	case mint::Data::Format::object:
 		switch (const auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
 		case mint::Class::Metatype::object:
-			if (object.metadata.full_name() == symbols::int8) {
+			if (object.metadata.get_full_name() == symbols::int8) {
 				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::int8_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::int16) {
+			if (object.metadata.get_full_name() == symbols::int16) {
 				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::int16_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::int32) {
+			if (object.metadata.get_full_name() == symbols::int32) {
 				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::int32_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::int64) {
+			if (object.metadata.get_full_name() == symbols::int64) {
 				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::int64_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint8) {
+			if (object.metadata.get_full_name() == symbols::uint8) {
 				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::uint8_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint16) {
+			if (object.metadata.get_full_name() == symbols::uint16) {
 				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::uint16_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint32) {
+			if (object.metadata.get_full_name() == symbols::uint32) {
 				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::uint32_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint64) {
+			if (object.metadata.get_full_name() == symbols::uint64) {
 				copy_from_buffer(buffer_data, get_d_ptr(data).data<mint::LibObject<std::uint64_t>>().ptr);
 				break;
 			}
@@ -367,35 +367,35 @@ mint::Reference mint_data_stream_get_array(mint::Cursor& cursor, const mint::Ref
 		const auto item = array_get_item(data.data<mint::Array>(), index);
 		if (mint::is_instance_of(item, mint::Class::Metatype::object)) {
 			const auto& object = item.data<mint::Object>();
-			if (object.metadata.full_name() == symbols::int8) {
+			if (object.metadata.get_full_name() == symbols::int8) {
 				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::int8_t>>().ptr);
 				std::advance(buffer_data, sizeof(std::int8_t));
 			}
-			else if (object.metadata.full_name() == symbols::int16) {
+			else if (object.metadata.get_full_name() == symbols::int16) {
 				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::int16_t>>().ptr);
 				std::advance(buffer_data, sizeof(std::int16_t));
 			}
-			else if (object.metadata.full_name() == symbols::int32) {
+			else if (object.metadata.get_full_name() == symbols::int32) {
 				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::int32_t>>().ptr);
 				std::advance(buffer_data, sizeof(std::int32_t));
 			}
-			else if (object.metadata.full_name() == symbols::int64) {
+			else if (object.metadata.get_full_name() == symbols::int64) {
 				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::int64_t>>().ptr);
 				std::advance(buffer_data, sizeof(std::int64_t));
 			}
-			else if (object.metadata.full_name() == symbols::uint8) {
+			else if (object.metadata.get_full_name() == symbols::uint8) {
 				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::uint8_t>>().ptr);
 				std::advance(buffer_data, sizeof(std::uint8_t));
 			}
-			else if (object.metadata.full_name() == symbols::uint16) {
+			else if (object.metadata.get_full_name() == symbols::uint16) {
 				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::uint16_t>>().ptr);
 				std::advance(buffer_data, sizeof(std::uint16_t));
 			}
-			else if (object.metadata.full_name() == symbols::uint32) {
+			else if (object.metadata.get_full_name() == symbols::uint32) {
 				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::uint32_t>>().ptr);
 				std::advance(buffer_data, sizeof(std::uint32_t));
 			}
-			else if (object.metadata.full_name() == symbols::uint64) {
+			else if (object.metadata.get_full_name() == symbols::uint64) {
 				copy_from_buffer(buffer_data, get_d_ptr(item).data<mint::LibObject<std::uint64_t>>().ptr);
 				std::advance(buffer_data, sizeof(std::uint64_t));
 			}
@@ -481,42 +481,42 @@ mint::Reference mint_data_stream_read(mint::Cursor& /*cursor*/, const mint::Refe
 	case mint::Data::Format::object:
 		switch (const auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
 		case mint::Class::Metatype::object:
-			if (object.metadata.full_name() == symbols::int8) {
+			if (object.metadata.get_full_name() == symbols::int8) {
 				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::int8_t>>().ptr);
 				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::int8_t)));
 				break;
 			}
-			if (object.metadata.full_name() == symbols::int16) {
+			if (object.metadata.get_full_name() == symbols::int16) {
 				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::int16_t>>().ptr);
 				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::int16_t)));
 				break;
 			}
-			if (object.metadata.full_name() == symbols::int32) {
+			if (object.metadata.get_full_name() == symbols::int32) {
 				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::int32_t>>().ptr);
 				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::int32_t)));
 				break;
 			}
-			if (object.metadata.full_name() == symbols::int64) {
+			if (object.metadata.get_full_name() == symbols::int64) {
 				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::int64_t>>().ptr);
 				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::int64_t)));
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint8) {
+			if (object.metadata.get_full_name() == symbols::uint8) {
 				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::uint8_t>>().ptr);
 				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::uint8_t)));
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint16) {
+			if (object.metadata.get_full_name() == symbols::uint16) {
 				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::uint16_t>>().ptr);
 				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::uint16_t)));
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint32) {
+			if (object.metadata.get_full_name() == symbols::uint32) {
 				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::uint32_t>>().ptr);
 				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::uint32_t)));
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint64) {
+			if (object.metadata.get_full_name() == symbols::uint64) {
 				copy_from_buffer(buffer_object.data(), get_d_ptr(data).data<mint::LibObject<std::uint64_t>>().ptr);
 				buffer_object.erase(buffer_object.begin(), std::next(buffer_object.begin(), sizeof(std::uint64_t)));
 				break;
@@ -586,39 +586,39 @@ mint::Reference mint_data_stream_write(mint::Cursor& /*cursor*/, const mint::Ref
 	case mint::Data::Format::object:
 		switch (const auto& object = data.data<mint::Object>(); object.metadata.metatype()) {
 		case mint::Class::Metatype::object:
-			if (object.metadata.full_name() == symbols::data_stream) {
+			if (object.metadata.get_full_name() == symbols::data_stream) {
 				buffer_object.append_range(*get_d_ptr(data).data<mint::LibObject<std::vector<std::uint8_t>>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::int8) {
+			if (object.metadata.get_full_name() == symbols::int8) {
 				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::int8_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::int16) {
+			if (object.metadata.get_full_name() == symbols::int16) {
 				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::int16_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::int32) {
+			if (object.metadata.get_full_name() == symbols::int32) {
 				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::int32_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::int64) {
+			if (object.metadata.get_full_name() == symbols::int64) {
 				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::int64_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint8) {
+			if (object.metadata.get_full_name() == symbols::uint8) {
 				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::uint8_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint16) {
+			if (object.metadata.get_full_name() == symbols::uint16) {
 				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::uint16_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint32) {
+			if (object.metadata.get_full_name() == symbols::uint32) {
 				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::uint32_t>>().ptr);
 				break;
 			}
-			if (object.metadata.full_name() == symbols::uint64) {
+			if (object.metadata.get_full_name() == symbols::uint64) {
 				copy_to_buffer(buffer_object, get_d_ptr(data).data<mint::LibObject<std::uint64_t>>().ptr);
 				break;
 			}

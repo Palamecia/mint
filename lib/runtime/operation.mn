@@ -120,7 +120,7 @@ package Runtime {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-runtime')
+		- @const g_lib: library = lib('libmint-runtime')
 
 		/// Internal operation context pointer.
 		- final d_ptr = null

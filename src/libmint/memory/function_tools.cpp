@@ -22,7 +22,6 @@
  */
 
 #include "mint/memory/function_tools.h"
-#include "mint/program/class_register.h"
 #include "mint/program/cursor.h"
 #include "mint/program/function_literal.h"
 #include "mint/program/module.h"
@@ -116,9 +115,8 @@ Reference mint::create_function(Program& program, ModuleInfo& module, const Func
 
 	const std::size_t offset = module.bytecode.end() + 3;
 
-	auto compiler = Compiler(program);
 	auto stream = BufferStream(std::string(function.script));
-	if (!compiler.build(stream, module)) {
+	if (auto compiler = Compiler(program, module); !compiler.build(stream)) {
 		return {};
 	}
 
@@ -151,12 +149,12 @@ Reference mint::create_boolean(bool value) {
 	return make_reference<Boolean>(create_flags, value);
 }
 
-Reference mint::create_alias(Class& type) {
+Reference mint::create_alias(const Class& type) {
 	assert(type.metatype() == Class::Metatype::object);
 	return make_reference<Object>(create_flags, type);
 }
 
-Reference mint::create_object(Class& type) {
+Reference mint::create_object(const Class& type) {
 	Reference ref = make_reference<Object>(create_flags, type);
 	ref.data<Object>().construct();
 	return ref;
@@ -392,23 +390,23 @@ Reference mint::get_member_ignore_visibility(PackageData& package, const Symbol&
 	return {};
 }
 
-Reference mint::get_member_ignore_visibility(Object& object, const Symbol& member) {
-	if (auto* info = object.metadata.find_member(member)) {
+Reference mint::get_member_ignore_visibility(const Object& object, const Symbol& member) {
+	if (const auto* info = object.metadata.find_member(member)) {
 		return Class::MemberInfo::get(*info, object);
 	}
 	return {};
 }
 
-Reference mint::get_global_ignore_visibility(Object& object, const Symbol& global) {
+Reference mint::get_global_ignore_visibility(const Object& object, const Symbol& global) {
 	if (const auto* info = object.metadata.find_global(global)) {
 		return info->value;
 	}
 	return {};
 }
 
-Reference mint::find_enum_value(Object& object, double value) {
+Reference mint::find_enum_value(const Object& object, double value) {
 	for (auto [symbol, info] : object.metadata.globals()) {
-		const auto& value_ref = info.get().value;
+		const auto& value_ref = info.value;
 		if (is_instance_of(value_ref, Data::Format::number) && value_ref.data<Number>().value == value) {
 			return value_ref;
 		}

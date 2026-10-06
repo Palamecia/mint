@@ -43,7 +43,6 @@ package Network {
 			 */
 			const def new(self) {
 				self.stream = Serializer.DataStream()
-				return self
 			}
 
 			/**
@@ -170,7 +169,6 @@ package Network {
 			 */
 			const def new(self) {
 				self.stream = Serializer.DataStream()
-				return self
 			}
 
 			/**

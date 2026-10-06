@@ -12,6 +12,7 @@ Checks:
   - modernize-*
   - -modernize-use-trailing-return-type
   - performance-*
+  - -performance-enum-size
   - portability-*
   - readability-*
   - -readability-avoid-nested-conditional-operator
@@ -41,4 +42,5 @@ CheckOptions:
   readability-identifier-naming.VariableCase: lower_case
   modernize-use-auto.MinTypeNameLength: 0
   modernize-use-default-member-init.UseAssignment: 1
+  cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: true
 ...

@@ -12,7 +12,7 @@
 
 TEST(string, subscript) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto thread = scheduler.enable_testing();
 	const auto string = mint::create_string(scheduler.program(), "tëst");
 
@@ -30,7 +30,7 @@ TEST(string, subscript) {
 
 TEST(string, contains) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto thread = scheduler.enable_testing();
 	const auto string = mint::create_string(scheduler.program(), "test");
 
@@ -46,7 +46,7 @@ TEST(string, contains) {
 
 TEST(string, starts_with) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto thread = scheduler.enable_testing();
 	const auto string = mint::create_string(scheduler.program(), "test");
 
@@ -62,7 +62,7 @@ TEST(string, starts_with) {
 
 TEST(string, ends_with) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto thread = scheduler.enable_testing();
 	const auto string = mint::create_string(scheduler.program(), "test");
 
@@ -82,7 +82,7 @@ TEST(string, ends_with) {
 
 TEST(string, split) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto thread = scheduler.enable_testing();
 
 	mint::Reference string = mint::create_string(scheduler.program(), "a, b, c");
@@ -138,7 +138,7 @@ TEST(string, split) {
 
 TEST(string, format) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto thread = scheduler.enable_testing();
 
 	mint::Reference result = scheduler.invoke(mint::create_string(scheduler.program(), "{}, {:04}, {:.2f}, {{ok}}"),

@@ -46,7 +46,7 @@ MINT_EXPORT void restore_error_callbacks(
     std::vector<std::pair<int, std::function<void(const std::string&)>>>&& callbacks);
 
 template<typename... Args>
-[[noreturn]] void error(std::format_string<Args...> fmt, Args&&... args) {
+[[noreturn]] void error(std::format_string<Args...> fmt, Args... args) {
 	const auto message = std::vformat(fmt.get(), std::make_format_args(args...));
 	call_error_callbacks(message);
 	throw MintRuntimeError(message);

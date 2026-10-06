@@ -103,14 +103,6 @@ multiple
 lines'
 ```
 
-### string.!
-
-`def !(self)`
-
-Returns `true` if the string has no characters; otherwise returns `false`.
-
-See [string.isEmpty](#stringisempty).
-
 ### string.!=
 
 `def !=(self, other)`

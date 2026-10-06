@@ -126,3 +126,5 @@ void FilePrinter::print(const Reference& reference) {
 FILE* FilePrinter::stream() const {
 	return _stream;
 }
+
+void mint::FilePrinter::mark() {}

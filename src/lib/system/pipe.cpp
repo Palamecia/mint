@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "errno.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/builtin/libobject.h"
 #include "mint/memory/cast_tools.h"
@@ -29,6 +30,7 @@
 #include "mint/memory/memory_tools.h"
 #include "mint/memory/reference.h"
 #include "mint/system/async_io.h"
+#include "mint/system/errno.h"
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -68,49 +70,89 @@ mint::Reference mint_pipe_create(mint::Cursor& cursor) {
 #ifdef MINT_OS_WINDOWS
 
 	auto pipe = std::to_array<HANDLE>({INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE});
+	const auto fail = [&cursor, &pipe](int code) {
+		auto result = mint_system::make_failure(cursor, code);
+		if (pipe.at(0) != INVALID_HANDLE_VALUE) {
+			CloseHandle(pipe.at(0));
+		}
+		if (pipe.at(1) != INVALID_HANDLE_VALUE) {
+			CloseHandle(pipe.at(1));
+		}
+		return result;
+	};
 	SECURITY_ATTRIBUTES pipe_attributes {
 	    .nLength = sizeof(SECURITY_ATTRIBUTES),
 	    .lpSecurityDescriptor = nullptr,
 	    .bInheritHandle = true,
 	};
 
-	if (CreatePipe(std::next(pipe.data(), 0), std::next(pipe.data(), 1), &pipe_attributes, 0) != 0) {
-		if ((pipe.at(0) != INVALID_HANDLE_VALUE) && (pipe.at(1) != INVALID_HANDLE_VALUE)) {
-			if (DWORD mode = PIPE_NOWAIT; SetNamedPipeHandleState(pipe.at(0), &mode, nullptr, nullptr)) {
-				return mint::create_iterator_from(cursor, mint::create_handle(cursor.program(), pipe.at(0)),
-				    mint::create_handle(cursor.program(), pipe.at(1)));
-			}
-			CloseHandle(pipe.at(0));
-			CloseHandle(pipe.at(1));
-		}
+	if (!CreatePipe(std::next(pipe.data(), 0), std::next(pipe.data(), 1), &pipe_attributes, 0)) {
+		return fail(mint::errno_from_last_error());
 	}
+	if (pipe.at(0) == INVALID_HANDLE_VALUE || pipe.at(1) == INVALID_HANDLE_VALUE) {
+		return fail(EIO);
+	}
+	if (DWORD mode = PIPE_NOWAIT; !SetNamedPipeHandleState(pipe.at(0), &mode, nullptr, nullptr)) {
+		return fail(mint::errno_from_last_error());
+	}
+	return mint_system::make_success(cursor, mint::create_handle(cursor.program(), pipe.at(0)),
+	    mint::create_handle(cursor.program(), pipe.at(1)));
 
 #elifdef MINT_OS_MAC
 
 	auto fd = std::to_array<int>({-1, -1});
-
-	if (pipe(fd.data()) == 0) {
-		if ((fd.at(0) != -1) && (fd.at(1) != -1)) {
-			fcntl(fd.at(0), F_SETFL, fcntl(fd.at(0), F_GETFL) | O_NONBLOCK);
-			fcntl(fd.at(1), F_SETFL, fcntl(fd.at(1), F_GETFL) | O_NONBLOCK);
-			return mint::create_iterator_from(cursor, mint::create_handle(cursor.program(), fd.at(0)),
-			    mint::create_handle(cursor.program(), fd.at(1)));
+	const auto fail = [&cursor, &fd](int code) {
+		auto result = mint_system::make_failure(cursor, code);
+		if (fd.at(0) != -1) {
+			close(fd.at(0));
 		}
+		if (fd.at(1) != -1) {
+			close(fd.at(1));
+		}
+		return result;
+	};
+
+	if (pipe(fd.data()) != 0) {
+		return fail(errno);
 	}
+	if (fd.at(0) == -1 || fd.at(1) == -1) {
+		return fail(EIO);
+	}
+	const int read_flags = fcntl(fd.at(0), F_GETFL);
+	const int write_flags = fcntl(fd.at(1), F_GETFL);
+	if (read_flags == -1 || write_flags == -1 || fcntl(fd.at(0), F_SETFL, read_flags | O_NONBLOCK) == -1
+	    || fcntl(fd.at(1), F_SETFL, write_flags | O_NONBLOCK) == -1) {
+		return fail(errno);
+	}
+	return mint_system::make_success(cursor, mint::create_handle(cursor.program(), fd.at(0)),
+	    mint::create_handle(cursor.program(), fd.at(1)));
 
 #elifdef MINT_OS_UNIX
 
 	auto fd = std::to_array<int>({-1, -1});
-
-	if (pipe2(fd.data(), O_NONBLOCK) == 0) {
-		if ((fd.at(0) != -1) && (fd.at(1) != -1)) {
-			return mint::create_iterator_from(cursor, mint::create_handle(cursor.program(), fd.at(0)),
-			    mint::create_handle(cursor.program(), fd.at(1)));
+	const auto fail = [&cursor, &fd](int code) {
+		auto result = mint_system::make_failure(cursor, code);
+		if (fd.at(0) != -1) {
+			close(fd.at(0));
 		}
-	}
+		if (fd.at(1) != -1) {
+			close(fd.at(1));
+		}
+		return result;
+	};
 
+	if (pipe2(fd.data(), O_NONBLOCK) != 0) {
+		return fail(errno);
+	}
+	if (fd.at(0) == -1 || fd.at(1) == -1) {
+		return fail(EIO);
+	}
+	return mint_system::make_success(cursor, mint::create_handle(cursor.program(), fd.at(0)),
+	    mint::create_handle(cursor.program(), fd.at(1)));
+
+#else
+#error "Pipe is not implemented for this platform"
 #endif
-	return {};
 }
 
 mint::Reference mint_pipe_close(mint::Cursor& /*cursor*/, const mint::Reference& handle) {

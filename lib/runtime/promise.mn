@@ -37,7 +37,6 @@ package Runtime {
 		const def new(self, scheduler, coroutine) {
 			self.scheduler = scheduler
 			self.coroutine = coroutine
-			return self
 		}
 
 		/**

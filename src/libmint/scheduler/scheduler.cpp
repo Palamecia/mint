@@ -98,12 +98,6 @@ TestProcess::~TestProcess() {
 	_scheduler.get().disable_testing(*this);
 }
 
-Scheduler::Scheduler(const std::vector<std::string>& args) {
-	if (!parse_arguments(args)) {
-		::exit(EXIT_SUCCESS);
-	}
-}
-
 Scheduler::~Scheduler() {
 
 	auto& garbage_collector = GarbageCollector::instance();
@@ -154,6 +148,50 @@ Process* Scheduler::current_process() {
 	return &g_current.process.back().get();
 }
 
+bool mint::Scheduler::setup(const std::vector<std::string>& args) {
+
+	bool reading_args = false;
+
+	for (auto it = args.begin(); it != args.end(); ++it) {
+		if (reading_args) {
+			_configured_process.back()->parse_argument(*it);
+		}
+		else if (*it == "--version") {
+			print_version();
+			return false;
+		}
+		else if (*it == "--help") {
+			print_help();
+			return false;
+		}
+		else if (*it == "--exec") {
+			if (++it != args.end()) {
+				if (auto thread = Process::from_buffer(*this, *it)) {
+					thread->parse_argument("exec");
+					_configured_process.emplace(std::move(thread));
+				}
+				else {
+					error("Argument is not a valid command");
+				}
+			}
+			else {
+				error("Argument expected for the --exec option");
+			}
+		}
+		else if (auto thread = Process::from_main_file(*this, *it)) {
+			thread->parse_argument(*it);
+			_configured_process.emplace(std::move(thread));
+			reading_args = true;
+		}
+		else {
+			print_help();
+			error("parameter '{}' is not valid", *it);
+		}
+	}
+
+	return true;
+}
+
 void Scheduler::set_debug_interface(DebugInterface* debug_interface) {
 	_debug_interface = debug_interface;
 }
@@ -197,7 +235,7 @@ Reference Scheduler::invoke(const Reference& function, std::vector<Reference>& p
 	return result;
 }
 
-Reference Scheduler::invoke(Class& type, std::vector<Reference>& parameters) {
+Reference Scheduler::invoke(const Class& type, std::vector<Reference>& parameters) {
 
 	if (!_running || g_current.process.empty()) [[unlikely]] {
 		return {};
@@ -351,7 +389,7 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, const
 
 namespace {
 
-class Future : public Process {
+class Future final : public Process {
 public:
 	struct ResultHandle {
 		Reference result;
@@ -554,53 +592,6 @@ bool Scheduler::disable_testing(TestProcess& process) {
 	if (g_current.process.empty()) {
 		_running = false;
 		finalize();
-	}
-
-	return true;
-}
-
-bool Scheduler::parse_arguments(const std::vector<std::string>& args) {
-
-	bool reading_args = false;
-
-	for (auto it = args.begin(); it != args.end(); ++it) {
-		if (reading_args) {
-			_configured_process.back()->parse_argument(*it);
-		}
-		else if (*it == "--version") {
-			print_version();
-			return false;
-		}
-		else if (*it == "--help") {
-			print_help();
-			return false;
-		}
-		else if (*it == "--exec") {
-			if (++it != args.end()) {
-				if (auto thread = Process::from_buffer(*this, *it)) {
-					thread->parse_argument("exec");
-					_configured_process.emplace(std::move(thread));
-				}
-				else {
-					error("Argument is not a valid command");
-					return false;
-				}
-			}
-			else {
-				error("Argument expected for the --exec option");
-				return false;
-			}
-		}
-		else if (auto thread = Process::from_main_file(*this, *it)) {
-			thread->parse_argument(*it);
-			_configured_process.emplace(std::move(thread));
-			reading_args = true;
-		}
-		else {
-			print_help();
-			error("parameter '{}' is not valid", *it);
-			return false;
-		}
 	}
 
 	return true;

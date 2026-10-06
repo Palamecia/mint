@@ -22,6 +22,7 @@
  */
 
 #include "mint/memory/operator_tools.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/program/program.h"
 #include "mint/program/cursor.h"
 #include "mint/program/symbol.h"
@@ -59,17 +60,17 @@ bool mint::call_overload(Cursor& cursor, Class::Operator operator_overload, int 
 	assert(signature >= 0);
 
 	const auto base = get_stack_base(cursor);
-	auto& object = load_from_stack(cursor, base - static_cast<std::size_t>(signature)).data<Object>();
+	const auto& object = load_from_stack(cursor, base - static_cast<std::size_t>(signature)).data<Object>();
 
 	if (const auto* info = object.metadata.find_operator(operator_overload)) {
 
 		if (is_class(object)) [[unlikely]] {
-			error("invalid use of class '{}' with operator '{}'({})", object.metadata.full_name(),
+			error("invalid use of class '{}' with operator '{}'({})", object.metadata.get_full_name(),
 			    get_operator_symbol(operator_overload).str(), signature);
 		}
 
 		const auto& function = Class::MemberInfo::get(*info, object);
-		Class& metadata = info->owner.get();
+		const Class& metadata = info->owner.get();
 
 		switch (function.data().format()) {
 		case Data::Format::none:
@@ -88,7 +89,7 @@ bool mint::call_overload(Cursor& cursor, Class::Operator operator_overload, int 
 			}
 			break;
 		case Data::Format::package:
-			error("invalid use of package '{}' as a function", function.data<Package>().data.full_name());
+			error("invalid use of package '{}' as a function", function.data<Package>().data.get_full_name());
 		case Data::Format::coroutine:
 			error("invalid use of coroutine as a function");
 		case Data::Format::function:
@@ -99,7 +100,8 @@ bool mint::call_overload(Cursor& cursor, Class::Operator operator_overload, int 
 			const auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
 			if (it == function.data<Function>().mapping.end()) [[unlikely]] {
 				if (const auto* function_info = find_function_info(cursor.program(), function.data<Function>())) {
-					error("member '{}' doesn't take {} parameter(s)", function_info->name, signature);
+					error("member '{}' doesn't take {} parameter(s)",
+					    function_info->description.get().get_path().to_string(), signature);
 				}
 				error("called member doesn't take {} parameter(s)", signature);
 			}
@@ -118,17 +120,17 @@ bool mint::call_overload(Cursor& cursor, const Symbol& operator_overload, int si
 	assert(signature >= 0);
 
 	const auto base = get_stack_base(cursor);
-	auto& object = load_from_stack(cursor, base - static_cast<std::size_t>(signature)).data<Object>();
+	const auto& object = load_from_stack(cursor, base - static_cast<std::size_t>(signature)).data<Object>();
 
-	if (auto* info = object.metadata.find_member(operator_overload)) {
+	if (const auto* info = object.metadata.find_member(operator_overload)) {
 
 		if (is_class(object)) [[unlikely]] {
-			error("invalid use of class '{}' with operator '{}'({})", object.metadata.full_name(),
+			error("invalid use of class '{}' with operator '{}'({})", object.metadata.get_full_name(),
 			    operator_overload.str(), signature);
 		}
 
 		const auto& function = Class::MemberInfo::get(*info, object);
-		Class& metadata = info->owner.get();
+		const Class& metadata = info->owner.get();
 
 		switch (function.data().format()) {
 		case Data::Format::none:
@@ -147,7 +149,7 @@ bool mint::call_overload(Cursor& cursor, const Symbol& operator_overload, int si
 			}
 			break;
 		case Data::Format::package:
-			error("invalid use of package '{}' as a function", function.data<Package>().data.full_name());
+			error("invalid use of package '{}' as a function", function.data<Package>().data.get_full_name());
 		case Data::Format::coroutine:
 			error("invalid use of coroutine as a function");
 		case Data::Format::function:
@@ -158,7 +160,8 @@ bool mint::call_overload(Cursor& cursor, const Symbol& operator_overload, int si
 			const auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
 			if (it == function.data<Function>().mapping.end()) [[unlikely]] {
 				if (const auto* function_info = find_function_info(cursor.program(), function.data<Function>())) {
-					error("member '{}' doesn't take {} parameter(s)", function_info->name, signature);
+					error("member '{}' doesn't take {} parameter(s)",
+					    function_info->description.get().get_path().to_string(), signature);
 				}
 				error("called member doesn't take {} parameter(s)", signature);
 			}
@@ -241,7 +244,7 @@ void mint::copy_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' in assignment", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' in assignment", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine in assignment");
 	}
@@ -254,7 +257,7 @@ void mint::call_operator(Cursor& cursor, int signature) {
 
 	const auto flags = call.get_flags();
 	const auto& function = call.function();
-	Class* metadata = call.get_metadata();
+	const auto* metadata = call.get_metadata();
 	signature += call.extra_argument_count();
 
 	switch (function.data().format()) {
@@ -282,7 +285,7 @@ void mint::call_operator(Cursor& cursor, int signature) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' as a function", function.data<Package>().data.full_name());
+		error("invalid use of package '{}' as a function", function.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine as a function");
 	case Data::Format::function:
@@ -306,7 +309,7 @@ void mint::call_member_operator(Cursor& cursor, int signature) {
 
 	const auto flags = call.get_flags();
 	const auto& function = call.function();
-	Class* metadata = call.get_metadata();
+	const auto* metadata = call.get_metadata();
 	signature += call.extra_argument_count();
 
 	switch (function.data().format()) {
@@ -334,7 +337,7 @@ void mint::call_member_operator(Cursor& cursor, int signature) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' as a function", function.data<Package>().data.full_name());
+		error("invalid use of package '{}' as a function", function.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine as a function");
 	case Data::Format::function:
@@ -345,7 +348,8 @@ void mint::call_member_operator(Cursor& cursor, int signature) {
 		const auto it = find_function_signature(cursor, function.data<Function>().mapping, signature);
 		if (it == function.data<Function>().mapping.end()) [[unlikely]] {
 			if (const auto* function_info = find_function_info(cursor.program(), function.data<Function>())) {
-				error("member '{}' doesn't take {} parameter(s)", function_info->name, signature);
+				error("member '{}' doesn't take {} parameter(s)",
+				    function_info->description.get().get_path().to_string(), signature);
 			}
 			error("called member doesn't take {} parameter(s)", signature);
 		}
@@ -395,7 +399,7 @@ void mint::add_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '+'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '+'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '+'(1)");
 	case Data::Format::function:
@@ -458,7 +462,7 @@ void mint::sub_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '-'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '-'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '-'(1)");
 	case Data::Format::function:
@@ -507,7 +511,7 @@ void mint::mul_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '*'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '*'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '*'(1)");
 	case Data::Format::function:
@@ -556,7 +560,7 @@ void mint::div_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '/'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '/'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '/'(1)");
 	case Data::Format::function:
@@ -594,7 +598,7 @@ void mint::pow_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '**'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '**'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '**'(1)");
 	case Data::Format::boolean:
@@ -638,7 +642,7 @@ void mint::mod_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '%'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '%'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '%'(1)");
 	case Data::Format::boolean:
@@ -657,6 +661,31 @@ void mint::is_operator(Cursor& cursor) {
 	Reference result = create_boolean(&lhs.data() == &rhs.data());
 	cursor.stack().pop_back();
 	cursor.stack().back() = std::move(result);
+}
+
+void mint::as_operator(Cursor& cursor) {
+	const auto base = get_stack_base(cursor);
+
+	const auto& rhs = load_from_stack(cursor, base);
+	const auto& lhs = load_from_stack(cursor, base - 1);
+
+	if (is_class(rhs)) {
+		if (!is_object(lhs)) {
+			error("invalid conversion from '{}' to '{}'", type_name(lhs), type_name(rhs));
+		}
+		if (!rhs.data<Object>().metadata.is_base_or_same(lhs.data<Object>().metadata)) {
+			error("invalid conversion from '{}' to '{}'", type_name(lhs), type_name(rhs));
+		}
+		cursor.stack().pop_back();
+	}
+	else if (is_instance_of(rhs, Class::Metatype::string)) {
+		auto result = cast_to(cursor, lhs, make_type_annotation(rhs.data<String>().str));
+		cursor.stack().pop_back();
+		cursor.stack().back() = std::move(result);
+	}
+	else {
+		error("invalid use of '{}' type with operator 'as', expected 'class' or 'string'", type_name(rhs));
+	}
 }
 
 void mint::eq_operator(Cursor& cursor) {
@@ -730,7 +759,7 @@ void mint::eq_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '=='(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '=='(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '=='(1)");
 	case Data::Format::function:
@@ -816,7 +845,7 @@ void mint::ne_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '!='(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '!='(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '!='(1)");
 	case Data::Format::function:
@@ -864,7 +893,7 @@ void mint::lt_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '<'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '<'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '<'(1)");
 	case Data::Format::function:
@@ -905,7 +934,7 @@ void mint::gt_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '>'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '>'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '>'(1)");
 	case Data::Format::function:
@@ -946,7 +975,7 @@ void mint::le_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '<='(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '<='(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '<='(1)");
 	case Data::Format::function:
@@ -987,7 +1016,7 @@ void mint::ge_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '>='(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '>='(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '>='(1)");
 	case Data::Format::function:
@@ -1153,7 +1182,7 @@ void mint::band_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '&'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '&'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '&'(1)");
 	case Data::Format::function:
@@ -1204,7 +1233,7 @@ void mint::bor_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '|'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '|'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '|'(1)");
 	case Data::Format::function:
@@ -1255,7 +1284,7 @@ void mint::xor_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '^'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '^'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '^'(1)");
 	case Data::Format::function:
@@ -1289,7 +1318,7 @@ void mint::inc_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '++'(0)", arg.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '++'(0)", arg.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '++'(0)");
 	case Data::Format::function:
@@ -1323,12 +1352,11 @@ void mint::dec_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '--'(0)", arg.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '--'(0)", arg.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '--'(0)");
 	case Data::Format::function:
-		std::string type = type_name(arg);
-		error("invalid use of '{}' type with operator '--'(0)", type);
+		error("invalid use of '{}' type with operator '--'(0)", type_name(arg));
 	}
 }
 
@@ -1353,7 +1381,7 @@ void mint::not_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '!'(0)", arg.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '!'(0)", arg.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '!'(0)");
 	case Data::Format::function:
@@ -1383,7 +1411,7 @@ void mint::compl_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '~'(0)", arg.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '~'(0)", arg.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '~'(0)");
 	case Data::Format::function:
@@ -1423,7 +1451,7 @@ void mint::pos_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '+'(0)", arg.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '+'(0)", arg.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '+'(0)");
 	case Data::Format::function:
@@ -1463,7 +1491,7 @@ void mint::neg_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '-'(0)", arg.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '-'(0)", arg.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '-'(0)");
 	case Data::Format::function:
@@ -1506,7 +1534,7 @@ void mint::shift_left_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '<<'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '<<'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '<<'(1)");
 	case Data::Format::function:
@@ -1548,7 +1576,7 @@ void mint::shift_right_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '>>'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '>>'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '>>'(1)");
 	case Data::Format::function:
@@ -1583,7 +1611,7 @@ void mint::inclusive_range_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '..'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '..'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '..'(1)");
 	case Data::Format::boolean:
@@ -1619,7 +1647,7 @@ void mint::exclusive_range_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '...'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '...'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '...'(1)");
 	case Data::Format::boolean:
@@ -1640,24 +1668,24 @@ void mint::membersof_operator(Cursor& cursor) {
 	switch (arg.data().format()) {
 	case Data::Format::object:
 		{
-			auto& object = arg.data<Object>();
+			const auto& object = arg.data<Object>();
 			auto& array = result.data<Array>();
 			array.values.reserve(object.metadata.members().size());
 			for (const auto& [symbol, info] : object.metadata.members()) {
 
-				switch (info.get().value.flags() & Reference::visibility_mask) {
+				switch (info.value.flags() & Reference::visibility_mask) {
 				case Reference::protected_visibility:
-					if (!is_protected_accessible(info.get().owner, cursor.symbols().get_metadata())) {
+					if (!is_protected_accessible(info.owner, cursor.symbols().get_metadata())) {
 						continue;
 					}
 					break;
 				case Reference::private_visibility:
-					if (&info.get().owner.get() != cursor.symbols().get_metadata()) {
+					if (&info.owner.get() != cursor.symbols().get_metadata()) {
 						continue;
 					}
 					break;
 				case Reference::package_visibility:
-					if (&info.get().owner.get().get_package() != &cursor.symbols().get_package()) {
+					if (&info.owner.get().get_package() != &cursor.symbols().get_package()) {
 						continue;
 					}
 					break;
@@ -1723,7 +1751,7 @@ void mint::subscript_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '[]'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '[]'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '[]'(1)");
 	case Data::Format::function:
@@ -1776,7 +1804,7 @@ void mint::subscript_move_operator(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '[]='(2)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '[]='(2)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '[]='(2)");
 	case Data::Format::function:
@@ -1801,7 +1829,7 @@ void mint::regex_match(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '=~'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '=~'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '=~'(1)");
 	case Data::Format::number:
@@ -1828,7 +1856,7 @@ void mint::regex_unmatch(Cursor& cursor) {
 		}
 		break;
 	case Data::Format::package:
-		error("invalid use of package '{}' with operator '!~'(1)", lhs.data<Package>().data.full_name());
+		error("invalid use of package '{}' with operator '!~'(1)", lhs.data<Package>().data.get_full_name());
 	case Data::Format::coroutine:
 		error("invalid use of coroutine with operator '!~'(1)");
 	case Data::Format::number:
@@ -1874,7 +1902,7 @@ void mint::strict_eq_operator(Cursor& cursor) {
 			}
 			break;
 		case Data::Format::package:
-			error("invalid use of package '{}' with operator '=='(1)", lhs.data<Package>().data.full_name());
+			error("invalid use of package '{}' with operator '=='(1)", lhs.data<Package>().data.get_full_name());
 		case Data::Format::coroutine:
 			error("invalid use of coroutine with operator '=='(1)");
 		case Data::Format::function:
@@ -1927,7 +1955,7 @@ void mint::strict_ne_operator(Cursor& cursor) {
 			}
 			break;
 		case Data::Format::package:
-			error("invalid use of package '{}' with operator '!='(1)", lhs.data<Package>().data.full_name());
+			error("invalid use of package '{}' with operator '!='(1)", lhs.data<Package>().data.get_full_name());
 		case Data::Format::coroutine:
 			error("invalid use of coroutine with operator '!='(1)");
 		case Data::Format::function:
@@ -1982,8 +2010,8 @@ void mint::find_defined_member(Cursor& cursor, const Symbol& symbol) {
 
 		case Data::Format::object:
 			{
-				auto& object = arg.data<Object>();
-				if (auto* info = object.metadata.find_member(symbol)) {
+				const auto& object = arg.data<Object>();
+				if (const auto* info = object.metadata.find_member(symbol)) {
 					cursor.stack().emplace_back(Class::MemberInfo::get(*info, object));
 					return;
 				}

@@ -22,6 +22,8 @@
  */
 
 #include "mint/memory/cast_tools.h"
+#include "mint/compiler/type_annotation.h"
+#include "mint/config.h"
 #include "mint/program/cursor.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/builtin/array.h"
@@ -42,6 +44,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <exception>
@@ -55,23 +58,134 @@
 #include <ranges>
 #include <string_view>
 #include <utility>
+#include <variant>
 
 using namespace mint;
 
 namespace {
 
 std::string number_to_char(std::intmax_t number) {
-
-	std::string result;
-
+	auto result = std::string();
 	while (number) {
-		result.insert(result.begin(), static_cast<char>(number % (1 << 8)));
-		number = number / (1 << 8);
+		result.insert(result.begin(), static_cast<char>(number % (1u << CHAR_BIT)));
+		number = number / (1u << CHAR_BIT);
 	}
-
 	return result;
 }
 
+}
+
+Reference mint::cast_to(Cursor& cursor, const Reference& ref, const TypeAnnotation& type) {
+	return std::visit(Overloaded {
+	                      [&](std::monostate) -> Reference {
+		                      return ref;
+	                      },
+	                      [&](const PrimitiveType& type) -> Reference {
+		                      return cast_to(cursor, ref, type);
+	                      },
+	                      [&](const BuiltinType& type) -> Reference {
+		                      return cast_to(cursor, ref, type);
+	                      },
+	                      [&](const UserType& type) -> Reference {
+		                      return cast_to(ref, type);
+	                      },
+	                      [](const UnionType&) -> Reference {
+		                      std::unreachable();
+	                      },
+	                  },
+	    type.definition);
+}
+
+Reference mint::cast_to(Cursor& cursor, const Reference& ref, const PrimitiveType& type) {
+	switch (type.kind) {
+	case PrimitiveTypeKind::none:
+		if (is_instance_of(ref, Data::Format::none)) {
+			return ref;
+		}
+		error("invalid conversion from '{}' to 'none'", type_name(ref));
+	case PrimitiveTypeKind::null:
+		if (is_instance_of(ref, Data::Format::null)) {
+			return ref;
+		}
+		error("invalid conversion from '{}' to 'null'", type_name(ref));
+	case PrimitiveTypeKind::number:
+		if (is_instance_of(ref, Data::Format::number)) {
+			return ref;
+		}
+		return make_reference<Number>(ref.flags(), to_number(cursor, ref));
+	case PrimitiveTypeKind::boolean:
+		if (is_instance_of(ref, Data::Format::boolean)) {
+			return ref;
+		}
+		return make_reference<Boolean>(ref.flags(), to_boolean(ref));
+	case PrimitiveTypeKind::function:
+		if (is_instance_of(ref, Data::Format::function)) {
+			return ref;
+		}
+		error("invalid conversion from '{}' to 'function'", type_name(ref));
+	case PrimitiveTypeKind::coroutine:
+		if (is_instance_of(ref, Data::Format::coroutine)) {
+			return ref;
+		}
+		error("invalid conversion from '{}' to 'coroutine'", type_name(ref));
+	case PrimitiveTypeKind::package:
+		if (is_instance_of(ref, Data::Format::package)) {
+			return ref;
+		}
+		error("invalid conversion from '{}' to 'package'", type_name(ref));
+	}
+}
+
+Reference mint::cast_to(Cursor& cursor, const Reference& ref, const BuiltinType& type) {
+	switch (type.kind) {
+	case BuiltinTypeKind::string:
+		if (is_instance_of(ref, Class::Metatype::string)) {
+			return ref;
+		}
+		return create_string(cursor.program(), to_string(ref));
+	case BuiltinTypeKind::regex:
+		if (is_instance_of(ref, Class::Metatype::regex)) {
+			return ref;
+		}
+		return create_regex(cursor.program(), to_string(ref), to_regex(ref));
+	case BuiltinTypeKind::array:
+		if (is_instance_of(ref, Class::Metatype::array)) {
+			return ref;
+		}
+		return create_array(cursor.program(), to_array(ref));
+	case BuiltinTypeKind::hash:
+		if (is_instance_of(ref, Class::Metatype::hash)) {
+			return ref;
+		}
+		return create_hash(cursor.program(), to_hash(ref));
+	case BuiltinTypeKind::iterator:
+		return create_iterator_over(cursor, ref);
+	case BuiltinTypeKind::async_iterator:
+		if (is_instance_of(ref, Class::Metatype::async_iterator)) {
+			return ref;
+		}
+		error("invalid conversion from '{}' to 'async_iterator'", type_name(ref));
+	case BuiltinTypeKind::libobject:
+		if (is_instance_of(ref, Class::Metatype::libobject)) {
+			return ref;
+		}
+		error("invalid conversion from '{}' to 'libobject'", type_name(ref));
+	case BuiltinTypeKind::library:
+		if (is_instance_of(ref, Class::Metatype::library)) {
+			return ref;
+		}
+		error("invalid conversion from '{}' to 'library'", type_name(ref));
+	}
+}
+
+Reference mint::cast_to(const Reference& ref, const UserType& type) {
+	if (!is_object(ref)) {
+		error("invalid conversion from '{}' to '{}'", type_name(ref), type.path.to_string());
+	}
+	if (!ref.data<Object>().metadata.get_description().is_derived_from(type.path)) {
+		error("invalid conversion from '{}' to '{}'", type_name(ref), type.path.to_string());
+	}
+	return ref;
 }
 
 double mint::to_number(Cursor& cursor, const Reference& ref) {
@@ -146,7 +260,7 @@ double mint::to_number(Cursor& cursor, Reference&& ref) {
 			}
 			return to_number(cursor, create_none());
 		default:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_number(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
@@ -191,7 +305,7 @@ std::intmax_t mint::to_signed_integer(Cursor& cursor, const Reference& ref) {
 			}
 			return to_signed_integer(cursor, create_none());
 		default:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_signed_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
@@ -236,7 +350,7 @@ std::intmax_t mint::to_signed_integer(Cursor& cursor, Reference&& ref) {
 				return 0;
 			}
 		default:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_signed_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
@@ -281,7 +395,7 @@ std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, const Reference& ref) {
 			}
 			return to_unsigned_integer(cursor, create_none());
 		default:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_unsigned_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
@@ -326,7 +440,7 @@ std::uintmax_t mint::to_unsigned_integer(Cursor& cursor, Reference&& ref) {
 			}
 			return to_unsigned_integer(cursor, create_none());
 		default:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_number)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_unsigned_integer(cursor, scheduler->invoke(ref, builtin_symbols::to_number, *method));
@@ -359,7 +473,7 @@ bool mint::to_boolean(const Reference& ref) {
 		case Class::Metatype::async_iterator:
 			return !ref.data<Iterator>().ctx.empty();
 		default:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_boolean)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_boolean)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_boolean(scheduler->invoke(ref, builtin_symbols::to_boolean, *method));
@@ -386,7 +500,7 @@ std::string mint::to_char(const Reference& ref) {
 		if (ref.data<Object>().metadata.metatype() == Class::Metatype::string) {
 			return *const_utf8iterator(ref.data<String>().str.begin());
 		}
-		if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_string)) {
+		if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_string)) {
 			auto* scheduler = Scheduler::instance();
 			assert_x(scheduler, __func__, "execution should be done using a scheduler");
 			return to_string(scheduler->invoke(ref, builtin_symbols::to_string, *method));
@@ -410,12 +524,12 @@ std::string mint::to_string(const Reference& ref) {
 		return "(null)";
 	case Data::Format::number:
 		{
-			double intpart = 0.;
-			const auto fracpart = modf(ref.data<Number>().value, &intpart);
-			if (fracpart != 0.) {
-				return mint::to_string(intpart + fracpart);
+			double int_part = 0.;
+			const auto frac_part = modf(ref.data<Number>().value, &int_part);
+			if (frac_part != 0.) {
+				return mint::to_string(int_part + frac_part);
 			}
-			return mint::to_string(to_signed_integer(intpart));
+			return mint::to_string(to_signed_integer(int_part));
 		}
 	case Data::Format::boolean:
 		return ref.data<Boolean>().value ? "true" : "false";
@@ -445,7 +559,7 @@ std::string mint::to_string(const Reference& ref) {
 			}
 			return to_string(create_none());
 		case Class::Metatype::object:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_string)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_string)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_string(scheduler->invoke(ref, builtin_symbols::to_string, *method));
@@ -473,7 +587,7 @@ std::regex mint::to_regex(const Reference& ref) {
 		case Class::Metatype::regex:
 			return ref.data<Regex>().expr;
 		default:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_regex)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_regex)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_regex(scheduler->invoke(ref, builtin_symbols::to_regex, *method));
@@ -520,7 +634,7 @@ Array::values_type mint::to_array(const Reference& ref) {
 			});
 			return result;
 		default:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_array)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_array)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_array(scheduler->invoke(ref, builtin_symbols::to_array, *method));
@@ -548,7 +662,7 @@ Hash::values_type mint::to_hash(const Reference& ref) {
 			}
 			return result;
 		case Class::Metatype::hash:
-			for (auto& item : ref.data<Hash>().values) {
+			for (const auto& item : ref.data<Hash>().values) {
 				result.emplace(hash_get_key(item), hash_get_value(item));
 			}
 			return result;
@@ -559,7 +673,7 @@ Hash::values_type mint::to_hash(const Reference& ref) {
 			}
 			return result;
 		default:
-			if (auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_hash)) {
+			if (const auto* method = ref.data<Object>().metadata.find_member(builtin_symbols::to_hash)) {
 				auto* scheduler = Scheduler::instance();
 				assert_x(scheduler, __func__, "execution should be done using a scheduler");
 				return to_hash(scheduler->invoke(ref, builtin_symbols::to_hash, *method));
@@ -575,56 +689,56 @@ Hash::values_type mint::to_hash(const Reference& ref) {
 
 double mint::to_unsigned_number(std::string_view str) {
 
-	double intpart = 0;
+	double int_part = 0;
 
 	if (str.starts_with('0') && str.length() > 1) {
-		switch (str[1]) {
+		switch (str.at(1)) {
 		case 'b':
 		case 'B':
 			for (const char ch : str.substr(2)) {
 				switch (ch) {
 				case '0':
-					intpart = intpart * static_cast<double>(binary_base);
+					int_part = int_part * static_cast<double>(binary_base);
 					break;
 				case '1':
-					intpart = (intpart * static_cast<double>(binary_base)) + 1;
+					int_part = (int_part * static_cast<double>(binary_base)) + 1;
 					break;
 				default:
 					throw std::invalid_argument(__func__);
 				}
 			}
-			return intpart;
+			return int_part;
 		case 'o':
 		case 'O':
 			for (const char ch : str.substr(2)) {
 				if ('0' <= ch && ch < '8') {
-					intpart = (intpart * static_cast<double>(octal_base)) + (ch - '0');
+					int_part = (int_part * static_cast<double>(octal_base)) + (ch - '0');
 				}
 				else {
 					throw std::invalid_argument(__func__);
 				}
 			}
-			return intpart;
+			return int_part;
 
 		case 'x':
 		case 'X':
 			for (const char ch : str.substr(2)) {
 				if (ch >= 'A') {
 					if (const int digit = ((ch - 'A') & (~('a' ^ 'A'))) + 10; digit < hexadecimal_base) {
-						intpart = (intpart * static_cast<double>(hexadecimal_base)) + digit;
+						int_part = (int_part * static_cast<double>(hexadecimal_base)) + digit;
 					}
 					else {
 						throw std::invalid_argument(__func__);
 					}
 				}
 				else if (isdigit(ch)) {
-					intpart = (intpart * static_cast<double>(hexadecimal_base)) + (ch - '0');
+					int_part = (int_part * static_cast<double>(hexadecimal_base)) + (ch - '0');
 				}
 				else {
 					throw std::invalid_argument(__func__);
 				}
 			}
-			return intpart;
+			return int_part;
 
 		default:
 			break;
@@ -634,10 +748,10 @@ double mint::to_unsigned_number(std::string_view str) {
 	bool decimals = false;
 	bool exponent = false;
 	bool sign_expected = false;
-	double fracpart = 0.;
-	std::intmax_t fracexp = 0;
-	std::intmax_t exppart = 0;
-	std::intmax_t expsign = 0;
+	double frac_part = 0.;
+	std::intmax_t frac_exp = 0;
+	std::intmax_t exp_part = 0;
+	std::intmax_t exp_sign = 0;
 
 	for (const char ch : str) {
 		switch (ch) {
@@ -660,43 +774,43 @@ double mint::to_unsigned_number(std::string_view str) {
 				throw std::invalid_argument(__func__);
 			}
 			sign_expected = false;
-			expsign = +1;
+			exp_sign = +1;
 			break;
 		case '-':
 			if (!sign_expected) {
 				throw std::invalid_argument(__func__);
 			}
 			sign_expected = false;
-			expsign = -1;
+			exp_sign = -1;
 			break;
 		default:
 			if (!isdigit(ch)) {
 				throw std::invalid_argument(__func__);
 			}
 			if (exponent) {
-				exppart = (exppart * decimal_base) + (ch - '0');
+				exp_part = (exp_part * decimal_base) + (ch - '0');
 				sign_expected = false;
 			}
 			else if (decimals) {
-				fracpart = (fracpart * static_cast<double>(decimal_base)) + (ch - '0');
-				--fracexp;
+				frac_part = (frac_part * static_cast<double>(decimal_base)) + (ch - '0');
+				--frac_exp;
 			}
 			else {
-				intpart = (intpart * static_cast<double>(decimal_base)) + (ch - '0');
+				int_part = (int_part * static_cast<double>(decimal_base)) + (ch - '0');
 			}
 		}
 	}
 
 	if (exponent) {
-		return (fracpart * pow(static_cast<std::intmax_t>(decimal_base), fracexp) + intpart)
-		       * pow(decimal_base, copysign(exppart, expsign));
+		return ((frac_part * pow(static_cast<std::intmax_t>(decimal_base), frac_exp)) + int_part)
+		       * pow(decimal_base, copysign(exp_part, exp_sign));
 	}
 
 	if (decimals) {
-		return (fracpart * pow(static_cast<std::intmax_t>(decimal_base), fracexp)) + intpart;
+		return (frac_part * pow(static_cast<std::intmax_t>(decimal_base), frac_exp)) + int_part;
 	}
 
-	return intpart;
+	return int_part;
 }
 
 double mint::to_signed_number(std::string_view str) {
@@ -705,36 +819,36 @@ double mint::to_signed_number(std::string_view str) {
 
 std::uintmax_t mint::to_unsigned_integer(std::string_view str) {
 
-	std::uintmax_t intpart = 0;
+	std::uintmax_t int_part = 0;
 
 	if (str.starts_with('0') && str.length() > 1) {
-		switch (str[1]) {
+		switch (str.at(1)) {
 		case 'b':
 		case 'B':
 			for (const char ch : str.substr(2)) {
 				switch (ch) {
 				case '0':
-					intpart = intpart << 1;
+					int_part = int_part << 1;
 					break;
 				case '1':
-					intpart = (intpart << 1) + 1;
+					int_part = (int_part << 1) + 1;
 					break;
 				default:
 					throw std::invalid_argument(__func__);
 				}
 			}
-			return intpart;
+			return int_part;
 		case 'o':
 		case 'O':
 			for (const char ch : str.substr(2)) {
 				if ('0' <= ch && ch < '8') {
-					intpart = (intpart * octal_base) + (ch - '0');
+					int_part = (int_part * octal_base) + (ch - '0');
 				}
 				else {
 					throw std::invalid_argument(__func__);
 				}
 			}
-			return intpart;
+			return int_part;
 
 		case 'x':
 		case 'X':
@@ -742,20 +856,20 @@ std::uintmax_t mint::to_unsigned_integer(std::string_view str) {
 				if (ch >= 'A') {
 					const int digit = ((ch - 'A') & (~('a' ^ 'A'))) + 10;
 					if (digit < hexadecimal_base) {
-						intpart = (intpart * hexadecimal_base) + digit;
+						int_part = (int_part * hexadecimal_base) + digit;
 					}
 					else {
 						throw std::invalid_argument(__func__);
 					}
 				}
 				else if (isdigit(ch)) {
-					intpart = (intpart * hexadecimal_base) + (ch - '0');
+					int_part = (int_part * hexadecimal_base) + (ch - '0');
 				}
 				else {
 					throw std::invalid_argument(__func__);
 				}
 			}
-			return intpart;
+			return int_part;
 		default:
 			break;
 		}
@@ -763,14 +877,14 @@ std::uintmax_t mint::to_unsigned_integer(std::string_view str) {
 
 	for (const char ch : str) {
 		if ('0' <= ch && ch <= '9') {
-			intpart = (intpart * decimal_base) + (ch - '0');
+			int_part = (int_part * decimal_base) + (ch - '0');
 		}
 		else {
 			throw std::invalid_argument(__func__);
 		}
 	}
 
-	return intpart;
+	return int_part;
 }
 
 std::intmax_t mint::to_signed_integer(std::string_view str) {

@@ -8,7 +8,7 @@ load exception.exception
 		} catch error {
 			var received = error
 		}
-		self.expectEqual('test', received)
+		self.expectEqual(received, 'test')
 	}
 
 	const def testCatchFromGenerator(self) {
@@ -20,7 +20,7 @@ load exception.exception
 		} catch error {
 			var received = error
 		}
-		self.expectEqual('test', received)
+		self.expectEqual(received, 'test')
 	}
 
 	const def testCatchRuntimeError(self) {
@@ -29,6 +29,6 @@ load exception.exception
 		} catch error {
 			var received = error
 		}
-		self.expectEqual('test', received.toString())
+		self.expectEqual(received.toString(), 'test')
 	}
 }

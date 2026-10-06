@@ -22,6 +22,7 @@
  */
 
 #include "debugger.h"
+#include "debugger_backend.h"
 #include "interactive_debugger.h"
 #include "dap_debugger.h"
 #include "dap_stream.h"
@@ -29,6 +30,7 @@
 #include "mint/debug/cursor_debugger.h"
 #include "mint/debug/debug_info.h"
 #include "mint/debug/debug_interface.h"
+#include "mint/program/program.h"
 #include "mint/scheduler/scheduler.h"
 
 #include "mint/program/module.h"
@@ -42,16 +44,6 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
-
-Debugger::Debugger(const std::vector<std::string>& args) {
-
-	std::vector<std::string> process_args;
-
-	if (parse_arguments(args, process_args)) {
-		_scheduler = std::make_unique<mint::Scheduler>(process_args);
-		_scheduler->set_debug_interface(this);
-	}
-}
 
 Debugger::~Debugger() {}
 
@@ -73,6 +65,22 @@ void Debugger::add_pending_breakpoint_from_module(const std::string& module, std
 
 void Debugger::pause_on_next_step() {
 	_pause_on_next_step = true;
+}
+
+bool Debugger::setup(const std::vector<std::string>& args) {
+
+	auto process_args = std::vector<std::string>();
+	if (!parse_arguments(args, process_args)) {
+		return false;
+	}
+
+	_scheduler = std::make_unique<mint::Scheduler>();
+	if (!_scheduler->setup(process_args)) {
+		return false;
+	}
+
+	_scheduler->set_debug_interface(this);
+	return true;
 }
 
 int Debugger::run() {
@@ -164,7 +172,7 @@ bool Debugger::process_events(mint::CursorDebugger& cursor) {
 	mint::Program& program = cursor.cursor().program();
 
 	while (const auto* module = program.find_module(_module_count)) {
-		_backend->on_module_loaded(*this, cursor, *module);
+		_backend->on_module_loaded(*this, cursor, module->bytecode);
 		++_module_count;
 	}
 

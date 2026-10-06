@@ -24,6 +24,7 @@
 #ifndef MINT_DEBUG_DEBUG_TOOLS_H
 #define MINT_DEBUG_DEBUG_TOOLS_H
 
+#include "mint/memory/class.h"
 #include "mint/program/program.h"
 #include "mint/program/node.h"
 #include "mint/config.h"
@@ -57,6 +58,7 @@ MINT_EXPORT std::string to_module_path(const std::filesystem::path& file_path);
 MINT_EXPORT std::ifstream get_module_stream(const std::string& module);
 MINT_EXPORT std::string get_module_line(const std::string& module, std::size_t line);
 
+MINT_EXPORT const ClassInfo* find_class_info(const Program& program, const Class& metadata);
 MINT_EXPORT const FunctionInfo* find_function_info(const Program& program, const Function& function);
 
 MINT_EXPORT Node::Command dump_command(Cursor& cursor, std::ostream& stream);

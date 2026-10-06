@@ -82,7 +82,6 @@ inline constexpr std::size_t max_udp_payload = 65507;
 
 mint::Reference mint_udp_socket_open(mint::Cursor& cursor, const mint::Reference& ip_version) {
 
-	mint::Reference result = mint::create_iterator(cursor.program());
 	auto socket_fd = INVALID_SOCKET;
 
 	switch (mint::to_integer<int>(cursor, ip_version)) {
@@ -93,22 +92,13 @@ mint::Reference mint_udp_socket_open(mint::Cursor& cursor, const mint::Reference
 		socket_fd = mint_network::SocketManager::instance().open_socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 		break;
 	default:
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_number(EAFNOSUPPORT));
-		return result;
+		return mint_network::make_failure(cursor, EAFNOSUPPORT);
 	}
 
 	if (socket_fd == INVALID_SOCKET) {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-		iterator_yield(cursor, result.data<mint::Iterator>(),
-		    mint::create_number(mint_network::errno_from_socket_last_error()));
+		return mint_network::make_failure(cursor, mint_network::errno_from_socket_last_error());
 	}
-	else {
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint_network::create_socket(cursor.program(), socket_fd));
-		iterator_yield(cursor, result.data<mint::Iterator>(), mint::create_none());
-	}
-
-	return result;
+	return mint_network::make_success(cursor, mint_network::create_socket(cursor.program(), socket_fd));
 }
 
 mint::Reference mint_udp_socket_sendto(mint::FunctionHelper& helper, const mint::Reference& socket,
@@ -179,7 +169,7 @@ mint::Reference mint_udp_socket_sendto(mint::FunctionHelper& helper, const mint:
 	}
 }
 
-mint::Reference mint_udp_socket_sendto_async(mint::FunctionHelper& helper, const mint::Reference& self,
+mint::Reference mint_udp_socket_sendto_async(mint::FunctionHelper& helper, mint::Reference self,
     const mint::Reference& socket, const mint::Reference& endpoint, const mint::Reference& buffer) {
 
 	class AsyncSendToOperation : public mint::MintAsyncOperation {
@@ -303,13 +293,14 @@ mint::Reference mint_udp_socket_sendto_async(mint::FunctionHelper& helper, const
 		const auto socket_fd = std::bit_cast<SOCKET>(mint::to_handle(socket));
 		const auto [address, address_length] = mint_network::to_sockaddr(endpoint);
 
-		return mint::create_iterator_from(helper.cursor(), mint::create_number(0),
+		return mint_network::make_success(helper.cursor(),
 		    mint::create_async_operation(helper.cursor().program(),
-		        new AsyncSendToOperation(helper, std::move(self), socket_fd, address, address_length,
-		            buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)));
+		        std::make_unique<AsyncSendToOperation>(helper, std::move(self), socket_fd, address, address_length,
+		            buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
+		            .release()));
 	}
 	catch (const std::system_error& error) {
-		return mint::create_iterator_from(helper.cursor(), mint::create_number(error.code().value()));
+		return mint_network::make_failure(helper.cursor(), error.code().value());
 	}
 }
 
@@ -407,7 +398,7 @@ mint::Reference mint_udp_socket_recvfrom(mint::FunctionHelper& helper, const min
 	return result;
 }
 
-mint::Reference mint_udp_socket_recvfrom_async(mint::FunctionHelper& helper, const mint::Reference& self,
+mint::Reference mint_udp_socket_recvfrom_async(mint::FunctionHelper& helper, mint::Reference self,
     const mint::Reference& socket, const mint::Reference& buffer) {
 
 	class AsyncRecvFromOperation : public mint::MintAsyncOperation {
@@ -536,8 +527,9 @@ mint::Reference mint_udp_socket_recvfrom_async(mint::FunctionHelper& helper, con
 	};
 
 	return mint::create_async_operation(helper.cursor().program(),
-	    new AsyncRecvFromOperation(helper, std::move(self), std::bit_cast<SOCKET>(mint::to_handle(socket)),
-	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
+	    std::make_unique<AsyncRecvFromOperation>(helper, std::move(self), std::bit_cast<SOCKET>(mint::to_handle(socket)),
+	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
+	        .release());
 }
 
 mint::Reference mint_udp_socket_send(mint::FunctionHelper& helper, const mint::Reference& socket,
@@ -597,7 +589,7 @@ mint::Reference mint_udp_socket_send(mint::FunctionHelper& helper, const mint::R
 	return result;
 }
 
-mint::Reference mint_udp_socket_send_async(mint::FunctionHelper& helper, const mint::Reference& self,
+mint::Reference mint_udp_socket_send_async(mint::FunctionHelper& helper, mint::Reference self,
     const mint::Reference& socket, const mint::Reference& buffer) {
 	class AsyncSendOperation : public mint::MintAsyncOperation {
 		std::reference_wrapper<mint::Cursor> _cursor;
@@ -698,8 +690,9 @@ mint::Reference mint_udp_socket_send_async(mint::FunctionHelper& helper, const m
 	};
 
 	return mint::create_async_operation(helper.cursor().program(),
-	    new AsyncSendOperation(helper, std::move(self), std::bit_cast<SOCKET>(mint::to_handle(socket)),
-	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
+	    std::make_unique<AsyncSendOperation>(helper, std::move(self), std::bit_cast<SOCKET>(mint::to_handle(socket)),
+	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
+	        .release());
 }
 
 mint::Reference mint_udp_socket_recv(mint::FunctionHelper& helper, const mint::Reference& socket,
@@ -777,7 +770,7 @@ mint::Reference mint_udp_socket_recv(mint::FunctionHelper& helper, const mint::R
 	return result;
 }
 
-mint::Reference mint_udp_socket_recv_async(mint::FunctionHelper& helper, const mint::Reference& self,
+mint::Reference mint_udp_socket_recv_async(mint::FunctionHelper& helper, mint::Reference self,
     const mint::Reference& socket, const mint::Reference& buffer) {
 	class AsyncRecvOperation : public mint::MintAsyncOperation {
 		std::reference_wrapper<mint::Cursor> _cursor;
@@ -878,8 +871,9 @@ mint::Reference mint_udp_socket_recv_async(mint::FunctionHelper& helper, const m
 	};
 
 	return mint::create_async_operation(helper.cursor().program(),
-	    new AsyncRecvOperation(helper, std::move(self), std::bit_cast<SOCKET>(mint::to_handle(socket)),
-	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr));
+	    std::make_unique<AsyncRecvOperation>(helper, std::move(self), std::bit_cast<SOCKET>(mint::to_handle(socket)),
+	        buffer.data<mint::LibObject<std::vector<std::uint8_t>>>().ptr)
+	        .release());
 }
 
 }

@@ -40,6 +40,7 @@ public:
 	static InputStream& instance();
 
 	[[nodiscard]] bool at_end() const override;
+	[[nodiscard]] std::string get_line(std::size_t line_number) override;
 
 	[[nodiscard]] bool is_valid() const override;
 	[[nodiscard]] std::filesystem::path path() const override;
@@ -56,7 +57,6 @@ protected:
 	void update_buffer();
 
 	int read_char() override;
-	int next_buffered_char() override;
 
 private:
 	enum class Status : std::uint8_t {
@@ -74,6 +74,8 @@ private:
 	};
 
 	std::string _buffer;
+	std::string _script;
+	std::size_t _script_start_line = 1;
 	char* _cptr = nullptr;
 	std::size_t _level = 0;
 	Status _status = Status::ready;

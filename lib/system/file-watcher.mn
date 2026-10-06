@@ -26,6 +26,8 @@
  * implementation.
  */
 
+load exception.system
+
 package System {
 	/**
 	 * This class provides an awaitable file implementation that trigger an event
@@ -59,17 +61,18 @@ package System {
 		 * The `flags` parameter must be a combination of values from the
 		 * {System.FileWatcher.Change} enum and describes the watched events types.
 		 * 
-		 * If no file can be opened at the given `path` with the given `mode`,
-		 * `none` is returned.
+		 * Raises {Exception.SystemError} if the file cannot be watched.
 		 */
 		const def new(self, path, flags = System.FileWatcher.Change.Data) {
-			self.path = path
-			if self.d_ptr = System.FileWatcher.g_lib.call('mint_file_watcher_create', path, flags) {
-				self.d_ptr.delete = def [g_lib = System.FileWatcher.g_lib](self) {
-					g_lib.call('mint_file_watcher_delete', self)
-				}
-				return self
+			let (errno, d_ptr) = System.FileWatcher.g_lib.call('mint_file_watcher_create', path, flags)
+			if errno {
+				raise Exception.SystemError(errno, self)
 			}
+			self.d_ptr = d_ptr
+			self.d_ptr.delete = def [g_lib = System.FileWatcher.g_lib](self) {
+				g_lib.call('mint_file_watcher_delete', self)
+			}
+			self.path = path
 		}
 
 		/**
@@ -119,7 +122,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Internal file path
 		- final path = null

@@ -33,11 +33,11 @@
 
 using namespace mint;
 
-SymbolTable::SymbolTable(GlobalData& global_data, Class* metadata) :
+SymbolTable::SymbolTable(GlobalData& global_data, const Class* metadata) :
     _metadata(metadata),
     _global_data(global_data) {}
 
-Class* SymbolTable::get_metadata() const {
+const Class* SymbolTable::get_metadata() const {
 	return _metadata;
 }
 

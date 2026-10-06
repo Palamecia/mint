@@ -150,13 +150,8 @@ std::filesystem::path FileSystem::get_main_module_path() const {
 }
 
 void FileSystem::set_main_module_path(const std::filesystem::path& path) {
-
 	_main_module_path = std::filesystem::weakly_canonical(path);
-
-	std::string load_path = _main_module_path.generic_string();
-	if (auto pos = load_path.rfind('/'); pos != std::string::npos) {
-		add_to_path(std::filesystem::absolute(load_path.erase(pos)));
-	}
+	add_to_path(std::filesystem::absolute(_main_module_path.parent_path()));
 }
 
 std::filesystem::path FileSystem::get_module_path(const std::string& module) const {
@@ -197,7 +192,13 @@ std::filesystem::path FileSystem::get_plugin_path(const std::string& plugin) con
 }
 
 std::filesystem::path FileSystem::get_script_path(const std::filesystem::path& script) const {
-	return std::filesystem::weakly_canonical(_scripts_path / script / script).replace_extension(".mn");
+	if (script.is_absolute()) {
+		return script / "main.mn";
+	}
+	if (script.has_parent_path()) {
+		return std::filesystem::absolute(script).lexically_normal() / "main.mn";
+	}
+	return std::filesystem::weakly_canonical(_scripts_path / script / "main").replace_extension(".mn");
 }
 
 const std::list<std::filesystem::path>& FileSystem::library_path() const {

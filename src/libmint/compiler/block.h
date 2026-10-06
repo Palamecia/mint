@@ -24,38 +24,198 @@
 #ifndef BLOCK_H
 #define BLOCK_H
 
+#include "context.h"
+#include "mint/compiler/build_context.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/program/symbol.h"
-#include "mint/compiler/build_tools.h"
 #include "case_table.h"
 #include "catch_context.h"
 #include "branch.h"
+#include "control_flow.h"
 #include <cstddef>
 #include <memory>
 #include <vector>
 
 namespace mint {
 
+struct OverrideBackup {
+	std::size_t index = invalid_index;
+	const TypeAnnotation* type = nullptr;
+};
+
 struct Block {
-	Block(BuildContext::BlockType type);
-	Block(const Block&) = delete;
-	Block(Block&&) = delete;
-	~Block();
+	virtual ~Block() = default;
 
-	Block& operator=(const Block&) = delete;
-	Block& operator=(Block&&) = delete;
+	[[nodiscard]] virtual BuildContext::BlockType type() const = 0;
 
-	BuildContext::BlockType type;
-	Branch::ForwardNodeIndex* forward = nullptr;
-	Branch::BackwardNodeIndex* backward = nullptr;
-	std::unique_ptr<CatchContext> catch_context;
-	std::unique_ptr<CaseTable> case_table;
 	std::size_t retrieve_point_count = 0;
-	std::unique_ptr<std::vector<const Symbol*>> condition_scoped_symbols;
-	std::unique_ptr<std::vector<const Symbol*>> range_loop_scoped_symbols;
-	std::vector<const Symbol*> block_scoped_symbols;
+	std::vector<const Symbol*> scoped_symbols;
 
-	[[nodiscard]] bool is_breakable() const;
-	[[nodiscard]] bool is_continuable() const;
+	[[nodiscard]] virtual std::vector<const Symbol*>* get_condition_scoped_symbols() const;
+	[[nodiscard]] virtual std::vector<const Symbol*>* get_range_loop_scoped_symbols() const;
+
+	[[nodiscard]] virtual ControlFlowSet flow() const;
+	virtual void append_flow(ControlFlowSet flow);
+	virtual void terminate(ControlFlow flow);
+
+	[[nodiscard]] bool is_terminated() const;
+	[[nodiscard]] virtual bool is_breakable() const;
+	[[nodiscard]] virtual bool is_continuable() const;
+
+private:
+	ControlFlowSet _flow = flow_flag(ControlFlow::next);
+};
+
+struct BreakableBlock : Block {
+
+	Branch::ForwardNodeIndex* forward = nullptr;
+
+	[[nodiscard]] bool is_breakable() const final;
+};
+
+struct ContinuableBlock : BreakableBlock {
+
+	Branch::BackwardNodeIndex* backward = nullptr;
+
+	[[nodiscard]] bool is_continuable() const final;
+};
+
+struct ConditionalLoopBlock : ContinuableBlock {
+	explicit ConditionalLoopBlock(Context& context);
+	~ConditionalLoopBlock() override;
+
+	[[nodiscard]] BuildContext::BlockType type() const final;
+
+	std::unique_ptr<ConditionContext> condition_context;
+
+	[[nodiscard]] std::vector<const Symbol*>* get_condition_scoped_symbols() const final;
+
+	[[nodiscard]] ControlFlowSet flow() const final;
+
+	Context& context;
+	std::vector<OverrideBackup> dynamic_overrides_backup;
+};
+
+struct CustomRangeLoopBlock : ContinuableBlock {
+	explicit CustomRangeLoopBlock(Context& context);
+	~CustomRangeLoopBlock() override;
+
+	[[nodiscard]] BuildContext::BlockType type() const final;
+
+	std::unique_ptr<ConditionContext> condition_context;
+	std::unique_ptr<RangeLoopContext> range_loop_context;
+
+	[[nodiscard]] std::vector<const Symbol*>* get_condition_scoped_symbols() const final;
+	[[nodiscard]] std::vector<const Symbol*>* get_range_loop_scoped_symbols() const final;
+
+	[[nodiscard]] ControlFlowSet flow() const final;
+
+	Context& context;
+	std::vector<OverrideBackup> dynamic_overrides_backup;
+};
+
+struct RangeLoopBlock : ContinuableBlock {
+	explicit RangeLoopBlock(Context& context);
+	~RangeLoopBlock() override;
+
+	[[nodiscard]] BuildContext::BlockType type() const final;
+
+	std::unique_ptr<ConditionContext> condition_context;
+	std::unique_ptr<RangeLoopContext> range_loop_context;
+
+	[[nodiscard]] std::vector<const Symbol*>* get_condition_scoped_symbols() const final;
+	[[nodiscard]] std::vector<const Symbol*>* get_range_loop_scoped_symbols() const final;
+
+	[[nodiscard]] ControlFlowSet flow() const final;
+
+	Context& context;
+	std::vector<OverrideBackup> dynamic_overrides_backup;
+};
+
+struct SwitchBlock : BreakableBlock {
+	explicit SwitchBlock(Context& context);
+	~SwitchBlock() override;
+
+	[[nodiscard]] BuildContext::BlockType type() const final;
+
+	std::unique_ptr<ConditionContext> condition_context;
+	CaseTable case_table;
+
+	[[nodiscard]] std::vector<const Symbol*>* get_condition_scoped_symbols() const final;
+
+	[[nodiscard]] ControlFlowSet flow() const final;
+	void append_flow(ControlFlowSet flow) final;
+	void terminate(ControlFlow flow) final;
+
+	void setup_type_overrides();
+	void reset_type_overrides();
+
+	Context& context;
+	std::vector<OverrideBackup> dynamic_overrides_backup;
+};
+
+struct IfBaseBlock : Block {
+	explicit IfBaseBlock(Context& context);
+	~IfBaseBlock() override;
+
+	std::unique_ptr<ConditionContext> condition_context;
+
+	[[nodiscard]] std::vector<const Symbol*>* get_condition_scoped_symbols() const final;
+
+	[[nodiscard]] virtual ControlFlowSet branch_flow() const;
+
+	Context& context;
+	std::vector<OverrideBackup> dynamic_overrides_backup;
+};
+
+struct IfBlock : IfBaseBlock {
+	explicit IfBlock(Context& context);
+
+	[[nodiscard]] BuildContext::BlockType type() const final;
+
+	[[nodiscard]] ControlFlowSet flow() const final;
+};
+
+struct ElifBlock : IfBaseBlock {
+	ElifBlock(Context& context, std::unique_ptr<IfBaseBlock>&& parent_if_block);
+
+	[[nodiscard]] BuildContext::BlockType type() const final;
+
+	[[nodiscard]] ControlFlowSet branch_flow() const final;
+	[[nodiscard]] ControlFlowSet flow() const final;
+
+	std::unique_ptr<IfBaseBlock> parent_if_block;
+};
+
+struct ElseBlock : Block {
+	explicit ElseBlock(std::unique_ptr<IfBaseBlock>&& parent_if_block);
+
+	[[nodiscard]] BuildContext::BlockType type() const final;
+
+	[[nodiscard]] ControlFlowSet flow() const final;
+
+	std::unique_ptr<IfBaseBlock> parent_if_block;
+};
+
+struct TryBlock : Block {
+	[[nodiscard]] BuildContext::BlockType type() const final;
+
+	[[nodiscard]] ControlFlowSet flow() const final;
+};
+
+struct CatchBlock : Block {
+	explicit CatchBlock(std::unique_ptr<TryBlock>&& parent_try_block);
+
+	[[nodiscard]] BuildContext::BlockType type() const final;
+
+	[[nodiscard]] ControlFlowSet flow() const final;
+
+	std::unique_ptr<TryBlock> parent_try_block;
+	CatchContext catch_context;
+};
+
+struct PrintBlock : Block {
+	[[nodiscard]] BuildContext::BlockType type() const final;
 };
 
 }

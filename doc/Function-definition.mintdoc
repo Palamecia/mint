@@ -77,7 +77,7 @@ def [c = s[9..13]] {} // function context includes variable c initialized to 'th
 > The alias capture mechanism can also create global variables at the function scope.
 >
 > ```mn
-> def [g_lib = lib('my-lib')] func(a) {
+> def [g_lib: library = lib('my-lib')] func(a) {
 >     return g_lib.call('func', a)
 > }
 > ```

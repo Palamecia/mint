@@ -5,40 +5,40 @@ load serializer.text-stream
 @class TestTextStream : Test.Case {
 	const def testReadChar(self) {
 		var s = Serializer.TextStream('test')
-		self.expectEqual('t', s.readChar())
-		self.expectEqual('e', s.readChar())
-		self.expectEqual('s', s.readChar())
-		self.expectEqual('t', s.readChar())
+		self.expectEqual(s.readChar(), 't')
+		self.expectEqual(s.readChar(), 'e')
+		self.expectEqual(s.readChar(), 's')
+		self.expectEqual(s.readChar(), 't')
 		self.expectNotDefined(s.readChar())
 	}
 
 	const def testReadWord(self) {
 		var s = Serializer.TextStream('test test test test')
-		self.expectEqual('test', s.readWord())
-		self.expectEqual('test', s.readWord())
-		self.expectEqual('test', s.readWord())
-		self.expectEqual('test', s.readWord())
+		self.expectEqual(s.readWord(), 'test')
+		self.expectEqual(s.readWord(), 'test')
+		self.expectEqual(s.readWord(), 'test')
+		self.expectEqual(s.readWord(), 'test')
 		self.expectNotDefined(s.readWord())
 	}
 
 	const def testReadLine(self) {
 		var s = Serializer.TextStream('test\ntest\ntest\ntest')
-		self.expectEqual('test', s.readLine())
-		self.expectEqual('test', s.readLine())
-		self.expectEqual('test', s.readLine())
-		self.expectEqual('test', s.readLine())
+		self.expectEqual(s.readLine(), 'test')
+		self.expectEqual(s.readLine(), 'test')
+		self.expectEqual(s.readLine(), 'test')
+		self.expectEqual(s.readLine(), 'test')
 		self.expectNotDefined(s.readWord())
 	}
 
 	const def testReadLines(self) {
 		var s = Serializer.TextStream('test\ntest\ntest\ntest')
-		self.expectEqual(['test', 'test', 'test', 'test'], array(s.readLines()))
+		self.expectEqual(array(s.readLines()), ['test', 'test', 'test', 'test'])
 		self.expectNotDefined(s.readWord())
 	}
 
 	const def testRead(self) {
 		var s = Serializer.TextStream('test\ntest\ntest\ntest')
-		self.expectEqual('test\ntest\ntest\ntest', s.read())
+		self.expectEqual(s.read(), 'test\ntest\ntest\ntest')
 		self.expectNotDefined(s.readWord())
 	}
 }

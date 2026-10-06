@@ -1,0 +1,9 @@
+load mint.lang
+
+const def main(args: iterator) -> none {
+
+}
+
+if isMain() {
+    main(va_args)
+}

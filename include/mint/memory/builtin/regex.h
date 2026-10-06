@@ -39,6 +39,8 @@ class Program;
 class MINT_EXPORT RegexClass : public Class {
 public:
 	explicit RegexClass(Program& program);
+
+	static ClassDescription& description();
 	static RegexClass& instance(Program& program);
 };
 

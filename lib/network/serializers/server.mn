@@ -43,7 +43,6 @@ package Network {
 		 */
 		const def new(self) {
 			self.connectionQueue = Container.Queue()
-			return self
 		}
 
 		/**
@@ -127,7 +126,6 @@ package Network {
 		 */
 		const def new(self) {
 			self.connectionQueue = Container.Queue()
-			return self
 		}
 
 		/**

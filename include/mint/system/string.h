@@ -35,6 +35,7 @@
 #include <string>
 #include <cmath>
 #include <type_traits>
+#include <utility>
 
 namespace mint {
 
@@ -43,7 +44,7 @@ static constexpr const std::string_view upper_digits = "0123456789ABCDEFGHIJKLMN
 static constexpr const std::string_view inf_string = "inf";
 static constexpr const std::string_view nan_string = "nan";
 
-using StringFormatFlags = std::uint8_t;
+using StringFormatFlags = unsigned;
 constexpr StringFormatFlags string_left = 0x01;
 constexpr StringFormatFlags string_plus = 0x02;
 constexpr StringFormatFlags string_space = 0x04;
@@ -78,8 +79,8 @@ MINT_EXPORT void crop_zeros(std::string& buffer);
 
 template<typename number_t>
     requires std::is_arithmetic_v<number_t>
-static std::string digits_to_string(number_t number, NumberBase base, DigitsFormat format, std::size_t precision,
-    bool capexp, int& decpt, bool& sign) {
+std::string digits_to_string(number_t number, NumberBase base, DigitsFormat format, std::size_t precision, bool capexp,
+    int& decpt, bool& sign) {
 
 	std::string result;
 	number_t fi;
@@ -90,10 +91,10 @@ static std::string digits_to_string(number_t number, NumberBase base, DigitsForm
 			return std::modf(x, intptr);
 		}
 		else if constexpr (std::is_same_v<number_t, float>) {
-			return std::modff(x, intptr);
+			return std::modf(x, intptr);
 		}
 		else if constexpr (std::is_same_v<number_t, long double>) {
-			return std::modfl(x, intptr);
+			return std::modf(x, intptr);
 		}
 	};
 
@@ -109,7 +110,7 @@ static std::string digits_to_string(number_t number, NumberBase base, DigitsForm
 		std::string buffer;
 		while (fi != 0.) {
 			fj = mod_function(fi / static_cast<number_t>(base), &fi);
-			buffer += digits[static_cast<std::size_t>((fj + .03) * static_cast<number_t>(base))];
+			buffer += digits.at(static_cast<std::size_t>((fj + .03) * static_cast<number_t>(base)));
 			r2++;
 		}
 		result.append_range(std::views::reverse(buffer));
@@ -120,22 +121,22 @@ static std::string digits_to_string(number_t number, NumberBase base, DigitsForm
 			r2--;
 		}
 	}
-	auto pos = precision;
-	if (format == DigitsFormat::decimal) {
-		pos += r2;
-	}
+	// Signed on purpose: the number of digits to produce is negative for a small number
+	// whose first significant digit is beyond the requested precision.
+	const auto signed_pos = static_cast<std::ptrdiff_t>(precision) + (format == DigitsFormat::decimal ? r2 : 0);
 	decpt = r2;
-	if (pos < 0) {
+	if (signed_pos < 0) {
 		return result;
 	}
+	auto pos = static_cast<std::size_t>(signed_pos);
 	while (pos >= result.size()) {
 		number *= static_cast<number_t>(base);
 		number = mod_function(number, &fj);
-		result += digits[static_cast<std::size_t>(fj)];
+		result += digits.at(static_cast<std::size_t>(fj));
 	}
 	auto last = pos;
 	result[pos] += static_cast<char>(base >> 1);
-	while (result[pos] > digits[base - 1]) {
+	while (result[pos] > digits.at(base - 1)) {
 		result[pos] = '0';
 		if (pos > 0) {
 			++result[--pos];
@@ -160,8 +161,7 @@ static std::string digits_to_string(number_t number, NumberBase base, DigitsForm
 
 template<typename number_t>
     requires std::is_floating_point_v<number_t>
-static std::string float_to_string(number_t number, NumberBase base, DigitsFormat format, std::size_t precision,
-    bool capexp) {
+std::string float_to_string(number_t number, NumberBase base, DigitsFormat format, std::size_t precision, bool capexp) {
 
 	std::string result;
 	int decpt = 0;
@@ -225,10 +225,10 @@ static std::string float_to_string(number_t number, NumberBase base, DigitsForma
 
 		auto buffer = std::string();
 
-		while (exp && buffer.size() < 3) {
-			buffer += digits[(exp % base)];
+		do {
+			buffer += digits.at(exp % base);
 			exp = exp / base;
-		}
+		} while (exp && buffer.size() < 3);
 
 		result.append_range(std::views::reverse(buffer));
 	}
@@ -248,10 +248,10 @@ static std::string float_to_string(number_t number, NumberBase base, DigitsForma
 			}
 			else {
 				for (std::size_t pos = 0; pos < num_digits.size(); ++pos) {
-					if (static_cast<int>(pos) == decpt) {
+					if (std::cmp_equal(pos, decpt)) {
 						result += '.';
 					}
-					result += num_digits[pos];
+					result += num_digits.at(pos);
 				}
 			}
 		}
@@ -271,31 +271,25 @@ static std::string float_to_string(number_t number, NumberBase base, DigitsForma
 
 template<typename number_t>
     requires std::is_floating_point_v<number_t>
-static std::string format_float(number_t number, NumberBase base = decimal_base,
-    DigitsFormat format = DigitsFormat::shortest, std::size_t size = unknown_size,
-    std::size_t precision = unknown_precision, StringFormatFlags flags = std::is_signed_v<number_t> ? string_sign : 0) {
-
-	std::string result;
+std::string format_float(number_t number, NumberBase base = decimal_base, DigitsFormat format = DigitsFormat::shortest,
+    std::size_t size = unknown_size, std::size_t precision = unknown_precision,
+    StringFormatFlags flags = std::is_signed_v<number_t> ? string_sign : 0) {
 
 	if (flags & string_left) {
 		flags &= ~string_zeropad;
 	}
 
-	const char c = (flags & string_zeropad) ? '0' : ' ';
 	char sign = 0;
 	if (flags & string_sign) {
 		if (number < 0.0) {
 			sign = '-';
 			number = -number;
-			size--;
 		}
 		else if (flags & string_plus) {
 			sign = '+';
-			size--;
 		}
 		else if (flags & string_space) {
 			sign = ' ';
-			size--;
 		}
 	}
 
@@ -315,142 +309,116 @@ static std::string format_float(number_t number, NumberBase base = decimal_base,
 	if ((format == DigitsFormat::shortest) && !(flags & string_special)) {
 		crop_zeros(buffer);
 	}
-	if (size == unknown_size) {
-		size = 0;
-	}
-	else {
-		size -= buffer.size();
-	}
+
+	// The width is optional: `size` is never modified, so it can not underflow and the
+	// "unknown" marker can not be lost. A width smaller than the content gives no padding.
+	const std::size_t used = (sign ? 1 : 0) + buffer.size();
+	const std::size_t padding = (size != unknown_size && size > used) ? size - used : 0;
+
+	auto result = std::string();
 	if (!(flags & (string_zeropad | string_left))) {
-		for (; size > 0; --size) {
-			result += ' ';
-		}
+		result.append(padding, ' ');
 	}
 	if (sign) {
 		result += sign;
 	}
-	if (!(flags & string_left)) {
-		for (; size > 0; --size) {
-			result += c;
-		}
+	if (flags & string_zeropad) {
+		result.append(padding, '0');
 	}
 	result += buffer;
-	for (; size > 0; --size) {
-		result += ' ';
+	if (flags & string_left) {
+		result.append(padding, ' ');
 	}
 
 	return result;
 }
 
 template<typename number_t>
-    requires std::is_integral_v<number_t>
-static std::string format_integer(number_t number, NumberBase base = decimal_base, std::size_t size = unknown_size,
+    requires std::is_integral_v<number_t> && (!std::is_same_v<number_t, bool>)
+std::string format_integer(number_t number, NumberBase base = decimal_base, std::size_t size = unknown_size,
     std::size_t precision = unknown_precision, StringFormatFlags flags = std::is_signed_v<number_t> ? string_sign : 0) {
 
-	std::string tmp;
-	std::string result;
+	using unsigned_t = std::make_unsigned_t<number_t>;
+
 	const auto digits = (flags & string_large) ? upper_digits : lower_digits;
 
 	if (flags & string_left) {
 		flags &= ~string_zeropad;
 	}
 
-	const char c = (flags & string_zeropad) ? '0' : ' ';
+	// The magnitude is computed on the unsigned type. This is well defined for the minimum
+	// value of a signed type, and gives the two's complement representation of a negative
+	// number when the sign flag is not set (as printf does).
+	auto value = static_cast<unsigned_t>(number);
 	char sign = 0;
 	if (flags & string_sign) {
 		if constexpr (std::is_signed_v<number_t>) {
 			if (number < 0) {
 				sign = '-';
-				number = -number;
-				size--;
-			}
-			else if (flags & string_plus) {
-				sign = '+';
-				size--;
-			}
-			else if (flags & string_space) {
-				sign = ' ';
-				size--;
+				value = static_cast<unsigned_t>(0 - value);
 			}
 		}
-		else {
+		if (!sign) {
 			if (flags & string_plus) {
 				sign = '+';
-				size--;
 			}
 			else if (flags & string_space) {
 				sign = ' ';
-				size--;
 			}
 		}
 	}
 
-	if (flags & string_special) {
-		if ((base == hexadecimal_base) || (base == octal_base) || (base == binary_base)) {
-			size -= 2;
+	const bool special = (flags & string_special)
+	                     && (base == hexadecimal_base || base == octal_base || base == binary_base);
+
+	auto tmp = std::string();
+	const auto radix = static_cast<unsigned_t>(base);
+	if (value == 0) {
+		tmp = '0';
+	}
+	else {
+		for (; value != 0; value /= radix) {
+			tmp += digits.at(value % radix);
 		}
 	}
 
-	if (number == 0) {
-		tmp = "0";
-	}
-	else {
-		while (number != 0) {
-			tmp += digits[number % static_cast<number_t>(base)];
-			number = number / static_cast<number_t>(base);
-		}
-	}
-	if (precision == unknown_precision) {
-		precision = tmp.size();
-	}
-	else {
-		precision = std::max(precision, tmp.size());
-	}
-	if (size == unknown_size) {
-		size = 0;
-	}
-	else {
-		size -= precision;
-	}
-	if (!(flags & (string_zeropad + string_left))) {
-		for (; size > 0; --size) {
-			result += ' ';
-		}
+	precision = (precision == unknown_precision) ? tmp.size() : std::max(precision, tmp.size());
+
+	// The width is optional: `size` is never modified, so it can not underflow and the
+	// "unknown" marker can not be lost. A width smaller than the content gives no padding.
+	const std::size_t used = (sign ? 1 : 0) + (special ? 2 : 0) + precision;
+	const std::size_t padding = (size != unknown_size && size > used) ? size - used : 0;
+
+	auto result = std::string();
+	if (!(flags & (string_zeropad | string_left))) {
+		result.append(padding, ' ');
 	}
 	if (sign) {
 		result += sign;
 	}
-
-	if (flags & string_special) {
+	if (special) {
+		result += '0';
 		switch (base) {
 		case hexadecimal_base:
-			result += "0";
-			result += digits[33];
+			result += digits.at(33);
 			break;
 		case octal_base:
-			result += "0";
-			result += digits[24];
+			result += digits.at(24);
 			break;
 		case binary_base:
-			result += "0";
-			result += digits[11];
+			result += digits.at(11);
 			break;
-		case decimal_base:
+		default:
 			break;
 		}
 	}
-
-	if (!(flags & string_left)) {
-		for (; size > 0; --size) {
-			result += c;
-		}
+	if (flags & string_zeropad) {
+		result.append(padding, '0');
 	}
-	while (precision-- > tmp.size()) {
-		result += '0';
-	}
-	std::ranges::copy(std::views::reverse(tmp), std::back_inserter(result));
-	for (; size > 0; --size) {
-		result += ' ';
+	result.append(precision - tmp.size(), '0');
+	result.append(tmp.rbegin(), tmp.rend());
+	if (flags & string_left) {
+		result.append(padding, ' ');
 	}
 
 	return result;

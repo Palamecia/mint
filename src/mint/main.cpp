@@ -23,9 +23,21 @@
 
 #include "mint/scheduler/scheduler.h"
 #include "mint/system/arguments.h"
+#include "mint/system/error.h"
+#include <cstdlib>
+#include <exception>
 #include <ranges>
 
 int main() {
-	auto scheduler = mint::Scheduler({std::from_range, std::views::drop(mint::arguments(), 1)});
-	return scheduler.run();
+	try {
+		auto scheduler = mint::Scheduler();
+		if (!scheduler.setup({std::from_range, std::views::drop(mint::arguments(), 1)})) {
+			return EXIT_SUCCESS;
+		}
+		return scheduler.run();
+	}
+	catch (const std::exception& error) {
+		mint::print_error(error.what());
+		return EXIT_FAILURE;
+	}
 }

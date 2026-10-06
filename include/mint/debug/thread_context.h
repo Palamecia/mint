@@ -36,7 +36,7 @@ struct ThreadContext {
 		debugger_pause,
 		debugger_next,
 		debugger_enter,
-		debugger_return
+		debugger_return,
 	};
 
 	State state;

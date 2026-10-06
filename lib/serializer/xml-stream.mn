@@ -41,9 +41,7 @@ package Serializer {
 	/**
 	 * Creates a new empty attribute.
 	 */
-	const def new(self) {
-		return self
-	}
+	const def new(self) {}
 
 	/**
 	 * Creates a new attribute with the given `qualifiedName` and `value`.
@@ -51,13 +49,12 @@ package Serializer {
 	const def new(self, qualifiedName, value) {
 		self.qualifiedName = qualifiedName
 		self.value = value
-		if isDefined(var pos = qualifiedName.indexOf(':')) {
+		if defined let pos = qualifiedName.indexOf(':') {
 			self.namespaceUri = qualifiedName[0...pos]
 			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
 		} else {
 			self.localName = qualifiedName
 		}
-		return self
 	}
 
 	/**
@@ -68,12 +65,11 @@ package Serializer {
 		self.namespaceUri = namespaceUri
 		self.qualifiedName = qualifiedName
 		self.value = value
-		if isDefined(var pos = qualifiedName.indexOf(':')) {
+		if defined let pos = qualifiedName.indexOf(':') {
 			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
 		} else {
 			self.localName = qualifiedName
 		}
-		return self
 	}
 	
 	/**
@@ -133,14 +129,14 @@ package Serializer {
 	/**
 	 * Sets the value of the attribute to `value`.
 	 */
-	const def setValue(const self, const value) {
+	const def setValue(self, const value) {
 		self.value = value
 	}
 
 	/**
 	 * Returns the string representation of the attribute.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '%s="%s"' % (self.qualifiedName, Serializer.XmlStream.escapeString(self.value))
 	}
 
@@ -288,7 +284,7 @@ package Serializer {
 	 * the list.
 	 */
 	const def []=(self, const qualifiedName, const value) {
-		if let attr = self.value(qualifiedName) {
+		if let attr = self.get(qualifiedName) {
 			attr.setValue(value)
 			return attr
 		}
@@ -374,7 +370,7 @@ package Serializer {
 	 * Removes the first attribute with the given `qualifiedName`.
 	 */
 	const def remove(self, const qualifiedName) {
-		if isDefined(var index = self.indexOf(qualifiedName)) {
+		if defined let index = self.indexOf(qualifiedName) {
 			self.attributes.remove(index)
 		}
 	}
@@ -384,7 +380,7 @@ package Serializer {
 	 * `localName`.
 	 */
 	const def removeNS(self, const namespaceUri, const localName) {
-		if isDefined(var index = self.indexOfNS(namespaceUri, localName)) {
+		if defined let index = self.indexOfNS(namespaceUri, localName) {
 			self.attributes.remove(index)
 		}
 	}
@@ -399,7 +395,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the attribute list.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		var str = ''
 		for var attr in self.attributes {
 			str << ' ' << attr.toString()
@@ -462,7 +458,7 @@ package Serializer {
 	 * Returns the local name corresponding to the given `qualifiedName`.
 	 */
 	@const def toLocalName(qualifiedName) {
-		if isDefined(var pos = qualifiedName.indexOf(':')) {
+		if defined let pos = qualifiedName.indexOf(':') {
 			return qualifiedName[(pos + 1)...qualifiedName.size()]
 		}
 		return qualifiedName
@@ -472,11 +468,9 @@ package Serializer {
 	 * Creates a new stream for reading and writing data using `stream`.
 	 */
 	const def new(self, stream) {
-		if self = Serializer.DocumentStream.new(self, stream) {
-			self.reader = Serializer.XmlStream.Reader(self)
-			self.writer = Serializer.XmlStream.Writer(self.toTextStream())
-			return self
-		}
+		Serializer.DocumentStream.new(self, stream)
+		self.reader = Serializer.XmlStream.Reader(self)
+		self.writer = Serializer.XmlStream.Writer(self.toTextStream())
 	}
 
 	/**
@@ -755,7 +749,7 @@ package Serializer {
 	 * Returns the prefix (namespace) of the current element.
 	 */
 	const def getPrefix(const self) {
-		return self.reader.qualifiedName[0...max(0, self.reader.qualifiedName.size() - self.reader.localName.size() - 1)]
+		return self.reader.qualifiedName[0...max(0, self.reader.qualifiedName.size() - self.getLocalName().size() - 1)]
 	}
 
 	/**
@@ -1122,7 +1116,6 @@ package Serializer {
 			self.stream = stream
 			self.type = Serializer.XmlStream.TokenType.StartDocument
 			self.state = Serializer.XmlStream.Reader.State.ReadNext
-			return self
 		}
 
 		/**
@@ -1322,8 +1315,8 @@ package Serializer {
 							if self.qualifiedName == "xml" {
 								if 'encoding' in self.attributes {
 									self.encoding = self.attributes.value('encoding')
-									if encoding != 'UTF-8' {
-										self.setCodec(Codec.Iconv(encoding))
+									if self.encoding != 'UTF-8' {
+										self.stream.setCodec(Codec.Iconv(self.encoding))
 									}
 								}
 								if 'version' in self.attributes {
@@ -1541,7 +1534,7 @@ package Serializer {
 		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised
 		 * on error.
 		 */
-		- final const def parseAttrValue(self) {
+		- final const def parseAttributeValue(self) {
 
 			var value = ''
 
@@ -1551,7 +1544,7 @@ package Serializer {
 					return value
 
 				case '&':
-					value << self.parseEscapeSequence()
+					value << self.parseEscapeSequence(c)
 					break
 
 				default:
@@ -1657,7 +1650,7 @@ package Serializer {
 		 * Returns the namespace URI for the given `prefix`.
 		 */
 		- final const def namespaceForPrefix(self, prefix) {
-			for (var i = self.namespaces.size() - 1, i >= 0, --i) {
+			for (let i = self.namespaces.size() - 1, i >= 0, --i) {
 				let nsd = self.namespaces[i]
 				if nsd.prefix == prefix {
 					return nsd.uri
@@ -1673,7 +1666,7 @@ package Serializer {
 		 */
 		- final const def resolveNamespaces(self) {
 
-			if isDefined(var pos = self.qualifiedName.indexOf(':')) {
+			if defined let pos = self.qualifiedName.indexOf(':') {
 				self.namespaceUri = self.namespaceForPrefix(self.qualifiedName[0...pos])
 			} else {
 				self.namespaceUri = self.namespaceForPrefix('')
@@ -1752,7 +1745,6 @@ package Serializer {
 		 */
 		const def new(self, stream) {
 			self.stream = stream
-			return self
 		}
 
 		/**

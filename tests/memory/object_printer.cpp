@@ -26,8 +26,14 @@ mint::Reference create_writer_object(mint::Program& program) {
 		)");
 	auto& writer_class = mint::create_class(program, "__object_printer_writer__",
 	    {
-	        {mint::builtin_symbols::write_method, write_function},
-	        {"value", mint::create_none()},
+	        {
+	            .symbol = mint::builtin_symbols::write_method,
+	            .value = write_function,
+	        },
+	        {
+	            .symbol = "value",
+	            .value = mint::create_none(),
+	        },
 	    });
 	return mint::create_object(writer_class);
 }
@@ -43,7 +49,7 @@ mint::Reference get_printed_value(const mint::Reference& writer) {
 
 TEST(object_printer, print_does_throw_on_invalid_target) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	const auto target = mint::create_string(scheduler.program());
@@ -54,7 +60,7 @@ TEST(object_printer, print_does_throw_on_invalid_target) {
 
 TEST(object_printer, print_does_not_throw) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	const auto target = create_writer_object(scheduler.program());
@@ -65,7 +71,7 @@ TEST(object_printer, print_does_not_throw) {
 
 TEST(object_printer, print_string) {
 
-	auto scheduler = mint::Scheduler({});
+	auto scheduler = mint::Scheduler();
 	const auto process = scheduler.enable_testing();
 
 	const auto target = create_writer_object(scheduler.program());

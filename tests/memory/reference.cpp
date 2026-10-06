@@ -36,7 +36,7 @@ TEST(reference, create_copy_and_move_data_manage_distinct_storage) {
 
 TEST(reference, root_reference_exposes_referenced_data) {
 
-	mint::RootReference root = mint::make_root_reference<mint::Number>(mint::Reference::default_flags,
+	const auto root = mint::make_root_reference<mint::Number>(mint::Reference::default_flags,
 	    static_cast<std::intmax_t>(42));
 
 	EXPECT_EQ(mint::Data::Format::number, root.data().format());

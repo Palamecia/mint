@@ -23,25 +23,25 @@
 
 #include "highlighter.h"
 
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
+#include "mint/config.h"
 #include "mint/program/program.h"
-#include "mint/program/class_description.h"
 #include "mint/program/symbol.h"
 #include "mint/compiler/token.h"
 #include "mint/memory/class.h"
-#include "mint/memory/data.h"
 #include "mint/memory/global_data.h"
-#include "mint/memory/memory_tools.h"
-#include "mint/memory/object.h"
-#include "mint/memory/reference.h"
 #include "mint/system/terminal.h"
 #include <algorithm>
 #include <functional>
-#include <memory>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
-#include <tuple>
+#include <variant>
 #include <vector>
+
+using namespace mint;
 
 namespace {
 
@@ -49,9 +49,14 @@ constexpr bool is_standard_symbol(std::string_view token) {
 	return (token == "self") || (token == "va_args");
 }
 
+SymbolPath make_path(const std::vector<std::string>& context, const std::string& token) {
+	return {context | std::views::transform([](const auto& symbol) {
+		        return Symbol(symbol);
+	        }) | std::ranges::to<SymbolPath>(),
+	    Symbol(token)};
 }
 
-using namespace mint;
+}
 
 Highlighter::Highlighter(const Program& program, std::string_view::size_type offset) :
     _program(program),
@@ -73,37 +78,29 @@ bool Highlighter::on_script_end() {
 
 bool Highlighter::on_symbol_token(const std::vector<std::string>& context, const std::string& token,
     std::string::size_type /*offset*/) {
-	if (const auto* reference = find_defined_symbol(context, token)) {
-		switch (reference->data().format()) {
-		case Data::Format::none:
-		case Data::Format::null:
-		case Data::Format::number:
-		case Data::Format::boolean:
-			set_style(Style::constant);
-			break;
-		case Data::Format::function:
-		case Data::Format::coroutine:
-			set_style(Style::function);
-			break;
-		case Data::Format::object:
-			if (is_instance_of(*reference, Class::Metatype::object) && is_class(reference->data<Object>())) {
-				set_style(Style::user_type);
-			}
-			else {
-				set_style(Style::constant);
-			}
-			break;
-		case Data::Format::package:
-			set_style(Style::user_type);
-			break;
-		}
-	}
-	else if (is_standard_symbol(token)) {
-		set_style(Style::standard_symbol);
-	}
-	else {
-		set_style(Style::text);
-	}
+	std::visit(Overloaded {
+	               [&](std::monostate) {
+		               if (is_standard_symbol(token)) {
+			               set_style(Style::standard_symbol);
+		               }
+		               else {
+			               set_style(Style::text);
+		               }
+	               },
+	               [&](const PackageDescription& /*definition*/) {
+		               set_style(Style::user_type);
+	               },
+	               [&](const ClassDescription& /*definition*/) {
+		               set_style(Style::user_type);
+	               },
+	               [&](const FunctionDefinition& /*definition*/) {
+		               set_style(Style::function);
+	               },
+	               [&](const VariableDescription& /*definition*/) {
+		               set_style(Style::constant);
+	               },
+	           },
+	    find_defined_symbol(make_path(context, token)));
 	return true;
 }
 
@@ -371,71 +368,6 @@ void Highlighter::set_style(Style style) {
 	}
 }
 
-const Reference* Highlighter::find_defined_symbol(const std::vector<std::string>& context,
-    const std::string& token) const {
-
-	const auto symbol = Symbol(token);
-
-	auto location = resolve_path(context);
-	if (!location) {
-		return nullptr;
-	}
-
-	auto [pack, desc] = *location;
-	if (desc) {
-		if (const auto* reference = desc->find_member(symbol)) {
-			return reference;
-		}
-		return nullptr;
-	}
-	if (pack) {
-		if (const auto it = pack->symbols().find(symbol); it != pack->symbols().end()) {
-			return std::addressof(it->second);
-		}
-		return nullptr;
-	}
-
-	const auto& global_data = _program.get().global_data();
-	if (const auto it = global_data.symbols().find(symbol); it != global_data.symbols().end()) {
-		return std::addressof(it->second);
-	}
-	return nullptr;
-}
-
-std::optional<std::tuple<const PackageData*, const ClassDescription*>> Highlighter::resolve_path(
-    const std::vector<std::string>& context) const {
-
-	const PackageData* pack = nullptr;
-	const ClassDescription* desc = nullptr;
-
-	for (const std::string& token : context) {
-		const auto symbol = Symbol(token);
-		if (desc) {
-			desc = desc->find_class_description(symbol);
-			if (desc == nullptr) {
-				return std::nullopt;
-			}
-		}
-		else if (pack) {
-			desc = pack->find_class_description(symbol);
-			if (desc == nullptr) {
-				pack = pack->find_package(symbol);
-				if (pack == nullptr) {
-					return std::nullopt;
-				}
-			}
-		}
-		else {
-			const auto& global_data = _program.get().global_data();
-			desc = global_data.find_class_description(symbol);
-			if (desc == nullptr) {
-				pack = global_data.find_package(symbol);
-				if (pack == nullptr) {
-					return std::nullopt;
-				}
-			}
-		}
-	}
-
-	return std::make_tuple(pack, desc);
+SymbolDefinition Highlighter::find_defined_symbol(const SymbolPath& symbols) const {
+	return _program.get().global_data_description().locate(symbols);
 }

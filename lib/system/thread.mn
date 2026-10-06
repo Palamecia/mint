@@ -108,7 +108,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null
@@ -235,7 +235,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Internal thread id.
 		- final id = none
@@ -390,7 +390,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null
@@ -587,14 +587,14 @@ package System {
 	 * Yields execution of the current thread to another runnable thread, if any.
 	 * Note that the operating system decides to which thread to switch.
 	 */
-	@def [g_lib = lib('libmint-system')] wait() {
+	@def [g_lib: library = lib('libmint-system')] wait() {
 		return g_lib.call('mint_thread_wait')
 	}
 
 	/**
 	 * Forces the current thread to sleep for `time` milliseconds.
 	 */
-	@def [g_lib = lib('libmint-system')] sleep(const time) {
+	@def [g_lib: library = lib('libmint-system')] sleep(const time) {
 		return g_lib.call('mint_thread_sleep', time)
 	}
 }

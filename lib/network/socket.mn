@@ -160,7 +160,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -249,7 +249,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -595,7 +595,7 @@ package Network {
 		var def onState(self, %state) {}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal endpoint object.
 		- final endpoint = none
@@ -771,7 +771,7 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal socket object.
 		- final socket = null
@@ -781,5 +781,5 @@ package Network {
 	}
 }
 
-const g_lib = lib('libmint-network')
+const g_lib: library = lib('libmint-network')
 g_lib.call('mint_socket_setup_options', Network.SocketOption)

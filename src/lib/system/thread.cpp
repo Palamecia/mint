@@ -71,7 +71,7 @@ mint::Reference mint_thread_start_member(mint::FunctionHelper& helper, const min
 			thread_cursor->waiting_calls().emplace(method, info->owner);
 		}
 		else {
-			mint::error("member not found in class '{}'", object.data<mint::Object>().metadata.full_name());
+			mint::error("member not found in class '{}'", object.data<mint::Object>().metadata.get_full_name());
 		}
 	}
 	else {

@@ -25,57 +25,91 @@
 #define LIBMINT_COMPILER_CONTEXT_H
 
 #include "branch.h"
-#include "mint/program/class_register.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
+#include "mint/compiler/type_annotation.h"
+#include "mint/memory/garbage_collector.h"
+#include "mint/program/module.h"
 #include "mint/program/symbol.h"
-#include "mint/compiler/build_tools.h"
-#include "mint/memory/global_data.h"
+#include "mint/compiler/build_context.h"
 #include "mint/memory/reference.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
-#include <unordered_map>
-#include <utility>
+#include <optional>
 #include <vector>
-#include <stack>
-#include <list>
 
 namespace mint {
 
-class Branch;
 class ClassDescription;
 
 struct Block;
+struct FunctionContext;
+
+struct ClassContext {
+	std::reference_wrapper<ClassDescription> description;
+	Reference::Flags flags = Reference::default_flags;
+};
+
+struct PendingOverride {
+	std::size_t index = invalid_index;
+	TypeAnnotation type;
+};
+
+struct ConditionContext {
+	std::vector<const Symbol*> scoped_symbols;
+	std::vector<PendingOverride> pending_type_overrides;
+	bool is_narrowing_valid = true;
+};
+
+struct RangeLoopContext {
+	std::vector<const Symbol*> scoped_symbols;
+};
 
 struct Context {
 	enum class MetaBlock : std::uint8_t {
 		printer,
-		generator_expression
+		generator_expression,
 	};
 
-	std::stack<MetaBlock> meta_blocks;
-	std::stack<std::pair<ClassDescription*, Reference::Flags>> classes;
-	std::stack<SubBranch> branches;
-	std::list<std::unique_ptr<Block>> blocks;
-	std::unique_ptr<std::vector<const Symbol*>> condition_scoped_symbols;
-	std::unique_ptr<std::vector<const Symbol*>> range_loop_scoped_symbols;
+	std::vector<MetaBlock> meta_blocks;
+	std::vector<ClassContext> classes;
+	std::vector<std::unique_ptr<Block>> blocks;
+	std::vector<VariableDefinition> local_variables;
+	std::vector<const TypeAnnotation*> active_type_overrides;
+
+	// TODO: staged informations from the control structures conditions to be transferred once the block is created. The
+	// blocks should then starts once the corresponding keyword is found then those attributes could disappear.
+	std::unique_ptr<ConditionContext> current_condition;
+	std::unique_ptr<RangeLoopContext> current_range_loop;
+	std::vector<SubBranch> branches;
 };
 
-struct Parameter {
-	Reference::Flags flags;
-	const Symbol* symbol;
+struct FunctionParameter {
+	const Symbol* symbol = nullptr;
+	TypeAnnotation type;
+	Reference::Flags flags = Reference::default_flags;
 };
 
-struct Definition : public Context {
+struct FunctionSignature {
+	int parameter_count = 0;
+	std::reference_wrapper<FunctionHandle> handle;
+};
+
+struct FunctionContext : Context {
+	FunctionContext* enclosing = nullptr;
+	FunctionDescription* description = nullptr;
+	Reference::Flags flags = Reference::default_flags;
+	std::vector<FunctionSignature> signatures;
+	std::vector<FunctionParameter> parameters;
+	std::vector<VariableDescription> capture_parameters;
 	std::vector<Branch::BackwardNodeIndex> exit_points;
-	std::unordered_map<Symbol, std::size_t> fast_symbol_indexes;
-	std::size_t fast_symbol_count = 0;
-	std::stack<Parameter> parameters;
 	std::size_t begin_offset = invalid_offset;
 	std::size_t retrieve_point_count = 0;
-	Reference* function = nullptr;
-	std::unique_ptr<FunctionData> global_data;
-	std::unique_ptr<Branch> capture;
+	std::optional<SubBranch> capture;
+	TypeAnnotation return_type;
 	bool capture_all: 1 = false;
 	bool with_fast: 1 = true;
 	bool variadic: 1 = false;
@@ -84,9 +118,12 @@ struct Definition : public Context {
 	bool returned: 1 = false;
 };
 
-std::size_t find_fast_symbol_index(const Definition& def, const Symbol& symbol);
-std::size_t create_fast_symbol_index(Definition& def, const Symbol& symbol);
-std::size_t fast_symbol_index(Definition& def, const Symbol& symbol);
+VariableDefinition create_variable_definition(FunctionContext& def, const VariableDescription& description);
+
+std::size_t find_fast_symbol_index(const FunctionContext& def, const Symbol& symbol);
+std::size_t create_fast_symbol_index(FunctionContext& def, SymbolDefinition definition);
+std::size_t create_fast_variable_index(FunctionContext& def, VariableDefinition definition);
+std::size_t fast_symbol_index(FunctionContext& def, const VariableDescription& description);
 
 }
 

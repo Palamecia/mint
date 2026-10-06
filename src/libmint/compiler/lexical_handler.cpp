@@ -61,6 +61,42 @@ std::filesystem::path AbstractLexicalHandlerStream::path() const {
 	return {};
 }
 
+std::string AbstractLexicalHandlerStream::get_line(std::size_t line_number) {
+	auto line_start = std::string::size_type {0};
+	for (auto line = std::size_t {1}; line < line_number; ++line) {
+		const auto newline = _script.find('\n', line_start);
+		if (newline == std::string::npos) {
+			while (true) {
+				const auto c = get();
+				if (c == EOF) {
+					return {};
+				}
+				_script += static_cast<char>(c);
+				if (c == '\n') {
+					break;
+				}
+			}
+			line_start = _script.size();
+		}
+		else {
+			line_start = newline + 1;
+		}
+	}
+
+	auto newline = _script.find('\n', line_start);
+	while (newline == std::string::npos) {
+		const auto c = get();
+		if (c == EOF) {
+			break;
+		}
+		_script += static_cast<char>(c);
+		if (c == '\n') {
+			newline = _script.size() - 1;
+		}
+	}
+	return _script.substr(line_start, newline == std::string::npos ? newline : newline - line_start);
+}
+
 std::string::size_type AbstractLexicalHandlerStream::find(const std::string& substr,
     std::string::size_type offset) const noexcept {
 	return substr.empty() ? _script.length() : _script.find(substr, offset);
@@ -85,14 +121,6 @@ std::size_t AbstractLexicalHandlerStream::pos() const {
 }
 
 int AbstractLexicalHandlerStream::read_char() {
-	const auto c = get();
-	if (c != EOF) {
-		_script += static_cast<char>(c);
-	}
-	return c;
-}
-
-int AbstractLexicalHandlerStream::next_buffered_char() {
 	const auto c = get();
 	if (c != EOF) {
 		_script += static_cast<char>(c);

@@ -169,7 +169,7 @@ package Network {
 			 * Returns the content of the message as a string including headers and body, with CRLF line endings
 			 * converted to LF.
 			 */
-			const def toString(const self) {
+			const def toString(const self) -> string {
 
 				let result = ''
 				let body = self.getBodyText()

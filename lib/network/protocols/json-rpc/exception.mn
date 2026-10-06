@@ -65,7 +65,7 @@ package Network {
 			/**
 			 * Returns the exception informations as a string.
 			 */
-			const def toString(const self) {
+			const def toString(const self) -> string {
 				return '%s (%s)' % (self.message, self.code)
 			}
 
@@ -110,7 +110,7 @@ package Network {
 			 * Returns the error as a hash that can be used to create an instance
 			 * of {Network.JsonRpc.Message}.
 			 */
-			const def toHash(const self) {
+			const def toHash(const self) -> hash {
 				var error = {
 					'code': self.code,
 					'message': self.message

@@ -51,7 +51,7 @@ package Exception {
     /**
      * Returns the error message.
      */
-    const def toString(const self) {
+    const def toString(const self) -> string {
         return self.message
     }
 
@@ -78,7 +78,7 @@ package Exception {
 	/**
 	 * Returns the exception informations as a string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '%s, %s' % (typeof self.object, self.message)
 	}
 
@@ -162,7 +162,7 @@ package Exception {
     }
 
     /// Global library handle.
-    - @const g_lib = lib('libmint-exception')
+    - @const g_lib: library = lib('libmint-exception')
 
     /// Internal exception object.
     - final %object = null
@@ -174,7 +174,7 @@ package Exception {
 /**
  * Returns the current exception's stacktrace as an array of {StackFrame}.
  */
-@def [g_lib = lib('libmint-exception')] stacktrace() {
+@def [g_lib: library = lib('libmint-exception')] stacktrace() {
     return [for let (id, name, line) in g_lib.call('mint_exception_stacktrace') => StackFrame(id, name, line)]
 }
 
@@ -183,7 +183,7 @@ package Exception {
  * object from the current exception chain. The `cause` parameter can be an instance of {Exception.Cause} or the object
  * that was raised.
  */
-@def [g_lib = lib('libmint-exception')] stacktrace(cause) {
+@def [g_lib: library = lib('libmint-exception')] stacktrace(cause) {
     switch typeof error {
     case 'Exception.Cause':
         if let stack = g_lib.call('mint_exception_stacktrace_for', error.getObject(), error.getDepth()) {
@@ -203,7 +203,7 @@ package Exception {
  * from the current exception chain or is the root cause. The `error` parameter can be an instance of {Exception.Cause}
  * or the object that was raised.
  */
-@def [g_lib = lib('libmint-exception')] cause(error) {
+@def [g_lib: library = lib('libmint-exception')] cause(error) {
     return switch typeof error {
     case 'Exception.Cause' =>  g_lib.call('mint_exception_cause_for', error.getObject(), error.getDepth())
     default =>  g_lib.call('mint_exception_cause_for', error, none)
@@ -215,7 +215,7 @@ package Exception {
  * the current exception chain. The causes list start from the root cause until the the error that caused `error`
  * excluding it. The `error` parameter can be an instance of {Exception.Cause} or the object that was raised.
  */
-@def [g_lib = lib('libmint-exception')] causes(error) {
+@def [g_lib: library = lib('libmint-exception')] causes(error) {
     return switch typeof error {
     case 'Exception.Cause':
         if let causes = g_lib.call('mint_exception_causes_for', error.getObject(), error.getDepth()) {

@@ -153,7 +153,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -263,7 +263,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -401,7 +401,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -801,7 +801,7 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal IP version.
 		- final ipVersion = none
@@ -854,7 +854,7 @@ package Network {
 	}
 }
 
-const g_lib = lib('libmint-network')
+const g_lib: library = lib('libmint-network')
 g_lib.call('mint_ip_socket_setup_options', Network.IpSocketOption)
 g_lib.call('mint_ipv4_socket_setup_options', Network.IpV4SocketOption)
 g_lib.call('mint_ipv6_socket_setup_options', Network.IpV6SocketOption)

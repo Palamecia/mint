@@ -105,7 +105,7 @@ package Serializer {
 	/**
 	 * Returns the whole edited string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return self.charBuffer
 	}
 
@@ -118,7 +118,7 @@ package Serializer {
 	}
 
 	/// Global library handle
-	- @const g_lib = lib('libmint-serializer')
+	- @const g_lib: library = lib('libmint-serializer')
 	
 	/// Internal read char buffer.
 	- final charBuffer = null

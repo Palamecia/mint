@@ -356,7 +356,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 	}
 
 	@class AsyncTcpSocket : Network.AsyncIpSocket {
@@ -431,7 +431,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -503,7 +503,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -587,7 +587,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -672,7 +672,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -750,7 +750,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -947,9 +947,9 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 	}
 }
 
-const g_lib = lib('libmint-network')
+const g_lib: library = lib('libmint-network')
 g_lib.call('mint_tcp_socket_setup_options', Network.TcpSocketOption)

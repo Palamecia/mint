@@ -181,7 +181,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null

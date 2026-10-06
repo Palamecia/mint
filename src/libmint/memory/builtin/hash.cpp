@@ -22,6 +22,8 @@
  */
 
 #include "mint/memory/builtin/hash.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/memory/class.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/builtin/iterator.h"
@@ -38,6 +40,83 @@
 #include <vector>
 
 using namespace mint;
+
+namespace {
+
+ClassDescription make_description() {
+	auto description = ClassDescription("hash", nullptr);
+	description.create_method(get_operator_symbol(Class::copy_operator), BuiltinTypeKind::hash, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::eq_operator), PrimitiveTypeKind::boolean, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::ne_operator), PrimitiveTypeKind::boolean, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::add_operator), BuiltinTypeKind::hash, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::subscript_operator), {}, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::subscript_move_operator), {}, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .add_parameter({.name = "value"})
+	    .set_required_parameter_count(3);
+	description.create_method(get_operator_symbol(Class::in_operator), BuiltinTypeKind::iterator, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .set_required_parameter_count(1);
+	description.create_method(get_operator_symbol(Class::in_operator), PrimitiveTypeKind::boolean, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .set_required_parameter_count(2);
+	description.create_method("get", {}, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .set_required_parameter_count(2);
+	description.create_method("get", {}, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .add_parameter({.name = "defaultValue"})
+	    .set_required_parameter_count(3);
+	description.create_method("each", PrimitiveTypeKind::none, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "func", .type = PrimitiveTypeKind::function})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::call_operator), {}, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .set_required_parameter_count(2)
+	    .set_variadic(true);
+	description.create_method("isEmpty", PrimitiveTypeKind::boolean, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .set_required_parameter_count(1);
+	description.create_method("size", PrimitiveTypeKind::number, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .set_required_parameter_count(1);
+	description.create_method("remove", BuiltinTypeKind::hash, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .set_required_parameter_count(2);
+	description.create_method("clear", PrimitiveTypeKind::none, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .set_required_parameter_count(1);
+	return description;
+}
+
+}
+
+ClassDescription& mint::HashClass::description() {
+	static auto g_description = make_description();
+	return g_description;
+}
 
 HashClass& HashClass::instance(Program& program) {
 	return program.global_data().builtin<HashClass>(Class::Metatype::hash);
@@ -84,7 +163,7 @@ void Hash::mark() {
 }
 
 HashClass::HashClass(Program& program) :
-    Class(program.global_data(), "hash", Class::Metatype::hash) {
+    Class(program.global_data(), description(), Class::Metatype::hash) {
 
 	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);

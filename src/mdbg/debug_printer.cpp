@@ -72,20 +72,19 @@ void DebugPrinter::print(const mint::Reference& reference) {
 		        mint::Terminal::println(stdout, boolean.value ? "true" : "false");
 	        },
 	        [](mint::Object& object) {
-		        const auto type = object.metadata.full_name();
+		        const auto type = object.metadata.get_full_name();
 		        mint::Terminal::println(stdout, std::format("({}) {{", type));
 		        if (mint::is_object(object)) {
 			        for (const auto& [name, member] : object.metadata.members()) {
 				        mint::Terminal::println(stdout,
-				            std::format("\t{} : ({}) {}", name.str(), type_name(member.get().value),
+				            std::format("\t{} : ({}) {}", name.str(), type_name(member.value),
 				                reference_value(mint::Class::MemberInfo::get(member, object))));
 			        }
 		        }
 		        else {
 			        for (const auto& [name, member] : object.metadata.members()) {
-				        mint::Terminal::println(stdout,
-				            std::format("\t{} : ({}) {}", name.str(), type_name(member.get().value),
-				                reference_value(member.get().value)));
+				        mint::Terminal::println(stdout, std::format("\t{} : ({}) {}", name.str(),
+				                                            type_name(member.value), reference_value(member.value)));
 			        }
 		        }
 		        mint::Terminal::println(stdout, "}");
@@ -112,7 +111,7 @@ void DebugPrinter::print(const mint::Reference& reference) {
 		        mint::Terminal::println(stdout, object_value(libobject));
 	        },
 	        [](mint::Package& package) {
-		        mint::Terminal::println(stdout, std::format("package: {}", package.data.full_name()));
+		        mint::Terminal::println(stdout, std::format("package: {}", package.data.get_full_name()));
 	        },
 	        [](mint::Function& function) {
 		        mint::Terminal::println(stdout, function_value(function));
@@ -171,7 +170,7 @@ std::string reference_value(const mint::Reference& reference) {
 		        return "unknown";
 	        },
 	        [](mint::Package& package) -> std::string {
-		        return package.data.full_name();
+		        return package.data.get_full_name();
 	        },
 	        [](mint::Function& function) -> std::string {
 		        return function_value(function);

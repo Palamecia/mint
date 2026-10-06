@@ -46,7 +46,7 @@ package Exception {
 		/**
 		 * Returns the exception informations as a string.
 		 */
-		const def toString(const self) {
+		const def toString(const self) -> string {
 			return 'Invalid %s sequence starting at position %d' % (self.encoding, self.offset)
 		}
 		

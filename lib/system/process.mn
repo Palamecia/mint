@@ -334,7 +334,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Global instance of current process.
 		- @g_current = none
@@ -368,14 +368,14 @@ package System {
 	 * Executes the commande line `command` as if passed to a terminal. Returns
 	 * the exit code of the command.
 	 */
-	@def [g_lib = lib('libmint-system')] exec(command) {
+	@def [g_lib: library = lib('libmint-system')] exec(command) {
 		return g_lib.call('mint_process_exec', command)
 	}
 
 	/**
 	 * Returns the PID of the current process.
 	 */
-	@def [g_lib = lib('libmint-system')] getpid() {
+	@def [g_lib: library = lib('libmint-system')] getpid() {
 		return g_lib.call('mint_process_getpid')
 	}
 

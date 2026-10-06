@@ -142,7 +142,7 @@ load mint.type
 	/**
 	 * Returns the callback's function or method name or a placeholder.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if defined self.memberInfo {
 			return Callback.g_lib.call('mint_function_name', self.memberInfo)
 		}
@@ -150,7 +150,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Internal member informations.
 	- final memberInfo = none
@@ -265,7 +265,7 @@ load mint.type
 	/**
 	 * Returns the callback's function or method name or a placeholder.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if defined self.memberInfo {
 			return AsyncCallback.g_lib.call('mint_function_name', self.memberInfo)
 		}
@@ -273,7 +273,7 @@ load mint.type
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Internal member informations.
 	- final memberInfo = none

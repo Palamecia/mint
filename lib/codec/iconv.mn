@@ -111,7 +111,7 @@ package Codec {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-codec')
+		- @const g_lib: library = lib('libmint-codec')
 
 		/// Object data.
 		- final d_ptr = null

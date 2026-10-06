@@ -269,7 +269,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 	}
 	
 	@class AsyncUdpSocket : Network.AsyncIpSocket {
@@ -319,7 +319,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -407,7 +407,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -481,7 +481,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -559,7 +559,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -727,6 +727,6 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 	}
 }

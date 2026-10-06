@@ -188,7 +188,7 @@ union MINT_EXPORT Node {
 	explicit(false) Node(int parameter);
 	explicit(false) Node(const Symbol* symbol);
 	explicit(false) Node(const Reference* constant);
-	explicit(false) Node(ClassDescription* class_description);
+	explicit(false) Node(const ClassDescription* class_description);
 
 	[[nodiscard]] Command as_command() const {
 		return command;
@@ -206,7 +206,7 @@ union MINT_EXPORT Node {
 		return *constant;
 	}
 
-	[[nodiscard]] ClassDescription& as_class() const {
+	[[nodiscard]] const ClassDescription& as_class() const {
 		return *class_description;
 	}
 
@@ -214,7 +214,7 @@ union MINT_EXPORT Node {
 	int parameter;
 	const Symbol* symbol;
 	const Reference* constant;
-	ClassDescription* class_description;
+	const ClassDescription* class_description;
 };
 
 }

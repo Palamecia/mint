@@ -22,28 +22,53 @@
  */
 
 #include "context.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/symbol_scope.h"
 #include "mint/program/symbol.h"
-#include "mint/compiler/build_tools.h"
+#include "mint/compiler/build_context.h"
+#include <algorithm>
 #include <cstddef>
+#include <iterator>
+#include <variant>
 
 using namespace mint;
 
-std::size_t mint::find_fast_symbol_index(const Definition& def, const Symbol& symbol) {
-	if (auto i = def.fast_symbol_indexes.find(symbol); i != def.fast_symbol_indexes.end()) {
-		return i->second;
+VariableDefinition mint::create_variable_definition(FunctionContext& def, const VariableDescription& description) {
+	if (def.description) {
+		return def.description->create_variable(description);
+	}
+	return def.capture_parameters.emplace_back(description);
+}
+
+std::size_t mint::find_fast_symbol_index(const FunctionContext& def, const Symbol& symbol) {
+	if (const auto it = std::ranges::find(def.local_variables, symbol, &VariableDescription::name);
+	    it != def.local_variables.end()) {
+		return std::distance(def.local_variables.begin(), it);
 	}
 	return invalid_index;
 }
 
-std::size_t mint::create_fast_symbol_index(Definition& def, const Symbol& symbol) {
-	const auto index = def.fast_symbol_count++;
-	return def.fast_symbol_indexes[symbol] = index;
+std::size_t mint::create_fast_symbol_index(FunctionContext& def, SymbolDefinition definition) {
+	if (const auto* variable = std::get_if<VariableDefinition>(&definition)) {
+		return mint::create_fast_variable_index(def, *variable);
+	}
+	return mint::create_fast_variable_index(def,
+	    mint::create_variable_definition(def, {
+	                                              .name = definition.get_name(),
+	                                              .type = definition.get_type(),
+	                                          }));
 }
 
-std::size_t mint::fast_symbol_index(Definition& def, const Symbol& symbol) {
-	if (auto i = def.fast_symbol_indexes.find(symbol); i != def.fast_symbol_indexes.end()) {
-		return i->second;
+std::size_t mint::create_fast_variable_index(FunctionContext& def, VariableDefinition definition) {
+	const auto index = def.local_variables.size();
+	def.local_variables.emplace_back(definition);
+	return index;
+}
+
+std::size_t mint::fast_symbol_index(FunctionContext& def, const VariableDescription& description) {
+	if (const auto it = std::ranges::find(def.local_variables, description.name, &VariableDescription::name);
+	    it != def.local_variables.end()) {
+		return std::distance(def.local_variables.begin(), it);
 	}
-	const auto index = def.fast_symbol_count++;
-	return def.fast_symbol_indexes[symbol] = index;
+	return create_fast_variable_index(def, create_variable_definition(def, description));
 }

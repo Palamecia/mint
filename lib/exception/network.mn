@@ -63,7 +63,7 @@ package Exception {
 	/**
 	 * Returns the exception informations as a string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if self.errno {
 			return '%s (%s)' % (self.getDescription(), Exception.SystemError.Errno.findEnumName(self.errno))
 		}
@@ -99,7 +99,7 @@ package Exception {
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-network')
+	- @const g_lib: library = lib('libmint-network')
 
 	/// Internal error identifier.
 	- final %errno = none

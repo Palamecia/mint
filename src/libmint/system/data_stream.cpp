@@ -22,12 +22,9 @@
  */
 
 #include "mint/system/data_stream.h"
-#include "mint/config.h"
 #include <cstddef>
-#include <cstdint>
 #include <cstdio>
 #include <functional>
-#include <string>
 
 using namespace mint;
 
@@ -48,7 +45,7 @@ int DataStream::get_char() {
 			end_line();
 			break;
 		default:
-			_cached_line += static_cast<char>(c);
+			++_line_offset;
 			break;
 		}
 	}
@@ -64,66 +61,27 @@ std::size_t DataStream::line_number() const {
 	return _line_number;
 }
 
-std::string DataStream::line_error() {
-
-	auto line = _cached_line;
-	const auto err_pos = line.empty() ? 0 : line.size() - 1;
-
-	if (line.empty() || line.back() != '\n') {
-		int c = next_buffered_char();
-		while ((c != '\n') && (c != '\0') && (c != EOF)) {
-			line += static_cast<char>(c);
-			c = next_buffered_char();
-		}
-		line += '\n';
+DataStream::Position DataStream::position() const {
+	if (_state == State::state_new_line && _line_number > 1) {
+		return {
+		    .line = _line_number - 1,
+		    .offset = _last_line_offset,
+		};
 	}
-
-	if (err_pos > 1) {
-		for (std::size_t i = 0; i < err_pos - 1; ++i) {
-
-			auto c = static_cast<std::uint8_t>(_cached_line[i]);
-
-			if (c == '\t') {
-				line += '\t';
-			}
-			else if (c & 0x80) {
-
-				std::size_t size = 2;
-
-				if (c & 0x04) {
-					size++;
-					if (c & 0x02) {
-						size++;
-					}
-				}
-
-				if (i + size < err_pos - 1) {
-					line += ' ';
-				}
-
-				i += size - 1;
-			}
-			else {
-				line += ' ';
-			}
-		}
-	}
-	line += '^';
-
-	if (_state != State::state_new_line) {
-		end_line();
-	}
-
-	return line;
+	return {
+	    .line = _line_number,
+	    .offset = _line_offset,
+	};
 }
 
 void DataStream::begin_line() {
 	_new_line_callback(_line_number);
 	_state = State::state_reading;
-	_cached_line.clear();
+	_line_offset = 0;
 }
 
 void DataStream::end_line() {
+	_last_line_offset = _line_offset;
 	_state = State::state_new_line;
 	_line_number++;
 }

@@ -50,7 +50,7 @@ package Exception {
 	/**
 	 * Returns the exception informations as a string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return "index '%d' is out of range\n" % self.index
 	}
 
@@ -94,7 +94,7 @@ package Exception {
 	/**
 	 * Returns the exception informations as a string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return "key '%s' is not valid\n" % self.key
 	}
 
@@ -137,7 +137,7 @@ package Exception {
 	/**
 	 * Returns the exception informations as a string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return "no item for %s\n" % self.function.toString()
 	}
 

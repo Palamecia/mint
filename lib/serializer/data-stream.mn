@@ -779,7 +779,7 @@ package Serializer {
 	}
 
 	/// Global library handle
-	- @const g_lib = lib('libmint-serializer')
+	- @const g_lib: library = lib('libmint-serializer')
 	
 	/// Object data
 	- final d_ptr = null

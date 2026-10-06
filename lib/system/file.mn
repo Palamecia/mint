@@ -183,7 +183,7 @@ package System {
 		 * Returns the name of the file, excluding the path.
 		 */
 		const def getName(const self) {
-			if isDefined(var index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)) {
+			if defined let index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern) {
 				return self.path[(index + 1)...self.path.size()]
 			}
 			return self.path
@@ -653,7 +653,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Internal file path.
 		- final path = ''
@@ -872,7 +872,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null
@@ -945,7 +945,7 @@ package System {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-system')
+			- @const g_lib: library = lib('libmint-system')
 
 			/// Internal stream.
 			- final stream = null
@@ -1000,7 +1000,7 @@ package System {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-system')
+			- @const g_lib: library = lib('libmint-system')
 
 			/// Internal stream.
 			- final stream = null
@@ -1054,7 +1054,7 @@ package System {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-system')
+			- @const g_lib: library = lib('libmint-system')
 
 			/// Internal stream.
 			- final stream = null
@@ -1101,7 +1101,7 @@ package System {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-system')
+			- @const g_lib: library = lib('libmint-system')
 
 			/// Internal stream.
 			- final stream = null
@@ -1315,7 +1315,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Internal scheduler.
 		- final scheduler = null

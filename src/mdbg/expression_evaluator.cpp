@@ -23,6 +23,7 @@
 
 #include "expression_evaluator.h"
 
+#include "mint/compiler/descriptions.h"
 #include "mint/program/program.h"
 #include "mint/program/symbol.h"
 #include "mint/compiler/token.h"
@@ -87,7 +88,10 @@ void find_not_expression_operator(mint::Cursor& cursor) {
 }
 
 ExpressionEvaluator::ExpressionEvaluator(mint::Program& program) :
-    _compiler(program),
+    _module({
+        .description = mint::ModuleDescription({}),
+    }),
+    _compiler(program, _module),
     _cursor(std::make_unique<mint::Cursor>(program)) {}
 
 ExpressionEvaluator::~ExpressionEvaluator() {

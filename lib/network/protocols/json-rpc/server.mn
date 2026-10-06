@@ -993,7 +993,7 @@ package Network {
 			const async def run(self) {
 				while self.channel.isOpen() {
 					if let message = await self.channel.read() {
-						await self.onMessage(self, message)
+						await self.onMessage(message)
 					} else {
 						break
 					}

@@ -99,8 +99,12 @@ TestProcess::~TestProcess() {
 }
 
 Scheduler::Scheduler(const std::vector<std::string>& args) {
-	if (!parse_arguments(args)) {
-		::exit(EXIT_SUCCESS);
+	try {
+		parse_arguments(args);
+	}
+	catch (const std::exception& error) {
+		print_error(error.what());
+		::exit(EXIT_FAILURE);
 	}
 }
 
@@ -197,7 +201,7 @@ Reference Scheduler::invoke(const Reference& function, std::vector<Reference>& p
 	return result;
 }
 
-Reference Scheduler::invoke(Class& type, std::vector<Reference>& parameters) {
+Reference Scheduler::invoke(const Class& type, std::vector<Reference>& parameters) {
 
 	if (!_running || g_current.process.empty()) [[unlikely]] {
 		return {};
@@ -351,7 +355,7 @@ Reference Scheduler::invoke(const Reference& object, const Symbol& method, const
 
 namespace {
 
-class Future : public Process {
+class Future final : public Process {
 public:
 	struct ResultHandle {
 		Reference result;
@@ -559,7 +563,7 @@ bool Scheduler::disable_testing(TestProcess& process) {
 	return true;
 }
 
-bool Scheduler::parse_arguments(const std::vector<std::string>& args) {
+void Scheduler::parse_arguments(const std::vector<std::string>& args) {
 
 	bool reading_args = false;
 
@@ -569,11 +573,11 @@ bool Scheduler::parse_arguments(const std::vector<std::string>& args) {
 		}
 		else if (*it == "--version") {
 			print_version();
-			return false;
+			::exit(EXIT_SUCCESS);
 		}
 		else if (*it == "--help") {
 			print_help();
-			return false;
+			::exit(EXIT_SUCCESS);
 		}
 		else if (*it == "--exec") {
 			if (++it != args.end()) {
@@ -583,12 +587,10 @@ bool Scheduler::parse_arguments(const std::vector<std::string>& args) {
 				}
 				else {
 					error("Argument is not a valid command");
-					return false;
 				}
 			}
 			else {
 				error("Argument expected for the --exec option");
-				return false;
 			}
 		}
 		else if (auto thread = Process::from_main_file(*this, *it)) {
@@ -599,11 +601,8 @@ bool Scheduler::parse_arguments(const std::vector<std::string>& args) {
 		else {
 			print_help();
 			error("parameter '{}' is not valid", *it);
-			return false;
 		}
 	}
-
-	return true;
 }
 
 void Scheduler::print_version() {

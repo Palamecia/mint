@@ -38,6 +38,22 @@ bool BufferStream::at_end() const {
 	return _status == Status::over;
 }
 
+std::string BufferStream::get_line(std::size_t line_number) {
+	if (line_number == 0) {
+		return {};
+	}
+	auto start = std::size_t {0};
+	for (auto line = std::size_t {1}; line < line_number; ++line) {
+		const auto newline = _buffer.find('\n', start);
+		if (newline == std::string::npos) {
+			return {};
+		}
+		start = newline + 1;
+	}
+	const auto newline = _buffer.find('\n', start);
+	return _buffer.substr(start, newline == std::string::npos ? newline : newline - start);
+}
+
 bool BufferStream::is_valid() const {
 	return true;
 }

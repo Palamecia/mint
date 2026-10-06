@@ -99,7 +99,7 @@ package Network {
 		/**
 		 * Returns the endpoint's target as a string.
 		 */
-		const def toString(const self) {
+		const def toString(const self) -> string {
 			return '%s:%d' % (self.getAddress(), self.getPort())
 		}
 
@@ -111,7 +111,7 @@ package Network {
         }
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null

@@ -24,10 +24,10 @@
 #ifndef MINT_MEMORY_OBJECT_H
 #define MINT_MEMORY_OBJECT_H
 
-#include "mint/program/saved_state.h"
 #include "mint/config.h"
 #include "mint/program/symbol.h"
 #include "mint/program/module.h"
+#include "mint/program/saved_state.h"
 #include "mint/memory/data.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/memory_pool.h"
@@ -95,7 +95,7 @@ class MINT_EXPORT Object : public Data {
 	friend class LocalPool;
 	friend class GarbageCollector;
 public:
-	explicit Object(Class& type);
+	explicit Object(const Class& type);
 	Object(Object&&) = delete;
 	Object(const Object&) = delete;
 	~Object() override;
@@ -107,7 +107,7 @@ public:
 		return Format::object;
 	}
 
-	Class& metadata;
+	const Class& metadata;
 	Reference* data = nullptr;
 
 	void construct();
@@ -153,7 +153,7 @@ class MINT_EXPORT Function : public Data {
 public:
 	class MINT_EXPORT Context {
 	public:
-		Context(FunctionHandle& handle) :
+		explicit Context(FunctionHandle& handle) :
 		    _handle(handle) {}
 
 		Context(Context&& other) = default;
@@ -171,7 +171,7 @@ public:
 			return _handle;
 		}
 
-		virtual void call(int signature, Class* metadata, Cursor& cursor) = 0;
+		virtual void call(int signature, const Class* metadata, Cursor& cursor) = 0;
 		virtual void mark() = 0;
 
 		[[nodiscard]] virtual std::unique_ptr<Context> clone() const = 0;
@@ -182,10 +182,10 @@ public:
 
 	class MINT_EXPORT Stateless : public Context {
 	public:
-		Stateless(FunctionHandle& handle) :
+		explicit Stateless(FunctionHandle& handle) :
 		    Context(handle) {}
 
-		void call(int signature, Class* metadata, Cursor& cursor) override;
+		void call(int signature, const Class* metadata, Cursor& cursor) override;
 
 		void mark() override {}
 
@@ -196,14 +196,14 @@ public:
 
 	class MINT_EXPORT Stateful : public Context {
 	public:
-		Stateful(FunctionHandle& handle) :
+		explicit Stateful(FunctionHandle& handle) :
 		    Context(handle) {}
 
 		void capture(const Symbol& symbol, const Reference& reference) {
 			_capture.emplace(symbol, reference);
 		}
 
-		void call(int signature, Class* metadata, Cursor& cursor) override;
+		void call(int signature, const Class* metadata, Cursor& cursor) override;
 
 		void mark() override {
 			for (const auto& reference : _capture) {
@@ -222,10 +222,10 @@ public:
 	class MINT_EXPORT Signature {
 		std::unique_ptr<Context> _context;
 	public:
-		Signature(std::unique_ptr<Stateless>&& context) :
+		explicit(false) Signature(std::unique_ptr<Stateless>&& context) :
 		    _context(std::move(context)) {}
 
-		Signature(std::unique_ptr<Stateful>&& context) :
+		explicit(false) Signature(std::unique_ptr<Stateful>&& context) :
 		    _context(std::move(context)) {}
 
 		Signature(const Signature& other) :
@@ -257,7 +257,7 @@ public:
 			return dynamic_cast<T*>(_context.get());
 		}
 
-		void call(int signature, Class* metadata, Cursor& cursor) const {
+		void call(int signature, const Class* metadata, Cursor& cursor) const {
 			_context->call(signature, metadata, cursor);
 		}
 
@@ -330,7 +330,7 @@ public:
 		running,
 		waiting,
 		completed,
-		failed
+		failed,
 	};
 
 	Coroutine(std::unique_ptr<SavedState>&& state, std::size_t stack_size);

@@ -406,7 +406,7 @@ load serializer.string-stream
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null

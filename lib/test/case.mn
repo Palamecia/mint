@@ -345,7 +345,7 @@ package Test {
 		}
 		
 		/// Global library handle.
-		- @const g_lib = lib('libmint-test')
+		- @const g_lib: library = lib('libmint-test')
 		
 		/// Internal list of found test methods.
 		- final found = []

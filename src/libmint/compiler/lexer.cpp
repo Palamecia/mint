@@ -24,13 +24,16 @@
 #include "mint/compiler/lexer.h"
 #include "mint/compiler/token.h"
 #include "mint/system/data_stream.h"
-#include "parser.hpp"
+#include "parser.h"
 #include <cctype>
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <map>
 #include <string>
 #include <utility>
+
+using namespace mint;
 
 const std::map<std::string, int> Lexer::keywords {
     {"and", parser::token::dbl_amp_token},
@@ -80,40 +83,53 @@ const std::map<std::string, int> Lexer::keywords {
 };
 
 const std::map<std::string, int> Lexer::operators {
+    {"--", parser::token::dbl_minus_token},
+    {"-", parser::token::minus_token},
+    {"-=", parser::token::minus_equal_token},
+    {"->", parser::token::minus_right_angled_token},
+    {",", parser::token::comma_token},
+    {";", parser::token::line_end_token},
+    {":", parser::token::colon_token},
+    {":=", parser::token::colon_equal_token},
     {"!", parser::token::exclamation_token},
     {"!=", parser::token::exclamation_equal_token},
     {"!==", parser::token::exclamation_dbl_equal_token},
     {"!~", parser::token::exclamation_tilde_token},
-    {"#!", parser::token::comment_token},
-    {"#", parser::token::sharp_token},
-    {"$", parser::token::dollar_token},
-    {"%", parser::token::percent_token},
-    {"%=", parser::token::percent_equal_token},
-    {"&", parser::token::amp_token},
-    {"&&", parser::token::dbl_amp_token},
-    {"&=", parser::token::amp_equal_token},
+    {"?.", parser::token::question_dot_token},
+    {"?", parser::token::question_token},
+    {"...", parser::token::tpl_dot_token},
+    {"..", parser::token::dbl_dot_token},
+    {".", parser::token::dot_token},
     {"(", parser::token::open_parenthesis_token},
     {")", parser::token::close_parenthesis_token},
+    {"[", parser::token::open_bracket_token},
+    {"]", parser::token::close_bracket_token},
+    {"]=", parser::token::close_bracket_equal_token},
+    {"{", parser::token::open_brace_token},
+    {"}", parser::token::close_brace_token},
+    {"@", parser::token::at_token},
     {"*", parser::token::asterisk_token},
     {"**", parser::token::dbl_asterisk_token},
     {"*=", parser::token::asterisk_equal_token},
-    {"+", parser::token::plus_token},
-    {"++", parser::token::dbl_plus_token},
-    {"+=", parser::token::plus_equal_token},
-    {",", parser::token::comma_token},
-    {"-", parser::token::minus_token},
-    {"--", parser::token::dbl_minus_token},
-    {"-=", parser::token::minus_equal_token},
-    {".", parser::token::dot_token},
-    {"..", parser::token::dbl_dot_token},
-    {"...", parser::token::tpl_dot_token},
     {"/", parser::token::slash_token},
     {"/*", parser::token::comment_token},
     {"//", parser::token::comment_token},
     {"/=", parser::token::slash_equal_token},
-    {":", parser::token::colon_token},
-    {":=", parser::token::colon_equal_token},
-    {";", parser::token::line_end_token},
+    {"\\", parser::token::back_slash_token},
+    {"\\\n", parser::token::no_line_end_token},
+    {"\n", parser::token::line_end_token},
+    {"&", parser::token::amp_token},
+    {"&&", parser::token::dbl_amp_token},
+    {"&=", parser::token::amp_equal_token},
+    {"#!", parser::token::comment_token},
+    {"#", parser::token::sharp_token},
+    {"%", parser::token::percent_token},
+    {"%=", parser::token::percent_equal_token},
+    {"^", parser::token::caret_token},
+    {"^=", parser::token::caret_equal_token},
+    {"+", parser::token::plus_token},
+    {"++", parser::token::dbl_plus_token},
+    {"+=", parser::token::plus_equal_token},
     {"<", parser::token::left_angled_token},
     {"<<", parser::token::dbl_left_angled_token},
     {"<<=", parser::token::dbl_left_angled_equal_token},
@@ -128,23 +144,11 @@ const std::map<std::string, int> Lexer::operators {
     {">=", parser::token::right_angled_equal_token},
     {">>", parser::token::dbl_right_angled_token},
     {">>=", parser::token::dbl_right_angled_equal_token},
-    {"?", parser::token::question_token},
-    {"?.", parser::token::question_dot_token},
-    {"@", parser::token::at_token},
-    {"[", parser::token::open_bracket_token},
-    {"\\", parser::token::back_slash_token},
-    {"\\\n", parser::token::no_line_end_token},
-    {"\n", parser::token::line_end_token},
-    {"]", parser::token::close_bracket_token},
-    {"]=", parser::token::close_bracket_equal_token},
-    {"^", parser::token::caret_token},
-    {"^=", parser::token::caret_equal_token},
-    {"{", parser::token::open_brace_token},
     {"|", parser::token::pipe_token},
     {"|=", parser::token::pipe_equal_token},
     {"||", parser::token::dbl_pipe_token},
-    {"}", parser::token::close_brace_token},
     {"~", parser::token::tilde_token},
+    {"$", parser::token::dollar_token},
 };
 
 Lexer::Lexer(DataStream& stream) :
@@ -359,13 +363,12 @@ std::string Lexer::read_regex() {
 	return regex;
 }
 
-std::string Lexer::format_error(const std::string& error) const {
+DataStream::Position Lexer::position() const {
+	return _stream.get().position();
+}
 
-	const auto path = _stream.get().path();
-	const auto line_number = _stream.get().line_number();
-	const auto line_error = _stream.get().line_error();
-
-	return path.generic_string() + ":" + std::to_string(line_number) + " " + error + "\n" + line_error;
+std::filesystem::path mint::Lexer::path() const {
+	return _stream.get().path();
 }
 
 bool Lexer::at_end() const {

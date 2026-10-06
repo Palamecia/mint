@@ -24,11 +24,12 @@
 #ifndef MINT_DEBUG_DEBUG_INFO_H
 #define MINT_DEBUG_DEBUG_INFO_H
 
+#include "mint/compiler/descriptions.h"
 #include "mint/config.h"
 
 #include <cstddef>
+#include <functional>
 #include <map>
-#include <string>
 #include <vector>
 
 namespace mint {
@@ -36,7 +37,7 @@ namespace mint {
 class Module;
 
 struct FunctionInfo {
-	std::string name;
+	std::reference_wrapper<FunctionDescription> description;
 	std::size_t begin_offset;
 	std::size_t end_offset;
 };

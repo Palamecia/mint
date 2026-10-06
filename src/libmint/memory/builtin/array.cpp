@@ -22,6 +22,8 @@
  */
 
 #include "mint/memory/builtin/array.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
 #include "mint/memory/operator_tools.h"
@@ -56,6 +58,122 @@ inline Array::values_type::const_iterator array_next(const Array& array, std::si
 	return next(begin(array.values), static_cast<Array::values_type::difference_type>(index));
 }
 
+ClassDescription make_description() {
+	auto description = ClassDescription("array", nullptr);
+	description.create_method(get_operator_symbol(Class::copy_operator), BuiltinTypeKind::array, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::eq_operator), PrimitiveTypeKind::boolean, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::ne_operator), PrimitiveTypeKind::boolean, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::add_operator), BuiltinTypeKind::array, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::sub_operator), BuiltinTypeKind::array, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::mul_operator), BuiltinTypeKind::array, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "count", .type = PrimitiveTypeKind::number})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::shift_left_operator), BuiltinTypeKind::array, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("push", BuiltinTypeKind::array, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "item"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::band_operator), BuiltinTypeKind::array, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::subscript_operator), {}, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "index", .type = make_union(PrimitiveTypeKind::number, BuiltinTypeKind::iterator)})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::subscript_move_operator), {}, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "index", .type = make_union(PrimitiveTypeKind::number, BuiltinTypeKind::iterator)})
+	    .add_parameter({.name = "value"})
+	    .set_required_parameter_count(3);
+	description.create_method("insert", BuiltinTypeKind::array, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "index", .type = PrimitiveTypeKind::number})
+	    .add_parameter({.name = "value"})
+	    .set_required_parameter_count(3);
+	description.create_method(get_operator_symbol(Class::in_operator), BuiltinTypeKind::iterator, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .set_required_parameter_count(1);
+	description.create_method(get_operator_symbol(Class::in_operator), PrimitiveTypeKind::boolean, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("each", PrimitiveTypeKind::none, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "func", .type = PrimitiveTypeKind::function})
+	    .set_required_parameter_count(2);
+	description.create_method("isEmpty", PrimitiveTypeKind::boolean, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .set_required_parameter_count(1);
+	description.create_method("size", PrimitiveTypeKind::number, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .set_required_parameter_count(1);
+	description.create_method("remove", BuiltinTypeKind::array, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "index", .type = make_union(PrimitiveTypeKind::number, BuiltinTypeKind::iterator)})
+	    .set_required_parameter_count(2);
+	description.create_method("pop", {}, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .set_required_parameter_count(1);
+	description.create_method("shift", {}, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .set_required_parameter_count(1);
+	description.create_method("clear", PrimitiveTypeKind::none, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .set_required_parameter_count(1);
+	description.create_method("contains", PrimitiveTypeKind::boolean, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("indexOf", make_union(PrimitiveTypeKind::number, PrimitiveTypeKind::none), nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("indexOf", make_union(PrimitiveTypeKind::number, PrimitiveTypeKind::none), nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .add_parameter({.name = "from", .type = PrimitiveTypeKind::number})
+	    .set_required_parameter_count(3);
+	description.create_method("lastIndexOf", make_union(PrimitiveTypeKind::number, PrimitiveTypeKind::none), nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("lastIndexOf", make_union(PrimitiveTypeKind::number, PrimitiveTypeKind::none), nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "other"})
+	    .add_parameter({.name = "from", .type = PrimitiveTypeKind::number})
+	    .set_required_parameter_count(3);
+	description.create_method("join", BuiltinTypeKind::string, nullptr)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::array})
+	    .add_parameter({.name = "sep", .type = BuiltinTypeKind::string})
+	    .set_required_parameter_count(2);
+	return description;
+}
+
+}
+
+ClassDescription& mint::ArrayClass::description() {
+	static auto g_description = make_description();
+	return g_description;
 }
 
 ArrayClass& ArrayClass::instance(Program& program) {
@@ -102,7 +220,7 @@ void Array::mark() {
 }
 
 ArrayClass::ArrayClass(Program& program) :
-    Class(program.global_data(), "array", Class::Metatype::array) {
+    Class(program.global_data(), description(), Class::Metatype::array) {
 
 	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);

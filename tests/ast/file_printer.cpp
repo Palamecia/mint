@@ -1,4 +1,5 @@
 #include "mint/program/file_printer.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/program/module.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/object.h"
@@ -106,8 +107,8 @@ TEST(file_printer, print_package) {
 	ASSERT_NE(-1, fd);
 
 	{
-		auto package_data = mint::PackageData(scheduler.program(), "test");
-		const auto package = mint::make_reference<mint::Package>(mint::create_flags, package_data);
+		const auto package_description = mint::PackageDescription(scheduler.program(), "test");
+		const auto package = mint::make_reference<mint::Package>(mint::create_flags, package_description.data());
 		auto printer = mint::FilePrinter(fd);
 		printer.print(package);
 	}

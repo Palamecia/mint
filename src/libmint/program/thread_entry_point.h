@@ -30,9 +30,9 @@ namespace mint {
 
 class ThreadEntryPoint : public Module {
 public:
-	explicit ThreadEntryPoint(Program& program);
+	explicit ThreadEntryPoint();
 
-	static ThreadEntryPoint& instance(Program& program);
+	static ThreadEntryPoint& instance();
 };
 
 }

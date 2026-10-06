@@ -329,7 +329,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -414,7 +414,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -486,7 +486,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -570,7 +570,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -655,7 +655,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -737,7 +737,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -891,6 +891,6 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 	}
 }

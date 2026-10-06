@@ -26,8 +26,14 @@ mint::Reference create_writer_object(mint::Program& program) {
 		)");
 	auto& writer_class = mint::create_class(program, "__object_printer_writer__",
 	    {
-	        {mint::builtin_symbols::write_method, write_function},
-	        {"value", mint::create_none()},
+	        {
+	            .symbol = mint::builtin_symbols::write_method,
+	            .value = write_function,
+	        },
+	        {
+	            .symbol = "value",
+	            .value = mint::create_none(),
+	        },
 	    });
 	return mint::create_object(writer_class);
 }

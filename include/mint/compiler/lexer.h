@@ -27,6 +27,7 @@
 #include "mint/config.h"
 #include "mint/system/data_stream.h"
 
+#include <filesystem>
 #include <functional>
 #include <map>
 #include <string>
@@ -46,7 +47,8 @@ public:
 
 	std::string read_regex();
 
-	[[nodiscard]] std::string format_error(const std::string& error) const;
+	[[nodiscard]] DataStream::Position position() const;
+	[[nodiscard]] std::filesystem::path path() const;
 	[[nodiscard]] bool at_end() const;
 
 	static bool is_digit(int c);

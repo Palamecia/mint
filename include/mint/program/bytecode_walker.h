@@ -128,7 +128,7 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_close_package(cursor);
 	case Node::Command::declare_class:
 		{
-			auto& desc = cursor.next().as_class();
+			const auto& desc = cursor.next().as_class();
 			const auto flags = static_cast<Reference::Flags>(cursor.next().as_parameter());
 			return walker.on_declare_class(cursor, desc, flags);
 		}
@@ -150,6 +150,8 @@ R walk(Cursor& cursor, Walker& walker) {
 		return walker.on_pow_operator(cursor);
 	case Node::Command::is_operator:
 		return walker.on_is_operator(cursor);
+	case Node::Command::as_operator:
+		return walker.on_as_operator(cursor);
 	case Node::Command::eq_operator:
 		return walker.on_eq_operator(cursor);
 	case Node::Command::ne_operator:

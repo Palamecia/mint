@@ -65,12 +65,15 @@ package Network {
 		 * Creates a new end point for the IP address described by `address` and the port described by `port`.
 		 */
 		const def new(self, address, port) {
-			if self.d_ptr = Network.IpEndpoint.g_lib.call('mint_ip_endpoint_create', Network.IpEndpoint.addressVersion(address), address, port) {
-				self.d_ptr.delete = def [g_lib = Network.IpEndpoint.g_lib] (self) {
-					g_lib.call('mint_ip_endpoint_delete', self)
-				}
-				return self
+			let (errno, d_ptr) = Network.IpEndpoint.g_lib.call('mint_ip_endpoint_create', Network.IpEndpoint.addressVersion(address), address, port)
+			if errno {
+				raise Exception.SocketError(errno, self)
 			}
+			self.d_ptr = d_ptr
+			self.d_ptr.delete = def [g_lib = Network.IpEndpoint.g_lib] (self) {
+				g_lib.call('mint_ip_endpoint_delete', self)
+			}
+			return self
 		}
 
 		/**
@@ -99,7 +102,7 @@ package Network {
 		/**
 		 * Returns the endpoint's target as a string.
 		 */
-		const def toString(const self) {
+		const def toString(const self) -> string {
 			return '%s:%d' % (self.getAddress(), self.getPort())
 		}
 
@@ -111,7 +114,7 @@ package Network {
         }
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null

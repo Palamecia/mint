@@ -78,6 +78,8 @@ package Network {
 		 * case the object is returned as the new instance, or an instance of the
 		 * `ip_mreq` C struct. The parameter can also provide a `toIpV4MulticastGroup`
 		 * method that will be used to create the object.
+		 *
+		 * Raises {Exception.ValueError} if `data` cannot be converted to a valid multicast group.
 		 */
 		const def new(self, data) {
 			switch typeof data {
@@ -91,9 +93,10 @@ package Network {
 				return self
 			default:
 				if defined data.toIpV4MulticastGroup {
-					return data.toIpV4MulticastGroup()
+					return data.toIpV4MulticastGroup() as Network.IpV4MulticastGroup
 				}
 			}
+			raise Exception.ValueError('data must be a valid socket multicast group', data)
 		}
 
 		/**
@@ -102,14 +105,19 @@ package Network {
 		 * The `interface` parameter must be a string used to specifies the local
 		 * IPv4 address of the interface. If this parameter specifies an IPv4
 		 * address of `0.0.0.0`, the default IPv4 multicast interface is used.
+		 *
+		 * Raises {Exception.SocketError} if an address is invalid.
 		 */
 		const def new(self, const multiaddr, const interface) {
-			if self.d_ptr = Network.IpV4MulticastGroup.g_lib.call('mint_ipv4_socket_mreq_create', multiaddr, interface) {
-				self.d_ptr.delete = def [g_lib = Network.IpV4MulticastGroup.g_lib] (self) {
-					g_lib.call('mint_ipv4_mreq_delete', self)
-				}
-				return self
+			let (errno, d_ptr) = Network.IpV4MulticastGroup.g_lib.call('mint_ipv4_socket_mreq_create', multiaddr, interface)
+			if errno {
+				raise Exception.SocketError(errno, self)
 			}
+			self.d_ptr = d_ptr
+			self.d_ptr.delete = def [g_lib = Network.IpV4MulticastGroup.g_lib] (self) {
+				g_lib.call('mint_ipv4_mreq_delete', self)
+			}
+			return self
 		}
 
 		/**
@@ -153,7 +161,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -170,6 +178,8 @@ package Network {
 		 * of the `ip_mreq_source` C struct. The parameter can also provide a
 		 * `toIpV4MulticastSourceGroup` method that will be used to create the
 		 * object.
+		 *
+		 * Raises {Exception.ValueError} if `data` cannot be converted to a valid multicast source group.
 		 */
 		const def new(self, data) {
 			switch typeof data {
@@ -183,9 +193,10 @@ package Network {
 				return self
 			default:
 				if defined data.toIpV4MulticastSourceGroup {
-					return data.toIpV4MulticastSourceGroup()
+					return data.toIpV4MulticastSourceGroup() as Network.IpV4MulticastSourceGroup
 				}
 			}
+			raise Exception.ValueError('data must be a valid socket multicast source group', data)
 		}
 
 		/**
@@ -196,14 +207,19 @@ package Network {
 		 * used to specifies the local IPv4 address of the interface. If this
 		 * parameter specifies an IPv4 address of `0.0.0.0`, the default IPv4
 		 * multicast interface is used.
+		 *
+		 * Raises {Exception.SocketError} if an address is invalid.
 		 */
 		const def new(self, const multiaddr, const sourceaddr, const interface) {
-			if self.d_ptr = Network.IpV4MulticastSourceGroup.g_lib.call('mint_ipv4_socket_mreq_source_create', multiaddr, interface) {
-				self.d_ptr.delete = def [g_lib = Network.IpV4MulticastSourceGroup.g_lib] (self) {
-					g_lib.call('mint_ipv4_mreq_source_delete', self)
-				}
-				return self
+			let (errno, d_ptr) = Network.IpV4MulticastSourceGroup.g_lib.call('mint_ipv4_socket_mreq_source_create', multiaddr, sourceaddr, interface)
+			if errno {
+				raise Exception.SocketError(errno, self)
 			}
+			self.d_ptr = d_ptr
+			self.d_ptr.delete = def [g_lib = Network.IpV4MulticastSourceGroup.g_lib] (self) {
+				g_lib.call('mint_ipv4_mreq_source_delete', self)
+			}
+			return self
 		}
 
 		/**
@@ -263,7 +279,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -326,6 +342,8 @@ package Network {
 		 * case the object is returned as the new instance, or an instance of the
 		 * `ipv6_mreq` C struct. The parameter can also provide a `toIpV6MulticastGroup`
 		 * method that will be used to create the object.
+		 *
+		 * Raises {Exception.ValueError} if `data` cannot be converted to a valid multicast group.
 		 */
 		const def new(self, data) {
 			switch typeof data {
@@ -339,9 +357,10 @@ package Network {
 				return self
 			default:
 				if defined data.toIpV6MulticastGroup {
-					return data.toIpV6MulticastGroup()
+					return data.toIpV6MulticastGroup() as Network.IpV6MulticastGroup
 				}
 			}
+			raise Exception.ValueError('data must be a valid socket multicast group', data)
 		}
 
 		/**
@@ -351,14 +370,19 @@ package Network {
 		 * of the local interfaceon which the multicast group should be joined
 		 * or dropped. If this parameter specifies an interface index of 0, the
 		 * default multicast interface is used.
+		 *
+		 * Raises {Exception.SocketError} if the multicast address is invalid.
 		 */
 		const def new(self, const multiaddr, const interface) {
-			if self.d_ptr = Network.IpV6MulticastGroup.g_lib.call('mint_ipv6_socket_mreq_create', multiaddr, interface) {
-				self.d_ptr.delete = def [g_lib = Network.IpV6MulticastGroup.g_lib] (self) {
-					g_lib.call('mint_ipv6_mreq_delete', self)
-				}
-				return self
+			let (errno, d_ptr) = Network.IpV6MulticastGroup.g_lib.call('mint_ipv6_socket_mreq_create', multiaddr, interface)
+			if errno {
+				raise Exception.SocketError(errno, self)
 			}
+			self.d_ptr = d_ptr
+			self.d_ptr.delete = def [g_lib = Network.IpV6MulticastGroup.g_lib] (self) {
+				g_lib.call('mint_ipv6_mreq_delete', self)
+			}
+			return self
 		}
 
 		/**
@@ -401,7 +425,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -439,7 +463,7 @@ package Network {
 		 * succeed; otherwise returns `false`. On success, the end point enter
 		 * the {Network.Socket.State.Connected} state.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def finalizeConnection(self) {
 			let (status, errno) = Network.IpSocket.g_lib.call('mint_socket_finalize_connection', self.getHandle())
@@ -468,7 +492,7 @@ package Network {
 		 * 
 		 * On success, the socket enter the {Network.Socket.State.Closing} state.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def shutdown(self) {
 			if self.isOpen() {
@@ -498,7 +522,7 @@ package Network {
 		 * {Network.IpV4SocketOption}, {Network.IpV6SocketOption}, {Network.IpSocketOption} or {Network.SocketOption}
 		 * enum.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		override const def getSocketOption(self, %option) {
 			if not defined option {
@@ -645,7 +669,7 @@ package Network {
 		 * of the {Network.IpV4SocketOption}, {Network.IpV6SocketOption}, {Network.IpSocketOption} or
 		 * {Network.SocketOption} enum.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		override const def setSocketOption(self, %option, value) {
 			if not defined option {
@@ -801,7 +825,7 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal IP version.
 		- final ipVersion = none
@@ -822,7 +846,7 @@ package Network {
 		 * 
 		 * On success, the socket enter the {Network.Socket.State.Closing} state.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def shutdown(self) {
 			try {
@@ -854,7 +878,7 @@ package Network {
 	}
 }
 
-const g_lib = lib('libmint-network')
+const g_lib: library = lib('libmint-network')
 g_lib.call('mint_ip_socket_setup_options', Network.IpSocketOption)
 g_lib.call('mint_ipv4_socket_setup_options', Network.IpV4SocketOption)
 g_lib.call('mint_ipv6_socket_setup_options', Network.IpV6SocketOption)

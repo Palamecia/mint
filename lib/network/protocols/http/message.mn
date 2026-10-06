@@ -270,7 +270,7 @@ package Network {
 			 * Returns the content of the message as a string including headers and body, with CRLF line endings
 			 * converted to LF. Non-textual body content is represented as base64.
 			 */
-			const def toString(const self) {
+			const def toString(const self) -> string {
 
 				if not defined self.method {
 					if not defined self.code {

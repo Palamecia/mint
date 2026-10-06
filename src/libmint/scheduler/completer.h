@@ -25,18 +25,20 @@
 #define MINT_PROCESS_COMPLETER_H
 
 #include "mint/compiler/lexical_handler.h"
+#include "mint/compiler/symbol_scope.h"
+#include "mint/program/symbol.h"
 #include "mint/system/terminal.h"
 
-#include <filesystem>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace mint {
 
 class Cursor;
 class Reference;
-class PackageData;
+class PackageDescription;
 class ClassDescription;
 
 class Completer : public LexicalHandler {
@@ -63,12 +65,11 @@ protected:
 
 	void find_module_recursive_helper(const std::filesystem::path& root_path,
 	    const std::filesystem::path& directory_path, const std::string& token_path);
-	void find_context_symbols_helper(PackageData* pack, ClassDescription* desc, Reference* member,
-	    const std::string& token, std::string::size_type offset);
+	void find_context_symbols_helper(const SymbolDefinition& definition, const std::string& token,
+	    std::string::size_type offset);
 
 	static bool token_match(const std::string& symbol, const std::string& pattern);
-	bool resolve_path(const std::vector<std::string>& context, PackageData*& pack, ClassDescription*& desc,
-	    Reference*& member) const;
+	[[nodiscard]] SymbolDefinition find_defined_symbol(const SymbolPath& symbols) const;
 };
 
 }

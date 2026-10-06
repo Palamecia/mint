@@ -10,25 +10,25 @@ Mint eliminates boilerplate code, allowing you to seamlessly transition from **r
 
 ### 📈 Scalable Architecture: Prototype to Production
 
-Mint adapts to your workflow. You can start with zero-friction prototyping (implicit variables, dynamic typing) and progressively harden your codebase into a strict, secure API using `final`, `const`, and explicit variable bindings:
+Mint adapts to your workflow. You can start with zero-friction prototyping (implicit variables, dynamic typing) and progressively harden your codebase into a strict, secure API using `final`, `const`, explicit variable bindings, and optional type annotations for parameters and return values:
 
 ```mn
 // 1. Rapid Prototyping Phase
 class AnalyticsPipeline {
     dataset
-    def process(self) {
+    def process(self, amount) {
         cleanData = self.dataset.clean()
-        cleanData += 42
+        cleanData += amount
         return cleanData
     }
 }
 
 // 2. Production-Ready API Refinement
 class AnalyticsPipeline {
-    - final dataset = []
-    final const def process(const self) {
+    - final dataset: array = []
+    final const def process(const self, amount: number) -> array {
         let cleanData = self.dataset.clean()
-        cleanData += 42
+        cleanData += amount
         return cleanData
     }
 }

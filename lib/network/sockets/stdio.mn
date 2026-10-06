@@ -55,7 +55,7 @@ package Network {
 		 * 
 		 * On success, the socket enter the {Network.Socket.State.Closed} state.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		override const def close(self) {
 			self.setState(Network.Socket.State.Closed)
@@ -95,7 +95,7 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal read handle.
 		- final readHandle = none

@@ -48,7 +48,13 @@ TEST(operator_tools, call_overload) {
 	EXPECT_FALSE(mint::call_overload(cursor, "#", 1));
 	cursor.stack().clear();
 
-	cursor.stack().emplace_back(mint::create_alias(mint::create_class(scheduler.program(), "Foo", {{"+", {}}})));
+	cursor.stack().emplace_back(mint::create_alias(mint::create_class(scheduler.program(), "Foo",
+	    {
+	        {
+	            .symbol = "+",
+	            .value = {},
+	        },
+	    })));
 	cursor.stack().emplace_back(mint::create_string(scheduler.program(), "bar"));
 	EXPECT_THROW_WHAT(mint::call_overload(cursor, "+", 1), mint::MintRuntimeError,
 	    "invalid use of class 'Foo' with operator '+'(1)");

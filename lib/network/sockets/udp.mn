@@ -48,7 +48,7 @@ package Network {
 		 * Attempts to open the socket without connection to the remote device. The socket is open using the `ipVersion`
 		 * version of the IP protocol. Returns `true` if the socket was correctly opened; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def open(self, ipVersion) {
 			let (handle, errno) = Network.UdpSocket.g_lib.call('mint_udp_socket_open', ipVersion)
@@ -69,7 +69,7 @@ package Network {
 		 * Tells the socket to listen for incoming messages from `endpoint`. Returns `true` on success; otherwise
 		 * returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def bind(self, endpoint) {
 
@@ -96,7 +96,7 @@ package Network {
 		 * of that peer. This endpoint can be used to open a dedicated channel
 		 * with that peer. Returns `none` if no data is available.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def readFrom(self) {
 
@@ -130,7 +130,7 @@ package Network {
 		 * must be an instance of {Serializer.DataStream}. Returns an iterator containing `true` and the amount of sent
 		 * data in bytes if the data was successfully sent to the peer; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def writeTo(self, endpoint, data) {
 
@@ -164,7 +164,7 @@ package Network {
 		 * connection succeed or if the connection request was successfully sent and is waiting for acknowledgment;
 		 * otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def connect(self, endpoint) {
 
@@ -203,7 +203,7 @@ package Network {
 		 * Returns all available data received from the peer as an instance of
 		 * {Serializer.DataStream} or `none` if no data is available.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def read(self) {
 
@@ -239,7 +239,7 @@ package Network {
 		 * bytes if the data was successfully sent to the peer; otherwise returns
 		 * `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def write(self, data) {
 
@@ -269,7 +269,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 	}
 	
 	@class AsyncUdpSocket : Network.AsyncIpSocket {
@@ -282,7 +282,7 @@ package Network {
 		 * coroutine is suspended until a datagram is received, at which point the
 		 * operation completes with the received data and the sender's address.
 		 *
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		class ReadFromOperation : Runtime.Operation {
 			/**
@@ -319,7 +319,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -345,7 +345,7 @@ package Network {
 		 * bytes if the data was successfully sent to the peer; otherwise returns
 		 * `false`.
 		 *
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		class WriteToOperation : Runtime.Operation {
 			/**
@@ -407,7 +407,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -434,7 +434,7 @@ package Network {
 		 * coroutine is suspended until a datagram is received, at which point the
 		 * operation completes with the received data.
 		 *
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		class ReadOperation : Runtime.Operation {
 			/**
@@ -481,7 +481,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -507,7 +507,7 @@ package Network {
 		 * bytes if the data was successfully sent to the peer; otherwise returns
 		 * `false`.
 		 *
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		class WriteOperation : Runtime.Operation {
 			/**
@@ -559,7 +559,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -578,7 +578,7 @@ package Network {
 		 * Attempts to open the socket without connection to the remote device. The socket is open using the `ipVersion`
 		 * version of the IP protocol. Returns `true` if the socket was correctly opened; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def open(self, ipVersion) {
 			let (handle, errno) = Network.AsyncUdpSocket.g_lib.call('mint_udp_socket_open', ipVersion)
@@ -600,7 +600,7 @@ package Network {
 		 * Tells the socket to listen for incoming messages from `endpoint`. Returns `true` on success; otherwise
 		 * returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def bind(self, endpoint) {
 
@@ -631,7 +631,7 @@ package Network {
 		 * informations of that peer. This endpoint can be used to open a dedicated
 		 * channel with that peer.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const async def readFrom(self) {
 			if not self.isOpen() {
@@ -656,7 +656,7 @@ package Network {
 		 *
 		 * The endpoint must be in the {Network.Socket.State.Bound} state.
 		 *
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const async def writeTo(self, endpoint, data) {
 			return await self.getScheduler().suspend(Network.AsyncUdpSocket.WriteToOperation(self, endpoint, data))
@@ -667,7 +667,7 @@ package Network {
 		 * connection succeed or if the connection request was successfully sent and is waiting for acknowledgment;
 		 * otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def connect(self, endpoint) {
 
@@ -706,7 +706,7 @@ package Network {
 		 * Returns all available data received from the peer as an instance of {Serializer.DataStream} or `none` if no
 		 * data is available.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const async def read(self) {
 			if not self.isOpen() {
@@ -720,13 +720,13 @@ package Network {
 		 * {Serializer.DataStream}. Returns an iterator containing `true` and the amount of sent data in bytes if the
 		 * data was successfully sent to the peer; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const async def write(self, data) {
 			return await self.getScheduler().suspend(Network.AsyncUdpSocket.WriteOperation(self, data))
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 	}
 }

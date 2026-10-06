@@ -108,7 +108,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null
@@ -141,7 +141,7 @@ package System {
 		}
 
 		/**
-		 * Waites the end of the called function before object destruction.
+		 * Waite the end of the called function before object destruction.
 		 */
 		const def delete(self) {
 			if self.isRunning() and self.id != System.Thread.g_lib.call('mint_thread_current_id') {
@@ -166,32 +166,31 @@ package System {
 		/**
 		 * Starts the associated function in a new thread. The parameters passed
 		 * to this method are forwarded to the called function.
-		 * 
-		 * Returns `true` if the thread was effectively started; otherwise returs
-		 * `false`. The object must not be already running a joinable thread.
-		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 *
+		 * Raises {Exception.SystemError} with:
+		 *  - `EINVAL` if no function is associated with this thread,
+		 *  - `EBUSY` if the thread is already running a joinable thread,
+		 *  - the system error code if the thread could not be started.
 		 */
 		const def start(self, ...) {
-			if defined self.function and not self.isJoinable() {
-				if defined self.object {
-					var (threadId, errno) = System.Thread.g_lib.call('mint_thread_start_member', self.object, self.function, va_args)
-					if errno {
-						raise Exception.SystemError(errno, self)
-					}
-					self.id = threadId
-				} else {
-					var (threadId, errno) = System.Thread.g_lib.call('mint_thread_start', self.function, va_args)
-					if errno {
-						raise Exception.SystemError(errno, self)
-					}
-					self.id = threadId
-				}
-				if defined self.id {
-					return true
-				}
+
+			if not defined self.function {
+				raise Exception.SystemError(Exception.SystemError.Errno.EINVAL, self)
 			}
-			return false
+
+			if self.isJoinable() {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBUSY, self)
+			}
+
+			let (threadId, errno) = defined self.object \
+				? System.Thread.g_lib.call('mint_thread_start_member', self.object, self.function, va_args) \
+				: System.Thread.g_lib.call('mint_thread_start', self.function, va_args)
+
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			self.id = threadId
+			return self
 		}
 
 		/**
@@ -202,7 +201,7 @@ package System {
 		}
 
 		/**
-		 * Returns `true` if the thread is running; otherwise returs `false`.
+		 * Returns `true` if the thread is running; otherwise returns `false`.
 		 */
 		const def isRunning(const self) {
 			if defined self.id {
@@ -212,7 +211,7 @@ package System {
 		}
 
 		/**
-		 * Returns `true` if the thread is joinable; otherwise returs `false`.
+		 * Returns `true` if the thread is joinable; otherwise returns `false`.
 		 */
 		const def isJoinable(const self) {
 			if defined self.id {
@@ -222,9 +221,9 @@ package System {
 		}
 
 		/**
-		 * Waites for the thread to finish.
+		 * Waite for the thread to finish.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def join(self) {
 			if defined self.id {
@@ -235,7 +234,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Internal thread id.
 		- final id = none
@@ -271,50 +270,73 @@ package System {
 		/**
 		 * Starts the associated function in a new thread. The parameters passed
 		 * to this method are forwarded to the called function.
-		 * 
-		 * Returns `true` if the thread was effectively started; otherwise returs
-		 * `false`. The object must not be already running a joinable thread.
+		 *
+		 * Returns the promise itself.
+		 *
+		 * Raises {Exception.SystemError} with:
+		 *  - `EINVAL` if no function is associated with this promise,
+		 *  - `EBUSY` if the promise has already been started,
+		 *  - the system error code if the thread could not be started.
 		 */
 		const def start(self, ...) {
-			if defined self.function and self.d_ptr is null {
-				if defined self.object {
-					self.d_ptr = System.Promise.g_lib.call('mint_promise_start_member', self.object, self.function, va_args)
-				} else {
-					self.d_ptr = System.Promise.g_lib.call('mint_promise_start', self.function, va_args)
-				}
-				if defined self.d_ptr {
-					self.d_ptr.delete = def [g_lib = System.Promise.g_lib] (self) {
-						g_lib.call('mint_promise_wait', self)
-						g_lib.call('mint_promise_delete', self)
-					}
-					return true
-				} else {
-					self.d_ptr = null
-				}
+
+			if not defined self.function {
+				raise Exception.SystemError(Exception.SystemError.Errno.EINVAL, self)
 			}
-			return false
+
+			if self.d_ptr is not null {
+				raise Exception.SystemError(Exception.SystemError.Errno.EBUSY, self)
+			}
+
+			let (d_ptr, errno) = (defined self.object) \
+				? System.Promise.g_lib.call('mint_promise_start_member', self.object, self.function, va_args) \
+				: System.Promise.g_lib.call('mint_promise_start', self.function, va_args)
+
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			self.attach(d_ptr)
+			return self
 		}
 
 		/**
 		 * Starts the associated coroutine in a new thread.
-		 * 
-		 * Returns `true` if the thread was effectively started; otherwise returs
-		 * `false`. The object must not be already running a joinable thread.
+		 *
+		 * Returns the promise itself.
+		 *
+		 * Raises {Exception.SystemError} with:
+		 *  - `EINVAL` if no function is associated with this promise, or if it is a member function (not a coroutine),
+		 *  - `EBUSY` if the promise has already been started,
+		 *  - the system error code if the thread could not be started.
 		 */
 		const def spawn(self) {
-			if defined self.function and not defined self.object and self.d_ptr is null {
-				self.d_ptr = System.Promise.g_lib.call('mint_promise_spawn', self.function)
-				if defined self.d_ptr {
-					self.d_ptr.delete = def [g_lib = System.Promise.g_lib] (self) {
-						g_lib.call('mint_promise_wait', self)
-						g_lib.call('mint_promise_delete', self)
-					}
-					return true
-				} else {
-					self.d_ptr = null
-				}
-			}
-			return false
+
+		    if not defined self.function or defined self.object {
+		        raise Exception.SystemError(Exception.SystemError.Errno.EINVAL, self)
+		    }
+
+		    if self.d_ptr is not null {
+		        raise Exception.SystemError(Exception.SystemError.Errno.EBUSY, self)
+		    }
+
+		    let (d_ptr, errno) = System.Promise.g_lib.call('mint_promise_spawn', self.function)
+		    if errno {
+		        raise Exception.SystemError(errno, self)
+		    }
+		    self.attach(d_ptr)
+		    return self
+		}
+
+		/**
+		 * Installs the native cleanup on a freshly created handle. The `d_ptr`
+		 * parameter must be the valid handle returned by the native start functions.
+		 */
+		- final const def attach(self, d_ptr) {
+		    d_ptr.delete = def [g_lib = System.Promise.g_lib] (self) {
+		        g_lib.call('mint_promise_wait', self)
+		        g_lib.call('mint_promise_delete', self)
+		    }
+		    self.d_ptr = d_ptr
 		}
 
 		/**
@@ -390,7 +412,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null
@@ -407,8 +429,8 @@ package System {
 	 * asynchronous operation and its resulting value.
 	 * 
 	 * Instances of this class are meant to be used only once. Once created,
-	 * the execution of the asynchronous operation is automaticaly started.
-	 * Other operations can be peroformed on completion using {@see then}.
+	 * the execution of the asynchronous operation is automatically started.
+	 * Other operations can be performed on completion using {@see then}.
 	 * 
 	 * Example:
 	 * ```mn
@@ -424,15 +446,16 @@ package System {
 	@class Future {
 		/**
 		 * Creates a new future that will execute the `func` function with the
-		 * given parameters asynchronously. If the execution of the function can
-		 * not be started; `none` is returned.
+		 * given parameters asynchronously.
+		 *
+		 * Raises {Exception.SystemError} with:
+		 *  - `EINVAL` if `func` is not callable,
+		 *  - the system error code if the underlying thread could not be started.
 		 */
 		const def new(self, %func, ...) {
 			self.state = System.Future.State.Pending
 			self.promise = System.spawnMethod(self, System.Future.resolve, func, *va_args)
-			if defined self.promise {
-				return self
-			}
+			return self
 		}
 
 		/**
@@ -470,7 +493,7 @@ package System {
 
 		/**
 		 * Performs the resolution of the future's function. Once resolved, the
-		 * future will be either in the {System.Future.State.Fullfiled} state
+		 * future will be either in the {System.Future.State.Fulfilled} state
 		 * and {@see value} will contains the function's result, or in the
 		 * {System.Future.State.Rejected} state and {@see value} will contains
 		 * the function's exception.
@@ -478,7 +501,7 @@ package System {
 		- final const def resolve(self, %func, ...) {
 			try {
 				self.value = func(*va_args)
-				self.state = System.Future.State.Fullfiled
+				self.state = System.Future.State.Fulfilled
 			} catch error {
 				self.value = error
 				self.state = System.Future.State.Rejected
@@ -488,7 +511,7 @@ package System {
 
 		/**
 		 * Performs the resolution of a chained future. If `self` is in the
-		 * {System.Future.State.Fullfiled} state, the `onFulfilled` parameter
+		 * {System.Future.State.Fulfilled} state, the `onFulfilled` parameter
 		 * is called with the future's result; if `self` is in the
 		 * {System.Future.State.Rejected} state, the `onRejected` parameter
 		 * is called with the future's error. If the required parameter is set
@@ -498,7 +521,7 @@ package System {
 		- final const def continuation(self, %onFulfilled, %onRejected) {
 			var value = self.getValue()
 			switch self.state {
-			case is System.Future.State.Fullfiled:
+			case is System.Future.State.Fulfilled:
 				if defined onFulfilled {
 					return onFulfilled(value)
 				} else {
@@ -530,7 +553,7 @@ package System {
 			/// Initial state, neither fulfilled nor rejected.
 			Pending
 			/// The operation was completed successfully.
-			Fullfiled
+			Fulfilled
 			/// The operation failed.
 			Rejected
 		}
@@ -548,53 +571,48 @@ package System {
 	/**
 	 * Returns an instance of {System.Promise} for the result of the given `func`
 	 * function. The extra parameters passed to this function are forwarded to the
-	 * called function. The promise object is started by this function. If the
-	 * promise failed to start, `none` is returned instead.
+	 * called function. The promise object is started by this function.
+	 *
+	 * Raises {Exception.SystemError} if the promise could not be started.
 	 */
 	@def spawn(%func, ...) {
-		var promise = System.Promise(func)
-		if promise.start(*va_args) {
-			return promise
-		}
+	    return System.Promise(func).start(...va_args)
 	}
 
 	/**
 	 * Returns an instance of {System.Promise} for the result of the given `func`
-	 * method called on the `self`object. The extra parameters passed to this
+	 * method called on the `self` object. The extra parameters passed to this
 	 * function are forwarded to the called method. The promise object is started
-	 * by this function. If the promise failed to start, `none` is returned instead.
+	 * by this function.
+	 *
+	 * Raises {Exception.SystemError} if the promise could not be started.
 	 */
 	@def spawnMethod(self, %func, ...) {
-		var promise = System.Promise(self, func)
-		if promise.start(*va_args) {
-			return promise
-		}
+	    return System.Promise(self, func).start(...va_args)
 	}
 
 	/**
 	 * Returns an instance of {System.Promise} for the result of the given `coroutine`
-	 * coroutine. The promise object is started by this function. If the promise
-	 * failed to start, `none` is returned instead.
+	 * coroutine. The promise object is started by this function.
+	 *
+	 * Raises {Exception.SystemError} if the promise could not be started.
 	 */
 	@def spawnAsync(coroutine) {
-		var promise = System.Promise(coroutine)
-		if promise.spawn() {
-			return promise
-		}
+	    return System.Promise(coroutine).spawn()
 	}
 
 	/**
 	 * Yields execution of the current thread to another runnable thread, if any.
 	 * Note that the operating system decides to which thread to switch.
 	 */
-	@def [g_lib = lib('libmint-system')] wait() {
+	@def [g_lib: library = lib('libmint-system')] wait() {
 		return g_lib.call('mint_thread_wait')
 	}
 
 	/**
 	 * Forces the current thread to sleep for `time` milliseconds.
 	 */
-	@def [g_lib = lib('libmint-system')] sleep(const time) {
+	@def [g_lib: library = lib('libmint-system')] sleep(const time) {
 		return g_lib.call('mint_thread_sleep', time)
 	}
 }

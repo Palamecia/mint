@@ -22,11 +22,14 @@
  */
 
 #include "mint/memory/builtin/hash.h"
+#include "mint/compiler/descriptions.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/memory/class.h"
 #include "mint/memory/reference.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/function_tools.h"
 #include "mint/memory/cast_tools.h"
+#include "mint/program/module.h"
 #include "mint/program/program.h"
 #include "mint/program/cursor.h"
 #include "mint/system/error.h"
@@ -38,6 +41,83 @@
 #include <vector>
 
 using namespace mint;
+
+namespace {
+
+ClassDescription make_description() {
+	auto description = ClassDescription(Module::invalid_id, "hash");
+	description.create_method(get_operator_symbol(Class::copy_operator), BuiltinTypeKind::hash)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::eq_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::ne_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::add_operator), BuiltinTypeKind::hash)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::subscript_operator), {})
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::subscript_move_operator), {})
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .add_parameter({.name = "value"})
+	    .set_required_parameter_count(3);
+	description.create_method(get_operator_symbol(Class::in_operator), BuiltinTypeKind::iterator)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .set_required_parameter_count(1);
+	description.create_method(get_operator_symbol(Class::in_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .set_required_parameter_count(2);
+	description.create_method("get", {})
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .set_required_parameter_count(2);
+	description.create_method("get", {})
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .add_parameter({.name = "defaultValue"})
+	    .set_required_parameter_count(3);
+	description.create_method("each", PrimitiveTypeKind::none)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::call_operator), {})
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .set_required_parameter_count(2)
+	    .set_variadic(true);
+	description.create_method("isEmpty", PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .set_required_parameter_count(1);
+	description.create_method("size", PrimitiveTypeKind::number)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .set_required_parameter_count(1);
+	description.create_method("remove", BuiltinTypeKind::hash)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .add_parameter({.name = "key"})
+	    .set_required_parameter_count(2);
+	description.create_method("clear", PrimitiveTypeKind::none)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::hash})
+	    .set_required_parameter_count(1);
+	return description;
+}
+
+}
+
+ClassDescription& mint::HashClass::description() {
+	static auto g_description = make_description();
+	return g_description;
+}
 
 HashClass& HashClass::instance(Program& program) {
 	return program.global_data().builtin<HashClass>(Class::Metatype::hash);
@@ -84,7 +164,7 @@ void Hash::mark() {
 }
 
 HashClass::HashClass(Program& program) :
-    Class(program.global_data(), "hash", Class::Metatype::hash) {
+    Class(program.global_data(), description(), Class::Metatype::hash) {
 
 	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
@@ -139,10 +219,10 @@ HashClass::HashClass(Program& program) :
 		const auto& self = load_from_stack(cursor, base - 1);
 		Reference result = create_hash(cursor.program());
 
-		for (auto& item : self.data<Hash>().values) {
+		for (const auto& item : self.data<Hash>().values) {
 			hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
 		}
-		for (auto& item : to_hash(rvalue)) {
+		for (const auto& item : to_hash(rvalue)) {
 			hash_insert(result.data<Hash>(), item.first, hash_get_value(item));
 		}
 
@@ -154,7 +234,7 @@ HashClass::HashClass(Program& program) :
 	create_builtin_member(subscript_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
 
-		Reference& key = load_from_stack(cursor, base);
+		const auto& key = load_from_stack(cursor, base);
 		const auto& self = load_from_stack(cursor, base - 1);
 		Reference result = hash_get_item(self.data<Hash>(), key);
 
@@ -167,7 +247,7 @@ HashClass::HashClass(Program& program) :
 		const auto base = get_stack_base(cursor);
 
 		const auto& value = load_from_stack(cursor, base);
-		Reference& key = load_from_stack(cursor, base - 1);
+		const auto& key = load_from_stack(cursor, base - 1);
 		const auto& self = load_from_stack(cursor, base - 2);
 		Reference result = hash_get_item(self.data<Hash>(), key);
 

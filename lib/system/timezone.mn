@@ -46,29 +46,29 @@ package System {
 		case 'System.TimeZone':
 			return timezone
 		case 'libobject':
-			if self.d_ptr = timezone {
-				return self
-			}
-			break
+			self.d_ptr = timezone
+			return self
 		default:
-			if self.d_ptr = System.TimeZone.g_lib.call('mint_timezone_locate', timezone.toString()) {
+			let result = System.TimeZone.g_lib.call('mint_timezone_locate', timezone.toString())
+			if typeof result == 'libobject' {
+				self.d_ptr = result
 				return self
 			}
-			break
+			raise result
 		}
 	}
 
 	/**
 	 * Returns the current system time zone.
 	 */
-	@const def current() {
+	@const def current() -> System.TimeZone {
 		return System.TimeZone(System.TimeZone.g_lib.call('mint_timezone_current'))
 	}
 
 	/**
 	 * Returns the UTC time zone.
 	 */
-	@const def utc() {
+	@const def utc() -> System.TimeZone {
 		return System.TimeZone('UTC')
 	}
 
@@ -260,7 +260,7 @@ package System {
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-system')
+	- @const g_lib: library = lib('libmint-system')
 
 	/// Internal time zone informations.
 	- final d_ptr = null

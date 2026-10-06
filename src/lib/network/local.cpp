@@ -1575,10 +1575,13 @@ mint::Reference mint_local_endpoint_create(mint::Cursor& cursor, const mint::Ref
 	                          .string();
 	if (path_str.size() < UNIX_PATH_MAX) {
 		std::ranges::copy(path_str, d_ptr->sun_path);
-		return mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release()));
+		return mint::create_iterator_from(cursor, mint::create_number(0),
+		    mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release())));
 	}
+	return mint::create_iterator_from(cursor, mint::create_number(ENAMETOOLONG));
+#else
+	return mint::create_iterator_from(cursor, mint::create_number(EAFNOSUPPORT));
 #endif
-	return {};
 }
 
 mint::Reference mint_local_endpoint_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {

@@ -1394,7 +1394,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the processing instruction.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 
 		var str = '%' + self.name
 
@@ -1487,7 +1487,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the document.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 
 		var str = '--- '
 
@@ -1650,7 +1650,7 @@ package Serializer {
 	 * Returns the content of the mapping as a sequence of hashes and arrays
 	 * corresponding to the YAML mappings and sequences.
 	 */
-	const def toHash(const self) {
+	const def toHash(const self) -> hash {
 		return self.data()
 	}
 
@@ -1825,7 +1825,7 @@ package Serializer {
 	 * Returns the content of the sequence as a sequence of hashes and arrays
 	 * corresponding to the YAML mappings and sequences.
 	 */
-	const def toArray(const self) {
+	const def toArray(const self) -> array {
 		return self.data()
 	}
 
@@ -1915,7 +1915,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the scalar.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		if defined self.tag {
 			return '%s %s' % (self.tag.toString(), self.value)
 		}
@@ -2051,7 +2051,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the alias.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '*%s' % self.anchor
 	}
 
@@ -2102,7 +2102,7 @@ package Serializer {
 		/**
 		 * Returns the exception informations as a string.
 		 */
-		const def toString(const self) {
+		const def toString(const self) -> string {
 			return 'invalid tag %s : not implemented' % self.tag.getName()
 		}
 
@@ -2161,7 +2161,7 @@ package Serializer {
 	/**
 	 * Returns the string representation of the tag.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '!%s' % self.name
 	}
 

@@ -35,7 +35,10 @@ TEST(object, object_constructs_slots_from_class_defaults) {
 	const auto process = scheduler.enable_testing();
 	mint::Class& type = mint::create_class(scheduler.program(), "__object_api_test__",
 	    {
-	        {mint::Symbol("member"), mint::create_number(42)},
+	        {
+	            .symbol = mint::Symbol("member"),
+	            .value = mint::create_number(42),
+	        },
 	    });
 
 	const auto ref = mint::make_reference<mint::Object>(mint::Reference::default_flags, type);

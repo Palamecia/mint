@@ -62,7 +62,7 @@ package Serializer {
 			return other
 		}
 		if defined other.toDataStream {
-			return other.toDataStream()
+			return other.toDataStream() as Serializer.DataStream
 		}
 		self.d_ptr = Serializer.DataStream.g_lib.call('mint_data_stream_create_buffer')
 		self.d_ptr.delete = def [g_lib = Serializer.DataStream.g_lib] (self) {
@@ -779,7 +779,7 @@ package Serializer {
 	}
 
 	/// Global library handle
-	- @const g_lib = lib('libmint-serializer')
+	- @const g_lib: library = lib('libmint-serializer')
 	
 	/// Object data
 	- final d_ptr = null

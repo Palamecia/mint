@@ -29,6 +29,7 @@
 #include "mint/debug/cursor_debugger.h"
 #include "mint/debug/debug_info.h"
 #include "mint/debug/debug_interface.h"
+#include "mint/program/program.h"
 #include "mint/scheduler/scheduler.h"
 
 #include "mint/program/module.h"
@@ -164,7 +165,7 @@ bool Debugger::process_events(mint::CursorDebugger& cursor) {
 	mint::Program& program = cursor.cursor().program();
 
 	while (const auto* module = program.find_module(_module_count)) {
-		_backend->on_module_loaded(*this, cursor, *module);
+		_backend->on_module_loaded(*this, cursor, module->bytecode);
 		++_module_count;
 	}
 

@@ -110,7 +110,7 @@ package Serializer {
 	 * > By default, the data is indented.
 	 */
 	const def setIndented(self, indented) {
-		self.indented = indented
+		self.indented = indented.toBoolean()
 	}
 
 	/**
@@ -268,7 +268,7 @@ package Serializer {
 		/**
 		 * Returns the value converted from the next element of the stream.
 		 * 
-		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised on error.
+		 * Raises {Serializer.DocumentStream.InvalidDocument} on error.
 		 */
 		- final const def parseNextElement(self) {
 			switch token = self.nextToken() {
@@ -292,7 +292,7 @@ package Serializer {
 		/**
 		 * Returns the value converted from the next object of the stream.
 		 * 
-		 * An instance of {Serializer.DocumentStream.InvalidDocument} is raised on error.
+		 * Raises {Serializer.DocumentStream.InvalidDocument} on error.
 		 */
 		- final const def parseNextObject(self) {
 			var token = self.nextToken()
@@ -427,7 +427,7 @@ package Serializer {
 				self.discardToken()
 				return number(token)
 			} else {
-				for (var c = self.nextChar(), c =~ /[a-z]/, c = self.nextChar()) {
+				for (let c = self.nextChar(), c =~ /[a-z]/, c = self.nextChar()) {
 					token << c
 				}
 				self.discardToken()
@@ -487,10 +487,10 @@ package Serializer {
 	}
 
 	/// Internal current indentation level.
-	- final indentationLevel = 0
+	- final indentationLevel: number = 0
 
 	/// Internal indentation format state.
-	- final indented = true
+	- final indented: boolean = true
 }
 
 }

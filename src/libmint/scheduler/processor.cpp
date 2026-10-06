@@ -22,8 +22,7 @@
  */
 
 #include "mint/scheduler/processor.h"
-#include "mint/program/class_register.h"
-#include "mint/program/module.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/class.h"
 #include "mint/memory/data.h"
@@ -233,7 +232,7 @@ public:
 		cursor.symbols().close_package();
 	}
 
-	static void on_declare_class(Cursor& cursor, ClassDescription& desc, Reference::Flags flags) {
+	static void on_declare_class(Cursor& cursor, const ClassDescription& desc, Reference::Flags flags) {
 		declare_class(cursor, desc, flags);
 	}
 
@@ -271,6 +270,10 @@ public:
 
 	static void on_is_operator(Cursor& cursor) {
 		is_operator(cursor);
+	}
+
+	static void on_as_operator(Cursor& cursor) {
+		as_operator(cursor);
 	}
 
 	static void on_eq_operator(Cursor& cursor) {

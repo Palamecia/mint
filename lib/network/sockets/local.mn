@@ -61,7 +61,7 @@ package Network {
 		 * > On Windows, closing the socket can discard the data that was not yet sent to the peer if the system does
 		 * > not support UNIX sockets. The application should ensure that all data is sent before closing the socket.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		override const def close(self) {
 			if self.isOpen() {
@@ -79,7 +79,7 @@ package Network {
 		 * connection succeed or if the connection request was successfully sent and is waiting for acknowledgment;
 		 * otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def connect(self, endpoint) {
 
@@ -115,7 +115,7 @@ package Network {
 		 * Returns at most `count` bytes of data received from the peer as an instance of {Serializer.DataStream} or
 		 * `none` if no data is available.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def readSome(self, count) {
 
@@ -147,7 +147,7 @@ package Network {
 		 * Returns all available data received from the peer as an instance of {Serializer.DataStream} or `none` if no
 		 * data is available.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def read(self) {
 
@@ -180,7 +180,7 @@ package Network {
 		 * {Serializer.DataStream}. Returns an iterator containing `true` and the amount of sent data in bytes if the
 		 * data was successfully sent to the peer; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def write(self, data) {
 
@@ -213,7 +213,7 @@ package Network {
 		 * Tells the socket to listen for incoming connections from `endpoint`. Returns `true` on success; otherwise
 		 * returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def listen(self, endpoint) {
 
@@ -235,7 +235,7 @@ package Network {
 		 * if any; otherwise returns `none`. The waiting connection will then
 		 * be accepted and dequeued.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def accept(self) {
 			let handle = self.getHandle()
@@ -278,7 +278,7 @@ package Network {
 		 * Returns the value of the socket option described by `option`. The `option` parameter must be a value of the
 		 * {Network.LocalSocketOption} enum.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		override const def getSocketOption(self, %option) {
 			if not defined option {
@@ -298,7 +298,7 @@ package Network {
 		 * Sets the value of the socket option described by `option` to `value`. The `option` parameter must be a value
 		 * of the {Network.LocalSocketOption} enum.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		override const def setSocketOption(self, %option, value) {
 			if not defined option {
@@ -329,7 +329,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -414,7 +414,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -437,7 +437,7 @@ package Network {
 		 * If the peer closes the connection before enough data is received, the
 		 * operation completes with the data accumulated so far.
 		 *
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		class ReadSomeOperation : Runtime.Operation {
 			/**
@@ -486,7 +486,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -517,7 +517,7 @@ package Network {
 		 * If the peer closes the connection before the completion condition is
 		 * satisfied, the operation completes with the data accumulated so far.
 		 *
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		class ReadOperation : Runtime.Operation {
 			/**
@@ -570,7 +570,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -599,7 +599,7 @@ package Network {
 		 * bytes if the data was successfully sent to the peer; otherwise returns
 		 * `false`.
 		 *
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		class WriteOperation : Runtime.Operation {
 			/**
@@ -655,7 +655,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -682,7 +682,7 @@ package Network {
 		 * When a connection is successfully accepted, the operation returns a new socket instance representing the
 		 * client connection. The returned socket is already initialized and ready for communication.
 		 *
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		class AcceptOperation : Runtime.Operation {
 			/**
@@ -737,7 +737,7 @@ package Network {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-network')
+			- @const g_lib: library = lib('libmint-network')
 
 			/// Internal socket.
 			- final socket = null
@@ -775,7 +775,7 @@ package Network {
 		 * If the peer closes the connection before the completion condition
 		 * is met, the returned buffer may contain fewer bytes than expected.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const async def readSome(self, count) {
 			if not self.isOpen() {
@@ -800,7 +800,7 @@ package Network {
 		 * If the peer closes the connection before the completion condition
 		 * is met, the returned buffer may contain fewer bytes than expected.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const async def read(self, completion = def(buffer) { return not buffer.isEmpty() }) {
 			if not self.isOpen() {
@@ -825,7 +825,7 @@ package Network {
 		 *
 		 * The socket must be in the {Network.Socket.State.Connected} state.
 		 *
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const async def write(self, data) {
 			return await self.getScheduler().suspend(Network.AsyncLocalSocket.WriteOperation(self, data))
@@ -835,7 +835,7 @@ package Network {
 		 * Tells the socket to listen for incoming connections from `endpoint`. Returns `true` on success; otherwise
 		 * returns `false`.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def listen(self, endpoint) {
 
@@ -891,6 +891,6 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 	}
 }

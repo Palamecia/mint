@@ -73,7 +73,7 @@ load mint.type
             return self.path
         }
 
-        const def toString(self) {
+        const def toString(const self) -> string {
             return self.uri.toString()
         }
 

@@ -24,11 +24,12 @@
 #ifndef MINT_DEBUG_DEBUG_INFO_H
 #define MINT_DEBUG_DEBUG_INFO_H
 
+#include "mint/compiler/descriptions.h"
 #include "mint/config.h"
 
 #include <cstddef>
+#include <functional>
 #include <map>
-#include <string>
 #include <vector>
 
 namespace mint {
@@ -36,7 +37,7 @@ namespace mint {
 class Module;
 
 struct FunctionInfo {
-	std::string name;
+	std::reference_wrapper<FunctionDescription> description;
 	std::size_t begin_offset;
 	std::size_t end_offset;
 };
@@ -49,6 +50,7 @@ public:
 
 	[[nodiscard]] std::size_t to_executable_line_number(std::size_t line_number) const;
 
+	[[nodiscard]] const FunctionInfo* find_function_from_description(const FunctionDescription& description) const;
 	[[nodiscard]] const FunctionInfo* find_function_from_line_number(std::size_t line_number) const;
 	[[nodiscard]] const FunctionInfo* find_function_from_offset(std::size_t offset) const;
 	void register_function(FunctionInfo function_info);

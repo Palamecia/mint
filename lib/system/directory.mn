@@ -59,12 +59,10 @@ package System {
 				return path
 			}
 			if defined path.toDirectory {
-				return path.toDirectory()
+				return path.toDirectory() as System.Directory
 			}
-			if defined path {
-				self.path = System.Directory.g_lib.call('mint_directory_to_native_path', path)
-				return self
-			}
+			self.path = System.Directory.g_lib.call('mint_directory_to_native_path', path)
+			return self
 		}
 
 		/**
@@ -99,7 +97,7 @@ package System {
 		/**
 		 * Sets the application's current working directory to `path`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		@const def setCurrent(path) {
 			var dir = System.Directory(path)
@@ -112,7 +110,7 @@ package System {
 		 * Returns the name of the directory, excluding the path.
 		 */
 		const def getName(const self) {
-			if isDefined(var index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)) {
+			if defined let index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern) {
 				return self.path[(index + 1)...self.path.size()]
 			}
 			return self.path
@@ -128,7 +126,7 @@ package System {
 		/**
 		 * Returns the directory path as an absolute path.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getAbsolutePath(const self) {
 			let (path, errno) = System.Directory.g_lib.call('mint_directory_absolute_path', self.path)
@@ -141,7 +139,7 @@ package System {
 		/**
 		 * Returns the directory path as a canonical path.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getCanonicalPath(const self) {
 			let (path, errno) = System.Directory.g_lib.call('mint_directory_canonical_path', self.path)
@@ -171,7 +169,7 @@ package System {
 		 * Returns the path of the file identified by `fileName` under the
 		 * directory as an absolute path.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getAbsoluteFilePath(const self, fileName) {
 			let (path, errno) = System.Directory.g_lib.call('mint_directory_absolute_path', self.path + System.FileSystem.Separator + fileName)
@@ -185,7 +183,7 @@ package System {
 		 * Returns the path of the file identified by `fileName` under the
 		 * directory as a canonical path.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getCanonicalFilePath(const self, fileName) {
 			let (path, errno) = System.Directory.g_lib.call('mint_directory_canonical_path', self.path + System.FileSystem.Separator + fileName)
@@ -199,7 +197,7 @@ package System {
 		 * Returns the path of the file identified by `fileName` as a path
 		 * relative to the directory.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getRelativeFilePath(const self, fileName) {
 			let (path, errno) = System.Directory.g_lib.call('mint_directory_relative_path', self.path, fileName)
@@ -212,7 +210,7 @@ package System {
 		/**
 		 * Changes directory to `dir_name`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def cd(self, dir_name) {
 			if self.path.isEmpty() or self.path[-1] =~ System.FileSystem.SeparatorPattern {
@@ -241,7 +239,7 @@ package System {
 		 * Changes directory by moving one directory up from the current
 		 * directory.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def cdUp(self) {
 			if self.isRoot() {
@@ -291,7 +289,7 @@ package System {
 		 * }
 		 * ```
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def list(const self, filter = none) {
 			var (entries, errno) = System.Directory.g_lib.call('mint_directory_list', self.path)
@@ -314,7 +312,7 @@ package System {
 		/**
 		 * Returns `true` if the directory exists; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def exists(const self) {
 			let (result, errno) = System.Directory.g_lib.call('mint_file_exists', self.path)
@@ -328,7 +326,7 @@ package System {
 		 * Returns `true` if the file or directory called `fileName` exists;
 		 * otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def contains(const self, fileName) {
 			let (result, errno) = System.Directory.g_lib.call('mint_file_exists', self.getFilePath(fileName))
@@ -342,7 +340,7 @@ package System {
 		 * Removes the file or directory `fileName`. If `fileName` identify
 		 * a directory, all its content is removed recursively.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def remove(self, fileName) {
 			if var errno = System.Directory.g_lib.call('mint_file_remove', self.path.getAbsoluteFilePath(fileName)) {
@@ -353,7 +351,7 @@ package System {
 		/**
 		 * Renames a file or directory from `oldFileName` to `newFileName`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def rename(self, oldFileName, newFileName) {
 			if var errno = System.Directory.g_lib.call('mint_file_rename', self.path.getAbsoluteFilePath(oldFileName), self.path.getAbsoluteFilePath(newFileName)) {
@@ -365,7 +363,7 @@ package System {
 		 * Removes the directory specified by `path`. The directory must be empty
 		 * to succeed.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def rmdir(self, path) {
 			if var errno = System.Directory.g_lib.call('mint_directory_rmdir', self.getAbsoluteFilePath(path)) {
@@ -378,7 +376,7 @@ package System {
 		 * directories in `path`, provided that they are empty. This is the opposite
 		 * of {System.Directory.mkpath}.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def rmpath(self, path) {
 			if var errno = System.Directory.g_lib.call('mint_directory_rmpath', self.getAbsoluteFilePath(path)) {
@@ -389,7 +387,7 @@ package System {
 		/**
 		 * Creates a sub-directory called `path` with default permissions.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def mkdir(self, path) {
 			if var errno = System.Directory.g_lib.call('mint_directory_mkdir', self.getAbsoluteFilePath(path)) {
@@ -401,7 +399,7 @@ package System {
 		 * Creates the directory path `path` under this directory. The function
 		 * will create all parent directories necessary to create the directory.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def mkpath(self, path) {
 			if var errno = System.Directory.g_lib.call('mint_directory_mkpath', self.getAbsoluteFilePath(path)) {
@@ -413,7 +411,7 @@ package System {
 		 * Converts the directory path to an absolute path. If it is already
 		 * absolute nothing happens.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def makeAbsolute(self) {
 			self.path = self.getAbsolutePath()
@@ -423,7 +421,7 @@ package System {
 		 * Converts the directory path to a canonical path. If it is already
 		 * canonical nothing happens.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def makeCanonical(self) {
 			self.path = self.getCanonicalPath()
@@ -433,7 +431,7 @@ package System {
 		 * Returns `true` if the directory's path is absolute; otherwise returns
 		 * `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isAbsolute(const self) {
 			return self.path == self.getAbsolutePath()
@@ -443,7 +441,7 @@ package System {
 		 * Returns `true` if the directory's path is canonical; otherwise returns
 		 * `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isCanonical(const self) {
 			return self.path == self.getCanonicalPath()
@@ -454,7 +452,7 @@ package System {
 		 * `false`. (Under Unix a path is relative if it does not start with a
 		 * "/").
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isRelative(const self) {
 			return self.path != self.getAbsolutePath()
@@ -464,7 +462,7 @@ package System {
 		 * Returns `true` if the directory is readable and we can open files by
 		 * name; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isReadable(const self) {
 			let (result, errno) = System.Directory.g_lib.call('mint_file_is_readable', self.path)
@@ -478,7 +476,7 @@ package System {
 		 * Returns `true` if the directory is the root directory; otherwise returns
 		 * `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isRoot(const self) {
 			let (result, errno) = System.Directory.g_lib.call('mint_file_is_root', self.path)
@@ -492,7 +490,7 @@ package System {
 		 * Returns `true` if the path identified by `path` is a sub path of `self`;
 		 * otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isSubPath(const self, path) {
 			let (result, errno) = System.Directory.g_lib.call('mint_directory_is_subpath', self.path, path)
@@ -503,7 +501,7 @@ package System {
 		}
 
     	/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Internal directory path.
 		- final path = ''

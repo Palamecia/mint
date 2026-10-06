@@ -24,7 +24,6 @@
 #ifndef MINT_MEMORY_FUNCTION_TOOLS_H
 #define MINT_MEMORY_FUNCTION_TOOLS_H
 
-#include "mint/program/class_register.h"
 #include "mint/program/cursor.h"
 #include "mint/program/function_literal.h"
 #include "mint/program/module.h"
@@ -267,8 +266,8 @@ MINT_EXPORT Reference create_signed_number(std::intmax_t value);
 MINT_EXPORT Reference create_unsigned_number(std::uintmax_t value);
 MINT_EXPORT Reference create_boolean(bool value);
 
-MINT_EXPORT Reference create_alias(Class& type);
-MINT_EXPORT Reference create_object(Class& type);
+MINT_EXPORT Reference create_alias(const Class& type);
+MINT_EXPORT Reference create_object(const Class& type);
 
 MINT_EXPORT Reference create_string(Program& program);
 MINT_EXPORT Reference create_string(Program& program, const char* value);
@@ -322,9 +321,9 @@ MINT_EXPORT Reference create_async_operation(Program& program, MintAsyncOperatio
 
 MINT_EXPORT Reference get_member_ignore_visibility(Program& program, const Reference& reference, const Symbol& member);
 MINT_EXPORT Reference get_member_ignore_visibility(PackageData& package, const Symbol& member);
-MINT_EXPORT Reference get_member_ignore_visibility(Object& object, const Symbol& member);
-MINT_EXPORT Reference get_global_ignore_visibility(Object& object, const Symbol& global);
-MINT_EXPORT Reference find_enum_value(Object& object, double value);
+MINT_EXPORT Reference get_member_ignore_visibility(const Object& object, const Symbol& member);
+MINT_EXPORT Reference get_global_ignore_visibility(const Object& object, const Symbol& global);
+MINT_EXPORT Reference find_enum_value(const Object& object, double value);
 
 }
 

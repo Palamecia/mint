@@ -26,6 +26,7 @@ PRIVATE
 	file_watcher.cpp
 	file.cpp
 	filesystem.cpp
+	locale_data.h
 	locale.cpp
 	mutex.cpp
 	os.cpp
@@ -39,26 +40,32 @@ PRIVATE
 	timezone.cpp
 )
 
-if (LINUX)
-	target_link_libraries(
-		mint-lib-module-system
-	PUBLIC
-		liburing::io_uring
-	)
-elseif(APPLE)
-	target_link_libraries(
+if (UNIX)
+	target_sources(
 		mint-lib-module-system
 	PRIVATE
-		date::date-tz
+		unix/locale_data.cpp
 	)
+	if (LINUX)
+		target_link_libraries(
+			mint-lib-module-system
+		PUBLIC
+			liburing::io_uring
+		)
+	elseif(APPLE)
+		target_link_libraries(
+			mint-lib-module-system
+		PRIVATE
+			date::date-tz
+		)
+	endif()
 elseif (WIN32)
 	target_sources(
 		mint-lib-module-system
 	PRIVATE
+		win32/locale_data.cpp
 		win32/NtProcessInfo.cpp
 		win32/NtProcessInfo.h
-		win32/winlocale.cpp
-		win32/winlocale.h
 	)
 endif()
 

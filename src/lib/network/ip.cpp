@@ -109,10 +109,17 @@ mint::Reference mint_ip_endpoint_create(mint::Cursor& cursor, const mint::Refere
 		{
 			auto d_ptr = std::make_unique<sockaddr_in>(sockaddr_in {
 			    .sin_family = AF_INET,
+			    .sin_port = htons(to_integer<std::uint16_t>(cursor, port)),
 			});
-			d_ptr->sin_port = htons(to_integer<std::uint16_t>(cursor, port));
-			if (::inet_pton(AF_INET, address_str.c_str(), &d_ptr->sin_addr.s_addr) == 1) {
-				return mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release()));
+			switch (::inet_pton(AF_INET, address_str.c_str(), &d_ptr->sin_addr.s_addr)) {
+			case 0:
+				return mint::create_iterator_from(cursor, mint::create_number(EINVAL));
+			case 1:
+				return mint::create_iterator_from(cursor, mint::create_number(0),
+				    mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release())));
+			default:
+				return mint::create_iterator_from(cursor,
+				    mint::create_number(mint_network::last_socket_error_code().value()));
 			}
 		}
 		break;
@@ -120,17 +127,23 @@ mint::Reference mint_ip_endpoint_create(mint::Cursor& cursor, const mint::Refere
 		{
 			auto d_ptr = std::make_unique<sockaddr_in6>(sockaddr_in6 {
 			    .sin6_family = AF_INET6,
+			    .sin6_port = htons(to_integer<std::uint16_t>(cursor, port)),
 			});
-			d_ptr->sin6_port = htons(to_integer<std::uint16_t>(cursor, port));
-			if (::inet_pton(AF_INET6, address_str.c_str(), &d_ptr->sin6_addr.s6_addr) == 1) {
-				return mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release()));
+			switch (::inet_pton(AF_INET6, address_str.c_str(), &d_ptr->sin6_addr.s6_addr)) {
+			case 0:
+				return mint::create_iterator_from(cursor, mint::create_number(EINVAL));
+			case 1:
+				return mint::create_iterator_from(cursor, mint::create_number(0),
+				    mint::create_c_object<sockaddr>(cursor.program(), reinterpret_cast<sockaddr*>(d_ptr.release())));
+			default:
+				return mint::create_iterator_from(cursor,
+				    mint::create_number(mint_network::last_socket_error_code().value()));
 			}
 		}
 		break;
 	default:
-		break;
+		return mint::create_iterator_from(cursor, mint::create_number(EAFNOSUPPORT));
 	}
-	return {};
 }
 
 mint::Reference mint_ip_endpoint_delete(mint::Cursor& /*cursor*/, const mint::Reference& self) {
@@ -365,7 +378,8 @@ mint::Reference mint_ip_socket_setup_options(mint::Cursor& /*cursor*/, const min
 #define BIND_MCAST_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = _option
 #define BIND_MCAST_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef MCAST_JOIN_GROUP
 	BIND_MCAST_VALUE(ip_socket_option, MCAST_JOIN_GROUP);
@@ -406,7 +420,8 @@ mint::Reference mint_ipv4_socket_setup_options(mint::Cursor& /*cursor*/, const m
 #define BIND_IP_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = IP_##_option
 #define BIND_IP_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef IP_HEADERSINCL
 	BIND_IP_VALUE(ip_v4_socket_option, HDRINCL);
@@ -757,13 +772,19 @@ mint::Reference mint_ipv4_socket_mreq_create(mint::Cursor& cursor, const mint::R
     const mint::Reference& imr_interface) {
 
 	auto group = std::make_unique<ip_mreq>();
-	if (!inet_pton(AF_INET, to_string(imr_multiaddr).c_str(), &group->imr_multiaddr)) {
-		return {};
+	switch (inet_pton(AF_INET, to_string(imr_multiaddr).c_str(), &group->imr_multiaddr)) {
+	case 0:
+		return mint::create_iterator_from(cursor, mint::create_number(EINVAL));
+	case -1:
+		return mint::create_iterator_from(cursor, mint::create_number(mint_network::last_socket_error_code().value()));
 	}
-	if (!inet_pton(AF_INET, to_string(imr_interface).c_str(), &group->imr_interface)) {
-		return {};
+	switch (inet_pton(AF_INET, to_string(imr_interface).c_str(), &group->imr_interface)) {
+	case 0:
+		return mint::create_iterator_from(cursor, mint::create_number(EINVAL));
+	case -1:
+		return mint::create_iterator_from(cursor, mint::create_number(mint_network::last_socket_error_code().value()));
 	}
-	return create_c_object(cursor.program(), group.release());
+	return mint::create_iterator_from(cursor, mint::create_number(0), create_c_object(cursor.program(), group.release()));
 }
 
 mint::Reference mint_ipv4_socket_mreq_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
@@ -804,16 +825,25 @@ mint::Reference mint_ipv4_socket_mreq_set_interface(mint::Cursor& /*cursor*/, co
 mint::Reference mint_ipv4_socket_mreq_source_create(mint::Cursor& cursor, const mint::Reference& imr_multiaddr,
     const mint::Reference& imr_sourceaddr, const mint::Reference& imr_interface) {
 	auto group = std::make_unique<ip_mreq_source>();
-	if (!inet_pton(AF_INET, to_string(imr_multiaddr).c_str(), &group->imr_multiaddr)) {
-		return {};
+	switch (inet_pton(AF_INET, to_string(imr_multiaddr).c_str(), &group->imr_multiaddr)) {
+	case 0:
+		return mint::create_iterator_from(cursor, mint::create_number(EINVAL));
+	case -1:
+		return mint::create_iterator_from(cursor, mint::create_number(mint_network::last_socket_error_code().value()));
 	}
-	if (!inet_pton(AF_INET, to_string(imr_sourceaddr).c_str(), &group->imr_sourceaddr)) {
-		return {};
+	switch (inet_pton(AF_INET, to_string(imr_sourceaddr).c_str(), &group->imr_sourceaddr)) {
+	case 0:
+		return mint::create_iterator_from(cursor, mint::create_number(EINVAL));
+	case -1:
+		return mint::create_iterator_from(cursor, mint::create_number(mint_network::last_socket_error_code().value()));
 	}
-	if (!inet_pton(AF_INET, to_string(imr_interface).c_str(), &group->imr_interface)) {
-		return {};
+	switch (inet_pton(AF_INET, to_string(imr_interface).c_str(), &group->imr_interface)) {
+	case 0:
+		return mint::create_iterator_from(cursor, mint::create_number(EINVAL));
+	case -1:
+		return mint::create_iterator_from(cursor, mint::create_number(mint_network::last_socket_error_code().value()));
 	}
-	return create_c_object(cursor.program(), group.release());
+	return mint::create_iterator_from(cursor, mint::create_number(0), create_c_object(cursor.program(), group.release()));
 }
 
 mint::Reference mint_ipv4_socket_mreq_source_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {
@@ -871,7 +901,8 @@ mint::Reference mint_ipv6_socket_setup_options(mint::Cursor& /*cursor*/, const m
 #define BIND_IPV6_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = IPV6_##_option
 #define BIND_IPV6_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef IPV6_CHECKSUM
 	BIND_IPV6_VALUE(ip_v6_socket_option, CHECKSUM);
@@ -1179,8 +1210,11 @@ mint::Reference mint_ipv6_socket_mreq_create(mint::Cursor& cursor, const mint::R
     mint::Reference& ipv6mr_interface) {
 
 	auto group = std::make_unique<ipv6_mreq>();
-	if (!inet_pton(AF_INET6, to_string(ipv6mr_multiaddr).c_str(), &group->ipv6mr_multiaddr)) {
-		return {};
+	switch (inet_pton(AF_INET6, to_string(ipv6mr_multiaddr).c_str(), &group->ipv6mr_multiaddr)) {
+	case 0:
+		return mint::create_iterator_from(cursor, mint::create_number(EINVAL));
+	case -1:
+		return mint::create_iterator_from(cursor, mint::create_number(mint_network::last_socket_error_code().value()));
 	}
 #ifdef MINT_OS_WINDOWS
 	group->ipv6mr_interface = to_integer<ULONG>(cursor, ipv6mr_interface);
@@ -1189,7 +1223,7 @@ mint::Reference mint_ipv6_socket_mreq_create(mint::Cursor& cursor, const mint::R
 #else
 	group->ipv6mr_interface = to_integer<unsigned int>(cursor, ipv6mr_interface);
 #endif
-	return create_c_object(cursor.program(), group.release());
+	return mint::create_iterator_from(cursor, mint::create_number(0), create_c_object(cursor.program(), group.release()));
 }
 
 mint::Reference mint_ipv6_socket_mreq_delete(mint::Cursor& /*cursor*/, const mint::Reference& d_ptr) {

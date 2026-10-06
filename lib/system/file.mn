@@ -89,12 +89,10 @@ package System {
 				return path
 			}
 			if defined path.toFile {
-				return path.toFile()
+				return path.toFile() as System.File
 			}
-			if defined path {
-				self.path = System.File.g_lib.call('mint_directory_to_native_path', path)
-				return self
-			}
+			self.path = System.File.g_lib.call('mint_directory_to_native_path', path)
+			return self
 		}
 
 		/**
@@ -183,7 +181,7 @@ package System {
 		 * Returns the name of the file, excluding the path.
 		 */
 		const def getName(const self) {
-			if isDefined(var index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern)) {
+			if defined let index = self.path.lastIndexOf(System.FileSystem.SeparatorPattern) {
 				return self.path[(index + 1)...self.path.size()]
 			}
 			return self.path
@@ -199,7 +197,7 @@ package System {
 		/**
 		 * Returns an absolute path including the file name.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getAbsolutePath(const self) {
 			let (path, errno) = System.File.g_lib.call('mint_directory_absolute_path', self.path)
@@ -212,7 +210,7 @@ package System {
 		/**
 		 * Returns a canonical path including the file name.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getCanonicalPath(const self) {
 			let (path, errno) = System.File.g_lib.call('mint_directory_canonical_path', self.path)
@@ -226,7 +224,7 @@ package System {
 		 * Returns the absolute path to the file or directory a symbolic link
 		 * points to, or the object's path if it is not a symbolic link.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def readSymlink(const self) {
 			let (path, errno) = System.File.g_lib.call('mint_file_read_symlink', self.path)
@@ -253,7 +251,7 @@ package System {
 		/**
 		 * Returns the date when the file was created / born.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getBirthDate(const self) {
 			let (date, errno) = System.File.g_lib.call('mint_file_birth_time', self.path)
@@ -266,7 +264,7 @@ package System {
 		/**
 		 * Returns the date when the file was last read (accessed).
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getLastReadDate(const self) {
 			let (date, errno) = System.File.g_lib.call('mint_file_last_read_time', self.path)
@@ -279,7 +277,7 @@ package System {
 		/**
 		 * Returns the date when the file was last write (modified).
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getLastWriteDate(const self) {
 			let (date, errno) = System.File.g_lib.call('mint_file_last_write_time', self.path)
@@ -292,7 +290,7 @@ package System {
 		/**
 		 * Returns `true` if the file exists; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def exists(const self) {
 			let (result, errno) = System.File.g_lib.call('mint_file_exists', self.path)
@@ -306,7 +304,7 @@ package System {
 		 * Returns the file size in bytes. If the file does not exist or cannot
 		 * be fetched, `0` is returned.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def size(const self) {
 			let (result, errno) = System.File.g_lib.call('mint_file_size', self.path)
@@ -319,7 +317,7 @@ package System {
 		/**
 		 * Converts the file's path to an absolute path if it is not already in that form.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def makeAbsolute(self) {
 			self.path = self.getAbsolutePath()
@@ -328,7 +326,7 @@ package System {
 		/**
 		 * Converts the file's path to a canonical path if it is not already in that form.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def makeCanonical(self) {
 			self.path = self.getCanonicalPath()
@@ -337,7 +335,7 @@ package System {
 		/**
 		 * Returns `true` if the file path is absolute, otherwise returns `false` (i.e. the path is relative).
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isAbsolute(const self) {
 			return self.path == self.getAbsolutePath()
@@ -346,7 +344,7 @@ package System {
 		/**
 		 * Returns `true` if the file path is canonical; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isCanonical(const self) {
 			return self.path == self.getCanonicalPath()
@@ -355,7 +353,7 @@ package System {
 		/**
 		 * Returns `true` if the file path is relative, otherwise returns `false` (i.e. the path is absolute).
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isRelative(const self) {
 			return self.path != self.getAbsolutePath()
@@ -366,7 +364,7 @@ package System {
 		 * link to a regular file. Returns `false` if the object points to something
 		 * which isn't a file, such as a directory.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isRegularFile(const self) {
 			let (result, errno) = System.File.g_lib.call('mint_file_is_regular_file', self.path)
@@ -380,7 +378,7 @@ package System {
 		 * Returns `true` if this object points to a directory or to a symbolic
 		 * link to a directory; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isDirectory(const self) {
 			let (result, errno) = System.File.g_lib.call('mint_file_is_directory', self.path)
@@ -393,7 +391,7 @@ package System {
 		/**
 		 * Returns `true` if this object points to a symbolic link; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isSymlink(const self) {
 			let (result, errno) = System.File.g_lib.call('mint_file_is_symlink', self.path)
@@ -407,7 +405,7 @@ package System {
 		 * Returns `true` if the object points to a directory or to a symbolic link
 		 * to a directory which is the root directory; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isRoot(const self) {
 			let (result, errno) = System.File.g_lib.call('mint_file_is_root', self.path)
@@ -420,7 +418,7 @@ package System {
 		/**
 		 * Returns `true` if the user can read the file; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isReadable(const self) {
 			let (result, errno) = System.File.g_lib.call('mint_file_is_readable', self.path)
@@ -433,7 +431,7 @@ package System {
 		/**
 		 * Returns `true` if the user can write to the file; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isWritable(const self) {
 			let (result, errno) = System.File.g_lib.call('mint_file_is_writable', self.path)
@@ -446,7 +444,7 @@ package System {
 		/**
 		 * Returns `true` if the file is executable; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isExecutable(const self) {
 			let (result, errno) = System.File.g_lib.call('mint_file_is_executable', self.path)
@@ -459,7 +457,7 @@ package System {
 		/**
 		 * Returns `true` if this is a hidden file; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def isHidden(const self) {
 			let (result, errno) = System.File.g_lib.call('mint_file_is_hidden', self.path)
@@ -473,7 +471,7 @@ package System {
 		 * Returns the owner of the file. On systems where files do not have owners,
 		 * or if an error occurs, an empty string is returned.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getOwner(const self) {
 			let (name, errno) = System.File.g_lib.call('mint_file_owner', self.path)
@@ -486,7 +484,7 @@ package System {
 		/**
 		 * Returns the id of the owner of the file.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getOwnerId(const self) {
 			let (id, errno) = System.File.g_lib.call('mint_file_owner_id', self.path)
@@ -500,7 +498,7 @@ package System {
 		 * Returns the group of the file. On systems where files do not have groups,
 		 * or if an error occurs, an empty string is returned.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getGroup(const self) {
 			let (name, errno) = System.File.g_lib.call('mint_file_group', self.path)
@@ -513,7 +511,7 @@ package System {
 		/**
 		 * Returns the id of the group the file belongs to.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def getGroupId(const self) {
 			let (id, errno) = System.File.g_lib.call('mint_file_group_id', self.path)
@@ -528,7 +526,7 @@ package System {
 		 * flags of type {System.File.Permission} OR-ed together to check for
 		 * permission combinations.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def permission(const self, permissions) {
 			let (result, errno) = System.File.g_lib.call('mint_file_permission', self.path, permissions)
@@ -544,7 +542,7 @@ package System {
 		 * Creates a symbolic link named `target` that points to the file 
 		 * currently specified by this object.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def createSymlink(self, target) {
 			if var errno = System.File.g_lib.call('mint_file_create_symlink', self.path, target) {
@@ -556,7 +554,7 @@ package System {
 		 * Creates a copy named `target` of the the file currently specified by
 		 * this object.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def copy(self, target) {
 			if var errno = System.File.g_lib.call('mint_file_copy', self.path, target) {
@@ -567,7 +565,7 @@ package System {
 		/**
 		 * Renames the file currently specified by this object to `name`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def rename(self, name) {
 			if var errno = System.File.g_lib.call('mint_file_rename', self.path, name) {
@@ -578,7 +576,7 @@ package System {
 		/**
 		 * Removes the file currently specified by this object.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def remove(self) {
 			if var errno = System.File.g_lib.call('mint_file_remove', self.path) {
@@ -601,7 +599,7 @@ package System {
 		 * 
 		 * The `'b'` character can be added at the second position of any string to open the file in binary mode.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def open(self, mode = 'r') {
 			try {
@@ -635,7 +633,7 @@ package System {
 		 * 
 		 * The `'b'` character can be added at the second position of any string to open the file in binary mode.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def openAsync(self, scheduler, mode = 'r') {
 			try {
@@ -653,7 +651,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Internal file path.
 		- final path = ''
@@ -695,7 +693,7 @@ package System {
 		 * 
 		 * The `'b'` character can be added at the second position of any string to open the file in binary mode.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def open(self, path, mode = 'r') {
 			if self.d_ptr is null {
@@ -713,7 +711,7 @@ package System {
 		/**
 		 * Flushes buffered modifications and closes the file.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def close(self) {
 			if not self.isOpen() {
@@ -736,7 +734,7 @@ package System {
 		/**
 		 * Returns `true` if the end of the file has been reached; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def atEnd(const self) {
 			if not self.isOpen() {
@@ -748,7 +746,7 @@ package System {
 		/**
 		 * Returns the position that data is written to or read from.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def tell(const self) {
 			if not self.isOpen() {
@@ -770,7 +768,7 @@ package System {
 		 * If `pos` is in the range `-1..-self.size()`, the position is moved
 		 * relatively from the end of the file.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def seek(self, pos) {
 			if not self.isOpen() {
@@ -785,7 +783,7 @@ package System {
 		 * Sets the position that data is written to or read from to the beginning
 		 * of the file.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def rewind(self) {
 			if not self.isOpen() {
@@ -809,7 +807,7 @@ package System {
 		 * Returns at most `count` bytes of data from the file as an instance of {Serializer.DataStream} or `none`
 		 * if no data is available.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def readSome(self, count) {
 			if not self.isOpen() {
@@ -826,7 +824,7 @@ package System {
 		 * Returns all remaining data from the file as an instance of {Serializer.DataStream} or `none` if no data is
 		 * available.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def read(self) {
 			if not self.isOpen() {
@@ -843,7 +841,7 @@ package System {
 		 * Writes the content of `data` to the file. The `data` parameter must be an instance of
 		 * {Serializer.DataStream}. Returns the number of bytes that were actually written.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def write(self, data) {
 			if not self.isOpen() {
@@ -860,7 +858,7 @@ package System {
 		/**
 		 * Flushes any buffered data to the file.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def flush(self) {
 			if not self.isOpen() {
@@ -872,7 +870,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Object data.
 		- final d_ptr = null
@@ -906,7 +904,7 @@ package System {
 		 *
 		 * Instances of this operation are created by {System.AsyncFileStream.readWord}.
 		 *
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		class ReadSomeOperation : Runtime.Operation {
 			/**
@@ -945,7 +943,7 @@ package System {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-system')
+			- @const g_lib: library = lib('libmint-system')
 
 			/// Internal stream.
 			- final stream = null
@@ -962,7 +960,7 @@ package System {
 		 *
 		 * Instances of this operation are created by {System.AsyncFileStream.readWord}.
 		 *
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		class ReadOperation : Runtime.Operation {
 			/**
@@ -1000,7 +998,7 @@ package System {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-system')
+			- @const g_lib: library = lib('libmint-system')
 
 			/// Internal stream.
 			- final stream = null
@@ -1014,7 +1012,7 @@ package System {
 		 *
 		 * Instances of this operation are created by {System.AsyncFileStream.write}.
 		 *
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		class WriteOperation : Runtime.Operation {
 			/**
@@ -1054,7 +1052,7 @@ package System {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-system')
+			- @const g_lib: library = lib('libmint-system')
 
 			/// Internal stream.
 			- final stream = null
@@ -1071,7 +1069,7 @@ package System {
 		 *
 		 * Instances of this operation are created by {System.AsyncFileStream.flush}.
 		 *
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		class FlushOperation : Runtime.Operation {
 			/**
@@ -1101,7 +1099,7 @@ package System {
 			}
 
 			/// Global library handle.
-			- @const g_lib = lib('libmint-system')
+			- @const g_lib: library = lib('libmint-system')
 
 			/// Internal stream.
 			- final stream = null
@@ -1145,7 +1143,7 @@ package System {
 		 * 
 		 * The `'b'` character can be added at the second position of any string to open the file in binary mode.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def open(self, path, mode = 'r') {
 			if self.d_ptr is null {
@@ -1164,7 +1162,7 @@ package System {
 		/**
 		 * Flushes buffered modifications and closes the file.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def close(self) {
 			if not self.isOpen() {
@@ -1187,7 +1185,7 @@ package System {
 		/**
 		 * Returns `true` if the end of the file has been reached; otherwise returns `false`.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def atEnd(const self) {
 			if not self.isOpen() {
@@ -1199,7 +1197,7 @@ package System {
 		/**
 		 * Returns the position that data is written to or read from.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def tell(const self) {
 			if not self.isOpen() {
@@ -1221,7 +1219,7 @@ package System {
 		 * If `pos` is in the range `-1..-self.size()`, the position is moved
 		 * relatively from the end of the file.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def seek(self, pos) {
 			if not self.isOpen() {
@@ -1236,7 +1234,7 @@ package System {
 		 * Sets the position that data is written to or read from to the beginning
 		 * of the file.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def rewind(self) {
 			if not self.isOpen() {
@@ -1267,7 +1265,7 @@ package System {
 		 * Returns at most `count` bytes of data from the file as an instance of {Serializer.DataStream} or `none`
 		 * if no data is available.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const async def readSome(self, count) {
 			if not self.isOpen() {
@@ -1280,7 +1278,7 @@ package System {
 		 * Returns all remaining data from the file as an instance of {Serializer.DataStream} or `none` if no data is
 		 * available.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const async def read(self) {
 			if not self.isOpen() {
@@ -1293,19 +1291,19 @@ package System {
 		 * Writes the content of `data` to the file. The `data` parameter must be an instance of
 		 * {Serializer.DataStream}. Returns the number of bytes that were actually written.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const async def write(self, data) {
 			if not self.isOpen() {
 				raise Exception.SystemError(Exception.SystemError.Errno.EBADF, self)
 			}
-			return await self.scheduler.suspend(System.AsyncFileStream.WriteOperation(self, self.codec, data))
+			return await self.scheduler.suspend(System.AsyncFileStream.WriteOperation(self, data))
 		}
 
 		/**
 		 * Flushes any buffered data to the file.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const async def flush(self) {
 			if not self.isOpen() {
@@ -1315,13 +1313,10 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Internal scheduler.
 		- final scheduler = null
-
-		/// Internal file codec.
-		- final codec = null
 
 		/// Object data.
 		- final d_ptr = null

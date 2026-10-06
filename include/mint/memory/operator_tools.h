@@ -48,6 +48,7 @@ MINT_EXPORT void div_operator(Cursor& cursor);
 MINT_EXPORT void pow_operator(Cursor& cursor);
 MINT_EXPORT void mod_operator(Cursor& cursor);
 MINT_EXPORT void is_operator(Cursor& cursor);
+MINT_EXPORT void as_operator(Cursor& cursor);
 MINT_EXPORT void eq_operator(Cursor& cursor);
 MINT_EXPORT void ne_operator(Cursor& cursor);
 MINT_EXPORT void lt_operator(Cursor& cursor);

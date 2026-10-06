@@ -22,9 +22,12 @@
  */
 
 #include "mint/debug/debug_info.h"
+#include "mint/compiler/descriptions.h"
 #include "mint/program/module.h"
+#include <algorithm>
 #include <cstddef>
 #include <iterator>
+#include <memory>
 #include <set>
 #include <utility>
 
@@ -62,10 +65,21 @@ std::size_t DebugInfo::to_executable_line_number(std::size_t line_number) const 
 		}
 		executable_line_numbers.insert(executable_line_number);
 	}
-	if (auto it = executable_line_numbers.lower_bound(line_number); it != executable_line_numbers.end()) {
+	if (const auto it = executable_line_numbers.lower_bound(line_number); it != executable_line_numbers.end()) {
 		return *it;
 	}
 	return 0;
+}
+
+const FunctionInfo* mint::DebugInfo::find_function_from_description(const FunctionDescription& description) const {
+	if (const auto it = std::ranges::find(_functions, &description,
+	        [](const FunctionInfo& info) {
+		        return &info.description.get();
+	        });
+	    it != _functions.end()) {
+		return std::to_address(it);
+	}
+	return nullptr;
 }
 
 const FunctionInfo* mint::DebugInfo::find_function_from_line_number(std::size_t line_number) const {

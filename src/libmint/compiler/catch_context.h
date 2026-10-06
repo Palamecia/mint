@@ -29,7 +29,7 @@
 namespace mint {
 
 struct CatchContext {
-	Symbol* symbol = nullptr;
+	const Symbol* symbol = nullptr;
 };
 
 }

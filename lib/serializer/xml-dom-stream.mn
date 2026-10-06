@@ -449,7 +449,7 @@ package Serializer {
 	/**
 	 * Returns the exception informations as a string.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '%s : %s' % (self.name, self.message)
 	}
 
@@ -733,7 +733,7 @@ Serializer.XmlDomException.Messages = {
 	 * Inserts `node` before `child` in this node. If `child` is `none`, the
 	 * is inserted as the first child element.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def insertBefore(self, node, child = none) {
 		var index = defined child ? self.children.indexOf(child) : 0
@@ -748,7 +748,7 @@ Serializer.XmlDomException.Messages = {
 	 * Inserts the node `node` at the index given by `index`. If `index` is
 	 * negative, the position is relative to the end of this node.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def insert(self, index, node) {
 		if (typeof self) not in ('Serializer.XmlDomDocument', 'Serializer.XmlDomElement') {
@@ -770,7 +770,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Appends `node` at the end of this node.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def appendChild(self, node) {
 		if (typeof self) not in ('Serializer.XmlDomDocument', 'Serializer.XmlDomElement') {
@@ -793,7 +793,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Replaces the `child` node with `node` in this node.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def replaceChild(self, node, child) {
 		var index = self.children.indexOf(child)
@@ -807,7 +807,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Replaces the node at the given `index` with `node` in this node.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def replace(self, index, node) {
 		if not Serializer.XmlDomCharacterData.isBaseOf(node) and (typeof node) not in ('Serializer.XmlDomElement', 'Serializer.XmlDomDtd') {
@@ -826,7 +826,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Removes `node` from this node.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def removeChild(self, node) {
 		var index = self.children.indexOf(child)
@@ -840,7 +840,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Removes the node at the given `index` from this node.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def remove(self, index) {
 		self.children[index].parent = null
@@ -1080,7 +1080,7 @@ Serializer.XmlDomException.Messages = {
 	 * Returns a copy of `node`. If `deep` is `true`, the copy also includes the
 	 * `node`’s descendants.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def importNode(self, node, deep = false) {
 		if typeof node == 'Serializer.XmlDomDocument' {
@@ -1094,7 +1094,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Moves `node` from another document and returns it.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def adoptNode(self, node) {
 		if typeof node == 'Serializer.XmlDomDocument' {
@@ -1112,7 +1112,7 @@ Serializer.XmlDomException.Messages = {
 
 	/**
 	 * Creates a new instance of {Serializer.XmlDomAttribute} with the given
-	 * `qualifiedlName` for this document.
+	 * `qualifiedName` for this document.
 	 */
 	const def createAttribute(self, qualifiedName) {
 		var node = Serializer.XmlDomAttribute(qualifiedName)
@@ -1122,7 +1122,7 @@ Serializer.XmlDomException.Messages = {
 
 	/**
 	 * Creates a new instance of {Serializer.XmlDomAttribute} with the givens
-	 * `namespaceUri` and `qualifiedlName` for this document.
+	 * `namespaceUri` and `qualifiedName` for this document.
 	 */
 	const def createAttributeNS(self, namespaceUri, qualifiedName) {
 		var node = Serializer.XmlDomAttribute(namespaceUri, qualifiedName)
@@ -1133,7 +1133,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the string representation of the document.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		var str = ''
 		for var child in self.children {
 			str << child.toString()
@@ -1158,7 +1158,7 @@ Serializer.XmlDomException.Messages = {
 	}
 
 	/**
-	 * Returns the node's text content by concatenating its meaningfull value
+	 * Returns the node's text content by concatenating its meaningful value
 	 * with the value of each its descendants recursively.
 	 */
 	override const def getTextContent(const self) {
@@ -1174,7 +1174,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the string representation of the document fragment.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		var str = ''
 		for var child in self.children {
 			str << child.toString()
@@ -1266,7 +1266,7 @@ Serializer.XmlDomException.Messages = {
 	}
 
 	/**
-	 * Returns the node's text content by concatenating its meaningfull value
+	 * Returns the node's text content by concatenating its meaningful value
 	 * with the value of each its descendants recursively.
 	 */
 	override const def getTextContent(const self) {
@@ -1283,7 +1283,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the string representation of the attribute.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return self.attribute.toString()
 	}
 
@@ -1470,7 +1470,7 @@ Serializer.XmlDomException.Messages = {
 	 * Removes the first attribute with the given `qualifiedName`.
 	 */
 	const def removeNamedItem(self, const qualifiedName) {
-		if isDefined(var index = self.indexOf(qualifiedName)) {
+		if defined let index = self.indexOf(qualifiedName) {
 			self.attributes.remove(index)
 		}
 	}
@@ -1480,7 +1480,7 @@ Serializer.XmlDomException.Messages = {
 	 * `localName`.
 	 */
 	const def removeNamedItemNS(self, const namespaceUri, const localName) {
-		if isDefined(var index = self.indexOfNS(namespaceUri, localName)) {
+		if defined let index = self.indexOfNS(namespaceUri, localName) {
 			self.attributes.remove(index)
 		}
 	}
@@ -1514,7 +1514,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the string representation of the attribute list.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		var str = ''
 		for var attr in self.attributes {
 			str << ' ' << attr.toString()
@@ -1537,7 +1537,7 @@ Serializer.XmlDomException.Messages = {
 	const def new(self, qualifiedName) {
 		self.qualifiedName = qualifiedName
 		self.attributes = Serializer.XmlDomNamedNodeMap()
-		if isDefined(var pos = qualifiedName.indexOf(':')) {
+		if defined let pos = qualifiedName.indexOf(':') {
 			self.namespaceUri = qualifiedName[0...pos]
 			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
 		} else {
@@ -1553,7 +1553,7 @@ Serializer.XmlDomException.Messages = {
 		self.namespaceUri = namespaceUri
 		self.qualifiedName = qualifiedName
 		self.attributes = Serializer.XmlDomNamedNodeMap()
-		if isDefined(var pos = qualifiedName.indexOf(':')) {
+		if defined let pos = qualifiedName.indexOf(':') {
 			self.localName = qualifiedName[(pos + 1)...qualifiedName.size()]
 		} else {
 			self.localName = qualifiedName
@@ -1935,7 +1935,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the string representation of the element.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		
 		if self.children.isEmpty() {
 			return '<%s%s/>' % (self.localName, self.attributes.toString())
@@ -2033,7 +2033,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the substring of length `count` from position `offset`.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def substringData(const self, offset, count) {
 		if 0 > offset or offset >= self.data.size() {
@@ -2053,7 +2053,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Inserts the string `data` into the stored string at position `offset`.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def insertData(self, offset, data) {
 		if 0 > offset or offset >= self.data.size() {
@@ -2065,7 +2065,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Deletes a substring of length `count` from position `offset`.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def deleteData(self, offset, count) {
 		if 0 > offset or offset >= self.data.size() {
@@ -2079,7 +2079,7 @@ Serializer.XmlDomException.Messages = {
 	 * Replaces the substring of length `count` starting at position `offset`
 	 * with the string `data`.
 	 * 
-	 * An instance of {Serializer.XmlDomException} is raised on error.
+	 * Raises {Serializer.XmlDomException} on error.
 	 */
 	const def replaceData(self, offset, count, data) {
 		if 0 > offset or offset >= self.data.size() {
@@ -2208,7 +2208,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the string representation of the processing instruction.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '<?%s %s?>' % (self.name, self.data)
 	}
 
@@ -2261,7 +2261,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the string representation of the text node.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return Serializer.XmlStream.escapeString(self.getData())
 	}
 }
@@ -2281,7 +2281,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the string representation of the comment node.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '<!--%s-->' % self.getData()
 	}
 }
@@ -2300,7 +2300,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the string representation of the CDATA node.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '<![CDATA[%s]]>' % self.getData()
 	}
 }
@@ -2343,7 +2343,7 @@ Serializer.XmlDomException.Messages = {
 	/**
 	 * Returns the string representation of the DTD node.
 	 */
-	const def toString(const self) {
+	const def toString(const self) -> string {
 		return '<!DOCTYPE %s>' % self.content
 	}
 

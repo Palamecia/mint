@@ -136,7 +136,7 @@ load system.terminal
     }
 
     /**
-     * Adds a positionnal argument to look for while parsing.
+     * Adds a positional argument to look for while parsing.
      * 
      * The `name` parameter must be a string containing the name of the given
      * argument.
@@ -150,12 +150,12 @@ load system.terminal
      *   {CommandLineParser.Action} to apply to the target variable for this
      *   argument.
      */
-    const def addPositionnalArgument(self, name, options) {
+    const def addPositionalArgument(self, name, options) {
         var argument = CommandLineParser.Argument()
-        argument.type = CommandLineParser.Argument.Type.Positionnal
+        argument.type = CommandLineParser.Argument.Type.Positional
         argument.name = name
         argument.options = options
-        self.positionnalArguments << argument
+        self.positionalArguments << argument
     }
 
     /**
@@ -167,7 +167,7 @@ load system.terminal
      */
     const def parse(const self, args) {
         
-        var positionnalIndex = 0
+        var positionalIndex = 0
 
         self.script = System.File(args.next())
 
@@ -201,15 +201,15 @@ load system.terminal
                     }
                     argument.set()
                 }
-            } elif positionnalIndex < self.positionnalArguments.size() {
-                self.positionnalArguments[positionnalIndex++].set(argName)
+            } elif positionalIndex < self.positionalArguments.size() {
+                self.positionalArguments[positionalIndex++].set(argName)
             } else {
                 self.onError('unknown option -- %s' % name)
             }
         }
 
-        if positionnalIndex < self.positionnalArguments.size() {
-            self.onError('missing parameter <%s>' % self.positionnalArguments[positionnalIndex].name)
+        if positionalIndex < self.positionalArguments.size() {
+            self.onError('missing parameter <%s>' % self.positionalArguments[positionalIndex].name)
         }
     }
 
@@ -232,7 +232,7 @@ load system.terminal
             if not self.arguments.isEmpty() {
                 ' [OPTIONS]...'
             }
-            for var argument in self.positionnalArguments {
+            for let argument in self.positionalArguments {
                 ' <%s>' % argument.name
             }
             System.IO.reset()
@@ -240,16 +240,16 @@ load system.terminal
             if defined self.description {
                 '%s\n\n' % self.description
             }
-            if not self.positionnalArguments.isEmpty() {
-                for argument in self.positionnalArguments {
+            if not self.positionalArguments.isEmpty() {
+                for let argument in self.positionalArguments {
                     '%s\n' % argument.getHelp()
                 }
                 '\n'
             }
-            for argument in self.arguments {
+            for let argument in self.arguments {
                 '%s\n' % argument.getHelp()
             }
-            for argument in self.internalArguments {
+            for let argument in self.internalArguments {
                 '%s\n' % argument.getHelp()
             }
         }
@@ -317,8 +317,8 @@ load system.terminal
         enum Type {
             /// The argument is an option.
             Option
-            /// The argument is positionnal.
-            Positionnal
+            /// The argument is positional.
+            Positional
         }
 
         /// Argument type.
@@ -352,7 +352,7 @@ load system.terminal
                     name << (' <%s>' % parameter.join('>, <'))
                 }
                 break
-            case CommandLineParser.Argument.Type.Positionnal:
+            case CommandLineParser.Argument.Type.Positional:
                 name << '<%s>' % self.name
                 break
             }
@@ -464,6 +464,6 @@ load system.terminal
     /// Internal builtin arguments list.
     - final internalArguments = []
 
-    /// Internal positionnal arguments list.
-    - final positionnalArguments = []
+    /// Internal positional arguments list.
+    - final positionalArguments = []
 }

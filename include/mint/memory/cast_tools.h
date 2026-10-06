@@ -24,10 +24,12 @@
 #ifndef MINT_MEMORY_CAST_TOOLS_H
 #define MINT_MEMORY_CAST_TOOLS_H
 
+#include "mint/compiler/type_annotation.h"
 #include "mint/config.h"
 #include "mint/memory/garbage_collector.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/hash.h"
+#include "mint/memory/reference.h"
 
 #include <concepts>
 #include <cstdint>
@@ -40,6 +42,11 @@
 namespace mint {
 
 class Cursor;
+
+MINT_EXPORT Reference cast_to(Cursor& cursor, const Reference& ref, const TypeAnnotation& type);
+MINT_EXPORT Reference cast_to(Cursor& cursor, const Reference& ref, const PrimitiveType& type);
+MINT_EXPORT Reference cast_to(Cursor& cursor, const Reference& ref, const BuiltinType& type);
+MINT_EXPORT Reference cast_to(const Reference& ref, const UserType& type);
 
 MINT_EXPORT double to_number(Cursor& cursor, const Reference& ref);
 MINT_EXPORT double to_number(Cursor& cursor, Reference&& ref);

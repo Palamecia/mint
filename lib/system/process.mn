@@ -198,7 +198,7 @@ package System {
 		 * {@see setWorkingDirectory} functions. The parameters passed to this
 		 * method are used as command line arguments for the started process.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def exec(self, ...) {
 			if self.start(*va_args) {
@@ -216,7 +216,7 @@ package System {
 		 * parameters passed to this method are used as command line arguments
 		 * for the started process.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def start(self, ...) {
 			if not defined self.handle {
@@ -261,7 +261,7 @@ package System {
 		 * `true` if the request was successfully sent to the process; otherwise
 		 * returns `false`. The process must be running.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def kill(self) {
 			if defined self.handle {
@@ -280,7 +280,7 @@ package System {
 		 * request was successfully sent to the process; otherwise returns
 		 * `false`. The process must be running.
 		 * 
-		 * An instance of {Exception.SystemError} is raised on error.
+		 * Raises {Exception.SystemError} on error.
 		 */
 		const def terminate(self) {
 			if defined self.handle {
@@ -334,7 +334,7 @@ package System {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-system')
+		- @const g_lib: library = lib('libmint-system')
 
 		/// Global instance of current process.
 		- @g_current = none
@@ -368,14 +368,14 @@ package System {
 	 * Executes the commande line `command` as if passed to a terminal. Returns
 	 * the exit code of the command.
 	 */
-	@def [g_lib = lib('libmint-system')] exec(command) {
+	@def [g_lib: library = lib('libmint-system')] exec(command) {
 		return g_lib.call('mint_process_exec', command)
 	}
 
 	/**
 	 * Returns the PID of the current process.
 	 */
-	@def [g_lib = lib('libmint-system')] getpid() {
+	@def [g_lib: library = lib('libmint-system')] getpid() {
 		return g_lib.call('mint_process_getpid')
 	}
 

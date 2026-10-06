@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "mint/memory/object.h"
 #include "mint/program/cursor.h"
 #include "mint/program/symbol.h"
 #include "mint/memory/builtin/libobject.h"
@@ -106,16 +107,26 @@ std::chrono::zoned_time<Duration> to_zoned_time(mint::Cursor& cursor, const mint
 	return {};
 }
 
-mint::Reference mint_timezone_locate(mint::Cursor& cursor, const mint::Reference& name) {
+mint::Reference mint_timezone_locate(mint::FunctionHelper& helper, const mint::Reference& name) {
 	const auto name_str = to_string(name);
 	if (auto offset = to_offset(name_str)) {
 		return mint::create_signed_number(offset->count());
 	}
 	try {
-		return mint::create_c_object(cursor.program(), std::chrono::locate_zone(name_str));
+		const auto& tzdb = std::chrono::get_tzdb();
+		try {
+			return mint::create_c_object(helper.cursor().program(), tzdb.locate_zone(name_str));
+		}
+		catch (const std::runtime_error& error) {
+			return helper.scheduler()
+			    .invoke(helper.reference("Exception").member("ValueError")->data<mint::Object>().metadata,
+			        mint::create_string(helper.cursor().program(), error.what()), name);
+		}
 	}
-	catch (std::runtime_error&) {
-		return {};
+	catch (const std::runtime_error& error) {
+		return helper.scheduler()
+		    .invoke(helper.reference("Exception").member("RuntimeError")->data<mint::Object>().metadata,
+		        mint::create_string(helper.cursor().program(), error.what()));
 	}
 }
 

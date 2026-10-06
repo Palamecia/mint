@@ -475,7 +475,8 @@ mint::Reference mint_socket_setup_options(mint::Cursor& /*cursor*/, const mint::
 #define BIND_SO_VALUE(_enum, _option) \
 	_enum.data<mint::Object>().metadata.find_global(#_option)->value.data<mint::Number>().value = SO_##_option
 #define BIND_SO_DISABLE(_enum, _option) \
-	_enum.data<mint::Object>().metadata.find_global(#_option)->value.move_data(mint::create_none())
+	(const_cast<mint::Reference&>((_enum).data<mint::Object>().metadata.find_global(#_option)->value) \
+	        .move_data(mint::create_none()))
 
 #ifdef SO_BROADCAST
 	BIND_SO_VALUE(socket_option, BROADCAST);

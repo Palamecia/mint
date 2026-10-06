@@ -24,8 +24,12 @@
 #include "mint/system/file_stream.h"
 #include "mint/system/filesystem.h"
 
+#include <cerrno>
 #include <cstdio>
 #include <filesystem>
+#include <fstream>
+#include <string>
+#include <system_error>
 
 using namespace mint;
 
@@ -44,6 +48,27 @@ bool FileStream::at_end() const {
 	return _over;
 }
 
+std::string FileStream::get_line(std::size_t line_number) {
+	if (line_number == 0) {
+		return {};
+	}
+	errno = 0;
+	auto file = std::ifstream(_path);
+	if (!file.is_open()) {
+		throw std::system_error(errno ? errno : EIO, std::system_category(), _path.string());
+	}
+	auto line = std::string();
+	for (auto current_line = std::size_t {1}; std::getline(file, line); ++current_line) {
+		if (current_line == line_number) {
+			return line;
+		}
+	}
+	if (file.bad()) {
+		throw std::system_error(errno, std::system_category(), _path.string());
+	}
+	return {};
+}
+
 bool FileStream::is_valid() const {
 	return _file != nullptr;
 }
@@ -54,7 +79,7 @@ std::filesystem::path FileStream::path() const {
 
 int FileStream::read_char() {
 
-	const auto c = next_buffered_char();
+	const auto c = fgetc(_file);
 
 	switch (c) {
 	case EOF:
@@ -65,8 +90,4 @@ int FileStream::read_char() {
 	}
 
 	return c;
-}
-
-int FileStream::next_buffered_char() {
-	return fgetc(_file);
 }

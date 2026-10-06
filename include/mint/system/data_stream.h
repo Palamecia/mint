@@ -36,6 +36,11 @@ namespace mint {
 
 class MINT_EXPORT DataStream {
 public:
+	struct Position {
+		std::size_t line = 1;
+		std::size_t offset = 0;
+	};
+
 	DataStream() = default;
 	DataStream(DataStream&&) = default;
 	DataStream(const DataStream&) = default;
@@ -46,17 +51,19 @@ public:
 
 	int get_char();
 	[[nodiscard]] virtual bool at_end() const = 0;
+	[[nodiscard]] virtual std::string get_line(std::size_t line_number) = 0;
 
 	[[nodiscard]] virtual bool is_valid() const = 0;
 	[[nodiscard]] virtual std::filesystem::path path() const = 0;
 
 	void set_new_line_callback(const std::function<void(std::size_t)>& callback);
 	[[nodiscard]] std::size_t line_number() const;
+	[[nodiscard]] Position position() const;
 	[[nodiscard]] std::string line_error();
+	[[nodiscard]] std::string line_error(Position position);
 
 protected:
 	virtual int read_char() = 0;
-	virtual int next_buffered_char() = 0;
 
 private:
 	void begin_line();
@@ -69,9 +76,9 @@ private:
 
 	std::function<void(std::size_t)> _new_line_callback = [](std::size_t) {};
 	std::size_t _line_number = 1;
+	std::size_t _line_offset = 0;
+	std::size_t _last_line_offset = 0;
 	State _state = State::state_new_line;
-
-	std::string _cached_line;
 };
 
 }

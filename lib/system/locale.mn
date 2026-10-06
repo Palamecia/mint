@@ -27,6 +27,7 @@
  */
 
 load mint.type
+load exception.system
 
 package System {
 
@@ -115,33 +116,41 @@ package System {
 	/**
 	 * Creates a new object for the locale identified by `desc`. The `desc`
 	 * parameter must be a valid locale name or an instance of {System.Locale}.
+	 * 
+	 * Raises {Exception.SystemError} on error.
 	 */
 	const def new(self, desc) {
 		switch typeof desc {
 		case 'System.Locale':
 			return desc
+		case 'libobject':
+			self.d_ptr = desc
+			return self
 		default:
-			self.name = string(desc)
-			if self.locale = System.Locale.g_lib.call('mint_locale_create', self.name) {
-				self.locale.delete = def [g_lib = System.Locale.g_lib] (self) {
-					g_lib.call('mint_locale_delete', self)
-				}
-				return self
+			self.name = desc.toString()
+			let (errno, d_ptr) = System.Locale.g_lib.call('mint_locale_create', self.name)
+			if errno {
+				raise Exception.SystemError(errno, self)
 			}
+			self.d_ptr = d_ptr
+			self.d_ptr.delete = def [g_lib = System.Locale.g_lib] (self) {
+				g_lib.call('mint_locale_delete', self)
+			}
+			return self
 		}
 	}
 
 	/**
 	 * Returns the locale used by this application.
 	 */
-	@const def current() {
-		return System.Locale(System.Locale.g_lib.call('mint_locale_current_name'))
+	@const def current() -> System.Locale {
+		return System.Locale(System.Locale.g_lib.call('mint_locale_current'))
 	}
 
 	/**
 	 * Changes the locale used by this application to `locale`.
 	 * 
-	 * An instance of {Exception.SystemError} is raised on error.
+	 * Raises {Exception.SystemError} on error.
 	 */
 	@const def setCurrent(self, locale) {
 		var locale = System.Locale(locale)
@@ -168,34 +177,76 @@ package System {
 	 * Returns the localized name of the `day`, in the format specified by `type`.
 	 * 
 	 * The value of `day` can be a value from the {System.WeekDay} enum.
+	 * 
+	 * Raises {Exception.SystemError} on error.
 	 */
 	const def dayName(const self, day, type = System.DateFormat.Long) {
-		return System.Locale.g_lib.call('mint_locale_day_name', self.locale, day, type)
+		switch type {
+		case System.DateFormat.Short:
+			let (errno, value) = System.Locale.g_lib.call('mint_locale_abbreviated_day_name', self.d_ptr, day)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return value
+		case System.DateFormat.Long:
+			let (errno, value) = System.Locale.g_lib.call('mint_locale_day_name', self.d_ptr, day)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return value
+		}
 	}
 
 	/**
 	 * Returns the localized name of `month`, in the format specified by `type`.
 	 * 
 	 * The value of `month` can be a value from the {System.Month} enum.
+	 * 
+	 * Raises {Exception.SystemError} on error.
 	 */
 	const def monthName(const self, month, type = System.DateFormat.Long) {
-		return System.Locale.g_lib.call('mint_locale_month_name', self.locale, month, type)
+		switch type {
+		case System.DateFormat.Short:
+			let (errno, value) = System.Locale.g_lib.call('mint_locale_abbreviated_month_name', self.d_ptr, month)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return value
+		case System.DateFormat.Long:
+			let (errno, value) = System.Locale.g_lib.call('mint_locale_month_name', self.d_ptr, month)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return value
+		}
 	}
 
 	/**
 	 * Returns the localized name of the "AM" suffix for times specified using
 	 * the conventions of the 12-hour clock.
+	 * 
+	 * Raises {Exception.SystemError} on error.
 	 */
 	const def amName(const self) {
-		return System.Locale.g_lib.call('mint_locale_am_name', self.locale)
+		let (errno, value) = System.Locale.g_lib.call('mint_locale_am_name', self.d_ptr)
+		if errno {
+			raise Exception.SystemError(errno, self)
+		}
+		return value
 	}
 
 	/**
 	 * Returns the localized name of the "PM" suffix for times specified using
 	 * the conventions of the 12-hour clock.
+	 * 
+	 * Raises {Exception.SystemError} on error.
 	 */
 	const def pmName(const self) {
-		return System.Locale.g_lib.call('mint_locale_pm_name', self.locale)
+		let (errno, value) = System.Locale.g_lib.call('mint_locale_pm_name', self.d_ptr)
+		if errno {
+			raise Exception.SystemError(errno, self)
+		}
+		return value
 	}
 
 	/**
@@ -203,9 +254,56 @@ package System {
 	 * format specified by `type`.
 	 * 
 	 * The value of `type` can be a value from the {System.DateType} enum.
+	 * 
+	 * Raises {Exception.SystemError} on error.
 	 */
 	const def dateFormat(const self, type = System.DateType.DateAndTime) {
-		return System.Locale.g_lib.call('mint_locale_date_format', self.locale, type)
+		switch type {
+		case System.DateType.Date:
+			let (errno, value) = System.Locale.g_lib.call('mint_locale_date_format', self.d_ptr)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return value
+		case System.DateType.Time:
+			let (errno, value) = System.Locale.g_lib.call('mint_locale_time_format', self.d_ptr)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return value
+		case System.DateType.DateAndTime:
+			let (errno, value) = System.Locale.g_lib.call('mint_locale_date_time_format', self.d_ptr)
+			if errno {
+				raise Exception.SystemError(errno, self)
+			}
+			return value
+		}
+	}
+
+	/**
+	 * Returns the localized decimal point string.
+	 * 
+	 * Raises {Exception.SystemError} on error.
+	 */
+	const def decimalPoint(const self) {
+		let (errno, value) = System.Locale.g_lib.call('mint_locale_decimal_point', self.d_ptr)
+		if errno {
+			raise Exception.SystemError(errno, self)
+		}
+		return value
+	}
+
+	/**
+	 * Returns the localized thousands separator string.
+	 * 
+	 * Raises {Exception.SystemError} on error.
+	 */
+	const def thousandsSeparator(const self) {
+		let (errno, value) = System.Locale.g_lib.call('mint_locale_thousands_separator', self.d_ptr)
+		if errno {
+			raise Exception.SystemError(errno, self)
+		}
+		return value
 	}
 
 	// TODO other locale informations
@@ -213,30 +311,28 @@ package System {
 	/**
 	 * Returns `true` if the locale described by `other` and this object are
 	 * the same locale; otherwise returns `false`.
+	 * 
+	 * Raises {Exception.SystemError} on error.
 	 */
 	const def ==(const self, const other) {
-		if var locale = System.Locale(other) {
-			return self.name == locale.name
-		}
-		return false
+		return self.name == System.Locale(other).name
 	}
 
 	/**
 	 * Returns `false` if the locale described by `other` and this object are
 	 * the same locale; otherwise returns `true`.
+	 * 
+	 * Raises {Exception.SystemError} on error.
 	 */
 	const def !=(const self, const other) {
-		if var locale = System.Locale(other) {
-			return self.name != locale.name
-		}
-		return true
+		return self.name != System.Locale(other).name
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-system')
+	- @const g_lib: library = lib('libmint-system')
 
 	/// Internal locale informations.
-	- final locale = null
+	- final d_ptr = null
 
 	/// Internal locale name.
 	- final name = ''

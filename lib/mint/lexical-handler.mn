@@ -39,6 +39,8 @@ load serializer.string-stream
 	 * This enum describes the token types used in the {@see onToken} method.
 	 */
 	enum Token {
+		/// The token is an `as` operator.
+		As
 		/// The token is an `assert` keyword.
 		Assert
 		/// The token is an `async` keyword.
@@ -406,7 +408,7 @@ load serializer.string-stream
 	}
 
 	/// Global library handle.
-	- @const g_lib = lib('libmint-mint')
+	- @const g_lib: library = lib('libmint-mint')
 
 	/// Object data.
 	- final d_ptr = null

@@ -31,6 +31,7 @@
 namespace mint {
 
 enum class Token : std::uint8_t {
+	as_token,
 	assert_token,
 	async_token,
 	await_token,

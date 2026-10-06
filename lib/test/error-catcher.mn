@@ -47,11 +47,11 @@ package Test {
 		/**
 		 * Returns the runtime error message.
 		 */
-		const def toString(const self) {
+		const def toString(const self) -> string {
 			return self.message
 		}
 
-		/// Internal error mesage.
+		/// Internal error message.
 		- final message = none
 	}
 
@@ -87,7 +87,7 @@ package Test {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-test')
+		- @const g_lib: library = lib('libmint-test')
 
 		/// Internal context.
 		- final d_ptr = null

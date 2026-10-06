@@ -30,6 +30,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <gsl/pointers>
+#include <string>
 
 namespace mint {
 
@@ -44,13 +45,13 @@ public:
 	FileStream& operator=(const FileStream&) = delete;
 
 	[[nodiscard]] bool at_end() const override;
+	[[nodiscard]] std::string get_line(std::size_t line_number) override;
 
 	[[nodiscard]] bool is_valid() const override;
 	[[nodiscard]] std::filesystem::path path() const override;
 
 protected:
 	int read_char() override;
-	int next_buffered_char() override;
 
 private:
 	gsl::owner<FILE*> _file;

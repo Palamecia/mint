@@ -84,6 +84,8 @@ package Network {
 		 * is returned as the new instance, or an instance of the `linger` C
 		 * struct. The parameter can also provide a `toSocketLinger` method that
 		 * will be used to create the object.
+		 *
+		 * Raises {Exception.ValueError} if `data` cannot be converted to a valid linger value.
 		 */
 		const def new(self, data) {
 			switch typeof data {
@@ -97,9 +99,10 @@ package Network {
 				return self
 			default:
 				if defined data.toSocketLinger {
-					return data.toSocketLinger()
+					return data.toSocketLinger() as Network.SocketLinger
 				}
 			}
+			raise Exception.ValueError('data must be a valid socket linger value', data)
 		}
 
 		/**
@@ -108,7 +111,9 @@ package Network {
 		 * specified amount of time after closed to enable queued data to be sent.
 		 * The `linger_time` parameter must be a number used, if enabled, to sets
 		 * the linger time in seconds. This value specifies how long to remain open
-		 * after a closesocket function call to enable queued data to be sent.
+		 * after a `closesocket` function call to enable queued data to be sent.
+		 *
+		 * Raises {Exception.ValueError} on error.
 		 */
 		const def new(self, const enable, const linger_time) {
 			self.d_ptr = Network.SocketLinger.g_lib.call('mint_socket_linger_create', enable, linger_time)
@@ -160,7 +165,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -176,6 +181,8 @@ package Network {
 		 * the object is returned as the new instance, or an instance of the
 		 * `timeval` C struct. The parameter can also provide a `toTime` method
 		 * that will be used to create the object.
+		 *
+		 * Raises {Exception.ValueError} if `data` cannot be converted to a valid time value.
 		 */
 		const def new(self, data) {
 			switch typeof data {
@@ -188,10 +195,11 @@ package Network {
 				}
 				return self
 			default:
-				if defined data.toTime {
-					return data.toTime()
+				if defined data.toSocketTime {
+					return data.toSocketTime() as Network.SocketTime
 				}
 			}
+			raise Exception.ValueError('data must be a valid socket time value', data)
 		}
 
 		/**
@@ -203,7 +211,7 @@ package Network {
 		 */
 		const def new(self, const sec, const usec) {
 			self.d_ptr = Network.SocketTime.g_lib.call('mint_socket_timeval_create', sec, usec)
-			self.d_ptr.delete = def [g_lib = Network.Time.g_lib] (self) {
+			self.d_ptr.delete = def [g_lib = Network.SocketTime.g_lib] (self) {
                 g_lib.call('mint_socket_timeval_delete', self)
             }
 			return self
@@ -249,7 +257,7 @@ package Network {
 		}
 
         /// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Object data.
 		- final d_ptr = null
@@ -332,7 +340,7 @@ package Network {
 		 * 
 		 * On success, the socket enter the {Network.Socket.State.Closed} state.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def close(self) {
 			if not self.isOpen() {
@@ -354,7 +362,7 @@ package Network {
 		}
 
 		/**
-		 * Returns the socket's handle as an instance of `mint::handle_t` or `none` if the socket has no handle.
+		 * Returns the socket's valid handle as an instance of `mint::handle_t`, or `none` while the socket is not open.
 		 */
 		const def getHandle(const self) {
 			return self.handle
@@ -440,7 +448,7 @@ package Network {
 		 * Returns the value of the socket option described by `option`. The `option` parameter must be a value of the
 		 * {Network.SocketOption} enum.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def getSocketOption(self, %option) {
 			if not defined option {
@@ -502,7 +510,7 @@ package Network {
 		 * Sets the value of the socket option described by `option` to `value`. The `option` parameter must be a value
 		 * of the {Network.SocketOption} enum.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def setSocketOption(self, %option, value) {
 			if not defined option {
@@ -595,7 +603,7 @@ package Network {
 		var def onState(self, %state) {}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal endpoint object.
 		- final endpoint = none
@@ -671,7 +679,7 @@ package Network {
 		}
 
 		/**
-		 * Returns the socket's handle as an instance of `mint::handle_t` or `none` if the socket has no handle.
+		 * Returns the socket's valid handle as an instance of `mint::handle_t`, or `none` while the socket is not open.
 		 */
 		const def getHandle(const self) {
 			return self.socket.getHandle()
@@ -740,7 +748,7 @@ package Network {
 		 * Returns the value of the socket option described by `option`. The `option` parameter must be a value of the
 		 * {Network.SocketOption} enum.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def getSocketOption(self, %option) {
 			return self.socket.getSocketOption(option)
@@ -750,7 +758,7 @@ package Network {
 		 * Sets the value of the socket option described by `option` to `value`. The `option` parameter must be a value
 		 * of the {Network.SocketOption} enum.
 		 * 
-		 * An instance of {Exception.SocketError} is raised on error.
+		 * Raises {Exception.SocketError} on error.
 		 */
 		const def setSocketOption(self, %option, value) {
 			return self.socket.setSocketOption(option, value)
@@ -771,7 +779,7 @@ package Network {
 		}
 
 		/// Global library handle.
-		- @const g_lib = lib('libmint-network')
+		- @const g_lib: library = lib('libmint-network')
 
 		/// Internal socket object.
 		- final socket = null
@@ -781,5 +789,5 @@ package Network {
 	}
 }
 
-const g_lib = lib('libmint-network')
+const g_lib: library = lib('libmint-network')
 g_lib.call('mint_socket_setup_options', Network.SocketOption)

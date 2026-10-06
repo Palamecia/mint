@@ -30,13 +30,12 @@
 #include <chrono>
 #include <cstdlib>
 #include <format>
-#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <tuple>
 
 #ifdef MINT_OS_WINDOWS
-#include <utility>
 #include <Windows.h>
 #include <__msvc_chrono.hpp>
 #include <minwinbase.h>
@@ -60,7 +59,8 @@ template<class Duration>
 Duration to_duration(const std::string& str, Duration min, Duration max) {
 	const auto duration = Duration(std::stoi(str));
 	if (duration < min || duration > max) {
-		throw std::runtime_error("date format is not valid");
+		throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+		;
 	}
 	return duration;
 }
@@ -71,7 +71,8 @@ std::tuple<std::chrono::month, std::chrono::day> week_number_to_month_and_day(st
 	                                              - (std::chrono::Thursday - std::chrono::Monday)
 	                                              + std::chrono::weeks(week_number - 1) + (day - std::chrono::Monday));
 	if (!date.ok()) {
-		throw std::runtime_error("date format is not valid");
+		throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+		;
 	}
 	return {date.month(), date.day()};
 }
@@ -80,7 +81,8 @@ std::tuple<std::chrono::month, std::chrono::day> year_day_to_month_and_day(std::
 	const auto date = std::chrono::year_month_day(
 	    std::chrono::sys_days(year / std::chrono::January / 1) + std::chrono::days(year_day - 1));
 	if (!date.ok()) {
-		throw std::runtime_error("date format is not valid");
+		throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+		;
 	}
 	return {date.month(), date.day()};
 }
@@ -155,7 +157,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token, 0h, 23h);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_minutes;
 				token.clear();
@@ -166,7 +169,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token, 0min, 59min);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_seconds;
 				token.clear();
@@ -177,7 +181,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					offset -= to_duration(token, 0h, 23h);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_negative_offset_minutes;
 				token.clear();
@@ -188,13 +193,15 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					offset += to_duration(token, 0h, 23h);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_positive_offset_minutes;
 				token.clear();
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case '-':
@@ -205,7 +212,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					year = std::chrono::year(std::stoi(token));
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_year_fraction;
 				token.clear();
@@ -216,7 +224,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					month = std::chrono::month(std::stoi(token));
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_month_day;
 				token.clear();
@@ -227,7 +236,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					week_number = std::stoi(token);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_week_day;
 				token.clear();
@@ -247,7 +257,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token.substr(4, 2), 0s, 59s);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_negative_offset;
 				token.clear();
@@ -258,7 +269,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token, 0min, 59min);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_negative_offset;
 				token.clear();
@@ -269,21 +281,23 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token, 0s, 59s);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_negative_offset;
 				token.clear();
 				break;
 			case State::read_seconds_fraction:
 				while (token.length() < 3) {
-					token += "0";
+					token += '0';
 				}
 				time += to_duration(token.substr(0, 3), 0ms, 999ms);
 				state = State::read_negative_offset;
 				token.clear();
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case '+':
@@ -303,7 +317,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token.substr(4, 2), 0s, 59s);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_positive_offset;
 				token.clear();
@@ -314,7 +329,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token, 0min, 59min);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_positive_offset;
 				token.clear();
@@ -325,21 +341,23 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token, 0s, 59s);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_positive_offset;
 				token.clear();
 				break;
 			case State::read_seconds_fraction:
 				while (token.length() < 3) {
-					token += "0";
+					token += '0';
 				}
 				time += to_duration(token.substr(0, 3), 0ms, 999ms);
 				state = State::read_positive_offset;
 				token.clear();
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case 'T':
@@ -372,7 +390,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					day = std::chrono::day(std::stoi(token.substr(6, 2)));
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_time;
 				token.clear();
@@ -386,7 +405,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					std::tie(month, day) = year_day_to_month_and_day(year, std::stoi(token));
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_time;
 				token.clear();
@@ -397,7 +417,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					day = std::chrono::day(std::stoi(token));
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_time;
 				token.clear();
@@ -409,7 +430,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					    std::chrono::weekday(std::stoi(token.substr(2, 1))));
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_time;
 				token.clear();
@@ -421,13 +443,15 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					    std::chrono::weekday(std::stoi(token)));
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_time;
 				token.clear();
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case 'W':
@@ -438,13 +462,15 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					year = std::chrono::year(std::stoi(token));
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				break;
 			case State::read_year_fraction:
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			state = State::read_week;
 			token.clear();
@@ -466,7 +492,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token.substr(4, 2), 0s, 59s);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_end;
 				token.clear();
@@ -477,7 +504,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token, 0min, 59min);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_end;
 				token.clear();
@@ -488,21 +516,23 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token, 0s, 59s);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				state = State::read_end;
 				token.clear();
 				break;
 			case State::read_seconds_fraction:
 				while (token.length() < 3) {
-					token += "0";
+					token += '0';
 				}
 				time += to_duration(token.substr(0, 3), 0ms, 999ms);
 				state = State::read_end;
 				token.clear();
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case '.':
@@ -523,7 +553,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token.substr(4, 2), 0s, 59s);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				break;
 			case State::read_seconds:
@@ -532,17 +563,20 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 					time += to_duration(token, 0s, 59s);
 					break;
 				default:
-					throw std::runtime_error("date format is not valid");
+					throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+					;
 				}
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			state = State::read_seconds_fraction;
 			token.clear();
 			break;
 		default:
-			throw std::runtime_error("date format is not valid");
+			throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+			;
 		}
 	}
 
@@ -567,7 +601,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				day = std::chrono::day(std::stoi(token.substr(6, 2)));
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_year_fraction:
@@ -579,7 +614,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				std::tie(month, day) = year_day_to_month_and_day(year, std::stoi(token));
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_month_day:
@@ -588,7 +624,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				day = std::chrono::day(std::stoi(token));
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_week:
@@ -598,7 +635,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				    std::chrono::weekday(std::stoi(token.substr(2, 1))));
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_week_day:
@@ -608,7 +646,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				    std::chrono::weekday(std::stoi(token)));
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_time:
@@ -626,7 +665,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				time += to_duration(token.substr(4, 2), 0s, 59s);
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_minutes:
@@ -635,7 +675,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				time += to_duration(token, 0min, 59min);
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_seconds:
@@ -644,12 +685,13 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				time += to_duration(token, 0s, 59s);
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_seconds_fraction:
 			while (token.length() < 3) {
-				token += "0";
+				token += '0';
 			}
 			time += to_duration(token.substr(0, 3), 0ms, 999ms);
 			break;
@@ -660,7 +702,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				offset -= to_duration(token.substr(2, 2), 0min, 59min);
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_negative_offset_minutes:
@@ -669,7 +712,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				offset -= to_duration(token, 0min, 59min);
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_positive_offset:
@@ -679,7 +723,8 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				offset += to_duration(token.substr(2, 2), 0min, 59min);
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		case State::read_positive_offset_minutes:
@@ -688,17 +733,20 @@ std::tuple<std::string, std::chrono::sys_time<std::chrono::milliseconds>> parse_
 				offset += to_duration(token, 0min, 59min);
 				break;
 			default:
-				throw std::runtime_error("date format is not valid");
+				throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+				;
 			}
 			break;
 		default:
-			throw std::runtime_error("date format is not valid");
+			throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+			;
 		}
 	}
 
 	const auto date = std::chrono::year_month_day(year, month, day);
 	if (!date.ok()) {
-		throw std::runtime_error("date format is not valid");
+		throw std::system_error(std::make_error_code(std::errc::invalid_argument));
+		;
 	}
 
 	auto time_point = std::chrono::sys_days(date) + time;
@@ -816,12 +864,12 @@ mint::Reference mint_date_equals(mint::Cursor& /*cursor*/, const mint::Reference
 mint::Reference mint_parse_iso_date(mint::Cursor& cursor, const mint::Reference& date) {
 	try {
 		const auto [timezone, timepoint] = parse_iso_date(mint::to_string(date));
-		return mint::create_iterator_from(cursor,
+		return mint::create_iterator_from(cursor, mint::create_number(0),
 		    mint::create_c_object(cursor.program(), new std::chrono::sys_time<std::chrono::milliseconds>(timepoint)),
 		    mint::create_string(cursor.program(), timezone));
 	}
-	catch (const std::runtime_error&) {
-		return {};
+	catch (const std::system_error& error) {
+		return mint::create_iterator_from(cursor, mint::create_number(error.code().value()));
 	}
 }
 

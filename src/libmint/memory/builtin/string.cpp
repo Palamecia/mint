@@ -22,6 +22,7 @@
  */
 
 #include "mint/memory/builtin/string.h"
+#include "mint/compiler/type_annotation.h"
 #include "mint/memory/builtin/array.h"
 #include "mint/memory/builtin/iterator.h"
 #include "mint/memory/algorithm.h"
@@ -30,6 +31,7 @@
 #include "mint/memory/data.h"
 #include "mint/memory/function_tools.h"
 #include "mint/program/function_literal.h"
+#include "mint/program/module.h"
 #include "mint/program/program.h"
 #include "mint/program/cursor.h"
 #include "mint/memory/memory_tools.h"
@@ -504,6 +506,160 @@ std::string string_format_brace(Cursor& cursor, std::string_view format, Iterato
 	return dest;
 }
 
+ClassDescription make_description() {
+	auto description = ClassDescription(Module::invalid_id, "string");
+	description.create_method(get_operator_symbol(Class::copy_operator), BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::regex_match_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "expr"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::regex_unmatch_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "expr"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::add_operator), BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::mul_operator), BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "count"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::mod_operator), BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "values"})
+	    .set_required_parameter_count(2);
+	description.create_method("format", BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .set_required_parameter_count(1)
+	    .set_variadic(true);
+	description.create_method(get_operator_symbol(Class::shift_left_operator), BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::eq_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::ne_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::lt_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::gt_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::le_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::ge_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::subscript_operator), BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "index"})
+	    .set_required_parameter_count(2);
+	description.create_method(get_operator_symbol(Class::subscript_move_operator), BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "index"})
+	    .add_parameter({.name = "value"})
+	    .set_required_parameter_count(3);
+	description.create_method("insert", BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "index"})
+	    .add_parameter({.name = "value"})
+	    .set_required_parameter_count(3);
+	description.create_method(get_operator_symbol(Class::in_operator), BuiltinTypeKind::iterator)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .set_required_parameter_count(1);
+	description.create_method(get_operator_symbol(Class::in_operator), PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "substr"})
+	    .set_required_parameter_count(2);
+	description.create_method("each", PrimitiveTypeKind::none)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "func"})
+	    .set_required_parameter_count(2);
+	description.create_method("isEmpty", PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .set_required_parameter_count(1);
+	description.create_method("size", PrimitiveTypeKind::number)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .set_required_parameter_count(1);
+	description.create_method("clear", PrimitiveTypeKind::none)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .set_required_parameter_count(1);
+	description.create_method("substring", BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "from"})
+	    .set_required_parameter_count(2);
+	description.create_method("substring", BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "from"})
+	    .add_parameter({.name = "length"})
+	    .set_required_parameter_count(3);
+	description.create_method("replace", BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "pattern"})
+	    .add_parameter({.name = "value"})
+	    .set_required_parameter_count(3);
+	description.create_method("replace", BuiltinTypeKind::string)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "from"})
+	    .add_parameter({.name = "length"})
+	    .add_parameter({.name = "value"})
+	    .set_required_parameter_count(4);
+	description.create_method("contains", PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "substr"})
+	    .set_required_parameter_count(2);
+	description.create_method("indexOf", make_union(PrimitiveTypeKind::number, PrimitiveTypeKind::none))
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("indexOf", make_union(PrimitiveTypeKind::number, PrimitiveTypeKind::none))
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .add_parameter({.name = "from"})
+	    .set_required_parameter_count(3);
+	description.create_method("lastIndexOf", make_union(PrimitiveTypeKind::number, PrimitiveTypeKind::none))
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("lastIndexOf", make_union(PrimitiveTypeKind::number, PrimitiveTypeKind::none))
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .add_parameter({.name = "from"})
+	    .set_required_parameter_count(3);
+	description.create_method("startsWith", PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("endsWith", PrimitiveTypeKind::boolean)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "other"})
+	    .set_required_parameter_count(2);
+	description.create_method("split", BuiltinTypeKind::array)
+	    .add_parameter({.name = "self", .type = BuiltinTypeKind::string})
+	    .add_parameter({.name = "sep"})
+	    .set_required_parameter_count(2);
+	return description;
+}
+
+}
+
+ClassDescription& mint::StringClass::description() {
+	static auto g_description = make_description();
+	return g_description;
 }
 
 StringClass& StringClass::instance(Program& program) {
@@ -544,7 +700,7 @@ String& String::operator=(const String& other) {
 }
 
 StringClass::StringClass(Program& program) :
-    Class(program.global_data(), "string", Class::Metatype::string) {
+    Class(program.global_data(), description(), Class::Metatype::string) {
 
 	create_builtin_member(copy_operator, program.create_builtin_method(*this, 2, [](Cursor& cursor) {
 		const auto base = get_stack_base(cursor);
@@ -727,14 +883,6 @@ StringClass::StringClass(Program& program) :
 		Reference result = create_boolean(self.data<String>().str >= to_string(rvalue));
 
 		cursor.stack().pop_back();
-		cursor.stack().pop_back();
-		cursor.stack().emplace_back(std::forward<Reference>(result));
-	}));
-
-	create_builtin_member(not_operator, program.create_builtin_method(*this, 1, [](Cursor& cursor) {
-		const Reference& self = cursor.stack().back();
-		Reference result = create_boolean(self.data<String>().str.empty());
-
 		cursor.stack().pop_back();
 		cursor.stack().emplace_back(std::forward<Reference>(result));
 	}));

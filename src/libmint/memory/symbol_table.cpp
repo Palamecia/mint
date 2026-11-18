@@ -27,6 +27,7 @@
 #include "mint/memory/global_data.h"
 #include "mint/memory/class.h"
 #include "mint/memory/reference.h"
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <memory>
@@ -53,10 +54,12 @@ GlobalData& SymbolTable::get_global_data() const {
 }
 
 Reference& SymbolTable::create_fast_reference(const Symbol& name, std::size_t index) {
-	return *(_fasts[index] = std::make_unique<Reference>(get_symbol(*this, name)));
+	return _fasts[index].emplace(get_symbol(*this, name));
 }
 
 Reference& SymbolTable::create_fast_reference(Reference::Flags flags, const Symbol& name, std::size_t index) {
-	return *(
-	    _fasts[index] = std::make_unique<Reference>(_symbols.insert_or_assign(name, Reference(flags)).first->second));
+	if (const auto it = std::ranges::find(_symbols, name, &symbol_type::first); it != _symbols.end()) {
+		return _fasts[index].emplace(it->second = Reference(flags));
+	}
+	return _fasts[index].emplace(_symbols.emplace_back(name, Reference(flags)).second);
 }

@@ -30,10 +30,12 @@
 #include "mint/memory/garbage_collector.h"
 #include "mint/memory/reference.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <functional>
-#include <unordered_map>
+#include <iterator>
+#include <optional>
 #include <utility>
 #include <vector>
 #include <memory>
@@ -46,11 +48,16 @@ class Iterator;
 class PackageData;
 
 class MINT_EXPORT SymbolTable {
-public:
-	using symbol_type = std::unordered_map<Symbol, Reference>::value_type;
+	std::unique_ptr<std::optional<Reference>[]> _fasts;
+	std::vector<std::pair<Symbol, Reference>> _symbols;
+	std::vector<std::reference_wrapper<PackageData>> _package;
 
-	using iterator = std::unordered_map<Symbol, Reference>::iterator;
-	using const_iterator = std::unordered_map<Symbol, Reference>::const_iterator;
+	const Class* _metadata;
+	std::reference_wrapper<GlobalData> _global_data;
+public:
+	using symbol_type = std::pair<Symbol, Reference>;
+	using iterator = std::vector<std::pair<Symbol, Reference>>::iterator;
+	using const_iterator = std::vector<std::pair<Symbol, Reference>>::const_iterator;
 
 	explicit SymbolTable(GlobalData& global_data, const Class* metadata = nullptr);
 	SymbolTable(const SymbolTable&) = delete;
@@ -70,7 +77,7 @@ public:
 	inline void reserve_fast(std::size_t count);
 	inline Reference& setup_fast(const Symbol& name, std::size_t index,
 	    Reference::Flags flags = Reference::default_flags);
-	inline Reference get_fast(const Symbol& name, std::size_t index);
+	inline Reference& get_fast(const Symbol& name, std::size_t index);
 	inline std::size_t erase_fast(const Symbol& name, std::size_t index);
 
 	inline Reference& operator[](const Symbol& name);
@@ -101,13 +108,6 @@ public:
 private:
 	Reference& create_fast_reference(const Symbol& name, std::size_t index);
 	Reference& create_fast_reference(Reference::Flags flags, const Symbol& name, std::size_t index);
-
-	std::unique_ptr<std::unique_ptr<Reference>[]> _fasts;
-	std::unordered_map<Symbol, Reference> _symbols;
-
-	const Class* _metadata;
-	std::reference_wrapper<GlobalData> _global_data;
-	std::vector<std::reference_wrapper<PackageData>> _package;
 };
 
 void SymbolTable::open_package(PackageData& package) {
@@ -120,16 +120,16 @@ void SymbolTable::close_package() {
 }
 
 void SymbolTable::reserve_fast(std::size_t count) {
-	_fasts = std::make_unique<std::unique_ptr<Reference>[]>(count);
+	_fasts = std::make_unique<std::optional<Reference>[]>(count);
 }
 
 Reference& SymbolTable::setup_fast(const Symbol& name, std::size_t index, Reference::Flags flags) {
-	assert(_fasts[index] == nullptr || _fasts[index]->data().format() == Data::Format::none);
+	assert(!_fasts[index].has_value() || _fasts[index]->data().format() == Data::Format::none);
 	return create_fast_reference(flags, name, index);
 }
 
-Reference SymbolTable::get_fast(const Symbol& name, std::size_t index) {
-	if (const auto& reference = _fasts[index]) {
+Reference& SymbolTable::get_fast(const Symbol& name, std::size_t index) {
+	if (auto& reference = _fasts[index]) {
 		return *reference;
 	}
 	return create_fast_reference(name, index);
@@ -142,7 +142,10 @@ std::size_t SymbolTable::erase_fast(const Symbol& name, std::size_t index) {
 }
 
 Reference& SymbolTable::operator[](const Symbol& name) {
-	return _symbols[name];
+	if (const auto it = std::ranges::find(_symbols, name, &symbol_type::first); it != _symbols.end()) {
+		return it->second;
+	}
+	return _symbols.emplace_back(name, Reference()).second;
 }
 
 std::size_t SymbolTable::size() const {
@@ -154,15 +157,15 @@ bool SymbolTable::empty() const {
 }
 
 bool SymbolTable::contains(const Symbol& name) const {
-	return _symbols.contains(name);
+	return std::ranges::find(_symbols, name, &symbol_type::first) != _symbols.end();
 }
 
 SymbolTable::const_iterator SymbolTable::find(const Symbol& name) const {
-	return _symbols.find(name);
+	return std::ranges::find(_symbols, name, &symbol_type::first);
 }
 
 SymbolTable::iterator SymbolTable::find(const Symbol& name) {
-	return _symbols.find(name);
+	return std::ranges::find(_symbols, name, &symbol_type::first);
 }
 
 SymbolTable::const_iterator SymbolTable::begin() const {
@@ -182,23 +185,39 @@ SymbolTable::iterator SymbolTable::end() {
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::emplace(const Symbol& name, const Reference& reference) {
-	return _symbols.emplace(name, reference);
+	if (const auto it = std::ranges::find(_symbols, name, &symbol_type::first); it != _symbols.end()) {
+		return std::make_pair(it, false);
+	}
+	_symbols.emplace_back(name, reference);
+	return std::make_pair(std::ranges::prev(_symbols.end()), true);
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::emplace(const Symbol& name, Reference&& reference) {
-	return _symbols.emplace(name, std::move(reference));
+	if (const auto it = std::ranges::find(_symbols, name, &symbol_type::first); it != _symbols.end()) {
+		return std::make_pair(it, false);
+	}
+	_symbols.emplace_back(name, std::move(reference));
+	return std::make_pair(std::ranges::prev(_symbols.end()), true);
 }
 
 std::pair<SymbolTable::iterator, bool> SymbolTable::insert(const symbol_type& symbol) {
-	return _symbols.emplace(symbol.first, Reference(create_from, symbol.second));
+	if (const auto it = std::ranges::find(_symbols, symbol.first, &symbol_type::first); it != _symbols.end()) {
+		return std::make_pair(it, false);
+	}
+	_symbols.emplace_back(symbol.first, Reference(create_from, symbol.second));
+	return std::make_pair(std::ranges::prev(_symbols.end()), true);
 }
 
 std::size_t SymbolTable::erase(const Symbol& name) {
-	return _symbols.erase(name);
+	if (const auto it = std::ranges::find(_symbols, name, &symbol_type::first); it != _symbols.end()) {
+		_symbols.erase(it);
+		return 1;
+	}
+	return 0;
 }
 
 SymbolTable::iterator SymbolTable::erase(iterator position) {
-	return _symbols.erase(position);
+	return _symbols.erase(std::move(position));
 }
 
 void SymbolTable::clear() {
